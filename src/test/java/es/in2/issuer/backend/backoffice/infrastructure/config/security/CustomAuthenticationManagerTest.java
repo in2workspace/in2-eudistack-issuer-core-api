@@ -3,7 +3,6 @@ package es.in2.issuer.backend.backoffice.infrastructure.config.security;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import es.in2.issuer.backend.backoffice.infrastructure.config.security.CustomAuthenticationManager;
 import es.in2.issuer.backend.shared.domain.service.VerifierService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

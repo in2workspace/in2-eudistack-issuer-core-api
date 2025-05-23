@@ -2,7 +2,6 @@ package es.in2.issuer.backend.backoffice.infrastructure.config;
 
 import com.azure.core.credential.TokenCredential;
 import com.azure.data.appconfiguration.ConfigurationClient;
-import es.in2.issuer.backend.backoffice.infrastructure.config.AzAppConfigurationConfig;
 import es.in2.issuer.backend.shared.infrastructure.config.properties.AzureProperties;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

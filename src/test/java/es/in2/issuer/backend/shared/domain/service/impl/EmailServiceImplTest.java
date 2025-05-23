@@ -84,7 +84,7 @@ class EmailServiceImplTest {
         when(templateEngine.process(eq("credential-signed-notification"), any(Context.class))).thenReturn("htmlContent");
         when(mailProperties.getUsername()).thenReturn("user@example.com");
 
-        Mono<Void> result = emailService.sendCredentialSignedNotification("to@example.com", "subject", "\"John\"");
+        Mono<Void> result = emailService.sendCredentialSignedNotification("to@example.com", "subject", "\"John\"", "additionalInfo");
 
         StepVerifier.create(result)
                 .verifyComplete();

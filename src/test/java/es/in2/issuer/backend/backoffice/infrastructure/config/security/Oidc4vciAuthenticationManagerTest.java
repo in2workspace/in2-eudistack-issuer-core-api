@@ -2,7 +2,6 @@ package es.in2.issuer.backend.backoffice.infrastructure.config.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JWSObject;
-import es.in2.issuer.backend.backoffice.infrastructure.config.security.Oidc4vciAuthenticationManager;
 import es.in2.issuer.backend.shared.domain.service.JWTService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

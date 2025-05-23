@@ -5,37 +5,27 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import es.in2.issuer.backend.shared.domain.exception.InvalidCredentialFormatException;
-import es.in2.issuer.backend.shared.domain.exception.RemoteSignatureException;
 import es.in2.issuer.backend.shared.domain.model.dto.CredentialProcedureCreationRequest;
 import es.in2.issuer.backend.shared.domain.model.dto.LEARCredentialEmployeeJwtPayload;
-import es.in2.issuer.backend.shared.domain.model.dto.SignatureRequest;
-import es.in2.issuer.backend.shared.domain.model.dto.credential.DetailedIssuer;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.Power;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.employee.LEARCredentialEmployee;
 import es.in2.issuer.backend.shared.domain.model.enums.CredentialType;
 import es.in2.issuer.backend.shared.domain.service.AccessTokenService;
-import es.in2.issuer.backend.shared.domain.service.impl.RemoteSignatureServiceImpl;
-import es.in2.issuer.backend.shared.infrastructure.config.DefaultSignerConfig;
-import es.in2.issuer.backend.shared.infrastructure.config.RemoteSignatureConfig;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
-import reactor.util.retry.Retry;
 
 import java.sql.Timestamp;
-import java.time.Duration;
 import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
-import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
-import static es.in2.issuer.backend.backoffice.domain.util.Constants.*;
+import static es.in2.issuer.backend.backoffice.domain.util.Constants.LEAR_CREDENTIAL_EMPLOYEE_DESCRIPTION;
 import static es.in2.issuer.backend.shared.domain.util.Constants.*;
-import static es.in2.issuer.backend.shared.domain.util.Constants.VERIFIABLE_CERTIFICATION;
 
 @Slf4j
 @Component
@@ -44,9 +34,7 @@ public class LEARCredentialEmployeeFactory {
 
     private final ObjectMapper objectMapper;
     private final AccessTokenService accessTokenService;
-    private final RemoteSignatureConfig remoteSignatureConfig;
-    private final DefaultSignerConfig defaultSignerConfig;
-    private final RemoteSignatureServiceImpl remoteSignatureServiceImpl;
+    private final IssuerFactory issuerFactory;
 
     public Mono<String> mapCredentialAndBindMandateeIdInToTheCredential(String decodedCredentialString, String mandateeId){
         LEARCredentialEmployee decodedCredential = mapStringToLEARCredentialEmployee(decodedCredentialString);
@@ -141,68 +129,6 @@ public class LEARCredentialEmployeeFactory {
                 .toList();
     }
 
-    public Mono<DetailedIssuer> createIssuer(String procedureId, String credentialType) {
-        if (remoteSignatureConfig.getRemoteSignatureType().equals(SIGNATURE_REMOTE_TYPE_SERVER)) {
-            return Mono.just(DetailedIssuer.builder()
-                    .id(DID_ELSI + defaultSignerConfig.getOrganizationIdentifier())
-                    .organizationIdentifier(defaultSignerConfig.getOrganizationIdentifier())
-                    .organization(defaultSignerConfig.getOrganization())
-                    .country(defaultSignerConfig.getCountry())
-                    .commonName(defaultSignerConfig.getCommonName())
-                    .emailAddress(defaultSignerConfig.getEmail())
-                    .serialNumber(defaultSignerConfig.getSerialNumber())
-                    .build());
-        } else {
-            return createIssuerRemote(procedureId, credentialType);
-        }
-    }
-
-    private Mono<DetailedIssuer> createIssuerRemote(String procedureId, String credentialType) {
-        return Mono.defer(() -> remoteSignatureServiceImpl.validateCredentials()
-                .flatMap(valid -> {
-                    if (Boolean.FALSE.equals(valid)) {
-                        log.error("Credentials mismatch. Signature process aborted.");
-                        return Mono.error(new RemoteSignatureException("Credentials mismatch. Signature process aborted."));
-                    }
-
-                    return switch (credentialType) {
-                        case LEAR_CREDENTIAL_EMPLOYEE -> remoteSignatureServiceImpl.getMandatorMail(procedureId)
-                                .flatMap(mandatorMail -> remoteSignatureServiceImpl.requestAccessToken(SignatureRequest.builder().build(), SIGNATURE_REMOTE_SCOPE_SERVICE)
-                                        .flatMap(accessToken -> remoteSignatureServiceImpl.requestCertificateInfo(accessToken, remoteSignatureConfig.getRemoteSignatureCredentialId()))
-                                        .flatMap(certificateInfo -> remoteSignatureServiceImpl.extractIssuerFromCertificateInfo(certificateInfo, mandatorMail)));
-
-                        case VERIFIABLE_CERTIFICATION -> remoteSignatureServiceImpl.getMailForVerifiableCertification(procedureId)
-                                .flatMap(mail -> remoteSignatureServiceImpl.requestAccessToken(SignatureRequest.builder().build(), SIGNATURE_REMOTE_SCOPE_SERVICE)
-                                        .flatMap(accessToken -> remoteSignatureServiceImpl.requestCertificateInfo(accessToken, remoteSignatureConfig.getRemoteSignatureCredentialId()))
-                                        .flatMap(certificateInfo -> remoteSignatureServiceImpl.extractIssuerFromCertificateInfo(certificateInfo, mail)));
-
-                        default -> {
-                            log.error("Unsupported credentialType: {}", credentialType);
-                            yield Mono.error(new RemoteSignatureException("Unsupported credentialType: " + credentialType));
-                        }
-                    };
-                }))
-                .retryWhen(Retry.backoff(3, Duration.ofSeconds(1))
-                        .maxBackoff(Duration.ofSeconds(5))
-                        .jitter(0.5)
-                        .filter(remoteSignatureServiceImpl::isRecoverableError)
-                        .doBeforeRetry(retrySignal -> {
-                            long attempt = retrySignal.totalRetries() + 1;
-                            log.info("Retrying credential validation due to recoverable error (Attempt #{} of 3)", attempt);
-                        }))
-                .onErrorResume(throwable -> {
-                    boolean isRetryExhausted = !(throwable instanceof RemoteSignatureException &&
-                            throwable.getMessage().contains("Credentials mismatch"));
-
-                    if (isRetryExhausted) {
-                        log.error("Error after 3 retries, switching to ASYNC mode.");
-                    }
-                    log.error("Error Time: {}", new Date());
-                    return remoteSignatureServiceImpl.handlePostRecoverError(procedureId)
-                            .then(Mono.empty());
-                });
-    }
-
     private LEARCredentialEmployee.CredentialSubject.Mandate.Mandatee createMandatee(
             LEARCredentialEmployee.CredentialSubject baseCredentialSubject) {
         return LEARCredentialEmployee.CredentialSubject.Mandate.Mandatee.builder()
@@ -288,7 +214,7 @@ public class LEARCredentialEmployeeFactory {
     }
 
     private Mono<LEARCredentialEmployee> bindIssuerToLearCredentialEmployee(LEARCredentialEmployee decodedCredential, String procedureId) {
-        return createIssuer(procedureId, LEAR_CREDENTIAL_EMPLOYEE)
+        return issuerFactory.createIssuer(procedureId, LEAR_CREDENTIAL_EMPLOYEE)
                 .map(issuer -> LEARCredentialEmployee.builder()
                     .context(decodedCredential.context())
                     .id(decodedCredential.id())

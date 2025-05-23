@@ -1,6 +1,5 @@
 package es.in2.issuer.backend.shared.domain.util;
 
-import es.in2.issuer.backend.shared.domain.util.EndpointsConstants;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Constructor;

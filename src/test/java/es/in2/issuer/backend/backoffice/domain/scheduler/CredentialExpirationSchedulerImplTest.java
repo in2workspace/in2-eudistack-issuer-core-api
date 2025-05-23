@@ -1,7 +1,6 @@
 package es.in2.issuer.backend.backoffice.domain.scheduler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import es.in2.issuer.backend.backoffice.domain.scheduler.CredentialExpirationScheduler;
 import es.in2.issuer.backend.shared.domain.model.entities.CredentialProcedure;
 import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatus;
 import es.in2.issuer.backend.shared.infrastructure.repository.CredentialProcedureRepository;

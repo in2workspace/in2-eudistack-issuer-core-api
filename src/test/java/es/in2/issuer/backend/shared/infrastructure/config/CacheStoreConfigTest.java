@@ -3,8 +3,6 @@ package es.in2.issuer.backend.shared.infrastructure.config;
 import es.in2.issuer.backend.shared.domain.model.dto.CredentialIdAndTxCode;
 import es.in2.issuer.backend.shared.domain.model.dto.CredentialOfferData;
 import es.in2.issuer.backend.shared.domain.model.dto.VerifiableCredentialJWT;
-import es.in2.issuer.backend.shared.infrastructure.config.CacheConfig;
-import es.in2.issuer.backend.shared.infrastructure.config.CacheStoreConfig;
 import es.in2.issuer.backend.shared.infrastructure.repository.CacheStore;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

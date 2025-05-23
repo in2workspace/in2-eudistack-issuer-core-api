@@ -18,8 +18,7 @@ import org.thymeleaf.context.Context;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
-import java.io.*;
-
+import java.io.InputStream;
 
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.UTF_8;
 
@@ -123,10 +122,9 @@ public class EmailServiceImpl implements EmailService {
         }).subscribeOn(Schedulers.boundedElastic()).then();
     }
     @Override
-    public Mono<Void> sendCredentialSignedNotification(String to, String subject, String firstName) {
+    public Mono<Void> sendCredentialSignedNotification(String to, String subject, String firstName, String additionalInfo) {
         firstName = firstName.replace("\"", "");
         final String finalName = firstName;
-
         return Mono.fromCallable(() -> {
             MimeMessage mimeMessage = javaMailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
@@ -136,6 +134,7 @@ public class EmailServiceImpl implements EmailService {
 
             Context context = new Context();
             context.setVariable("name", finalName);
+            context.setVariable("additionalInfo", additionalInfo);
             String htmlContent = templateEngine.process("credential-signed-notification", context);
             helper.setText(htmlContent, true);
 

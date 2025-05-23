@@ -1,8 +1,8 @@
 package es.in2.issuer.backend.oidc4vci.application.workflow.impl;
 
-import es.in2.issuer.backend.shared.domain.repository.CredentialOfferCacheRepository;
 import es.in2.issuer.backend.oidc4vci.application.workflow.CredentialOfferWorkflow;
 import es.in2.issuer.backend.shared.domain.model.dto.CredentialOffer;
+import es.in2.issuer.backend.shared.domain.repository.CredentialOfferCacheRepository;
 import es.in2.issuer.backend.shared.domain.service.EmailService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

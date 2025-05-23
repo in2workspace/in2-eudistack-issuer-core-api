@@ -1,7 +1,6 @@
 package es.in2.issuer.backend.shared.infrastructure.config.properties;
 
 import jakarta.validation.constraints.NotBlank;
-import org.jetbrains.annotations.NotNull;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
 

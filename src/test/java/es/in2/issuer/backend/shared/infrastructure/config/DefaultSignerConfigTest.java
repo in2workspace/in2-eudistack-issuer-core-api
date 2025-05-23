@@ -1,6 +1,5 @@
 package es.in2.issuer.backend.shared.infrastructure.config;
 
-import es.in2.issuer.backend.shared.infrastructure.config.DefaultSignerConfig;
 import es.in2.issuer.backend.shared.infrastructure.config.adapter.ConfigAdapter;
 import es.in2.issuer.backend.shared.infrastructure.config.adapter.factory.ConfigAdapterFactory;
 import es.in2.issuer.backend.shared.infrastructure.config.properties.DefaultSignerProperties;

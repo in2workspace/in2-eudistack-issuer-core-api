@@ -13,7 +13,6 @@ import com.nimbusds.jwt.SignedJWT;
 import es.in2.issuer.backend.shared.domain.exception.JWTClaimMissingException;
 import es.in2.issuer.backend.shared.domain.exception.JWTCreationException;
 import es.in2.issuer.backend.shared.domain.exception.JWTParsingException;
-import es.in2.issuer.backend.shared.domain.service.impl.JWTServiceImpl;
 import es.in2.issuer.backend.shared.infrastructure.crypto.CryptoComponent;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;

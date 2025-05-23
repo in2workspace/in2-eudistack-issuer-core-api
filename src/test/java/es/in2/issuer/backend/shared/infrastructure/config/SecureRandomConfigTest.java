@@ -1,6 +1,5 @@
 package es.in2.issuer.backend.shared.infrastructure.config;
 
-import es.in2.issuer.backend.shared.infrastructure.config.SecureRandomConfig;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;

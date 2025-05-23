@@ -1,6 +1,7 @@
 package es.in2.issuer.backend.shared.application.workflow.impl;
 
 import com.nimbusds.jose.JWSObject;
+import es.in2.issuer.backend.shared.application.workflow.CredentialSignerWorkflow;
 import es.in2.issuer.backend.shared.application.workflow.CredentialIssuanceWorkflow;
 import es.in2.issuer.backend.shared.application.workflow.CredentialSignerWorkflow;
 import es.in2.issuer.backend.shared.domain.exception.*;
@@ -28,6 +29,7 @@ import javax.naming.OperationNotSupportedException;
 import java.text.ParseException;
 
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.*;
+import static es.in2.issuer.backend.shared.domain.util.Constants.*;
 import static es.in2.issuer.backend.shared.domain.util.Constants.LEAR_CREDENTIAL_EMPLOYEE;
 
 @Slf4j
@@ -49,6 +51,7 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
     private final LEARCredentialEmployeeFactory credentialEmployeeFactory;
     private final IssuerApiClientTokenService issuerApiClientTokenService;
     private final M2MTokenService m2mTokenService;
+    private final CredentialDeliveryService credentialDeliveryService;
     private final CredentialIssuanceRecordService credentialIssuanceRecordService;
 
     @Override
@@ -77,13 +80,31 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                                         // TODO instead of updating the credential status to valid,
                                         //  we should update the credential status to pending download
                                         //  but we don't support the verifiable certification download yet
-                                        .flatMap(encodedVc -> credentialProcedureService.updateCredentialProcedureCredentialStatusToValidByProcedureId(procedureId)
-                                                .then(m2mTokenService.getM2MToken()
-                                                        .flatMap(m2mAccessToken ->
-                                                                sendVcToResponseUri(
-                                                                        preSubmittedDataCredentialRequest,
-                                                                        encodedVc,
-                                                                        m2mAccessToken.accessToken())))))));
+                                        .flatMap(encodedVc -> {
+                                            // Extract values from payload
+                                            String productId = preSubmittedDataCredentialRequest.payload()
+                                                    .get(CREDENTIAL_SUBJECT)
+                                                    .get(PRODUCT)
+                                                    .get(PRODUCT_ID)
+                                                    .asText();
+
+                                            String companyEmail = preSubmittedDataCredentialRequest.payload()
+                                                    .get(CREDENTIAL_SUBJECT)
+                                                    .get(COMPANY)
+                                                    .get(EMAIL)
+                                                    .asText();
+                                            return credentialProcedureService.updateCredentialProcedureCredentialStatusToValidByProcedureId(procedureId)
+                                                    .then(m2mTokenService.getM2MToken()
+                                                            .flatMap(m2mAccessToken ->
+                                                                    sendVcToResponseUri(
+                                                                            preSubmittedDataCredentialRequest,
+                                                                            credentialDeliveryService.sendVcToResponseUri(
+                                                                                    preSubmittedCredentialRequest.responseUri(),
+                                                                                    encodedVc,
+                                                                                    productId,
+                                                                                    companyEmail
+                                                                                    m2mAccessToken.accessToken()))));
+                                        })));
     }
 
     private Mono<Void> ensurePreSubmittedCredentialResponseUriIsNotNullOrBlank(PreSubmittedDataCredentialRequest preSubmittedDataCredentialRequest) {
@@ -91,6 +112,12 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
             return Mono.error(new OperationNotSupportedException("For schema: " + preSubmittedDataCredentialRequest.schema() + " response_uri is required"));
         }
         return Mono.empty();
+                                                                        productId,
+                                                                        companyEmail,
+                                                                        m2mAccessToken.accessToken())))));
+                    }
+                    return Mono.error(new CredentialTypeUnsupportedException(preSubmittedCredentialRequest.schema()));
+                }));
     }
 
     private Mono<Void> ensureVerifiableCertificationHasIdToken(PreSubmittedDataCredentialRequest preSubmittedDataCredentialRequest, String idToken) {

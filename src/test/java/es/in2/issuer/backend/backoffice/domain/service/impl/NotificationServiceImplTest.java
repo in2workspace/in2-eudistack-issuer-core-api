@@ -1,6 +1,5 @@
 package es.in2.issuer.backend.backoffice.domain.service.impl;
 
-import es.in2.issuer.backend.backoffice.domain.service.impl.NotificationServiceImpl;
 import es.in2.issuer.backend.shared.domain.exception.EmailCommunicationException;
 import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatus;
 import es.in2.issuer.backend.shared.domain.service.CredentialProcedureService;
@@ -118,7 +117,7 @@ class NotificationServiceImplTest {
                 .thenReturn(Mono.just(user));
         when(credentialProcedureService.getMandatorOrganizationFromDecodedCredentialByProcedureId(procedureId))
                 .thenReturn(Mono.just(organization));
-        when(emailService.sendCredentialSignedNotification(email, "Credential Ready", user))
+        when(emailService.sendCredentialSignedNotification(email, "Credential Ready", user, "You can now use it with your wallet."))
                 .thenReturn(Mono.empty());
 
         Mono<Void> result = notificationService.sendNotification(processId, procedureId);
@@ -126,7 +125,7 @@ class NotificationServiceImplTest {
         StepVerifier.create(result)
                 .verifyComplete();
 
-        verify(emailService, times(1)).sendCredentialSignedNotification(anyString(), anyString(), anyString());
+        verify(emailService, times(1)).sendCredentialSignedNotification(anyString(), anyString(), anyString(), anyString());
     }
 
     @Test
@@ -146,6 +145,6 @@ class NotificationServiceImplTest {
                 .verifyComplete();
 
         verify(emailService, never()).sendCredentialActivationEmail(anyString(), anyString(), anyString(), anyString(), anyString(), anyString());
-        verify(emailService, never()).sendCredentialSignedNotification(anyString(), anyString(), anyString());
+        verify(emailService, never()).sendCredentialSignedNotification(anyString(), anyString(), anyString(), anyString());
     }
 }

@@ -10,6 +10,7 @@ import es.in2.issuer.backend.shared.domain.service.CredentialProcedureService;
 import es.in2.issuer.backend.shared.domain.service.DeferredCredentialMetadataService;
 import es.in2.issuer.backend.shared.domain.service.VerifiableCredentialService;
 import es.in2.issuer.backend.shared.domain.util.factory.CredentialFactory;
+import es.in2.issuer.backend.shared.domain.util.factory.IssuerFactory;
 import es.in2.issuer.backend.shared.domain.util.factory.LEARCredentialEmployeeFactory;
 import es.in2.issuer.backend.shared.domain.util.factory.VerifiableCertificationFactory;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +21,7 @@ import reactor.core.publisher.Mono;
 import java.text.ParseException;
 
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.*;
+import static es.in2.issuer.backend.shared.domain.util.Constants.VERIFIABLE_CERTIFICATION;
 
 
 @Service
@@ -32,17 +34,38 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
     private final CredentialSignerWorkflow credentialSignerWorkflow;
     private final LEARCredentialEmployeeFactory learCredentialEmployeeFactory;
     private final VerifiableCertificationFactory verifiableCertificationFactory;
+    private final IssuerFactory issuerFactory;
 
     @Override
-    public Mono<String> generateVerifiableCertification(String processId, PreSubmittedDataCredentialRequest preSubmittedDataCredentialRequest, String idToken) {
-        return credentialFactory.mapCredentialIntoACredentialProcedureRequest(processId, preSubmittedDataCredentialRequest, idToken)
+    public Mono<String> generateVc(String processId, String vcType, PreSubmittedCredentialRequest preSubmittedCredentialRequest, String token) {
+        return credentialFactory.mapCredentialIntoACredentialProcedureRequest(processId, preSubmittedCredentialRequest, token)
                 .flatMap(credentialProcedureService::createCredentialProcedure)
                 //TODO repensar esto cuando el flujo del Verification cumpla con el OIDC4VC
                 //Generate Issuer and Signer using LEARCredentialEmployee method
+                .flatMap(procedureId -> deferredCredentialMetadataService.createDeferredCredentialMetadata(
+                        procedureId,
+                        preSubmittedCredentialRequest.operationMode(),
+                        preSubmittedCredentialRequest.responseUri()));
+    }
+
+    @Override
+    public Mono<String> generateVerifiableCertification(String processId, PreSubmittedCredentialRequest preSubmittedCredentialRequest, String idToken) {
+        return credentialFactory.mapCredentialIntoACredentialProcedureRequest(processId, preSubmittedCredentialRequest, idToken)
+                .flatMap(credentialProcedureService::createCredentialProcedure)
                 .flatMap(procedureId ->
-                        learCredentialEmployeeFactory.createIssuer(procedureId, VERIFIABLE_CERTIFICATION)
+                        deferredCredentialMetadataService.createDeferredCredentialMetadata(
+                                        procedureId,
+                                        preSubmittedCredentialRequest.operationMode(),
+                                        preSubmittedCredentialRequest.responseUri()
+                                )
+                                .thenReturn(procedureId)
+                )
+                .flatMap(procedureId ->
+                        issuerFactory.createIssuer(procedureId, VERIFIABLE_CERTIFICATION)
                                 .flatMap(issuer -> verifiableCertificationFactory.mapIssuerAndSigner(procedureId, issuer))
-                                .flatMap(bindVerifiableCertification -> credentialProcedureService.updateDecodedCredentialByProcedureId(procedureId, bindVerifiableCertification, JWT_VC))
+                                .flatMap(bindVerifiableCertification ->
+                                        credentialProcedureService.updateDecodedCredentialByProcedureId(procedureId, bindVerifiableCertification, JWT_VC)
+                                )
                                 .onErrorResume(error -> {
                                     log.error("Error generating issuer/signer, continuing in ASYNC mode", error);
                                     return Mono.empty();
@@ -50,6 +73,8 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
                                 .thenReturn(procedureId)
                 );
     }
+
+
 
     @Override
     public Mono<VerifiableCredentialResponse> generateDeferredCredentialResponse(String processId, DeferredCredentialRequest deferredCredentialRequest) {

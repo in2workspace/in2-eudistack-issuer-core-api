@@ -50,6 +50,24 @@ public class DeferredCredentialMetadataServiceImpl implements DeferredCredential
     }
 
     @Override
+    public Mono<String> createDeferredCredentialMetadata(String procedureId, String operationMode, String responseUri) {
+        log.debug("Creating deferred credential metadata: procedureId={}, operationMode={}, responseUri={}", procedureId, operationMode, responseUri);
+        return generateCustomNonce()
+                .flatMap(nonce -> cacheStoreForTransactionCode.add(nonce, nonce))
+                .flatMap(transactionCode -> {
+                    DeferredCredentialMetadata deferredCredentialMetadata = DeferredCredentialMetadata
+                            .builder()
+                            .procedureId(UUID.fromString(procedureId))
+                            .transactionCode(transactionCode)
+                            .operationMode(operationMode)
+                            .responseUri(responseUri)
+                            .build();
+                    return deferredCredentialMetadataRepository.save(deferredCredentialMetadata)
+                            .then(Mono.just(transactionCode));
+                });
+    }
+
+    @Override
     public Mono<Map<String, Object>> updateCacheStoreForCTransactionCode(String transactionCode) {
         return generateCustomNonce()
                 .flatMap(cTransactionCode ->
@@ -62,6 +80,15 @@ public class DeferredCredentialMetadataServiceImpl implements DeferredCredential
                                                 ))
                                 )
                 );
+    }
+
+    @Override
+    public Mono<String> getResponseUriByProcedureId(String procedureId) {
+        return deferredCredentialMetadataRepository.findByProcedureId(UUID.fromString(procedureId))
+                .flatMap(deferredCredentialMetadata -> {
+                    String responseUri = deferredCredentialMetadata.getResponseUri();
+                    return Mono.justOrEmpty(responseUri);
+                });
     }
 
     @Override

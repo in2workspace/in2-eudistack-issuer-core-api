@@ -1,6 +1,5 @@
 package es.in2.issuer.backend.shared.infrastructure.config.properties;
 
-import es.in2.issuer.backend.shared.infrastructure.config.properties.RemoteSignatureProperties;
 import org.junit.jupiter.api.Test;
 
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.SIGNATURE_REMOTE_TYPE_SERVER;

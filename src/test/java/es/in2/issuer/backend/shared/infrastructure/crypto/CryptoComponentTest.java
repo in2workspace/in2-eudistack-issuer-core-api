@@ -4,8 +4,6 @@ import com.nimbusds.jose.crypto.bc.BouncyCastleProviderSingleton;
 import com.nimbusds.jose.jwk.Curve;
 import com.nimbusds.jose.jwk.ECKey;
 import es.in2.issuer.backend.shared.domain.util.UVarInt;
-import es.in2.issuer.backend.shared.infrastructure.crypto.CryptoComponent;
-import es.in2.issuer.backend.shared.infrastructure.crypto.CryptoConfig;
 import org.bitcoinj.base.Base58;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

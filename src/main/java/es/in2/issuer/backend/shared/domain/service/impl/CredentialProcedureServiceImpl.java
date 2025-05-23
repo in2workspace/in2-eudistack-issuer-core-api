@@ -27,7 +27,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.*;
-import static es.in2.issuer.backend.shared.domain.util.Constants.VERIFIABLE_CREDENTIAL;
+import static es.in2.issuer.backend.shared.domain.util.Constants.*;
 
 @Service
 @RequiredArgsConstructor
@@ -183,7 +183,7 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
                 try {
                     JsonNode credential = objectMapper.readTree(credentialProcedure.getCredentialDecoded());
                     return switch (credentialProcedure.getCredentialType()) {
-                        case "LEAR_CREDENTIAL_EMPLOYEE" -> {
+                        case LEAR_CREDENTIAL_EMPLOYEE_CREDENTIAL_TYPE -> {
                             if (credential.has(VC)) {
                                 JsonNode vcNode = credential.get(VC);
                                 JsonNode mandateNode = vcNode.get(CREDENTIAL_SUBJECT).get(MANDATE);
@@ -198,7 +198,7 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
                                 yield Mono.just(email.equals("jesus.ruiz@in2.es") ? "domesupport@in2.es" : email);
                             }
                         }
-                        case "VERIFIABLE_CERTIFICATION" -> Mono.just("domesupport@in2.es");
+                        case VERIFIABLE_CERTIFICATION_CREDENTIAL_TYPE -> Mono.just("domesupport@in2.es");
 
                         default -> Mono.error(new IllegalArgumentException("Unsupported credential type: " + credentialProcedure.getCredentialType()));
                     };

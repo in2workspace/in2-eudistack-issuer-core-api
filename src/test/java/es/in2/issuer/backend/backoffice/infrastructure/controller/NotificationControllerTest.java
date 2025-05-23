@@ -1,7 +1,6 @@
 package es.in2.issuer.backend.backoffice.infrastructure.controller;
 
 import es.in2.issuer.backend.backoffice.domain.service.NotificationService;
-import es.in2.issuer.backend.backoffice.infrastructure.controller.NotificationController;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
