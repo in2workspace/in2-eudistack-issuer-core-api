@@ -22,12 +22,11 @@ public class ConfigurationController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public Mono<ResponseEntity<Void>> saveConfiguration(@RequestHeader(HttpHeaders.AUTHORIZATION) String authorizationHeader,
+    public Mono<Void> saveConfiguration(@RequestHeader(HttpHeaders.AUTHORIZATION) String authorizationHeader,
                                                         @RequestBody Map<String, String> settings) {
         return accessTokenService.getOrganizationId(authorizationHeader)
                 .doOnNext(orgId -> log.debug("Saving config for organization : {}", orgId))
-                .flatMap(orgId -> configurationService.saveConfiguration(orgId, settings))
-                .thenReturn(ResponseEntity.status(HttpStatus.CREATED).build());
+                .flatMap(orgId -> configurationService.saveConfiguration(orgId, settings));
 
     }
 

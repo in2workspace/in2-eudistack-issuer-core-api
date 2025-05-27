@@ -29,7 +29,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-import static es.in2.issuer.backend.backoffice.domain.util.Constants.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.verify;
@@ -46,6 +45,10 @@ class SignatureConfigurationServiceImplTest {
     @InjectMocks SignatureConfigurationServiceImpl service;
 
     private static final String ORG = "org-1";
+    private static final String CREDENTIAL_PASSWORD = "credentialPassword";
+    private static final String CLIENT_SECRET = "clientSecret";
+    private static final String SECRET = "secret";
+    private static final String SLASH = "/";
 
     // --- saveSignatureConfig LOCAL mode ---
     @Test

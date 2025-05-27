@@ -31,8 +31,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static es.in2.issuer.backend.backoffice.domain.util.Constants.*;
-
 @Service
 @Slf4j
 @RequiredArgsConstructor
@@ -42,6 +40,11 @@ public class SignatureConfigurationServiceImpl implements SignatureConfiguration
     private final CloudProviderService cloudProviderService;
     private final SignatureConfigurationAuditService signatureConfigurationAuditService;
     private final ObjectMapper objectMapper;
+
+    private static final String CREDENTIAL_PASSWORD = "credentialPassword";
+    private static final String CLIENT_SECRET = "clientSecret";
+    private static final String SECRET = "secret";
+    private static final String SLASH = "/";
 
     @Override
     public Mono<SignatureConfiguration> saveSignatureConfig(

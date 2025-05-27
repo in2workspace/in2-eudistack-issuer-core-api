@@ -9,6 +9,7 @@ import es.in2.issuer.backend.backoffice.domain.model.entities.SignatureConfigura
 import es.in2.issuer.backend.backoffice.domain.repository.SignatureConfigurationAuditRepository;
 import es.in2.issuer.backend.backoffice.domain.service.SignatureConfigurationAuditService;
 import es.in2.issuer.backend.backoffice.domain.util.factory.SignatureConfigAuditFactory;
+import es.in2.issuer.backend.shared.domain.exception.ParseErrorException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
@@ -46,8 +47,8 @@ public class SignatureConfigurationAuditImpl implements SignatureConfigurationAu
             return auditRepository.save(audit).then();
 
         } catch (JsonProcessingException e) {
-            return Mono.error(new RuntimeException(
-                    "Error serializing audit change set", e));
+            return Mono.error(new ParseErrorException(
+                    "Error serializing audit change set: " + e.getMessage()));
         }
     }
 
@@ -68,7 +69,7 @@ public class SignatureConfigurationAuditImpl implements SignatureConfigurationAu
 
             return auditRepository.save(audit).then();
         } catch (JsonProcessingException e) {
-            return Mono.error(new RuntimeException("Error serializing old config for deletion audit", e));
+            return Mono.error(new ParseErrorException("Error serializing old config for deletion audit with ID: " + oldConfig.id()));
         }
     }
 
@@ -83,6 +84,5 @@ public class SignatureConfigurationAuditImpl implements SignatureConfigurationAu
         return auditRepository.findAllByOrganizationIdentifier(organizationIdentifier)
                 .map(factory::createFromEntity);
     }
-
 
 }

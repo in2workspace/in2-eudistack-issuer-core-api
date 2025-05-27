@@ -9,6 +9,7 @@ import es.in2.issuer.backend.backoffice.domain.model.dtos.SignatureConfiguration
 import es.in2.issuer.backend.backoffice.domain.model.entities.SignatureConfigurationAudit;
 import es.in2.issuer.backend.backoffice.domain.repository.SignatureConfigurationAuditRepository;
 import es.in2.issuer.backend.backoffice.domain.util.factory.SignatureConfigAuditFactory;
+import es.in2.issuer.backend.shared.domain.exception.ParseErrorException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -96,18 +97,16 @@ class SignatureConfigurationAuditImplTest {
 
     @Test
     void saveAudit_serializeOldValuesError() throws JsonProcessingException {
-        // Simulate error when serializing oldValues()
         when(objectMapper.writeValueAsString(changes.oldValues()))
                 .thenThrow(new JsonProcessingException("fail") {});
 
         Mono<Void> result = service.saveAudit(oldConfig, changes, rationale, userEmail);
 
         StepVerifier.create(result)
-                .expectErrorSatisfies(e -> {
-                    assertThat(e).isInstanceOf(RuntimeException.class);
-                    assertThat(e).hasMessageContaining("Error serializing audit change set");
-                    assertThat(e.getCause()).isInstanceOf(JsonProcessingException.class);
-                })
+                .expectErrorMatches(e ->
+                        e instanceof ParseErrorException &&
+                                e.getMessage().contains("Error serializing audit change set")
+                )
                 .verify();
     }
 
@@ -140,16 +139,17 @@ class SignatureConfigurationAuditImplTest {
     @Test
     void saveDeletionAudit_serializeError() throws JsonProcessingException {
         when(objectMapper.writeValueAsString(oldConfig))
-                .thenThrow(new JsonProcessingException("err"){});
+                .thenThrow(new JsonProcessingException("err") {});
 
         Mono<Void> result = service.saveDeletionAudit(oldConfig, rationale, userEmail);
 
         StepVerifier.create(result)
-                .expectErrorSatisfies(e -> {
-                    assertThat(e).isInstanceOf(RuntimeException.class);
-                    assertThat(e).hasMessageContaining("Error serializing old config for deletion audit");
-                    assertThat(e.getCause()).isInstanceOf(JsonProcessingException.class);
-                })
+                .expectErrorMatches(e ->
+                        e instanceof ParseErrorException &&
+                                e.getMessage().contains(
+                                        "Error serializing old config for deletion audit with ID: " + oldConfig.id()
+                                )
+                )
                 .verify();
     }
 
@@ -201,4 +201,3 @@ class SignatureConfigurationAuditImplTest {
                 .verifyComplete();
     }
 }
-
