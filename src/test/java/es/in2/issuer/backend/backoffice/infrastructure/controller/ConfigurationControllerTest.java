@@ -8,8 +8,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
@@ -41,13 +39,9 @@ class ConfigurationControllerTest {
         when(accessTokenService.getOrganizationId(AUTH)).thenReturn(Mono.just(ORG));
         when(configurationService.saveConfiguration(ORG, settings)).thenReturn(Mono.empty());
 
-        Mono<ResponseEntity<Void>> result = controller.saveConfiguration(AUTH, settings);
+        Mono<Void> result = controller.saveConfiguration(AUTH, settings);
 
         StepVerifier.create(result)
-                .assertNext(resp -> {
-                    assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.CREATED);
-                    assertThat(resp.getBody()).isNull();
-                })
                 .verifyComplete();
 
         verify(accessTokenService).getOrganizationId(AUTH);
@@ -75,13 +69,12 @@ class ConfigurationControllerTest {
         when(configurationService.getConfigurationMapByOrganization(ORG))
                 .thenReturn(Mono.just(settings));
 
-        Mono<ResponseEntity<Map<String, String>>> result =
+        Mono<Map<String, String>> result =
                 controller.getConfigurationsByOrganization(AUTH);
 
         StepVerifier.create(result)
                 .assertNext(resp -> {
-                    assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
-                    assertThat(resp.getBody()).isEqualTo(settings);
+                    assertThat(resp).isEqualTo(settings);
                 })
                 .verifyComplete();
 

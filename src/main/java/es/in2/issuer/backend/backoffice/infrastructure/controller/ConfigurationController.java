@@ -6,7 +6,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 
@@ -31,12 +30,11 @@ public class ConfigurationController {
     }
 
     @GetMapping
-    public Mono<ResponseEntity<Map<String, String>>> getConfigurationsByOrganization(
+    public Mono<Map<String, String>> getConfigurationsByOrganization(
             @RequestHeader(HttpHeaders.AUTHORIZATION) String authorizationHeader
     ) {
         return accessTokenService.getOrganizationId(authorizationHeader)
-                .flatMap(configurationService::getConfigurationMapByOrganization)
-                .map(configMap -> ResponseEntity.ok().body(configMap));
+                .flatMap(configurationService::getConfigurationMapByOrganization);
     }
 
     @PatchMapping
