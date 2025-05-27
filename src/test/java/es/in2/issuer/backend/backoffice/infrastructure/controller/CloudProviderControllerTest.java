@@ -1,14 +1,12 @@
 package es.in2.issuer.backend.backoffice.infrastructure.controller;
 
+import es.in2.issuer.backend.backoffice.domain.model.dtos.CloudProviderRequest;
 import es.in2.issuer.backend.backoffice.domain.model.entities.CloudProvider;
 import es.in2.issuer.backend.backoffice.domain.service.CloudProviderService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.mockito.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -16,8 +14,7 @@ import reactor.test.StepVerifier;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(org.mockito.junit.jupiter.MockitoExtension.class)
 class CloudProviderControllerTest {
@@ -29,55 +26,58 @@ class CloudProviderControllerTest {
     private CloudProviderController controller;
 
     private static final String AUTH = "Bearer dummy-token";
-    private CloudProvider sampleProvider;
+    private CloudProviderRequest request;
+    private CloudProvider savedEntity;
 
     @BeforeEach
     void setUp() {
         UUID id = UUID.randomUUID();
-        sampleProvider = CloudProvider.builder()
-                .id(id)
+        request = CloudProviderRequest.builder()
                 .provider("ProviderX")
                 .url("https://provider.x")
                 .authMethod("method")
                 .authGrantType("grant")
                 .requiresTOTP(true)
                 .build();
+
+        savedEntity = CloudProvider.builder()
+                .id(id)
+                .provider(request.provider())
+                .url(request.url())
+                .authMethod(request.authMethod())
+                .authGrantType(request.authGrantType())
+                .requiresTOTP(request.requiresTOTP())
+                .build();
     }
 
     @Test
     void createCloudProvider_success() {
-        // arrange
-        when(cloudProviderService.save(sampleProvider))
-                .thenReturn(Mono.just(sampleProvider));
+        when(cloudProviderService.save(request))
+                .thenReturn(Mono.just(savedEntity));
 
-        // act
-        Mono<ResponseEntity<CloudProvider>> result =
-                controller.createCloudProvider(AUTH, sampleProvider);
-
-        // assert
-        StepVerifier.create(result)
-                .assertNext(resp -> {
-                    assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.CREATED);
-                    assertThat(resp.getBody()).isEqualTo(sampleProvider);
+        // ahora devuelve Mono<CloudProvider> directamente
+        StepVerifier.create(controller.createCloudProvider(AUTH, request))
+                .assertNext(cp -> {
+                    assertThat(cp).isEqualTo(savedEntity);
                 })
                 .verifyComplete();
 
-        verify(cloudProviderService).save(sampleProvider);
+        verify(cloudProviderService).save(request);
     }
 
     @Test
     void createCloudProvider_errorPropagates() {
-        when(cloudProviderService.save(sampleProvider))
+        when(cloudProviderService.save(request))
                 .thenReturn(Mono.error(new IllegalStateException("fail")));
 
-        StepVerifier.create(controller.createCloudProvider(AUTH, sampleProvider))
+        StepVerifier.create(controller.createCloudProvider(AUTH, request))
                 .expectErrorMatches(e ->
                         e instanceof IllegalStateException &&
                                 e.getMessage().equals("fail")
                 )
                 .verify();
 
-        verify(cloudProviderService).save(sampleProvider);
+        verify(cloudProviderService).save(request);
     }
 
     @Test
@@ -92,12 +92,10 @@ class CloudProviderControllerTest {
                 .build();
 
         when(cloudProviderService.findAll())
-                .thenReturn(Flux.just(sampleProvider, other));
+                .thenReturn(Flux.just(savedEntity, other));
 
-        Flux<CloudProvider> result = controller.getAllCloudProviders(AUTH);
-
-        StepVerifier.create(result)
-                .assertNext(cp -> assertThat(cp).isEqualTo(sampleProvider))
+        StepVerifier.create(controller.getAllCloudProviders(AUTH))
+                .assertNext(cp -> assertThat(cp).isEqualTo(savedEntity))
                 .assertNext(cp -> assertThat(cp).isEqualTo(other))
                 .verifyComplete();
 

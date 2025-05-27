@@ -7,7 +7,6 @@ import org.springframework.data.relational.core.mapping.Table;
 import java.util.UUID;
 
 @Getter
-@Setter
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor

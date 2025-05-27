@@ -1,5 +1,6 @@
 package es.in2.issuer.backend.backoffice.domain.service.impl;
 
+import es.in2.issuer.backend.backoffice.domain.model.dtos.CloudProviderRequest;
 import es.in2.issuer.backend.backoffice.domain.model.entities.CloudProvider;
 import es.in2.issuer.backend.backoffice.domain.repository.CloudProviderRepository;
 import es.in2.issuer.backend.backoffice.domain.service.CloudProviderService;
@@ -16,8 +17,10 @@ public class CloudProviderServiceImpl implements CloudProviderService {
     private final CloudProviderRepository repository;
 
     @Override
-    public Mono<CloudProvider> save(CloudProvider provider){
-        return repository.save(provider);
+    public Mono<CloudProvider> save(CloudProviderRequest provider){
+
+        return buildCloudProvider(provider)
+                .flatMap(repository::save);
     }
 
     @Override
@@ -35,5 +38,17 @@ public class CloudProviderServiceImpl implements CloudProviderService {
     @Override
     public Mono<CloudProvider> findById(UUID id) {
         return repository.findById(id);
+    }
+
+    private Mono<CloudProvider> buildCloudProvider(CloudProviderRequest request) {
+        return Mono.just(
+                CloudProvider.builder()
+                        .provider(request.provider())
+                        .url(request.url())
+                        .authMethod(request.authMethod())
+                        .authGrantType(request.authGrantType())
+                        .requiresTOTP(request.requiresTOTP())
+                .build()
+        );
     }
 }

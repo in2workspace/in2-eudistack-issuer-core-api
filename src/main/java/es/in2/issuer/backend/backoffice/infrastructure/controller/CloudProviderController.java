@@ -1,11 +1,8 @@
 package es.in2.issuer.backend.backoffice.infrastructure.controller;
 
+import es.in2.issuer.backend.backoffice.domain.model.dtos.CloudProviderRequest;
 import es.in2.issuer.backend.backoffice.domain.model.entities.CloudProvider;
 import es.in2.issuer.backend.backoffice.domain.service.CloudProviderService;
-import es.in2.issuer.backend.shared.infrastructure.config.SwaggerConfig;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
@@ -27,12 +24,11 @@ public class CloudProviderController {
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
-    public Mono<ResponseEntity<CloudProvider>> createCloudProvider(
+    public Mono<CloudProvider> createCloudProvider(
             @RequestHeader(HttpHeaders.AUTHORIZATION) String authorizationHeader,
-            @RequestBody CloudProvider request) {
-        log.debug("Creating new cloud provider: {}", request.getProvider());
-        return cloudProviderService.save(request)
-                .map(saved -> ResponseEntity.status(HttpStatus.CREATED).body(saved));
+            @RequestBody CloudProviderRequest request) {
+        log.debug("Creating new cloud provider: {}", request.provider());
+        return cloudProviderService.save(request);
     }
 
     @GetMapping(path = "/backoffice/v1/signatures/cloud-providers",

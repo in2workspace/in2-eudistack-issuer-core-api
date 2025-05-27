@@ -1,5 +1,6 @@
 package es.in2.issuer.backend.backoffice.domain.service.impl;
 
+import es.in2.issuer.backend.backoffice.domain.model.dtos.CloudProviderRequest;
 import es.in2.issuer.backend.backoffice.domain.model.entities.CloudProvider;
 import es.in2.issuer.backend.backoffice.domain.repository.CloudProviderRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -41,16 +42,49 @@ class CloudProviderServiceImplTest {
     }
 
     @Test
-    void save_delegatesToRepository() {
-        when(repository.save(sampleProvider)).thenReturn(Mono.just(sampleProvider));
+    void save_fromRequest_buildsEntityAndDelegatesToRepository() {
+        CloudProviderRequest req = CloudProviderRequest.builder()
+                .provider("ProvX")
+                .url("https://prov.x")
+                .authMethod("m")
+                .authGrantType("g")
+                .requiresTOTP(true)
+                .build();
 
-        Mono<CloudProvider> result = service.save(sampleProvider);
+        when(repository.save(any(CloudProvider.class)))
+                .thenAnswer(inv -> {
+                    CloudProvider passed = inv.getArgument(0);
+                    CloudProvider saved = CloudProvider.builder()
+                            .id(id)
+                            .provider(passed.getProvider())
+                            .url(passed.getUrl())
+                            .authMethod(passed.getAuthMethod())
+                            .authGrantType(passed.getAuthGrantType())
+                            .requiresTOTP(passed.isRequiresTOTP())
+                            .build();
+                    return Mono.just(saved);
+                });
 
-        StepVerifier.create(result)
-                .assertNext(cp -> assertThat(cp).isEqualTo(sampleProvider))
+        StepVerifier.create(service.save(req))
+                .assertNext(saved -> {
+                    assertThat(saved.getId()).isEqualTo(id);
+                    assertThat(saved.getProvider()).isEqualTo("ProvX");
+                    assertThat(saved.getUrl()).isEqualTo("https://prov.x");
+                    assertThat(saved.getAuthMethod()).isEqualTo("m");
+                    assertThat(saved.getAuthGrantType()).isEqualTo("g");
+                    assertThat(saved.isRequiresTOTP()).isTrue();
+                })
                 .verifyComplete();
 
-        verify(repository).save(sampleProvider);
+        ArgumentCaptor<CloudProvider> captor = ArgumentCaptor.forClass(CloudProvider.class);
+        verify(repository).save(captor.capture());
+        CloudProvider built = captor.getValue();
+        assertThat(built.getId()).isNull();
+        assertThat(built.getProvider()).isEqualTo("ProvX");
+        assertThat(built.getUrl()).isEqualTo("https://prov.x");
+        assertThat(built.getAuthMethod()).isEqualTo("m");
+        assertThat(built.getAuthGrantType()).isEqualTo("g");
+        assertThat(built.isRequiresTOTP()).isTrue();
     }
 
     @Test
