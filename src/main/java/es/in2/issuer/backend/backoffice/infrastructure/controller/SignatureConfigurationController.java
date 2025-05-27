@@ -30,15 +30,14 @@ public class SignatureConfigurationController {
 
     @PostMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
-    public Mono<ResponseEntity<SignatureConfiguration>> createSignatureConfiguration(
+    public Mono<SignatureConfiguration> createSignatureConfiguration(
             @RequestHeader(HttpHeaders.AUTHORIZATION) String authorizationHeader,
             @RequestBody CompleteSignatureConfiguration config
     ) {
 
         log.debug("Creating signature configuration for organization: {}", config.organizationIdentifier());
         return accessTokenService.getOrganizationId(authorizationHeader)
-                .flatMap(orgId ->signatureConfigurationService.saveSignatureConfig( config, orgId))
-                .map(savedConfig -> ResponseEntity.status(HttpStatus.CREATED).body((savedConfig)));
+                .flatMap(orgId ->signatureConfigurationService.saveSignatureConfig( config, orgId));
 
     }
 

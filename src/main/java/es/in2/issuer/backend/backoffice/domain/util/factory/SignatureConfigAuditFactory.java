@@ -17,17 +17,18 @@ public class SignatureConfigAuditFactory {
         JsonNode oldValues = parseJsonOrEmpty(entity.getOldValues());
         JsonNode newValues = parseJsonOrNull(entity.getNewValues());
 
-        return new SignatureConfigAudit(
-                entity.getId().toString(),
-                entity.getSignatureConfigurationId(),
-                entity.getUserEmail(),
-                entity.getOrganizationIdentifier(),
-                entity.getInstant().toString(),
-                oldValues,
-                newValues,
-                entity.getRationale(),
-                entity.isEncrypted()
-        );
+        return SignatureConfigAudit
+                .builder()
+                    .id(entity.getId().toString())
+                    .signatureConfigurationId(entity.getSignatureConfigurationId())
+                    .userEmail(entity.getUserEmail())
+                    .organizationIdentifier(entity.getOrganizationIdentifier())
+                    .instant(entity.getInstant().toString())
+                    .oldValues(oldValues)
+                    .newValues(newValues)
+                    .rationale(entity.getRationale())
+                    .encrypted(entity.isEncrypted())
+                .build();
     }
 
     private JsonNode parseJsonOrEmpty(String json) {

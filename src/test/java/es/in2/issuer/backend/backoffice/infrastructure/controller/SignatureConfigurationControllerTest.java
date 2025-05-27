@@ -95,13 +95,12 @@ class SignatureConfigurationControllerTest {
         when(signatureConfigurationService.saveSignatureConfig(sampleConfig, ORG_ID))
                 .thenReturn(Mono.just(sampleSavedEntity));
 
-        Mono<ResponseEntity<SignatureConfiguration>> result =
+        Mono<SignatureConfiguration> result =
                 controller.createSignatureConfiguration(AUTH, sampleConfig);
 
         StepVerifier.create(result)
                 .assertNext(resp -> {
-                    assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.CREATED);
-                    assertThat(resp.getBody()).isEqualTo(sampleSavedEntity);
+                    assertThat(resp).isEqualTo(sampleSavedEntity);
                 })
                 .verifyComplete();
 
