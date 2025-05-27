@@ -16,7 +16,6 @@ import java.util.UUID;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-@ToString
 @Table("issuer.signature_configuration")
 public class SignatureConfiguration implements Persistable<UUID> {
     @Id

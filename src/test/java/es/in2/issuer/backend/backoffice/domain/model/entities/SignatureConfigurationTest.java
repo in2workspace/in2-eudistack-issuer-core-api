@@ -91,35 +91,4 @@ class SignatureConfigurationTest {
         // non-null id and newTransaction false => isNew false
         assertFalse(cfg.isNew());
     }
-
-    @Test
-    void testToStringContainsAllFields() {
-        UUID id = UUID.fromString("00000000-0000-0000-0000-000000000001");
-        UUID cloudProviderId = UUID.fromString("00000000-0000-0000-0000-000000000002");
-        SignatureConfiguration cfg = SignatureConfiguration.builder()
-                .id(id)
-                .organizationIdentifier("org-1")
-                .enableRemoteSignature(true)
-                .signatureMode(SignatureMode.LOCAL)
-                .cloudProviderId(cloudProviderId)
-                .clientId("cid")
-                .secretRelativePath("spath")
-                .credentialId("credId")
-                .credentialName("credName")
-                .newTransaction(false)
-                .build();
-
-        String str = cfg.toString();
-        assertTrue(str.contains("SignatureConfiguration"));
-        assertTrue(str.contains("id=" + id));
-        assertTrue(str.contains("organizationIdentifier=org-1"));
-        assertTrue(str.contains("enableRemoteSignature=true"));
-        assertTrue(str.contains("signatureMode=LOCAL"));
-        assertTrue(str.contains("cloudProviderId=" + cloudProviderId));
-        assertTrue(str.contains("clientId=cid"));
-        assertTrue(str.contains("secretRelativePath=spath"));
-        assertTrue(str.contains("credentialId=credId"));
-        assertTrue(str.contains("credentialName=credName"));
-        assertTrue(str.contains("newTransaction=false"));
-    }
 }
