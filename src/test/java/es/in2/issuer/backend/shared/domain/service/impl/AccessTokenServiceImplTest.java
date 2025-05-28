@@ -208,4 +208,71 @@ class AccessTokenServiceImplTest {
                     .verify();
         }
     }
+
+    @Test
+    void testGetMandateeEmail_Valid() throws Exception {
+        String validJwtToken = "header.payload.signature";
+        String expectedEmail = "user@example.com";
+        String jwtPayload = "{"
+                + "\"vc\":{"
+                +     "\"credentialSubject\":{"
+                +         "\"mandate\":{"
+                +             "\"mandatee\":{"
+                +                 "\"email\":\"" + expectedEmail + "\""
+                +             "}"
+                +         "}"
+                +     "}"
+                + "}"
+                + "}";
+
+        try (MockedStatic<SignedJWT> jwtStatic = mockStatic(SignedJWT.class)) {
+            jwtStatic.when(() -> SignedJWT.parse(anyString())).thenReturn(mockSignedJwt);
+            when(mockSignedJwt.getPayload()).thenReturn(new Payload(jwtPayload));
+            ObjectMapper realMapper = new ObjectMapper();
+            JsonNode tree = realMapper.readTree(jwtPayload);
+            when(mockObjectMapper.readTree(jwtPayload)).thenReturn(tree);
+
+            Mono<String> result = accessTokenServiceImpl.getMandateeEmail("Bearer " + validJwtToken);
+
+            StepVerifier.create(result)
+                    .expectNext(expectedEmail)
+                    .verifyComplete();
+        }
+    }
+
+    @Test
+    void testGetMandateeEmail_InvalidToken() {
+        String invalidJwtToken = "bad.token.here";
+
+        try (MockedStatic<SignedJWT> jwtStatic = mockStatic(SignedJWT.class)) {
+            jwtStatic.when(() -> SignedJWT.parse(anyString()))
+                    .thenThrow(new ParseException("Invalid token", 0));
+
+            Mono<String> result = accessTokenServiceImpl.getMandateeEmail("Bearer " + invalidJwtToken);
+
+            StepVerifier.create(result)
+                    .expectError(InvalidTokenException.class)
+                    .verify();
+        }
+    }
+
+    @Test
+    void testGetMandateeEmail_InvalidJson() throws Exception {
+        String validJwtToken = "header.payload.signature";
+        String badJson = "{\"vc\":{}}";
+
+        try (MockedStatic<SignedJWT> jwtStatic = mockStatic(SignedJWT.class)) {
+            jwtStatic.when(() -> SignedJWT.parse(anyString())).thenReturn(mockSignedJwt);
+            when(mockSignedJwt.getPayload()).thenReturn(new Payload(badJson));
+            when(mockObjectMapper.readTree(badJson))
+                    .thenThrow(new JsonProcessingException("Bad JSON") {});
+
+            Mono<String> result = accessTokenServiceImpl.getMandateeEmail("Bearer " + validJwtToken);
+
+            StepVerifier.create(result)
+                    .expectError(InvalidTokenException.class)
+                    .verify();
+        }
+    }
+
 }

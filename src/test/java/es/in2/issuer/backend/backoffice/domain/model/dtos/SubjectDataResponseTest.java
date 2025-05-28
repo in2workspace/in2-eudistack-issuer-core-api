@@ -1,4 +1,4 @@
-package es.in2.issuer.backend.backoffice.domain.model;
+package es.in2.issuer.backend.backoffice.domain.model.dtos;
 
 import org.junit.jupiter.api.Test;
 

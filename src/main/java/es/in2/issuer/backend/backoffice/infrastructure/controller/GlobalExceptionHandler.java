@@ -2,13 +2,14 @@ package es.in2.issuer.backend.backoffice.infrastructure.controller;
 
 
 import es.in2.issuer.backend.backoffice.domain.exception.*;
+import es.in2.issuer.backend.backoffice.domain.model.dtos.GlobalErrorMessage;
 import es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes;
 import es.in2.issuer.backend.shared.domain.exception.*;
 import es.in2.issuer.backend.shared.domain.model.dto.CredentialErrorResponse;
-import es.in2.issuer.backend.shared.domain.model.dto.GlobalErrorMessage;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -17,6 +18,9 @@ import reactor.core.publisher.Mono;
 import javax.naming.OperationNotSupportedException;
 import java.text.ParseException;
 import java.util.NoSuchElementException;
+import java.util.UUID;
+
+import static es.in2.issuer.backend.backoffice.domain.util.Constants.ERROR_LOG_FORMAT;
 
 // TODO: if we use @ResponseStatus we shouldn't use ResponseEntity is redundant
 @Slf4j
@@ -286,10 +290,10 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(EmailCommunicationException.class)
     @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
-    public Mono<GlobalErrorMessage> handleEmailCommunicationException(EmailCommunicationException ex) {
+    public Mono<es.in2.issuer.backend.shared.domain.model.dto.GlobalErrorMessage> handleEmailCommunicationException(EmailCommunicationException ex) {
 
         return Mono.just(
-                GlobalErrorMessage.builder()
+                es.in2.issuer.backend.shared.domain.model.dto.GlobalErrorMessage.builder()
                         .status(HttpStatus.SERVICE_UNAVAILABLE.value())
                         .message(ex.getMessage())
                         .error("EmailCommunicationException")
@@ -310,5 +314,97 @@ public class GlobalExceptionHandler {
                 description);
 
         return Mono.just(ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse));
+    }
+
+    @ExceptionHandler(OrganizationIdentifierMismatchException.class)
+    public Mono<ResponseEntity<GlobalErrorMessage>> handleOrganizationIdentifierMismatchException(OrganizationIdentifierMismatchException ex, ServerHttpRequest request) {
+        String instanceId = UUID.randomUUID().toString();
+
+        log.error(ERROR_LOG_FORMAT,
+                instanceId,
+                request.getPath(),
+                HttpStatus.FORBIDDEN.value(),
+                ex.getClass(),
+                ex.getMessage()
+        );
+
+        GlobalErrorMessage response = new GlobalErrorMessage(
+                "Unauthorized",
+                ex.getClass().toString(),
+                HttpStatus.FORBIDDEN.value(),
+                ex.getMessage(),
+                instanceId
+        );
+
+        return Mono.just(ResponseEntity.status(HttpStatus.FORBIDDEN).body(response));
+    }
+
+    @ExceptionHandler(NoSuchEntityException.class)
+    public Mono<ResponseEntity<GlobalErrorMessage>> handleNoSuchEntityException(NoSuchEntityException ex, ServerHttpRequest request) {
+        String instanceId = UUID.randomUUID().toString();
+
+        log.error(ERROR_LOG_FORMAT,
+                instanceId,
+                request.getPath(),
+                HttpStatus.NOT_FOUND.value(),
+                ex.getClass(),
+                ex.getMessage()
+        );
+
+        GlobalErrorMessage response = new GlobalErrorMessage(
+                "Not Found",
+                ex.getClass().toString(),
+                HttpStatus.NOT_FOUND.value(),
+                ex.getMessage(),
+                instanceId
+        );
+
+        return Mono.just(ResponseEntity.status(HttpStatus.NOT_FOUND).body(response));
+    }
+
+    @ExceptionHandler(MissingRequiredDataException.class)
+    public Mono<ResponseEntity<GlobalErrorMessage>> handleMissingRequiredDataException(MissingRequiredDataException ex, ServerHttpRequest request) {
+        String instanceId = UUID.randomUUID().toString();
+
+        log.error(ERROR_LOG_FORMAT,
+                instanceId,
+                request.getPath(),
+                HttpStatus.BAD_REQUEST.value(),
+                ex.getClass(),
+                ex.getMessage()
+        );
+
+        GlobalErrorMessage response = new GlobalErrorMessage(
+                "Bad Request",
+                ex.getClass().toString(),
+                HttpStatus.BAD_REQUEST.value(),
+                ex.getMessage(),
+                instanceId
+        );
+
+        return Mono.just(ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response));
+    }
+
+    @ExceptionHandler(InvalidSignatureConfigurationException.class)
+    public Mono<ResponseEntity<GlobalErrorMessage>> handleInvalidSignatureConfigurationException(InvalidSignatureConfigurationException ex, ServerHttpRequest request) {
+        String instanceId = UUID.randomUUID().toString();
+
+        log.error(ERROR_LOG_FORMAT,
+                instanceId,
+                request.getPath(),
+                HttpStatus.BAD_REQUEST.value(),
+                ex.getClass(),
+                ex.getMessage()
+        );
+
+        GlobalErrorMessage response = new GlobalErrorMessage(
+                "Bad Request",
+                ex.getClass().toString(),
+                HttpStatus.BAD_REQUEST.value(),
+                ex.getMessage(),
+                instanceId
+        );
+
+        return Mono.just(ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response));
     }
 }
