@@ -7,5 +7,5 @@ public interface AccessTokenService {
     Mono<String> getUserId(String authorizationHeader);
     Mono<String> getOrganizationId(String authorizationHeader);
     Mono<String> getOrganizationIdFromCurrentSession();
-
+    Mono<String> getMandateeEmail(String authorizationHeader);
 }

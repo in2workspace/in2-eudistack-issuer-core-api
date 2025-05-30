@@ -1,6 +1,6 @@
 package es.in2.issuer.backend.backoffice.application.workflow.impl;
 
-import es.in2.issuer.backend.backoffice.domain.model.CredentialOfferUriResponse;
+import es.in2.issuer.backend.backoffice.domain.model.dtos.CredentialOfferUriResponse;
 import es.in2.issuer.backend.backoffice.domain.service.impl.CredentialOfferServiceImpl;
 import es.in2.issuer.backend.oidc4vci.application.workflow.PreAuthorizedCodeWorkflow;
 import es.in2.issuer.backend.shared.domain.model.dto.CredentialOffer;
