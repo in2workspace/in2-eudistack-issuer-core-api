@@ -5,11 +5,10 @@ import es.in2.issuer.backend.backoffice.domain.exception.*;
 import es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes;
 import es.in2.issuer.backend.shared.domain.exception.*;
 import es.in2.issuer.backend.shared.domain.model.dto.CredentialErrorResponse;
-import es.in2.issuer.backend.shared.domain.model.dto.GlobalErrorMessage;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.web.context.request.WebRequest;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -20,6 +19,7 @@ import java.util.NoSuchElementException;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 

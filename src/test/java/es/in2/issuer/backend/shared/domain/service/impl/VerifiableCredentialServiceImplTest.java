@@ -5,14 +5,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import es.in2.issuer.backend.backoffice.domain.util.Constants;
 import es.in2.issuer.backend.shared.application.workflow.CredentialSignerWorkflow;
 import es.in2.issuer.backend.shared.domain.model.dto.*;
-import es.in2.issuer.backend.backoffice.domain.util.Constants;
-import es.in2.issuer.backend.shared.application.workflow.CredentialSignerWorkflow;
-import es.in2.issuer.backend.shared.domain.model.dto.*;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.DetailedIssuer;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.employee.LEARCredentialEmployee;
 import es.in2.issuer.backend.shared.domain.service.CredentialProcedureService;
 import es.in2.issuer.backend.shared.domain.service.DeferredCredentialMetadataService;
-import es.in2.issuer.backend.shared.domain.service.EmailService;
 import es.in2.issuer.backend.shared.domain.util.factory.CredentialFactory;
 import es.in2.issuer.backend.shared.domain.util.factory.IssuerFactory;
 import es.in2.issuer.backend.shared.domain.util.factory.LEARCredentialEmployeeFactory;
@@ -28,8 +24,6 @@ import reactor.test.StepVerifier;
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.BEARER_PREFIX;
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.JWT_VC;
 import static es.in2.issuer.backend.shared.domain.util.Constants.VERIFIABLE_CERTIFICATION;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
@@ -419,7 +413,7 @@ class VerifiableCredentialServiceImplTest {
         String bindVerifiableCertification = "bind-verifiable-certification-data";
 
         JsonNode mockCredentialJsonNode = mock(JsonNode.class);
-        PreSubmittedCredentialRequest preSubmittedCredentialRequest = PreSubmittedCredentialRequest.builder()
+        PreSubmittedDataCredentialRequest preSubmittedCredentialRequest = PreSubmittedDataCredentialRequest.builder()
                 .payload(mockCredentialJsonNode)
                 .operationMode("SYNC")
                 .responseUri("https://example.com/response")
@@ -493,7 +487,7 @@ class VerifiableCredentialServiceImplTest {
         String token = "id-token-123";
         JsonNode mockCredentialJsonNode = mock(JsonNode.class);
 
-        PreSubmittedCredentialRequest preSubmittedCredentialRequest = PreSubmittedCredentialRequest.builder()
+        PreSubmittedDataCredentialRequest preSubmittedCredentialRequest = PreSubmittedDataCredentialRequest.builder()
                 .payload(mockCredentialJsonNode)
                 .operationMode("SYNC")
                 .responseUri("https://example.com/response")
@@ -565,7 +559,7 @@ class VerifiableCredentialServiceImplTest {
         String token = "id-token-123";
         JsonNode mockCredentialJsonNode = mock(JsonNode.class);
 
-        PreSubmittedCredentialRequest preSubmittedCredentialRequest = PreSubmittedCredentialRequest.builder()
+        PreSubmittedDataCredentialRequest preSubmittedCredentialRequest = PreSubmittedDataCredentialRequest.builder()
                 .payload(mockCredentialJsonNode)
                 .operationMode("SYNC")
                 .responseUri("https://example.com/response")

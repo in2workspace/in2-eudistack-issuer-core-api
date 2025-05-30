@@ -37,7 +37,7 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
     private final IssuerFactory issuerFactory;
 
     @Override
-    public Mono<String> generateVc(String processId, String vcType, PreSubmittedCredentialRequest preSubmittedCredentialRequest, String token) {
+    public Mono<String> generateVc(String processId, String vcType, PreSubmittedDataCredentialRequest preSubmittedCredentialRequest, String token) {
         return credentialFactory.mapCredentialIntoACredentialProcedureRequest(processId, preSubmittedCredentialRequest, token)
                 .flatMap(credentialProcedureService::createCredentialProcedure)
                 //TODO repensar esto cuando el flujo del Verification cumpla con el OIDC4VC
@@ -49,7 +49,7 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
     }
 
     @Override
-    public Mono<String> generateVerifiableCertification(String processId, PreSubmittedCredentialRequest preSubmittedCredentialRequest, String idToken) {
+    public Mono<String> generateVerifiableCertification(String processId, PreSubmittedDataCredentialRequest preSubmittedCredentialRequest, String idToken) {
         return credentialFactory.mapCredentialIntoACredentialProcedureRequest(processId, preSubmittedCredentialRequest, idToken)
                 .flatMap(credentialProcedureService::createCredentialProcedure)
                 .flatMap(procedureId ->
