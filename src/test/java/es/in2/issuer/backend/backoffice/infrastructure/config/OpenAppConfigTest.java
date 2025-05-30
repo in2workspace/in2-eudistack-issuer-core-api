@@ -1,6 +1,5 @@
 package es.in2.issuer.backend.backoffice.infrastructure.config;
 
-import es.in2.issuer.backend.backoffice.infrastructure.config.OpenApiConfig;
 import es.in2.issuer.backend.backoffice.infrastructure.config.properties.OpenApiProperties;
 import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
 import io.swagger.v3.oas.models.OpenAPI;

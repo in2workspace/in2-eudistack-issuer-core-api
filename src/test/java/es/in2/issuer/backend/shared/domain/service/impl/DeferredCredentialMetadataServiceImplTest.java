@@ -66,6 +66,82 @@ class DeferredCredentialMetadataServiceImplTest {
     }
 
     @Test
+    void testCreateDeferredCredentialMetadata_Success() {
+        // Arrange
+        String procedureId = UUID.randomUUID().toString();
+        String nonce = "nonce";
+        String transactionCode = "transaction-code";
+
+        try (MockedStatic<Utils> mockUtils = mockStatic(Utils.class)) {
+            mockUtils.when(Utils::generateCustomNonce).thenReturn(Mono.just(nonce));
+        }
+        when(cacheStore.add(anyString(), anyString())).thenReturn(Mono.just(transactionCode));
+        when(deferredCredentialMetadataRepository.save(any(DeferredCredentialMetadata.class))).thenReturn(Mono.just(new DeferredCredentialMetadata()));
+
+        // Act
+        StepVerifier.create(deferredCredentialMetadataService.createDeferredCredentialMetadata(procedureId, "A", null))
+                .expectNext(transactionCode)
+                .verifyComplete();
+
+        // Assert
+        verify(cacheStore, times(1)).add(anyString(), anyString());
+        verify(deferredCredentialMetadataRepository, times(1)).save(any(DeferredCredentialMetadata.class));
+    }
+
+    @Test
+    void testGetResponseUriByProcedureId_Success() {
+        // Arrange
+        String procedureId = UUID.randomUUID().toString();
+        String expectedUri = "https://callback.example.com/response";
+        DeferredCredentialMetadata metadata = new DeferredCredentialMetadata();
+        metadata.setResponseUri(expectedUri);
+
+        when(deferredCredentialMetadataRepository.findByProcedureId(UUID.fromString(procedureId)))
+                .thenReturn(Mono.just(metadata));
+
+        // Act & Assert
+        StepVerifier.create(deferredCredentialMetadataService.getResponseUriByProcedureId(procedureId))
+                .expectNext(expectedUri)
+                .verifyComplete();
+
+        verify(deferredCredentialMetadataRepository, times(1))
+                .findByProcedureId(UUID.fromString(procedureId));
+    }
+
+    @Test
+    void testGetResponseUriByProcedureId_NotFound() {
+        // Arrange
+        String procedureId = UUID.randomUUID().toString();
+        when(deferredCredentialMetadataRepository.findByProcedureId(UUID.fromString(procedureId)))
+                .thenReturn(Mono.empty());
+
+        // Act & Assert
+        StepVerifier.create(deferredCredentialMetadataService.getResponseUriByProcedureId(procedureId))
+                .verifyComplete();
+
+        verify(deferredCredentialMetadataRepository, times(1))
+                .findByProcedureId(UUID.fromString(procedureId));
+    }
+
+    @Test
+    void testGetResponseUriByProcedureId_NullResponseUri() {
+        // Arrange
+        String procedureId = UUID.randomUUID().toString();
+        DeferredCredentialMetadata metadata = new DeferredCredentialMetadata();
+        metadata.setResponseUri(null);  // o "" per provar emissió buida
+
+        when(deferredCredentialMetadataRepository.findByProcedureId(UUID.fromString(procedureId)))
+                .thenReturn(Mono.just(metadata));
+
+        // Act & Assert
+        StepVerifier.create(deferredCredentialMetadataService.getResponseUriByProcedureId(procedureId))
+                .verifyComplete();
+
+        verify(deferredCredentialMetadataRepository, times(1))
+                .findByProcedureId(UUID.fromString(procedureId));
+    }
+
+    @Test
     void testUpdateTransactionCodeInDeferredCredentialMetadata_Success() {
         // Arrange
         String procedureId = UUID.randomUUID().toString();

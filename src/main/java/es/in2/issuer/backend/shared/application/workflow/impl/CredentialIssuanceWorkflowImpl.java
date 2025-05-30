@@ -15,11 +15,7 @@ import es.in2.issuer.backend.shared.infrastructure.config.security.service.Verif
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.client.WebClientRequestException;
 import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -29,6 +25,7 @@ import java.text.ParseException;
 
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.*;
 import static es.in2.issuer.backend.shared.domain.util.Constants.LEAR_CREDENTIAL_EMPLOYEE;
+import static es.in2.issuer.backend.shared.domain.util.Constants.VERIFIABLE_CERTIFICATION;
 
 @Slf4j
 @Service
@@ -49,6 +46,7 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
     private final LEARCredentialEmployeeFactory credentialEmployeeFactory;
     private final IssuerApiClientTokenService issuerApiClientTokenService;
     private final M2MTokenService m2mTokenService;
+    private final CredentialDeliveryService credentialDeliveryService;
     private final CredentialIssuanceRecordService credentialIssuanceRecordService;
 
     @Override
@@ -77,13 +75,29 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                                         // TODO instead of updating the credential status to valid,
                                         //  we should update the credential status to pending download
                                         //  but we don't support the verifiable certification download yet
-                                        .flatMap(encodedVc -> credentialProcedureService.updateCredentialProcedureCredentialStatusToValidByProcedureId(procedureId)
-                                                .then(m2mTokenService.getM2MToken()
-                                                        .flatMap(m2mAccessToken ->
-                                                                sendVcToResponseUri(
-                                                                        preSubmittedDataCredentialRequest,
-                                                                        encodedVc,
-                                                                        m2mAccessToken.accessToken())))))));
+                                        .flatMap(encodedVc -> {
+                                            // Extract values from payload
+                                            String productId = preSubmittedDataCredentialRequest.payload()
+                                                    .get(CREDENTIAL_SUBJECT)
+                                                    .get(PRODUCT)
+                                                    .get(PRODUCT_ID)
+                                                    .asText();
+
+                                            String companyEmail = preSubmittedDataCredentialRequest.payload()
+                                                    .get(CREDENTIAL_SUBJECT)
+                                                    .get(COMPANY)
+                                                    .get(EMAIL)
+                                                    .asText();
+                                            return credentialProcedureService.updateCredentialProcedureCredentialStatusToValidByProcedureId(procedureId)
+                                                    .then(m2mTokenService.getM2MToken()
+                                                            .flatMap(m2mAccessToken ->
+                                                                    credentialDeliveryService.sendVcToResponseUri(
+                                                                            preSubmittedDataCredentialRequest.responseUri(),
+                                                                            encodedVc,
+                                                                            productId,
+                                                                            companyEmail,
+                                                                            m2mAccessToken.accessToken())));
+                                        }))));
     }
 
     private Mono<Void> ensurePreSubmittedCredentialResponseUriIsNotNullOrBlank(PreSubmittedDataCredentialRequest preSubmittedDataCredentialRequest) {
@@ -121,54 +135,6 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
         return emailService.sendCredentialActivationEmail(email, CREDENTIAL_ACTIVATION_EMAIL_SUBJECT, credentialOfferUrl, appConfig.getKnowledgebaseWalletUrl(), user, organization)
                 .onErrorMap(exception ->
                         new EmailCommunicationException(MAIL_ERROR_COMMUNICATION_EXCEPTION_MESSAGE));
-    }
-
-    private Mono<Void> sendVcToResponseUri(PreSubmittedDataCredentialRequest preSubmittedDataCredentialRequest, String encodedVc, String token) {
-        ResponseUriRequest responseUriRequest = ResponseUriRequest.builder()
-                .encodedVc(encodedVc)
-                .build();
-        log.debug("Sending to response_uri: {} the VC: {} with the received token: {}", preSubmittedDataCredentialRequest.responseUri(), encodedVc, token);
-
-        // Extract the product ID from the payload
-        String productId = preSubmittedDataCredentialRequest.payload()
-                .get(CREDENTIAL_SUBJECT)
-                .get(PRODUCT)
-                .get(PRODUCT_ID)
-                .asText();
-        // Extract the company email from the payload
-        String companyEmail = preSubmittedDataCredentialRequest.payload()
-                .get(CREDENTIAL_SUBJECT)
-                .get(COMPANY)
-                .get(EMAIL)
-                .asText();
-
-        return webClient.commonWebClient()
-                .patch()
-                .uri(preSubmittedDataCredentialRequest.responseUri())
-                .contentType(MediaType.APPLICATION_JSON)
-                .header(HttpHeaders.AUTHORIZATION, BEARER_PREFIX + token)
-                .bodyValue(responseUriRequest)
-                .exchangeToMono(response -> {
-                    if (response.statusCode().is2xxSuccessful()) {
-                        if (HttpStatus.ACCEPTED.equals(response.statusCode())) {
-                            log.info("Received 202 from response_uri. Extracting HTML and sending specific mail for missing documents");
-                            // Retrieve the HTML body from the response
-                            return response.bodyToMono(String.class)
-                                    .flatMap(htmlResponseBody -> emailService.sendResponseUriAcceptedWithHtml(companyEmail, productId, htmlResponseBody))
-                                    .then();
-                        }
-                        return Mono.empty();
-                    } else {
-                        log.error("Non-2xx status code received: {}. Sending failure email...", response.statusCode());
-                        return emailService.sendResponseUriFailed(companyEmail, productId, appConfig.getKnowledgeBaseUploadCertificationGuideUrl())
-                                .then();
-                    }
-                })
-                .onErrorResume(WebClientRequestException.class, ex -> {
-                    log.error("Network error while sending VC to response_uri", ex);
-                    return emailService.sendResponseUriFailed(companyEmail, productId, appConfig.getKnowledgeBaseUploadCertificationGuideUrl())
-                            .then();
-                });
     }
 
     @Override

@@ -1,6 +1,5 @@
 package es.in2.issuer.backend.shared.domain.model.dto;
 
-import es.in2.issuer.backend.shared.domain.model.dto.ProcedureBasicInfo;
 import org.junit.jupiter.api.Test;
 
 import java.sql.Timestamp;

@@ -476,7 +476,11 @@ public class RemoteSignatureServiceImpl implements RemoteSignatureService {
                         .doOnSuccess(result -> log.info("Updated operationMode to Async - Procedure"))
                         .then();
             });
+
         Mono<Void> updateDeferredMetadata = deferredCredentialMetadataRepository.findByProcedureId(UUID.fromString(procedureId))
+                .switchIfEmpty(Mono.fromRunnable(() ->
+                        log.error("No deferred metadata found for procedureId: {}", procedureId)
+                ).then(Mono.empty()))
                 .flatMap(credentialProcedure -> {
                     credentialProcedure.setOperationMode(ASYNC);
                     return deferredCredentialMetadataRepository.save(credentialProcedure)

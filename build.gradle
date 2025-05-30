@@ -11,7 +11,7 @@ plugins {
 }
 
 group = 'es.in2'
-version = '1.6.8'
+version = '1.7.0'
 
 java {
     sourceCompatibility = '17'
@@ -74,6 +74,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
     implementation 'org.springframework.boot:spring-boot-starter-mail:3.3.0'
     implementation 'org.springframework.boot:spring-boot-starter-thymeleaf:3.3.0'
+    implementation 'org.springframework.vault:spring-vault-core:3.1.2'
 
     // JSON
     implementation 'com.fasterxml.jackson.core:jackson-databind'

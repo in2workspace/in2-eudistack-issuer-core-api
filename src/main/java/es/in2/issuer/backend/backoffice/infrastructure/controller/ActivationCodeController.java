@@ -1,7 +1,7 @@
 package es.in2.issuer.backend.backoffice.infrastructure.controller;
 
 import es.in2.issuer.backend.backoffice.application.workflow.ActivationCodeWorkflow;
-import es.in2.issuer.backend.backoffice.domain.model.CredentialOfferUriResponse;
+import es.in2.issuer.backend.backoffice.domain.model.dtos.CredentialOfferUriResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;

@@ -56,7 +56,6 @@ public class Constants {
     public static final String DID_KEY = "did:key:";
     public static final String ASYNC = "A";
     public static final String SYNC = "S";
-    public static final String VERIFIABLE_CERTIFICATION = "VerifiableCertification";
     public static final long MSB = 0x80L;
     public static final long MSBALL = 0xFFFFFF80L;
     public static final String IN2_ORGANIZATION_IDENTIFIER = "VATES-B60645900";
@@ -67,6 +66,7 @@ public class Constants {
     public static final String SIGNATURE_REMOTE_SCOPE_CREDENTIAL = "credential";
     public static final String CREDENTIAL_ID = "credentialID";
     public static final String CREDENTIAL_ACTIVATION_EMAIL_SUBJECT = "Activate your new credential";
+    public static final String ERROR_LOG_FORMAT = "[Error Instance ID: {}] Path: {}, Status: {}, Title: {}, Message: {}";
     // ERROR MESSAGES
     public static final String PARSING_CREDENTIAL_ERROR_MESSAGE = "Error parsing credential";
     public static final String MAIL_ERROR_COMMUNICATION_EXCEPTION_MESSAGE = "Error during communication with the mail server";

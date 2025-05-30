@@ -1,4 +1,4 @@
-package es.in2.issuer.backend.backoffice.domain.model;
+package es.in2.issuer.backend.backoffice.domain.model.dtos;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;

@@ -1,6 +1,5 @@
 package es.in2.issuer.backend.shared.domain.model.dto;
 
-import es.in2.issuer.backend.shared.domain.model.dto.SignedCredentials;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;

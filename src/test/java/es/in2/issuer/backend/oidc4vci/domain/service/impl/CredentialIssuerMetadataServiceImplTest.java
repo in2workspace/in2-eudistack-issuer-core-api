@@ -14,7 +14,8 @@ import java.util.Map;
 
 import static es.in2.issuer.backend.shared.domain.util.Constants.LEAR_CREDENTIAL_EMPLOYEE;
 import static es.in2.issuer.backend.shared.domain.util.Constants.VERIFIABLE_CREDENTIAL;
-import static es.in2.issuer.backend.shared.domain.util.EndpointsConstants.*;
+import static es.in2.issuer.backend.shared.domain.util.EndpointsConstants.OID4VCI_CREDENTIAL_PATH;
+import static es.in2.issuer.backend.shared.domain.util.EndpointsConstants.OID4VCI_DEFERRED_CREDENTIAL_PATH;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 

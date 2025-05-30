@@ -12,9 +12,9 @@ import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.Power;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.employee.LEARCredentialEmployee;
 import es.in2.issuer.backend.shared.domain.service.AccessTokenService;
 import es.in2.issuer.backend.shared.domain.service.impl.RemoteSignatureServiceImpl;
+import es.in2.issuer.backend.shared.domain.util.Constants;
 import es.in2.issuer.backend.shared.infrastructure.config.DefaultSignerConfig;
 import es.in2.issuer.backend.shared.infrastructure.config.RemoteSignatureConfig;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -23,13 +23,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-import java.net.ConnectException;
 import java.util.ArrayList;
 import java.util.List;
 
-import static es.in2.issuer.backend.backoffice.domain.util.Constants.*;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -44,6 +41,9 @@ class LEARCredentialEmployeeFactoryTest {
 
     @Mock
     private RemoteSignatureConfig remoteSignatureConfig;
+
+    @Mock
+    private IssuerFactory issuerFactory;
 
     @InjectMocks
     private LEARCredentialEmployeeFactory learCredentialEmployeeFactory;
@@ -119,165 +119,124 @@ class LEARCredentialEmployeeFactoryTest {
                 .verifyComplete();
     }
 
-    
+
     @Test
-    void mapCredentialAndBindIssuerInToTheCredential_Server_Success() throws JsonProcessingException, InvalidCredentialFormatException {
+    void mapCredentialAndBindIssuerInToTheCredential_Server_Success() throws Exception {
         String procedureId = "procedureId";
         String credentialString = "validCredentialStringhttps://trust-framework.dome-marketplace.eu/credentials/learcredentialemployee/v1";
         String expectedString = "expectedString";
 
         LEARCredentialEmployee learCredentialEmployee = mock(LEARCredentialEmployee.class);
+        when(objectMapper.readValue(credentialString, LEARCredentialEmployee.class))
+                .thenReturn(learCredentialEmployee);
 
-        when(objectMapper.readValue(credentialString, LEARCredentialEmployee.class)).thenReturn(learCredentialEmployee);
-        when(remoteSignatureConfig.getRemoteSignatureType()).thenReturn(SIGNATURE_REMOTE_TYPE_SERVER);
-        when(defaultSignerConfig.getOrganizationIdentifier()).thenReturn("ORG123");
-        when(defaultSignerConfig.getOrganization()).thenReturn("Company");
-        when(defaultSignerConfig.getCountry()).thenReturn("ES");
-        when(defaultSignerConfig.getCommonName()).thenReturn("Signer CN");
-        when(defaultSignerConfig.getEmail()).thenReturn("signer@email.com");
-        when(defaultSignerConfig.getSerialNumber()).thenReturn("123456789");
-        when(objectMapper.writeValueAsString(any(LEARCredentialEmployee.class))).thenReturn(expectedString);
+        DetailedIssuer mockIssuer = mock(DetailedIssuer.class);
+        when(issuerFactory.createIssuer(procedureId, Constants.LEAR_CREDENTIAL_EMPLOYEE))
+                .thenReturn(Mono.just(mockIssuer));
 
-        StepVerifier.create(learCredentialEmployeeFactory.mapCredentialAndBindIssuerInToTheCredential(credentialString, procedureId))
+        when(objectMapper.writeValueAsString(any(LEARCredentialEmployee.class)))
+                .thenReturn(expectedString);
+
+        // Act & Assert
+        StepVerifier.create(
+                        learCredentialEmployeeFactory.mapCredentialAndBindIssuerInToTheCredential(credentialString, procedureId)
+                )
                 .expectNext(expectedString)
                 .verifyComplete();
 
+        // Assert
         verify(remoteSignatureServiceImpl, never()).validateCredentials();
     }
 
-    
+
+
     @Test
-    void mapCredentialAndBindIssuerInToTheCredential_InvalidCredentials_Error() throws JsonProcessingException, InvalidCredentialFormatException {
+    void mapCredentialAndBindIssuerInToTheCredential_InvalidCredentials_Error() throws Exception {
         String procedureId = "550e8400-e29b-41d4-a716-446655440000";
         String credentialString = "validCredentialStringhttps://trust-framework.dome-marketplace.eu/credentials/learcredentialemployee/v1";
 
         LEARCredentialEmployee learCredentialEmployee = mock(LEARCredentialEmployee.class);
+        when(objectMapper.readValue(credentialString, LEARCredentialEmployee.class))
+                .thenReturn(learCredentialEmployee);
 
-        when(objectMapper.readValue(credentialString, LEARCredentialEmployee.class)).thenReturn(learCredentialEmployee);
-        when(remoteSignatureConfig.getRemoteSignatureType()).thenReturn(SIGNATURE_REMOTE_TYPE_CLOUD);
-        when(remoteSignatureServiceImpl.validateCredentials()).thenReturn(Mono.just(false));
+        when(issuerFactory.createIssuer(procedureId, Constants.LEAR_CREDENTIAL_EMPLOYEE))
+                .thenReturn(Mono.empty());
 
-        when(remoteSignatureServiceImpl.handlePostRecoverError(procedureId)).thenReturn(Mono.empty());
-
-        StepVerifier.create(learCredentialEmployeeFactory.mapCredentialAndBindIssuerInToTheCredential(credentialString, procedureId))
+        // Act & Assert
+        StepVerifier.create(
+                        learCredentialEmployeeFactory.mapCredentialAndBindIssuerInToTheCredential(credentialString, procedureId)
+                )
                 .expectComplete()
                 .verify();
 
-        verify(remoteSignatureServiceImpl).validateCredentials();
+        verify(objectMapper, never()).writeValueAsString(any());
     }
 
-    
     @Test
-    void mapCredentialAndBindIssuerInToTheCredential_ValidateCredentials_FailsAfterRetries_SwitchToAsync() throws JsonProcessingException, InvalidCredentialFormatException {
-        String procedureId = "550e8400-e29b-41d4-a716-446655440000";
-        String credentialString = "validCredentialStringhttps://trust-framework.dome-marketplace.eu/credentials/learcredentialemployee/v1";
-
-        LEARCredentialEmployee learCredentialEmployee = mock(LEARCredentialEmployee.class);
-
-        when(objectMapper.readValue(credentialString, LEARCredentialEmployee.class)).thenReturn(learCredentialEmployee);
-        when(remoteSignatureConfig.getRemoteSignatureType()).thenReturn(SIGNATURE_REMOTE_TYPE_CLOUD);
-
-        when(remoteSignatureServiceImpl.validateCredentials())
-                .thenAnswer(invocation -> Mono.error(new ConnectException("Connection timeout")));
-
-        when(remoteSignatureServiceImpl.isRecoverableError(any())).thenReturn(true);
-        when(remoteSignatureServiceImpl.handlePostRecoverError(procedureId)).thenReturn(Mono.empty());
-
-        StepVerifier.create(learCredentialEmployeeFactory.mapCredentialAndBindIssuerInToTheCredential(credentialString, procedureId))
-                .expectComplete()
-                .verify();
-
-        verify(remoteSignatureServiceImpl, times(4)).validateCredentials();
-        verify(remoteSignatureServiceImpl).handlePostRecoverError(procedureId);
-    }
-
-    
-    @Test
-    void mapCredentialAndBindIssuerInToTheCredential_ValidateCredentials_SuccessOnSecondAttempt() throws JsonProcessingException, InvalidCredentialFormatException {
+    void mapCredentialAndBindIssuerInToTheCredential_ValidateCredentials_SuccessOnSecondAttempt() throws Exception {
         String procedureId = "550e8400-e29b-41d4-a716-446655440000";
         String credentialString = "validCredentialStringhttps://trust-framework.dome-marketplace.eu/credentials/learcredentialemployee/v1";
         String expectedString = "expectedString";
 
-
         LEARCredentialEmployee learCredentialEmployee = mock(LEARCredentialEmployee.class);
-        DetailedIssuer issuer = mock(DetailedIssuer.class);
+        when(objectMapper.readValue(credentialString, LEARCredentialEmployee.class))
+                .thenReturn(learCredentialEmployee);
 
+        DetailedIssuer fakeIssuer = mock(DetailedIssuer.class);
+        when(issuerFactory.createIssuer(procedureId, Constants.LEAR_CREDENTIAL_EMPLOYEE))
+                .thenReturn(Mono.just(fakeIssuer));
 
-        when(objectMapper.readValue(credentialString, LEARCredentialEmployee.class)).thenReturn(learCredentialEmployee);
-        when(remoteSignatureConfig.getRemoteSignatureType()).thenReturn(SIGNATURE_REMOTE_TYPE_CLOUD);
+        when(objectMapper.writeValueAsString(any(LEARCredentialEmployee.class)))
+                .thenReturn(expectedString);
 
-        when(remoteSignatureServiceImpl.validateCredentials())
-                .thenReturn(Mono.error(new ConnectException("Temporary failure")))
-                .thenReturn(Mono.just(true));
-
-        when(remoteSignatureServiceImpl.isRecoverableError(any())).thenReturn(true);
-        when(remoteSignatureServiceImpl.requestAccessToken(any(), eq(SIGNATURE_REMOTE_SCOPE_SERVICE))).thenReturn(Mono.just("validToken"));
-        when(remoteSignatureServiceImpl.requestCertificateInfo(eq("validToken"), any())).thenReturn(Mono.just("mockedCertificateInfo"));
-        when(remoteSignatureServiceImpl.extractIssuerFromCertificateInfo(any(), any())).thenReturn(Mono.just(issuer));
-        when(remoteSignatureServiceImpl.getMandatorMail(procedureId)).thenReturn(Mono.just("mail"));
-        when(objectMapper.writeValueAsString(any(LEARCredentialEmployee.class))).thenReturn(expectedString);
-
-        StepVerifier.create(learCredentialEmployeeFactory.mapCredentialAndBindIssuerInToTheCredential(credentialString, procedureId))
+        StepVerifier.create(
+                        learCredentialEmployeeFactory.mapCredentialAndBindIssuerInToTheCredential(credentialString, procedureId)
+                )
                 .expectNext(expectedString)
                 .verifyComplete();
-
-        verify(remoteSignatureServiceImpl, times(2)).validateCredentials();
     }
 
-    
+
     @Test
-    void mapCredentialAndBindIssuerInToTheCredential_ValidateCredentials_NonRecoverableError() throws JsonProcessingException, InvalidCredentialFormatException {
+    void mapCredentialAndBindIssuerInToTheCredential_ValidateCredentials_NonRecoverableError() throws Exception {
         String procedureId = "550e8400-e29b-41d4-a716-446655440000";
         String credentialString = "validCredentialStringhttps://trust-framework.dome-marketplace.eu/credentials/learcredentialemployee/v1";
 
         LEARCredentialEmployee learCredentialEmployee = mock(LEARCredentialEmployee.class);
+        when(objectMapper.readValue(credentialString, LEARCredentialEmployee.class))
+                .thenReturn(learCredentialEmployee);
 
-        when(objectMapper.readValue(credentialString, LEARCredentialEmployee.class)).thenReturn(learCredentialEmployee);
-        when(remoteSignatureConfig.getRemoteSignatureType()).thenReturn(SIGNATURE_REMOTE_TYPE_CLOUD);
-
-        when(remoteSignatureServiceImpl.validateCredentials())
-                .thenReturn(Mono.error(new IllegalArgumentException("Non-recoverable error")));
-
-        when(remoteSignatureServiceImpl.isRecoverableError(any())).thenReturn(false);
-
-        when(remoteSignatureServiceImpl.handlePostRecoverError(procedureId))
+        when(issuerFactory.createIssuer(procedureId, Constants.LEAR_CREDENTIAL_EMPLOYEE))
                 .thenReturn(Mono.empty());
 
-        StepVerifier.create(learCredentialEmployeeFactory.mapCredentialAndBindIssuerInToTheCredential(credentialString, procedureId))
+        StepVerifier.create(
+                        learCredentialEmployeeFactory.mapCredentialAndBindIssuerInToTheCredential(credentialString, procedureId)
+                )
                 .expectComplete()
                 .verify();
-
-        verify(remoteSignatureServiceImpl, times(1)).validateCredentials();
-        verify(remoteSignatureServiceImpl, times(1)).handlePostRecoverError(procedureId);
     }
 
-    
+
     @Test
-    void mapCredentialAndBindIssuerInToTheCredential_HandlePostRecoverErrorFails() throws JsonProcessingException, InvalidCredentialFormatException {
+    void mapCredentialAndBindIssuerInToTheCredential_HandlePostRecoverErrorFails() throws Exception {
         String procedureId = "550e8400-e29b-41d4-a716-446655440000";
         String credentialString = "validCredentialStringhttps://trust-framework.dome-marketplace.eu/credentials/learcredentialemployee/v1";
 
         LEARCredentialEmployee learCredentialEmployee = mock(LEARCredentialEmployee.class);
+        when(objectMapper.readValue(credentialString, LEARCredentialEmployee.class))
+                .thenReturn(learCredentialEmployee);
 
-        when(objectMapper.readValue(credentialString, LEARCredentialEmployee.class)).thenReturn(learCredentialEmployee);
-        when(remoteSignatureConfig.getRemoteSignatureType()).thenReturn(SIGNATURE_REMOTE_TYPE_CLOUD);
+        RuntimeException postRecoveryEx = new RuntimeException("Error in post-recovery handling");
+        when(issuerFactory.createIssuer(procedureId, Constants.LEAR_CREDENTIAL_EMPLOYEE))
+                .thenReturn(Mono.error(postRecoveryEx));
 
-        when(remoteSignatureServiceImpl.validateCredentials())
-                .thenAnswer(invocation -> Mono.error(new ConnectException("Connection timeout")));
-
-        when(remoteSignatureServiceImpl.isRecoverableError(any())).thenReturn(true);
-        when(remoteSignatureServiceImpl.handlePostRecoverError(procedureId))
-                .thenReturn(Mono.error(new RuntimeException("Error in post-recovery handling")));
-
-        StepVerifier.create(learCredentialEmployeeFactory.mapCredentialAndBindIssuerInToTheCredential(credentialString, procedureId))
-                .expectErrorSatisfies(throwable -> {
-                    Assertions.assertInstanceOf(RuntimeException.class, throwable);
-                    assertEquals("Error in post-recovery handling", throwable.getMessage());
+        StepVerifier.create(
+                        learCredentialEmployeeFactory.mapCredentialAndBindIssuerInToTheCredential(credentialString, procedureId)
+                )
+                .expectErrorSatisfies(ex -> {
+                    assertSame(postRecoveryEx, ex);
                 })
                 .verify();
-
-        verify(remoteSignatureServiceImpl, times(4)).validateCredentials();
-        verify(remoteSignatureServiceImpl).handlePostRecoverError(procedureId);
     }
 
     @Test
@@ -348,8 +307,4 @@ class LEARCredentialEmployeeFactoryTest {
 
         assertEquals("Invalid credential format", exception.getMessage());
     }
-
-
-
-
 }

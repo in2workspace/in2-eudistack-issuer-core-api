@@ -2,7 +2,6 @@ package es.in2.issuer.backend.oidc4vci.infrastructure.controller;
 
 import es.in2.issuer.backend.oidc4vci.application.workflow.GetAuthorizationServerMetadataWorkflow;
 import es.in2.issuer.backend.oidc4vci.domain.model.AuthorizationServerMetadata;
-import es.in2.issuer.backend.oidc4vci.domain.service.AuthorizationServerMetadataService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;

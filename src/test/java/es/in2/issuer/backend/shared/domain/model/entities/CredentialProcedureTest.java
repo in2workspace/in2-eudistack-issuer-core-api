@@ -1,6 +1,5 @@
 package es.in2.issuer.backend.shared.domain.model.entities;
 
-import es.in2.issuer.backend.shared.domain.model.entities.CredentialProcedure;
 import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatus;
 import org.junit.jupiter.api.Test;
 

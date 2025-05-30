@@ -1,6 +1,5 @@
 package es.in2.issuer.backend.shared.infrastructure.config.properties;
 
-import es.in2.issuer.backend.shared.infrastructure.config.properties.CorsProperties;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;

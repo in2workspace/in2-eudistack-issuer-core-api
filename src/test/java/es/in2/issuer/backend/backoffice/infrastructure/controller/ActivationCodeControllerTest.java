@@ -1,7 +1,7 @@
 package es.in2.issuer.backend.backoffice.infrastructure.controller;
 
 import es.in2.issuer.backend.backoffice.application.workflow.ActivationCodeWorkflow;
-import es.in2.issuer.backend.backoffice.domain.model.CredentialOfferUriResponse;
+import es.in2.issuer.backend.backoffice.domain.model.dtos.CredentialOfferUriResponse;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;

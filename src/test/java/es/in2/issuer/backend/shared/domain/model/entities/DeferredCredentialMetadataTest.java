@@ -1,6 +1,5 @@
 package es.in2.issuer.backend.shared.domain.model.entities;
 
-import es.in2.issuer.backend.shared.domain.model.entities.DeferredCredentialMetadata;
 import org.junit.jupiter.api.Test;
 
 import java.util.UUID;

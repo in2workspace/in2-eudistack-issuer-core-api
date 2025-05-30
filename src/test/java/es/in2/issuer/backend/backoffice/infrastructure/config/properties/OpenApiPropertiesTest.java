@@ -1,6 +1,5 @@
 package es.in2.issuer.backend.backoffice.infrastructure.config.properties;
 
-import es.in2.issuer.backend.backoffice.infrastructure.config.properties.OpenApiProperties;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 

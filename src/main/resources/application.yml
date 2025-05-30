@@ -202,3 +202,8 @@ cors:
   default-allowed-origins:
   # The allowed origins for CORS requests coming from the external services (REQUIRED)
   external-allowed-origins:
+
+vault:
+  hashicorp:
+    url:
+    token:

@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import es.in2.issuer.backend.shared.domain.exception.PreAuthorizationCodeGetException;
-import es.in2.issuer.backend.shared.domain.service.impl.IssuerApiClientTokenServiceImpl;
 import es.in2.issuer.backend.shared.infrastructure.config.AuthServerConfig;
 import es.in2.issuer.backend.shared.infrastructure.config.WebClientConfig;
 import org.junit.jupiter.api.Test;

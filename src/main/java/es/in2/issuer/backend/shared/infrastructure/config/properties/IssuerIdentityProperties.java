@@ -6,8 +6,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.bind.ConstructorBinding;
 import org.springframework.validation.annotation.Validated;
 
-import java.util.Optional;
-
 @ConfigurationProperties(prefix = "issuer-identity")
 @Validated
 public record IssuerIdentityProperties(
