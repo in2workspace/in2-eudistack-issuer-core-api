@@ -24,6 +24,7 @@ import java.text.ParseException;
 
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.*;
 import static es.in2.issuer.backend.shared.domain.util.Constants.*;
+import static es.in2.issuer.backend.shared.domain.util.Constants.LEAR_CREDENTIAL_MACHINE;
 
 @Slf4j
 @Service
@@ -68,7 +69,10 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                     if (preSubmittedCredentialRequest.schema().equals(LEAR_CREDENTIAL_EMPLOYEE)) {
                         return verifiableCredentialService.generateVc(processId, preSubmittedCredentialRequest.schema(), preSubmittedCredentialRequest, token)
                                 .flatMap(transactionCode -> sendCredentialOfferEmail(transactionCode, preSubmittedCredentialRequest));
-                    } else if (preSubmittedCredentialRequest.schema().equals(VERIFIABLE_CERTIFICATION)) {
+                    } else if (preSubmittedCredentialRequest.schema().equals(LEAR_CREDENTIAL_MACHINE)) {
+                        return verifiableCredentialService.generateVc(processId, preSubmittedCredentialRequest.schema(), preSubmittedCredentialRequest, token)
+                                .then();
+                    }else if (preSubmittedCredentialRequest.schema().equals(VERIFIABLE_CERTIFICATION)) {
                         // Check if responseUri is null, empty, or only contains whitespace
                         if (preSubmittedCredentialRequest.responseUri() == null || preSubmittedCredentialRequest.responseUri().isBlank()) {
                             return Mono.error(new OperationNotSupportedException("For schema: " + preSubmittedCredentialRequest.schema() + " response_uri is required"));

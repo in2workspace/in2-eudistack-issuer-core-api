@@ -75,6 +75,7 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
                 return mapVcToLEARCredential(vcClaim, schema)
                     .flatMap(learCredential -> switch (schema) {
                         case LEAR_CREDENTIAL_EMPLOYEE -> authorizeLearCredentialEmployee(learCredential, payload);
+                        case LEAR_CREDENTIAL_MACHINE -> authorizeLearCredentialMachine(learCredential, payload);
                         case VERIFIABLE_CERTIFICATION -> authorizeVerifiableCertification(learCredential, idToken);
                         default -> Mono.error(new InsufficientPermissionException("Unauthorized: Unsupported schema"));
                     });
@@ -163,6 +164,14 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
         }
         return Mono.error(new InsufficientPermissionException("Unauthorized: LEARCredentialEmployee does not meet any issuance policies."));
     }
+
+    private Mono<Void> authorizeLearCredentialMachine(LEARCredential learCredential, JsonNode payload) {
+        if (isSignerIssuancePolicyValid(learCredential) || isMandatorIssuancePolicyValid(learCredential, payload)) {
+            return Mono.empty();
+        }
+        return Mono.error(new InsufficientPermissionException("Unauthorized: LEARCredentialEmployee does not meet any issuance policies."));
+    }
+
 
     private Mono<Void> authorizeVerifiableCertification(LEARCredential learCredential, String idToken) {
         return isVerifiableCertificationPolicyValid(learCredential, idToken)
