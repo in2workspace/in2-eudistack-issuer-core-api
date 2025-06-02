@@ -60,6 +60,7 @@ public class Constants {
     public static final long MSBALL = 0xFFFFFF80L;
     public static final String IN2_ORGANIZATION_IDENTIFIER = "VATES-B60645900";
     public static final String LEAR_CREDENTIAL_EMPLOYEE_DESCRIPTION = "Verifiable Credential for employees of an organization";
+    public static final String LEAR_CREDENTIAL_MACHINE_DESCRIPTION = "Machine credential acting as an authorized agent on behalf of a legal entity";
     public static final String SIGNATURE_REMOTE_TYPE_SERVER = "server";
     public static final String SIGNATURE_REMOTE_TYPE_CLOUD = "cloud";
     public static final String SIGNATURE_REMOTE_SCOPE_SERVICE = "service";

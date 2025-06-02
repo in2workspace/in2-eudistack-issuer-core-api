@@ -169,7 +169,7 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
         if (isSignerIssuancePolicyValid(learCredential) || isMandatorIssuancePolicyValid(learCredential, payload)) {
             return Mono.empty();
         }
-        return Mono.error(new InsufficientPermissionException("Unauthorized: LEARCredentialEmployee does not meet any issuance policies."));
+        return Mono.error(new InsufficientPermissionException("Unauthorized: LearCredentialMachine does not meet any issuance policies."));
     }
 
 

@@ -15,6 +15,7 @@ public final class Constants {
 
     public static final String GRANT_TYPE = "urn:ietf:params:oauth:grant-type:pre-authorized_code";
     public static final List<String> CREDENTIAL_CONTEXT = List.of("https://www.w3.org/ns/credentials/v2", "https://www.dome-marketplace.eu/2025/credentials/learcredentialemployee/v2");
+    public static final List<String> LEAR_CREDENTIAL_MACHINE_CONTEXT = List.of("https://www.w3.org/ns/credentials/v2", "https://www.dome-marketplace.eu/.well-know/credentials/learcredentialmachine/v2"    );
     // EXPIRATION TIMES
     public static final Integer CREDENTIAL_OFFER_CACHE_EXPIRATION_TIME = 10;
     public static final Integer VERIFIABLE_CREDENTIAL_JWT_CACHE_EXPIRATION_TIME = 10;

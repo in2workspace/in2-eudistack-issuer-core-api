@@ -11,8 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
-import static es.in2.issuer.backend.shared.domain.util.Constants.LEAR_CREDENTIAL_EMPLOYEE;
-import static es.in2.issuer.backend.shared.domain.util.Constants.VERIFIABLE_CERTIFICATION;
+import static es.in2.issuer.backend.shared.domain.util.Constants.*;
 
 @Component
 @RequiredArgsConstructor
@@ -31,6 +30,9 @@ public class CredentialFactory {
         if (preSubmittedCredentialRequest.schema().equals(LEAR_CREDENTIAL_EMPLOYEE)) {
             return learCredentialEmployeeFactory.mapAndBuildLEARCredentialEmployee(credential, operationMode)
                     .doOnSuccess(learCredentialEmployee -> log.info("ProcessID: {} - LEARCredentialEmployee mapped: {}", processId, credential));
+        }else if (preSubmittedCredentialRequest.schema().equals(LEAR_CREDENTIAL_MACHINE)) {
+            return learCredentialMachineFactory.mapAndBuildLEARCredentialMachine(credential, operationMode)
+                    .doOnSuccess(machineCredential -> log.info("ProcessID: {} - LEARCredentialMachine mapped: {}", processId, credential));
         } else if (preSubmittedCredentialRequest.schema().equals(VERIFIABLE_CERTIFICATION)) {
             return verifiableCertificationFactory.mapAndBuildVerifiableCertification(credential, token, operationMode)
                     .doOnSuccess(verifiableCertification -> log.info("ProcessID: {} - VerifiableCertification mapped: {}", processId, credential));
