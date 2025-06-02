@@ -3,7 +3,6 @@ package es.in2.issuer.backend.oidc4vci.domain.service.impl;
 import com.nimbusds.jose.Payload;
 import es.in2.issuer.backend.oidc4vci.domain.model.TokenResponse;
 import es.in2.issuer.backend.oidc4vci.domain.service.TokenService;
-import es.in2.issuer.backend.shared.domain.model.dto.CredentialIdAndTxCode;
 import es.in2.issuer.backend.shared.domain.service.JWTService;
 import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
 import es.in2.issuer.backend.shared.infrastructure.repository.CacheStore;
@@ -28,7 +27,7 @@ import static es.in2.issuer.backend.shared.domain.util.Utils.generateCustomNonce
 @RequiredArgsConstructor
 public class TokenServiceImpl implements TokenService {
 
-    private final CacheStore<CredentialIdAndTxCode> credentialIdAndTxCodeByPreAuthorizedCodeCacheStore;
+    private final CacheStore<String> txCodeByPreAuthorizedCodeCacheStore;
     private final CacheStore<String> nonceCacheStore;
     private final JWTService jwtService;
     private final AppConfig appConfig;
@@ -87,11 +86,11 @@ public class TokenServiceImpl implements TokenService {
     }
 
     private Mono<Void> ensurePreAuthorizedCodeAndTxCodeAreCorrect(String preAuthorizedCode, String txCode) {
-        return credentialIdAndTxCodeByPreAuthorizedCodeCacheStore
+        return txCodeByPreAuthorizedCodeCacheStore
                 .get(preAuthorizedCode)
                 .onErrorMap(NoSuchElementException.class, ex -> new IllegalArgumentException("Invalid pre-authorized code"))
-                .flatMap(credentialIdAndTxCode ->
-                        credentialIdAndTxCode.TxCode().equals(txCode)
+                .flatMap(cacheTxCode ->
+                        cacheTxCode.equals(txCode)
                                 ? Mono.empty()
                                 : Mono.error(new IllegalArgumentException("Invalid tx code"))
                 );

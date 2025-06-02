@@ -9,34 +9,34 @@ class PreAuthorizedCodeResponseTest {
     @Test
     void testConstructorAndGetters() {
         // Arrange
-        Grants grants = new Grants("type", new Grants.TxCode(4, "numeric", "description"));
+        String preAuthorizedCode = "testCode";
         String expectedPin = "1234";
 
         // Act
         PreAuthorizedCodeResponse preAuthorizedCodeResponse = new PreAuthorizedCodeResponse(
-                grants,
+                preAuthorizedCode,
                 expectedPin
         );
 
         // Assert
-        assertEquals(grants, preAuthorizedCodeResponse.grants());
-        assertEquals(expectedPin, preAuthorizedCodeResponse.pin());
+        assertEquals(preAuthorizedCode, preAuthorizedCodeResponse.preAuthorizedCode());
+        assertEquals(expectedPin, preAuthorizedCodeResponse.txCode());
     }
 
     @Test
     void testSetters() {
         // Arrange
-        Grants grants = new Grants("newType", new Grants.TxCode(5, "newNumeric", "newDescription"));
+        String preAuthorizedCode = "testCode";
         String newPin = "5678";
 
         // Act
         PreAuthorizedCodeResponse preAuthorizedCodeResponse = PreAuthorizedCodeResponse.builder()
-                .grants(grants)
-                .pin(newPin)
+                .preAuthorizedCode(preAuthorizedCode)
+                .txCode(newPin)
                 .build();
 
         // Assert
-        assertEquals(grants, preAuthorizedCodeResponse.grants());
-        assertEquals(newPin, preAuthorizedCodeResponse.pin());
+        assertEquals(preAuthorizedCode, preAuthorizedCodeResponse.preAuthorizedCode());
+        assertEquals(newPin, preAuthorizedCodeResponse.txCode());
     }
 }

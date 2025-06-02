@@ -22,10 +22,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.HttpStatus;
-import org.springframework.web.reactive.function.client.ClientResponse;
-import org.springframework.web.reactive.function.client.ExchangeFunction;
-import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
@@ -33,7 +29,6 @@ import java.util.List;
 
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.*;
 import static es.in2.issuer.backend.shared.domain.util.Constants.JWT_VC_JSON;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -119,7 +114,7 @@ class CredentialIssuanceServiceImplTest {
         when(emailService.sendCredentialActivationEmail(
                 "example@in2.es",
                 "Activate your new credential",
-                issuerUiExternalDomain + "/credential-offer/activation-code/" + activationCode,
+                issuerUiExternalDomain + "/credentials/activation/" + activationCode,
                 knowledgebaseWalletUrl, "Jhon Doe", "IN2, Ingeniería de la Información, S.L."))
                 .thenReturn(Mono.empty());
         when(appConfig.getIssuerFrontendUrl()).thenReturn(issuerUiExternalDomain);
@@ -163,7 +158,7 @@ class CredentialIssuanceServiceImplTest {
         when(emailService.sendCredentialActivationEmail(
                 "example@in2.es",
                 "Activate your new credential",
-                issuerUiExternalDomain + "/credential-offer/activation-code/" + transactionCode,
+                issuerUiExternalDomain + "/credentials/activation/" + transactionCode,
                 knowledgebaseWalletUrl,
                 "Jhon Doe",
                 "IN2, Ingeniería de la Información, S.L."))

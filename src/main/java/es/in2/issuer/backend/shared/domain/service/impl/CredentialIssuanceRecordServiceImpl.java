@@ -28,7 +28,7 @@ import static es.in2.issuer.backend.shared.domain.util.Utils.generateCustomNonce
 public class CredentialIssuanceRecordServiceImpl implements CredentialIssuanceRecordService {
 
     private final ObjectMapper objectMapper;
-    private final CacheStore<String> cacheStoreForTransactionCode;
+    private final CacheStore<String> cacheStoreForActivationCode;
     private final CredentialIssuanceRepository credentialIssuanceRepository;
     private final AccessTokenService accessTokenService;
 
@@ -44,10 +44,15 @@ public class CredentialIssuanceRecordServiceImpl implements CredentialIssuanceRe
                 .flatMap(this::generateActivationCode);
     }
 
+    @Override
+    public Mono<CredentialIssuanceRecord> get(String id) {
+        return credentialIssuanceRepository.findById(UUID.fromString(id));
+    }
+
     private Mono<String> generateActivationCode(String credentialIssuanceRecordId) {
         return generateCustomNonce()
                 .flatMap(activationCode ->
-                        cacheStoreForTransactionCode.add(activationCode, credentialIssuanceRecordId));
+                        cacheStoreForActivationCode.add(activationCode, credentialIssuanceRecordId));
     }
 
     private Mono<CredentialIssuanceRecord> buildCredentialIssuanceRecord(

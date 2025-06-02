@@ -22,6 +22,7 @@ public class EndpointsConstants {
     public static final String OID4VCI_CREDENTIAL_OFFER_PATH = "/oid4vci/v1/credential-offer";
     public static final String OID4VCI_CREDENTIAL_PATH = "/oid4vci/v1/credential";
     public static final String OID4VCI_DEFERRED_CREDENTIAL_PATH = "/oid4vci/v1/deferred-credential";
+    public static final String OID4VCI_ACTIVATION_CODE_PATH = "/oid4vci/v1/credential-offer";
 
     // Well-Known Endpoints
     public static final String CREDENTIAL_ISSUER_METADATA_WELL_KNOWN_PATH = "/.well-known/openid-credential-issuer";

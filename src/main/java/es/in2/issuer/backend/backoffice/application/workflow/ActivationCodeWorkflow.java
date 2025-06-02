@@ -4,6 +4,6 @@ import es.in2.issuer.backend.backoffice.domain.model.dtos.CredentialOfferUriResp
 import reactor.core.publisher.Mono;
 
 public interface ActivationCodeWorkflow {
-    Mono<CredentialOfferUriResponse> buildCredentialOfferUri(String processId, String transactionCode);
-    Mono<CredentialOfferUriResponse> buildNewCredentialOfferUri(String processId, String cTransactionCode);
+    Mono<CredentialOfferUriResponse> buildCredentialOfferUri(String processId, String activationCode);
+    Mono<CredentialOfferUriResponse> buildNewCredentialOfferUri(String processId, String cActivationCode);
 }

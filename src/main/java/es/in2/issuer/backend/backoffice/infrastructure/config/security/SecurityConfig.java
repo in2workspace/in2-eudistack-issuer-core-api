@@ -99,7 +99,8 @@ public class SecurityConfig {
                         .pathMatchers(
                                 HttpMethod.POST,
                                 OAUTH_TOKEN_PATH,
-                                DEFERRED_CREDENTIALS
+                                DEFERRED_CREDENTIALS,
+                                OID4VCI_ACTIVATION_CODE_PATH
                         ).permitAll()
                         .anyExchange().authenticated()
                 )

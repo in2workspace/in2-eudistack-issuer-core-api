@@ -1,11 +1,10 @@
 package es.in2.issuer.backend.shared.domain.model.dto;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 
 @Builder
 public record PreAuthorizedCodeResponse(
-        @JsonProperty("grant") Grants grants,
-        @JsonProperty("pin") String pin
+        String preAuthorizedCode,
+        String txCode
 ) {
 }
