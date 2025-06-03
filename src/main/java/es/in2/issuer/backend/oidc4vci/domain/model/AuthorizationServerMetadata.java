@@ -7,9 +7,9 @@ import java.util.Set;
 
 @Builder
 public record AuthorizationServerMetadata(
-        @JsonProperty("issuer") String issuer,
-        @JsonProperty("token_endpoint") String tokenEndpoint,
-        @JsonProperty("response_types_supported") Set<String> responseTypesSupported,
-        @JsonProperty("pre-authorized_grant_anonymous_access_supported") boolean preAuthorizedGrantAnonymousAccessSupported
+        @JsonProperty(value = "issuer", required = true) String issuer,
+        @JsonProperty(value = "token_endpoint", required = true) String tokenEndpoint,
+        @JsonProperty(value = "response_types_supported", required = true) Set<String> responseTypesSupported,
+        @JsonProperty(value = "pre-authorized_grant_anonymous_access_supported", required = true) boolean preAuthorizedGrantAnonymousAccessSupported
 ) {
 }

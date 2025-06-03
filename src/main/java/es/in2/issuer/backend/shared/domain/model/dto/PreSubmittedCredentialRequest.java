@@ -6,11 +6,11 @@ import lombok.Builder;
 
 @Builder
 public record PreSubmittedCredentialRequest(
-        @JsonProperty("schema") String schema,
-        @JsonProperty("format") String format,
-        @JsonProperty("payload") JsonNode payload,
+        @JsonProperty(value = "schema", required = true) String schema,
+        @JsonProperty(value = "format", required = true) String format,
+        @JsonProperty(value = "payload", required = true) JsonNode payload,
         @JsonProperty("operation_mode") String operationMode,
-        @JsonProperty("validity_period") int validityPeriod,
-        @JsonProperty("response_uri") String responseUri
+        @JsonProperty("response_uri") String responseUri,
+        @JsonProperty("issuance_notification_uri") String issuanceNotificationUri
 ) {
 }

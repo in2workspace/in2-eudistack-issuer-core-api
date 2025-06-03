@@ -2,7 +2,7 @@ package es.in2.issuer.backend.oidc4vci.infrastructure.controller;
 
 import es.in2.issuer.backend.shared.application.workflow.CredentialIssuanceWorkflow;
 import es.in2.issuer.backend.shared.domain.model.dto.DeferredCredentialRequest;
-import es.in2.issuer.backend.shared.domain.model.dto.VerifiableCredentialResponse;
+import es.in2.issuer.backend.shared.domain.model.dto.CredentialResponse;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -32,18 +32,18 @@ class DeferredCredentialControllerTest {
         DeferredCredentialRequest deferredCredentialRequest = DeferredCredentialRequest.builder()
                 .transactionId(newTransactionId)
                 .build();
-        VerifiableCredentialResponse verifiableCredentialResponse = VerifiableCredentialResponse.builder()
+        CredentialResponse credentialResponse = CredentialResponse.builder()
                 .credential("sampleCredential")
                 .transactionId("sampleTransactionId")
                 .cNonce("sampleCNonce")
                 .cNonceExpiresIn(35)
                 .build();
-        when(credentialIssuanceWorkflow.generateVerifiableCredentialDeferredResponse(anyString(), eq(deferredCredentialRequest))).thenReturn(Mono.just(verifiableCredentialResponse));
+        when(credentialIssuanceWorkflow.generateVerifiableCredentialDeferredResponse(anyString(), eq(deferredCredentialRequest))).thenReturn(Mono.just(credentialResponse));
 
-        Mono<VerifiableCredentialResponse> result = deferredCredentialController.getCredential(authorizationHeader, deferredCredentialRequest);
+        Mono<CredentialResponse> result = deferredCredentialController.getCredential(authorizationHeader, deferredCredentialRequest);
 
         StepVerifier.create(result)
-                .assertNext(response -> assertEquals(verifiableCredentialResponse, response))
+                .assertNext(response -> assertEquals(credentialResponse, response))
                 .verifyComplete();
     }
 

@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 
@@ -30,7 +31,10 @@ public class IssuanceController {
                 token -> credentialIssuanceWorkflow.execute(processId, preSubmittedCredentialRequest, token, null));
     }
 
-    @PostMapping("/vci/v1/issuances")
+    @PostMapping(
+            value = "/vci/v1/issuances",
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
     public Mono<Void> externalIssueCredential(@RequestHeader(HttpHeaders.AUTHORIZATION) String bearerToken,
                                               @RequestHeader(name = "X-Id-Token", required = false) String idToken,

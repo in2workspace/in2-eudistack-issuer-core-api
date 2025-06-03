@@ -121,9 +121,9 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
     }
 
     @Override
-    public Mono<VerifiableCredentialResponse> generateVerifiableCredentialResponse(String processId,
-                                                                                   CredentialRequest credentialRequest,
-                                                                                   String token) {
+    public Mono<CredentialResponse> generateVerifiableCredentialResponse(String processId,
+                                                                         CredentialRequest credentialRequest,
+                                                                         String token) {
         try {
             JWSObject jwsObject = JWSObject.parse(token);
             String authServerNonce = jwsObject.getPayload().toJSONObject().get("jti").toString();
@@ -147,7 +147,7 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
         }
     }
 
-    private Mono<VerifiableCredentialResponse> handleOperationMode(String operationMode, String processId, String authServerNonce, VerifiableCredentialResponse credentialResponse) {
+    private Mono<CredentialResponse> handleOperationMode(String operationMode, String processId, String authServerNonce, CredentialResponse credentialResponse) {
         return switch (operationMode) {
             case ASYNC -> deferredCredentialMetadataService.getProcedureIdByAuthServerNonce(authServerNonce)
                     .flatMap(credentialProcedureService::getSignerEmailFromDecodedCredentialByProcedureId)
@@ -188,7 +188,7 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
     }
 
     @Override
-    public Mono<VerifiableCredentialResponse> generateVerifiableCredentialDeferredResponse(String processId, DeferredCredentialRequest deferredCredentialRequest) {
+    public Mono<DeferredCredentialResponse> generateVerifiableCredentialDeferredResponse(String processId, DeferredCredentialRequest deferredCredentialRequest) {
         return verifiableCredentialService.generateDeferredCredentialResponse(processId, deferredCredentialRequest)
                 .onErrorResume(e -> Mono.error(new RuntimeException("Failed to process the credential for the next processId: " + processId, e)));
     }

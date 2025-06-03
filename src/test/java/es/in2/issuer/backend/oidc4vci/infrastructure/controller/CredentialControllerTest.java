@@ -2,7 +2,7 @@ package es.in2.issuer.backend.oidc4vci.infrastructure.controller;
 
 import es.in2.issuer.backend.shared.application.workflow.CredentialIssuanceWorkflow;
 import es.in2.issuer.backend.shared.domain.model.dto.CredentialRequest;
-import es.in2.issuer.backend.shared.domain.model.dto.VerifiableCredentialResponse;
+import es.in2.issuer.backend.shared.domain.model.dto.CredentialResponse;
 import es.in2.issuer.backend.shared.domain.service.AccessTokenService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -41,17 +41,17 @@ class CredentialControllerTest {
                 .format("sampleFormat")
                 .credentialDefinition(CredentialRequest.CredentialDefinition.builder().type(Set.of("type")).build())
                 .build();
-        VerifiableCredentialResponse verifiableCredentialResponse = VerifiableCredentialResponse.builder()
+        CredentialResponse credentialResponse = CredentialResponse.builder()
                 .credential("sampleCredential")
                 .transactionId("sampleTransactionId")
                 .cNonce("sampleCNonce")
                 .cNonceExpiresIn(35)
                 .build();
-        ResponseEntity<VerifiableCredentialResponse> expectedResponse = new ResponseEntity<>(verifiableCredentialResponse, HttpStatus.ACCEPTED);
+        ResponseEntity<CredentialResponse> expectedResponse = new ResponseEntity<>(credentialResponse, HttpStatus.ACCEPTED);
         when(accessTokenService.getCleanBearerToken(authorizationHeader)).thenReturn(Mono.just("testToken"));
-        when(credentialIssuanceWorkflow.generateVerifiableCredentialResponse(anyString(), eq(credentialRequest), anyString())).thenReturn(Mono.just(verifiableCredentialResponse));
+        when(credentialIssuanceWorkflow.generateVerifiableCredentialResponse(anyString(), eq(credentialRequest), anyString())).thenReturn(Mono.just(credentialResponse));
 
-        Mono<ResponseEntity<VerifiableCredentialResponse>> result = credentialController.createVerifiableCredential(authorizationHeader, credentialRequest);
+        Mono<ResponseEntity<CredentialResponse>> result = credentialController.createVerifiableCredential(authorizationHeader, credentialRequest);
 
         StepVerifier.create(result)
                 .assertNext(response -> assertEquals(expectedResponse, response))

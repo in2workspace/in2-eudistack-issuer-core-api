@@ -5,7 +5,7 @@ import es.in2.issuer.backend.shared.application.workflow.CredentialSignerWorkflo
 import es.in2.issuer.backend.shared.domain.exception.RemoteSignatureException;
 import es.in2.issuer.backend.shared.domain.model.dto.DeferredCredentialRequest;
 import es.in2.issuer.backend.shared.domain.model.dto.PreSubmittedCredentialRequest;
-import es.in2.issuer.backend.shared.domain.model.dto.VerifiableCredentialResponse;
+import es.in2.issuer.backend.shared.domain.model.dto.CredentialResponse;
 import es.in2.issuer.backend.shared.domain.service.CredentialProcedureService;
 import es.in2.issuer.backend.shared.domain.service.DeferredCredentialMetadataService;
 import es.in2.issuer.backend.shared.domain.service.VerifiableCredentialService;
@@ -77,17 +77,17 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
 
 
     @Override
-    public Mono<VerifiableCredentialResponse> generateDeferredCredentialResponse(String processId, DeferredCredentialRequest deferredCredentialRequest) {
+    public Mono<CredentialResponse> generateDeferredCredentialResponse(String processId, DeferredCredentialRequest deferredCredentialRequest) {
         return deferredCredentialMetadataService.getVcByTransactionId(deferredCredentialRequest.transactionId())
                 .flatMap(deferredCredentialMetadataDeferredResponse -> {
                     if (deferredCredentialMetadataDeferredResponse.vc() != null) {
                         return credentialProcedureService.updateCredentialProcedureCredentialStatusToValidByProcedureId(deferredCredentialMetadataDeferredResponse.procedureId())
                                 .then(deferredCredentialMetadataService.deleteDeferredCredentialMetadataById(deferredCredentialMetadataDeferredResponse.id()))
-                                .then(Mono.just(VerifiableCredentialResponse.builder()
+                                .then(Mono.just(CredentialResponse.builder()
                                         .credential(deferredCredentialMetadataDeferredResponse.vc())
                                         .build()));
                     } else {
-                        return Mono.just(VerifiableCredentialResponse.builder()
+                        return Mono.just(CredentialResponse.builder()
                                 .transactionId(deferredCredentialMetadataDeferredResponse.transactionId())
                                 .build());
                     }
@@ -107,7 +107,7 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
     }
 
     @Override
-    public Mono<VerifiableCredentialResponse> buildCredentialResponse(String processId, String subjectDid, String authServerNonce, String format, String token) {
+    public Mono<CredentialResponse> buildCredentialResponse(String processId, String subjectDid, String authServerNonce, String format, String token) {
         return deferredCredentialMetadataService.getProcedureIdByAuthServerNonce(authServerNonce)
             .flatMap(procedureId -> {
                 log.info("Procedure ID obtained: {}", procedureId);
@@ -133,12 +133,12 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
 
 
 
-    private Mono<VerifiableCredentialResponse> buildCredentialResponseBasedOnOperationMode(String operationMode, String procedureId, String transactionId, String authServerNonce, String token) {
+    private Mono<CredentialResponse> buildCredentialResponseBasedOnOperationMode(String operationMode, String procedureId, String transactionId, String authServerNonce, String token) {
         if (operationMode.equals(ASYNC)) {
             return credentialProcedureService.getDecodedCredentialByProcedureId(procedureId)
                     .flatMap(decodedCredential -> {
                         log.debug("ASYNC Credential JSON: {}", decodedCredential);
-                        return Mono.just(VerifiableCredentialResponse.builder()
+                        return Mono.just(CredentialResponse.builder()
                                 .credential(decodedCredential)
                                 .transactionId(transactionId)
                                 .build());
@@ -147,7 +147,7 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
             return deferredCredentialMetadataService.getProcedureIdByAuthServerNonce(authServerNonce)
                     .flatMap(procedureIdReceived ->
                             credentialSignerWorkflow.signAndUpdateCredentialByProcedureId(BEARER_PREFIX + token, procedureIdReceived, JWT_VC)
-                                    .flatMap(signedCredential -> Mono.just(VerifiableCredentialResponse.builder()
+                                    .flatMap(signedCredential -> Mono.just(CredentialResponse.builder()
                                             .credential(signedCredential)
                                             .build()))
                                     .onErrorResume(error -> {
@@ -155,7 +155,7 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
                                             log.info("Error in SYNC mode, retrying with new operation mode");
                                             return credentialProcedureService.getDecodedCredentialByProcedureId(procedureIdReceived)
                                                     .flatMap(unsignedCredential ->
-                                                            Mono.just(VerifiableCredentialResponse.builder()
+                                                            Mono.just(CredentialResponse.builder()
                                                                     .credential(unsignedCredential)
                                                                     .transactionId(transactionId)
                                                                     .build()));
