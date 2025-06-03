@@ -60,7 +60,7 @@ class ActivationCodeControllerTest {
         when(activationCodeWorkflow.buildNewCredentialOfferUri(anyString(), eq(transactionCode))).thenReturn(Mono.just(credentialOfferUriResponse));
         //Act
         Mono<CredentialOfferUriResponse> result = activationCodeController.getCredentialOfferByActivationCode(ActivationCodeRequest.builder()
-                .c_activationCode(transactionCode)
+                .cActivationCode(transactionCode)
                 .build());
         //Assert
         StepVerifier.create(result)

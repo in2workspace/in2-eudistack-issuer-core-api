@@ -33,7 +33,7 @@ public class ActivationCodeController {
         } else if (hasCActivationCode(activationCodeRequest)) {
             return activationCodeWorkflow.buildNewCredentialOfferUri(
                     processId,
-                    activationCodeRequest.c_activationCode());
+                    activationCodeRequest.cActivationCode());
         } else {
             log.error("Error getting activationCode or cActivationCode. Either 'activationCode' or 'cActivationCode' " +
                     "must be provided, but not both.");
@@ -43,13 +43,13 @@ public class ActivationCodeController {
     }
 
     private static boolean hasCActivationCode(ActivationCodeRequest activationCodeRequest) {
-        return activationCodeRequest.c_activationCode() != null && !activationCodeRequest.c_activationCode().isEmpty()
+        return activationCodeRequest.cActivationCode() != null && !activationCodeRequest.cActivationCode().isEmpty()
                 && (activationCodeRequest.activationCode() == null || activationCodeRequest.activationCode().isEmpty());
     }
 
     private static boolean hasActivationCode(ActivationCodeRequest activationCodeRequest) {
         return activationCodeRequest.activationCode() != null && !activationCodeRequest.activationCode().isEmpty()
-                && (activationCodeRequest.c_activationCode() == null
-                || activationCodeRequest.c_activationCode().isEmpty());
+                && (activationCodeRequest.cActivationCode() == null
+                || activationCodeRequest.cActivationCode().isEmpty());
     }
 }

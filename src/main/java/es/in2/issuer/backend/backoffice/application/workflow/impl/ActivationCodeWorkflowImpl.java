@@ -41,8 +41,8 @@ public class ActivationCodeWorkflowImpl implements ActivationCodeWorkflow {
 
     private Mono<String> validateActivationCode(String activationCode) {
         return cacheStoreForActivationCode.get(activationCode)
-                .flatMap(cirId -> cacheStoreForActivationCode.delete(activationCode)
-                        .thenReturn(cirId));
+                .flatMap(credentialIssuanceRecordId -> cacheStoreForActivationCode.delete(activationCode)
+                        .thenReturn(credentialIssuanceRecordId));
     }
 
     private Mono<String> validateCActivationCode(String cActivationCode) {
@@ -52,8 +52,8 @@ public class ActivationCodeWorkflowImpl implements ActivationCodeWorkflow {
                         .thenReturn(activationCode));
     }
 
-    private Mono<CredentialOfferUriResponse> buildCredentialOfferUriInternal(String cirId) {
-        return credentialIssuanceRecordService.get(cirId)
+    private Mono<CredentialOfferUriResponse> buildCredentialOfferUriInternal(String credentialIssuanceRecordId) {
+        return credentialIssuanceRecordService.get(credentialIssuanceRecordId)
                 .flatMap(credentialIssuanceRecord ->
                         preAuthorizedCodeWorkflow.generatePreAuthorizedCode()
                                 .flatMap(preAuthorizedCodeResponse ->
@@ -86,11 +86,11 @@ public class ActivationCodeWorkflowImpl implements ActivationCodeWorkflow {
                 );
     }
 
-    private Mono<IssuanceMetadata> buildIssuanceMetadata(String preAuthorizedCode, String cirId, String
-            txCode, String email, CredentialOffer credentialOffer) {
+    private Mono<IssuanceMetadata> buildIssuanceMetadata(String preAuthorizedCode, String credentialIssuanceRecordId,
+                                                         String txCode, String email, CredentialOffer credentialOffer) {
         return Mono.just(IssuanceMetadata.builder()
                 .preAuthorizedCode(preAuthorizedCode)
-                .cirId(cirId)
+                .credentialIssuanceRecordId(credentialIssuanceRecordId)
                 .txCode(txCode)
                 .email(email)
                 .credentialOffer(credentialOffer)

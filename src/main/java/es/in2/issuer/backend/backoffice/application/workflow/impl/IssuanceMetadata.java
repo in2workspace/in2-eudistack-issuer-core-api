@@ -6,7 +6,7 @@ import lombok.Builder;
 @Builder
 public record IssuanceMetadata(
         String preAuthorizedCode,
-        String cirId,
+        String credentialIssuanceRecordId,
         String txCode,
         String email,
         CredentialOffer credentialOffer

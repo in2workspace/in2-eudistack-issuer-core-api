@@ -6,6 +6,6 @@ import lombok.Builder;
 @Builder
 public record ActivationCodeRequest(
         @JsonProperty("activationCode") String activationCode,
-        @JsonProperty("c_activationCode") String c_activationCode
+        @JsonProperty("c_activationCode") String cActivationCode
 ) {
 }
