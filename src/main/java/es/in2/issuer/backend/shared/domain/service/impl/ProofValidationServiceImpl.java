@@ -40,6 +40,9 @@ public class ProofValidationServiceImpl implements ProofValidationService {
                     if (jwsObject == null) log.debug("JWT signature validation failed");
                     else log.debug("JWT signature validated, checking nonce...");
                 })
+                // todo: comentar isNonceValid fins que es creï l'endpoint de nonce
+                //  if -> jwt contains nonoce _> validate nonce
+                // else ->tirar milles
                 .flatMap(this::isNonceValid)
                 .doOnSuccess(result -> log.debug("Final validation result: {}", result))
                 .onErrorMap(e -> new ProofValidationException("Error during JWT validation"));

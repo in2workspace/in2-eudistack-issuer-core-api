@@ -31,6 +31,7 @@ public class TokenServiceImpl implements TokenService {
     private final CacheStore<String> nonceCacheStore;
     private final JWTService jwtService;
     private final AppConfig appConfig;
+    // TODO: Token Workflow
 
     @Override
     public Mono<TokenResponse> generateTokenResponse(
@@ -38,30 +39,30 @@ public class TokenServiceImpl implements TokenService {
             String preAuthorizedCode,
             String txCode) {
 
+        // TODO join two ensure functions
         return ensureGrantTypeIsPreAuthorizedCode(grantType)
                 .then(Mono.defer(() -> ensurePreAuthorizedCodeAndTxCodeAreCorrect(preAuthorizedCode, txCode)))
                 .then(Mono.defer(this::generateAndSaveNonce)
                         .map(nonce -> {
+                            // TODO extract to a function
                             Instant issueTime = Instant.now();
                             long issueTimeEpochSeconds = issueTime.getEpochSecond();
                             long expirationTimeEpochSeconds = generateAccessTokenExpirationTime(issueTime);
                             String accessToken = generateAccessToken(preAuthorizedCode, issueTimeEpochSeconds, expirationTimeEpochSeconds);
                             String tokenType = "bearer";
                             long expiresIn = expirationTimeEpochSeconds - Instant.now().getEpochSecond();
-                            long nonceExpiresIn = (int) TimeUnit.SECONDS.convert(
-                                    PRE_AUTH_CODE_EXPIRY_DURATION_MINUTES,
-                                    TimeUnit.MINUTES);
 
+                            // TODO: Generate Refresh token -> Un token amb un claim de refresh token i validesa de 30 dies.
+                            // todo guardar els 2 tokens a la cir bbdd
                             return TokenResponse.builder()
                                     .accessToken(accessToken)
                                     .tokenType(tokenType)
                                     .expiresIn(expiresIn)
-                                    .nonce(nonce)
-                                    .nonceExpiresIn(nonceExpiresIn)
                                     .build();
                         }));
     }
 
+    // TODO: delete
     private Mono<String> generateAndSaveNonce() {
         return generateCustomNonce()
                 .flatMap(nonce ->

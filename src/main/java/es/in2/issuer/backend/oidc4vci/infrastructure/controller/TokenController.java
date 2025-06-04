@@ -24,6 +24,7 @@ public class TokenController {
             produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseStatus(HttpStatus.OK)
     public Mono<TokenResponse> getCredentialIssuerMetadata(TokenRequest tokenRequest) {
+        // TODO: Token Workflow
         return tokenService.generateTokenResponse(
                         tokenRequest.grantType(),
                         tokenRequest.preAuthorizedCode(),

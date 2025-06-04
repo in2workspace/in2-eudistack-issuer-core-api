@@ -143,9 +143,17 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                                                                                    String token) {
         try {
             JWSObject jwsObject = JWSObject.parse(token);
+
+            // todo: name->  accessTokenJti
             String authServerNonce = jwsObject.getPayload().toJSONObject().get("jti").toString();
 
             // TODO: rethink this logic instead of taking the first JWT proof
+            // if -> credentialReqeust has proofs -> cryptographic binding
+            //      1. isProofValid
+            //      2. si ok -> empty, sinó error
+            //      3. si ok -> extractDidFromJwtProof
+            //      4. agafar la credencial json del cir i establir el did que hem extret i vincular amb el id del subjecte:
+            // else -> without cryptographic binding
             return proofValidationService.isProofValid(credentialRequest.proofs().jwt().get(0), token)
                     .flatMap(isValid -> Boolean.TRUE.equals(isValid)
                             ? extractDidFromJwtProof(credentialRequest.proofs().jwt().get(0))
