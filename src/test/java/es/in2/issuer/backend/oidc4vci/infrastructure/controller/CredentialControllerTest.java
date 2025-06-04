@@ -14,7 +14,7 @@ import org.springframework.http.ResponseEntity;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-import java.util.Set;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -38,14 +38,11 @@ class CredentialControllerTest {
         //Arrange
         String authorizationHeader = "Bearer testToken";
         CredentialRequest credentialRequest = CredentialRequest.builder()
-                .format("sampleFormat")
-                .credentialDefinition(CredentialRequest.CredentialDefinition.builder().type(Set.of("type")).build())
+                .credentialConfigurationId("sampleFormat")
                 .build();
         CredentialResponse credentialResponse = CredentialResponse.builder()
-                .credential("sampleCredential")
+                .credentials(List.of("sampleCredential"))
                 .transactionId("sampleTransactionId")
-                .cNonce("sampleCNonce")
-                .cNonceExpiresIn(35)
                 .build();
         ResponseEntity<CredentialResponse> expectedResponse = new ResponseEntity<>(credentialResponse, HttpStatus.ACCEPTED);
         when(accessTokenService.getCleanBearerToken(authorizationHeader)).thenReturn(Mono.just("testToken"));

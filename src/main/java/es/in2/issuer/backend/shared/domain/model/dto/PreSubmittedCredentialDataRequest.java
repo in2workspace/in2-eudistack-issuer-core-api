@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import lombok.Builder;
 
 @Builder
-public record PreSubmittedCredentialRequest(
+public record PreSubmittedCredentialDataRequest(
         @JsonProperty(value = "schema", required = true) String schema,
         @JsonProperty(value = "format", required = true) String format,
         @JsonProperty(value = "payload", required = true) JsonNode payload,
