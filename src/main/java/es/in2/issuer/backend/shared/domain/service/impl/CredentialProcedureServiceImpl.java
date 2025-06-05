@@ -323,6 +323,7 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
         return credentialProcedureRepository.findById(UUID.fromString(procedureId))
                 .flatMap(credentialProcedure -> {
                     credentialProcedure.setCredentialFormat(format);
+                    System.out.println("Xivato 299: credentialProcedure");
                     return credentialProcedureRepository.save(credentialProcedure)
                             .doOnSuccess(result -> log.info("Updated format for procedureId: {}", procedureId))
                             .then();
