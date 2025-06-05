@@ -46,8 +46,11 @@ public class ProofValidationServiceImpl implements ProofValidationService {
     }
 
     private Mono<Boolean> isNonceValid(JWSObject jwsObject) {
+        System.out.println("xivato 1 jwsObject: " + jwsObject.toString());
         var payload = jwsObject.getPayload().toJSONObject();
+        System.out.println("xivato 2 payload: " + payload.toString());
         String nonce = payload.get("nonce").toString();
+        System.out.println("xivato 3: " + nonce.toString());
         return nonceValidationWorkflow.isValid(Mono.just(nonce));
     }
 
