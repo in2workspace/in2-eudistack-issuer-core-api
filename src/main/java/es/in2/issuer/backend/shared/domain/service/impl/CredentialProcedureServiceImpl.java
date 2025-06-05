@@ -94,11 +94,14 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
     public Mono<Void> updateDecodedCredentialByProcedureId(String procedureId, String credential, String format) {
         return credentialProcedureRepository.findById(UUID.fromString(procedureId))
                 .flatMap(credentialProcedure -> {
+                    System.out.println("Xivato 100: credential"  + credential);
                     credentialProcedure.setCredentialDecoded(credential);
                     credentialProcedure.setCredentialStatus(CredentialStatus.ISSUED);
+                    System.out.println("Xivato 100: format"  + format);
                     credentialProcedure.setCredentialFormat(format);
                     credentialProcedure.setUpdatedAt(new Timestamp(Instant.now().toEpochMilli()));
 
+                    System.out.println("Xivato 100: credentialProcedure"  + credentialProcedure);
                     return credentialProcedureRepository.save(credentialProcedure)
                             .doOnSuccess(result -> log.info("Updated credential"))
                             .then();
