@@ -89,8 +89,6 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                                         .flatMap(internalToken -> credentialSignerWorkflow.signAndUpdateCredentialByProcedureId(BEARER_PREFIX + internalToken, procedureId, JWT_VC))
                                         // todo instead of updating the credential status to valid, we should update the credential status to pending download but we don't support the verifiable certification download yet
                                         .flatMap(encodedVc -> credentialProcedureService.updateCredentialProcedureCredentialStatusToValidByProcedureId(procedureId)
-                                                .then(credentialProcedureService.updateFormatByProcedureId(procedureId, preSubmittedCredentialDataRequest.format()))
-                                                .then(deferredCredentialMetadataService.updateFormatByProcedureId(procedureId, preSubmittedCredentialDataRequest.format()))
                                                 .then(m2mTokenService.getM2MToken()
                                                         .flatMap(m2mAccessToken ->
                                                                 credentialDeliveryService.sendVcToResponseUri(

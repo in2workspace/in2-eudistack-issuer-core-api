@@ -45,9 +45,12 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
                 //TODO repensar esto cuando el flujo del Verification cumpla con el OIDC4VC
                 //Generate Issuer and Signer using LEARCredentialEmployee method
                 .flatMap(procedureId -> deferredCredentialMetadataService.createDeferredCredentialMetadata(
-                        procedureId,
-                        preSubmittedCredentialDataRequest.operationMode(),
-                        preSubmittedCredentialDataRequest.responseUri()));
+                                procedureId,
+                                preSubmittedCredentialDataRequest.operationMode(),
+                                preSubmittedCredentialDataRequest.responseUri())
+                        .then(credentialProcedureService.updateFormatByProcedureId(procedureId, preSubmittedCredentialDataRequest.format()))
+                        .then(deferredCredentialMetadataService.updateFormatByProcedureId(procedureId, preSubmittedCredentialDataRequest.format()))
+                        .thenReturn(procedureId));
     }
 
     @Override
