@@ -234,6 +234,9 @@ public class DeferredCredentialMetadataServiceImpl implements DeferredCredential
     @Override
     public Mono<String> getFormatByProcedureId(String procedureId) {
         return deferredCredentialMetadataRepository.findByProcedureId(UUID.fromString(procedureId))
-                .map(DeferredCredentialMetadata::getVcFormat);
+                .map(deferredCredentialMetadata -> {
+                    System.out.println("Xivato 200");
+                    return deferredCredentialMetadata.getVcFormat();
+                });
     }
 }
