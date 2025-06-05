@@ -55,7 +55,7 @@ public class DeferredCredentialMetadataServiceImpl implements DeferredCredential
         log.debug("Creating deferred credential metadata: procedureId={}, operationMode={}, responseUri={}", procedureId, operationMode, responseUri);
         return generateCustomNonce()
                 .flatMap(nonce -> {
-                    System.out.println("Xivato 1000");
+                    System.out.println("Xivato 1000: " + nonce);
                     return cacheStoreForTransactionCode.add(nonce, nonce);
                 })
                 .flatMap(transactionCode -> {
