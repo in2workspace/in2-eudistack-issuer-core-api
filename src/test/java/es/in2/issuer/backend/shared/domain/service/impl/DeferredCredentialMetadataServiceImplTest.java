@@ -250,7 +250,7 @@ class DeferredCredentialMetadataServiceImplTest {
         when(deferredCredentialMetadataRepository.save(deferredCredentialMetadata)).thenReturn(Mono.just(deferredCredentialMetadata));
 
         // Act
-        StepVerifier.create(deferredCredentialMetadataService.updateDeferredCredentialMetadataByAuthServerNonce(authServerNonce, format))
+        StepVerifier.create(deferredCredentialMetadataService.updateDeferredCredentialMetadataByAuthServerNonce(authServerNonce))
                 .expectNextMatches(Objects::nonNull)
                 .verifyComplete();
 

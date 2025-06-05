@@ -154,14 +154,13 @@ public class DeferredCredentialMetadataServiceImpl implements DeferredCredential
     }
 
     @Override
-    public Mono<String> updateDeferredCredentialMetadataByAuthServerNonce(String authServerNonce, String format) {
+    public Mono<String> updateDeferredCredentialMetadataByAuthServerNonce(String authServerNonce) {
         System.out.println("Xivato 2: authServerNonce: " + authServerNonce);
         String transactionId = UUID.randomUUID().toString();
         return deferredCredentialMetadataRepository.findByAuthServerNonce(authServerNonce)
                 .flatMap(deferredCredentialMetadata -> {
                     System.out.println("Xivato 3: ");
                     deferredCredentialMetadata.setTransactionId(transactionId);
-                    deferredCredentialMetadata.setVcFormat(format);
                     System.out.println("Xivato 4: ");
                     return deferredCredentialMetadataRepository.save(deferredCredentialMetadata)
                             .then(Mono.just(transactionId));
@@ -222,4 +221,19 @@ public class DeferredCredentialMetadataServiceImpl implements DeferredCredential
         return deferredCredentialMetadataRepository.deleteByAuthServerNonce(authServerNonce);
     }
 
+    @Override
+    public Mono<Void> updateFormatByProcedureId(String procedureId, String format) {
+        return deferredCredentialMetadataRepository.findByProcedureId(UUID.fromString(procedureId))
+                .flatMap(deferredCredentialMetadata -> {
+                    deferredCredentialMetadata.setVcFormat(format);
+                    return deferredCredentialMetadataRepository.save(deferredCredentialMetadata)
+                            .then();
+                });
+    }
+
+    @Override
+    public Mono<String> getFormatByProcedureId(String procedureId) {
+        return deferredCredentialMetadataRepository.findByProcedureId(UUID.fromString(procedureId))
+                .map(DeferredCredentialMetadata::getVcFormat);
+    }
 }

@@ -3,10 +3,10 @@ package es.in2.issuer.backend.shared.domain.service.impl;
 import com.nimbusds.jose.JWSObject;
 import es.in2.issuer.backend.shared.application.workflow.CredentialSignerWorkflow;
 import es.in2.issuer.backend.shared.domain.exception.RemoteSignatureException;
+import es.in2.issuer.backend.shared.domain.model.dto.CredentialResponse;
 import es.in2.issuer.backend.shared.domain.model.dto.DeferredCredentialRequest;
 import es.in2.issuer.backend.shared.domain.model.dto.DeferredCredentialResponse;
 import es.in2.issuer.backend.shared.domain.model.dto.PreSubmittedCredentialDataRequest;
-import es.in2.issuer.backend.shared.domain.model.dto.CredentialResponse;
 import es.in2.issuer.backend.shared.domain.service.CredentialProcedureService;
 import es.in2.issuer.backend.shared.domain.service.DeferredCredentialMetadataService;
 import es.in2.issuer.backend.shared.domain.service.VerifiableCredentialService;
@@ -77,7 +77,6 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
     }
 
 
-
     @Override
     public Mono<DeferredCredentialResponse> generateDeferredCredentialResponse(String processId, DeferredCredentialRequest deferredCredentialRequest) {
         return deferredCredentialMetadataService.getVcByTransactionId(deferredCredentialRequest.transactionId())
@@ -101,40 +100,42 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
             JWSObject jwsObject = JWSObject.parse(accessToken);
             String newAuthServerNonce = jwsObject.getPayload().toJSONObject().get("jti").toString();
             return deferredCredentialMetadataService.updateAuthServerNonceByAuthServerNonce(newAuthServerNonce, preAuthCode);
-        } catch (ParseException e){
+        } catch (ParseException e) {
             throw new RuntimeException();
         }
 
     }
 
     @Override
-    public Mono<CredentialResponse> buildCredentialResponse(String processId, String subjectDid, String authServerNonce, String format, String token) {
+    public Mono<CredentialResponse> buildCredentialResponse(String processId, String subjectDid, String authServerNonce, String token) {
         return deferredCredentialMetadataService.getProcedureIdByAuthServerNonce(authServerNonce)
-            .flatMap(procedureId -> {
-                log.info("Procedure ID obtained: {}", procedureId);
-                return credentialProcedureService.getCredentialTypeByProcedureId(procedureId)
-                        .flatMap(credentialType -> {
-                            log.info("Credential Type obtained: {}", credentialType);
-                            return credentialProcedureService.getDecodedCredentialByProcedureId(procedureId)
-                                    .flatMap(decodedCredential -> {
-                                        log.info("Decoded Credential obtained: {}", decodedCredential);
-                                        return credentialFactory.mapCredentialAndBindMandateeId(processId, credentialType, decodedCredential, subjectDid)
-                                                .flatMap(bindCredentialWithMandateeId -> {
-                                                    System.out.println("Xivato 1: " + bindCredentialWithMandateeId);
-                                                    return credentialProcedureService.updateDecodedCredentialByProcedureId(procedureId, bindCredentialWithMandateeId, format)
-                                                            .then(deferredCredentialMetadataService.updateDeferredCredentialMetadataByAuthServerNonce(authServerNonce, format))
-                                                            .flatMap(transactionId -> {
-                                                                log.info("Transaction ID obtained: {}", transactionId);
-                                                                return credentialFactory.mapCredentialBindIssuerAndUpdateDB(processId, procedureId, bindCredentialWithMandateeId, credentialType, format, authServerNonce)
-                                                                        .then(credentialProcedureService.getOperationModeByProcedureId(procedureId))
-                                                                        .flatMap(actualOperationMode -> buildCredentialResponseBasedOnOperationMode(actualOperationMode, procedureId, transactionId, authServerNonce, token));
-                                                            });
-                                                });
-                                    });
-                        });
-            });
+                .flatMap(procedureId -> {
+                    log.info("Procedure ID obtained: {}", procedureId);
+                    return credentialProcedureService.getCredentialTypeByProcedureId(procedureId)
+                            .flatMap(credentialType -> {
+                                log.info("Credential Type obtained: {}", credentialType);
+                                return credentialProcedureService.getDecodedCredentialByProcedureId(procedureId)
+                                        .flatMap(decodedCredential -> {
+                                            log.info("Decoded Credential obtained: {}", decodedCredential);
+                                            return credentialFactory.mapCredentialAndBindMandateeId(processId, credentialType, decodedCredential, subjectDid)
+                                                    .flatMap(bindCredentialWithMandateeId -> {
+                                                        System.out.println("Xivato 1: " + bindCredentialWithMandateeId);
+                                                        return credentialProcedureService.updateDecodedCredentialByProcedureId(procedureId, bindCredentialWithMandateeId)
+                                                                .then(deferredCredentialMetadataService.updateDeferredCredentialMetadataByAuthServerNonce(authServerNonce))
+                                                                .flatMap(transactionId -> {
+                                                                    log.info("Transaction ID obtained: {}", transactionId);
+                                                                    return deferredCredentialMetadataService.getFormatByProcedureId(procedureId)
+                                                                            .flatMap(format -> {
+                                                                                return credentialFactory.mapCredentialBindIssuerAndUpdateDB(processId, procedureId, bindCredentialWithMandateeId, credentialType, format, authServerNonce)
+                                                                                        .then(credentialProcedureService.getOperationModeByProcedureId(procedureId))
+                                                                                        .flatMap(actualOperationMode -> buildCredentialResponseBasedOnOperationMode(actualOperationMode, procedureId, transactionId, authServerNonce, token));
+                                                                            });
+                                                                });
+                                                    });
+                                        });
+                            });
+                });
     }
-
 
 
     private Mono<CredentialResponse> buildCredentialResponseBasedOnOperationMode(String operationMode, String procedureId, String transactionId, String authServerNonce, String token) {
@@ -167,8 +168,7 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
                                         return Mono.error(error);
                                     })
                     );
-        }
-        else {
+        } else {
             return Mono.error(new IllegalArgumentException("Unknown operation mode: " + operationMode));
         }
     }

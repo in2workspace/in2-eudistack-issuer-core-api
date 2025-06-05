@@ -147,7 +147,7 @@ class CredentialFactoryTest {
 
         verify(learCredentialEmployeeFactory, never()).mapCredentialAndBindIssuerInToTheCredential(any(), any());
         verify(credentialProcedureService, never()).updateDecodedCredentialByProcedureId(any(), any(), any());
-        verify(deferredCredentialMetadataService, never()).updateDeferredCredentialMetadataByAuthServerNonce(any(), any());
+        verify(deferredCredentialMetadataService, never()).updateDeferredCredentialMetadataByAuthServerNonce(any());
     }
 
     @Test
@@ -167,7 +167,7 @@ class CredentialFactoryTest {
 
         verify(learCredentialEmployeeFactory).mapCredentialAndBindIssuerInToTheCredential(decodedCredential, procedureId);
         verify(credentialProcedureService, never()).updateDecodedCredentialByProcedureId(any(), any(), any());
-        verify(deferredCredentialMetadataService, never()).updateDeferredCredentialMetadataByAuthServerNonce(any(), any());
+        verify(deferredCredentialMetadataService, never()).updateDeferredCredentialMetadataByAuthServerNonce(any());
     }
 
     @Test

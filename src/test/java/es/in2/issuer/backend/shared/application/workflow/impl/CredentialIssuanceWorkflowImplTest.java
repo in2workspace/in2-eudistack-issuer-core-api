@@ -333,6 +333,8 @@ class CredentialIssuanceServiceImplTest {
         when(verifiableCredentialService.generateVerifiableCertification(processId, preSubmittedCredentialDataRequest, idToken)).thenReturn(Mono.just(procedureId));
         when(issuerApiClientTokenService.getClientToken()).thenReturn(Mono.just("internalToken"));
         when(credentialProcedureService.updateCredentialProcedureCredentialStatusToValidByProcedureId(procedureId)).thenReturn(Mono.empty());
+        when(credentialProcedureService.updateFormatByProcedureId(procedureId, preSubmittedCredentialDataRequest.format())).thenReturn(Mono.empty());
+        when(deferredCredentialMetadataService.updateFormatByProcedureId(procedureId, preSubmittedCredentialDataRequest.format())).thenReturn(Mono.empty());
         when(m2MTokenService.getM2MToken()).thenReturn(Mono.just(new VerifierOauth2AccessToken("", "", "")));
         when(credentialSignerWorkflow.signAndUpdateCredentialByProcedureId(BEARER_PREFIX + "internalToken", procedureId, JWT_VC_JSON)).thenReturn(Mono.just("signedCredential"));
         when(credentialDeliveryService.sendVcToResponseUri(
@@ -367,7 +369,7 @@ class CredentialIssuanceServiceImplTest {
         String decodedCredential = "decodedCredential";
 
         when(proofValidationService.isProofValid(credentialRequest.proofs().jwt().get(0), token)).thenReturn(Mono.just(true));
-        when(verifiableCredentialService.buildCredentialResponse(processId, did, jti, credentialRequest.credentialConfigurationId(), token)).thenReturn(Mono.just(credentialResponse));
+        when(verifiableCredentialService.buildCredentialResponse(processId, did, jti, token)).thenReturn(Mono.just(credentialResponse));
         when(deferredCredentialMetadataService.getProcedureIdByAuthServerNonce(jti)).thenReturn(Mono.just(procedureId));
         when(deferredCredentialMetadataService.getOperationModeByAuthServerNonce(jti)).thenReturn(Mono.just("S"));
         when(deferredCredentialMetadataService.getProcedureIdByAuthServerNonce(jti)).thenReturn(Mono.just("procedureId"));
@@ -436,7 +438,7 @@ class CredentialIssuanceServiceImplTest {
         String decodedCredential = "decodedCredential";
 
         when(proofValidationService.isProofValid(credentialRequest.proofs().jwt().get(0), token)).thenReturn(Mono.just(true));
-        when(verifiableCredentialService.buildCredentialResponse(processId, did, jti, credentialRequest.credentialConfigurationId(), token)).thenReturn(Mono.just(credentialResponse));
+        when(verifiableCredentialService.buildCredentialResponse(processId, did, jti, token)).thenReturn(Mono.just(credentialResponse));
         when(deferredCredentialMetadataService.getProcedureIdByAuthServerNonce(jti)).thenReturn(Mono.just(procedureId));
         when(deferredCredentialMetadataService.getOperationModeByAuthServerNonce(jti)).thenReturn(Mono.just("S"));
         when(deferredCredentialMetadataService.getProcedureIdByAuthServerNonce(jti)).thenReturn(Mono.just("procedureId"));
@@ -485,7 +487,7 @@ class CredentialIssuanceServiceImplTest {
         String decodedCredential = "decodedCredential";
 
         when(proofValidationService.isProofValid(credentialRequest.proofs().jwt().get(0), token)).thenReturn(Mono.just(true));
-        when(verifiableCredentialService.buildCredentialResponse(processId, did, jti, credentialRequest.credentialConfigurationId(), token)).thenReturn(Mono.just(credentialResponse));
+        when(verifiableCredentialService.buildCredentialResponse(processId, did, jti, token)).thenReturn(Mono.just(credentialResponse));
         when(deferredCredentialMetadataService.getProcedureIdByAuthServerNonce(jti)).thenReturn(Mono.just(procedureId));
         when(deferredCredentialMetadataService.getOperationModeByAuthServerNonce(jti)).thenReturn(Mono.just("S"));
         when(deferredCredentialMetadataService.getProcedureIdByAuthServerNonce(jti)).thenReturn(Mono.just("procedureId"));
