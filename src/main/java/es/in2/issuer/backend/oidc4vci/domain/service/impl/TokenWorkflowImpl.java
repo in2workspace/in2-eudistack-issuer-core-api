@@ -17,9 +17,9 @@ import java.time.temporal.ChronoUnit;
 import java.util.Map;
 import java.util.NoSuchElementException;
 
-import static es.in2.issuer.backend.oidc4vci.domain.util.Constants.*;
+import static es.in2.issuer.backend.oidc4vci.domain.util.Constants.ACCESS_TOKEN_EXPIRATION_TIME_MINUTES;
+import static es.in2.issuer.backend.oidc4vci.domain.util.Constants.REFRESH_TOKEN_EXPIRATION_TIME_DAYS;
 import static es.in2.issuer.backend.shared.domain.util.Constants.GRANT_TYPE;
-import static es.in2.issuer.backend.shared.domain.util.Utils.generateCustomNonce;
 
 @Slf4j
 @Service
@@ -28,7 +28,6 @@ public class TokenWorkflowImpl implements TokenWorkflow {
 
     private final CredentialIssuanceRecordService credentialIssuanceRecordService;
     private final CacheStore<String> txCodeByPreAuthorizedCodeCacheStore;
-    private final CacheStore<String> nonceCacheStore;
     private final JWTService jwtService;
     private final AppConfig appConfig;
 
@@ -39,11 +38,10 @@ public class TokenWorkflowImpl implements TokenWorkflow {
             String txCode) {
 
         return ensureGrantTypeIsPreAuthorizedCodeAndTxCodeAreCorrect(grantType, preAuthorizedCode, txCode)
-                .then(Mono.defer(this::generateAndSaveNonce)
-                        .map(nonce -> buildTokenResponse(preAuthorizedCode)));
+                .then(buildTokenResponse(preAuthorizedCode));
     }
 
-    private TokenResponse buildTokenResponse(String preAuthorizedCode) {
+    private Mono<TokenResponse> buildTokenResponse(String preAuthorizedCode) {
         Instant issueTime = Instant.now();
         long issueTimeEpochSeconds = issueTime.getEpochSecond();
         long accessTokenExpirationTimeEpochSeconds = generateAccessTokenExpirationTime(issueTime);
@@ -54,12 +52,12 @@ public class TokenWorkflowImpl implements TokenWorkflow {
         String refreshToken = generateRefreshToken(issueTimeEpochSeconds, refreshTokenExpirationTimeEpochSeconds);
 
         // todo guardar els 2 tokens a la cir bbdd
-        return TokenResponse.builder()
+        return Mono.just(TokenResponse.builder()
                 .accessToken(accessToken)
                 .tokenType(tokenType)
                 .expiresIn(expiresIn)
                 .refreshToken(refreshToken)
-                .build();
+                .build());
     }
 
     private String generateRefreshToken(long issueTimeEpochSeconds, long expirationTimeEpochSeconds) {
@@ -69,13 +67,6 @@ public class TokenWorkflowImpl implements TokenWorkflow {
                 "exp", expirationTimeEpochSeconds
         ));
         return jwtService.generateJWT(payload.toString());
-    }
-
-    // TODO: delete
-    private Mono<String> generateAndSaveNonce() {
-        return generateCustomNonce()
-                .flatMap(nonce ->
-                        nonceCacheStore.add(nonce, nonce));
     }
 
     private long generateAccessTokenExpirationTime(Instant issueTime) {

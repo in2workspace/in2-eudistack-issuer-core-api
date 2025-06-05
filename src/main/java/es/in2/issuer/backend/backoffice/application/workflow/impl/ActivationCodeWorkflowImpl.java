@@ -56,6 +56,7 @@ public class ActivationCodeWorkflowImpl implements ActivationCodeWorkflow {
         return credentialIssuanceRecordService.get(credentialIssuanceRecordId)
                 .flatMap(credentialIssuanceRecord ->
                         preAuthorizedCodeWorkflow.generatePreAuthorizedCode()
+                                // todo guardar preauthorizedcode al cir
                                 .flatMap(preAuthorizedCodeResponse ->
                                         credentialOfferService.buildCustomCredentialOffer(
                                                         credentialIssuanceRecord.getCredentialType(),
