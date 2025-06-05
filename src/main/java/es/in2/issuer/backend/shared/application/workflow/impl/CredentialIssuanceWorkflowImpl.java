@@ -147,13 +147,32 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
             // todo: name->  accessTokenJti
             String authServerNonce = jwsObject.getPayload().toJSONObject().get("jti").toString();
 
+            // obtenir el cir pel jti (accessToken)
+
             // TODO: rethink this logic instead of taking the first JWT proof
             // if -> credentialReqeust has proofs -> cryptographic binding
             //      1. isProofValid
             //      2. si ok -> empty, sinó error
             //      3. si ok -> extractDidFromJwtProof
-            //      4. agafar la credencial json del cir i establir el did que hem extret i vincular amb el id del subjecte:
-            // else -> without cryptographic binding
+            //      4. agafar la credencial json del cir i establir el did que hem extret i vincular amb el id del subjecte mandatee. ->
+                    // credentialFactory -> psf Map<S,S> key key objects, values ruta separada per punts. -> subject_binding_path
+                    // funció -> credentialSubjectBinder
+
+            // comú (extreure en una funció a part fins a punt 9 inclòs) :
+            // 5. omplir camp issuer de la credencial (W3C) -> buscar crida a getList dins de: verifiableCredentialService.buildCredentialResponse
+            // 6. omplir camp credentialStatus  -> omplir hardcoded per ara (només canviar id credencial)
+            // 7. retornar la credencial amb el subjecte vinculat i el issuer
+            // 8. Agafar la credencial i muntar el payload del JWT (buscar on es fa)
+            // 9. Enviar payload JWT a firmar a Digitel (buscar on es fa) ->
+                // if firma es correcta credentialResponse de tipus Credentials
+                    // 10. Muntar CredentialResponse (buildCredentialResponse)
+                // else ->
+                        // canviar mètode signartureMode o operationMode de S a A.
+                        // Generar un nonce -> valor de l'atribut transcationId
+                        // Guardar aquest transcationId al cir
+                        // Muntar CredentialResponse amb el transactionId
+            // Guardar el cir
+
             return proofValidationService.isProofValid(credentialRequest.proofs().jwt().get(0), token)
                     .flatMap(isValid -> Boolean.TRUE.equals(isValid)
                             ? extractDidFromJwtProof(credentialRequest.proofs().jwt().get(0))

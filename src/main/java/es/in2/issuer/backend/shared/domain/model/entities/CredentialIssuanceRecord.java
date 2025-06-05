@@ -45,6 +45,9 @@ public class CredentialIssuanceRecord {
 
     // Issuance Metadata
 
+    // todo: afegir accessToken
+    // todo: afegir accessToken al flyway
+
     @Column("refresh_token")
     private String refreshToken;
 
