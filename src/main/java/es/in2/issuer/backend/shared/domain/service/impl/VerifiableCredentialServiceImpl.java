@@ -48,9 +48,10 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
                                 procedureId,
                                 preSubmittedCredentialDataRequest.operationMode(),
                                 preSubmittedCredentialDataRequest.responseUri())
-                        .then(credentialProcedureService.updateFormatByProcedureId(procedureId, preSubmittedCredentialDataRequest.format()))
-                        .then(deferredCredentialMetadataService.updateFormatByProcedureId(procedureId, preSubmittedCredentialDataRequest.format()))
-                        .thenReturn(procedureId));
+                        .flatMap(transactionCode ->
+                                credentialProcedureService.updateFormatByProcedureId(procedureId, preSubmittedCredentialDataRequest.format())
+                                        .then(deferredCredentialMetadataService.updateFormatByProcedureId(procedureId, preSubmittedCredentialDataRequest.format()))
+                                        .thenReturn(transactionCode)));
     }
 
     @Override
