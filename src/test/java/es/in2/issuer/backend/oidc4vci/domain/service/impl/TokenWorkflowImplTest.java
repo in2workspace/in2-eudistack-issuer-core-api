@@ -22,7 +22,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class TokenServiceImplTest {
+class TokenWorkflowImplTest {
     @Mock
     private CacheStore<String> txCodeByPreAuthorizedCodeCacheStore;
 
@@ -36,11 +36,11 @@ class TokenServiceImplTest {
     private AppConfig appConfig;
 
     @InjectMocks
-    private TokenServiceImpl tokenService;
+    private TokenWorkflowImpl tokenService;
 
     @BeforeEach
     void setUp() {
-        tokenService = new TokenServiceImpl(
+        tokenService = new TokenWorkflowImpl(
                 txCodeByPreAuthorizedCodeCacheStore,
                 nonceCacheStore,
                 jwtService,

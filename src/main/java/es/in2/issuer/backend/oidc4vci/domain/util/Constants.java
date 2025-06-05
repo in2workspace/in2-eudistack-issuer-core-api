@@ -10,5 +10,6 @@ public final class Constants {
     public static final String TX_CODE_DESCRIPTION =
             "A PIN has been sent to your email. Check your inbox. Enter your PIN Code.";
     public static final String TX_INPUT_MODE = "numeric";
-    public static final long ACCESS_TOKEN_EXPIRATION_TIME_DAYS = 30L;
+    public static final long ACCESS_TOKEN_EXPIRATION_TIME_MINUTES = 10L;
+    public static final long REFRESH_TOKEN_EXPIRATION_TIME_DAYS = 30L;
 }

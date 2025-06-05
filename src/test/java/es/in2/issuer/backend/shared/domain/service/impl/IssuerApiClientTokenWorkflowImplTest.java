@@ -26,7 +26,7 @@ import static org.mockito.Mockito.*;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 
 @ExtendWith(MockitoExtension.class)
-class IssuerApiClientTokenServiceImplTest {
+class IssuerApiClientTokenWorkflowImplTest {
 
     @Mock
     private AuthServerConfig authServerConfig;
