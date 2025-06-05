@@ -226,6 +226,7 @@ public class DeferredCredentialMetadataServiceImpl implements DeferredCredential
         return deferredCredentialMetadataRepository.findByProcedureId(UUID.fromString(procedureId))
                 .flatMap(deferredCredentialMetadata -> {
                     deferredCredentialMetadata.setVcFormat(format);
+                    System.out.println("Xivato 300: " + deferredCredentialMetadata);
                     return deferredCredentialMetadataRepository.save(deferredCredentialMetadata)
                             .then();
                 });
