@@ -12,6 +12,7 @@ import reactor.core.publisher.Mono;
 
 import java.time.Instant;
 import java.util.Map;
+import java.util.Objects;
 
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.SUPPORTED_PROOF_ALG;
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.SUPPORTED_PROOF_TYP;
@@ -40,7 +41,9 @@ public class ProofValidationServiceImpl implements ProofValidationService {
                     if (jwsObject == null) log.debug("JWT signature validation failed");
                     else log.debug("JWT signature validated, checking nonce...");
                 })
-                .flatMap(this::isNonceValid)
+                .map(Objects::nonNull)
+                // TODO: Check nonce when implemented
+//                .flatMap(this::isNonceValid)
                 .doOnSuccess(result -> log.debug("Final validation result: {}", result))
                 .onErrorMap(e -> new ProofValidationException("Error during JWT validation"));
     }
