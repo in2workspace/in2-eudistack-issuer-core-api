@@ -100,6 +100,7 @@ class VerifiableCredentialServiceImplTest {
 
         PreSubmittedCredentialDataRequest preSubmittedCredentialDataRequest = PreSubmittedCredentialDataRequest.builder()
                 .payload(credentialJsonNode)
+                .format("jwt_vc_json")
                 .build();
 
         // Mock the behavior of credentialFactory
@@ -121,6 +122,12 @@ class VerifiableCredentialServiceImplTest {
         String metadataId = "metadata-id-789";
         when(deferredCredentialMetadataService.createDeferredCredentialMetadata(createdProcedureId, null, null))
                 .thenReturn(Mono.just(metadataId));
+
+        when(credentialProcedureService.updateFormatByProcedureId(anyString(), eq(preSubmittedCredentialDataRequest.format())))
+                .thenReturn(Mono.empty());
+
+        when(deferredCredentialMetadataService.updateFormatByProcedureId(anyString(), eq(preSubmittedCredentialDataRequest.format())))
+                .thenReturn(Mono.empty());
 
         // Act: Call the generateVc method
         Mono<String> result = verifiableCredentialServiceImpl.generateVc(processId, vcType, preSubmittedCredentialDataRequest, token);

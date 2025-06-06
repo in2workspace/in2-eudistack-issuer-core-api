@@ -333,8 +333,6 @@ class CredentialIssuanceServiceImplTest {
         when(verifiableCredentialService.generateVerifiableCertification(processId, preSubmittedCredentialDataRequest, idToken)).thenReturn(Mono.just(procedureId));
         when(issuerApiClientTokenService.getClientToken()).thenReturn(Mono.just("internalToken"));
         when(credentialProcedureService.updateCredentialProcedureCredentialStatusToValidByProcedureId(procedureId)).thenReturn(Mono.empty());
-        when(credentialProcedureService.updateFormatByProcedureId(procedureId, preSubmittedCredentialDataRequest.format())).thenReturn(Mono.empty());
-        when(deferredCredentialMetadataService.updateFormatByProcedureId(procedureId, preSubmittedCredentialDataRequest.format())).thenReturn(Mono.empty());
         when(m2MTokenService.getM2MToken()).thenReturn(Mono.just(new VerifierOauth2AccessToken("", "", "")));
         when(credentialSignerWorkflow.signAndUpdateCredentialByProcedureId(BEARER_PREFIX + "internalToken", procedureId, JWT_VC_JSON)).thenReturn(Mono.just("signedCredential"));
         when(credentialDeliveryService.sendVcToResponseUri(
