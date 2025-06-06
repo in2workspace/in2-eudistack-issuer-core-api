@@ -55,11 +55,9 @@ public class DeferredCredentialMetadataServiceImpl implements DeferredCredential
         log.debug("Creating deferred credential metadata: procedureId={}, operationMode={}, responseUri={}", procedureId, operationMode, responseUri);
         return generateCustomNonce()
                 .flatMap(nonce -> {
-                    System.out.println("Xivato 1000: " + nonce);
                     return cacheStoreForTransactionCode.add(nonce, nonce);
                 })
                 .flatMap(transactionCode -> {
-                    System.out.println("Xivato 1001");
                     DeferredCredentialMetadata deferredCredentialMetadata = DeferredCredentialMetadata
                             .builder()
                             .procedureId(UUID.fromString(procedureId))
@@ -159,13 +157,10 @@ public class DeferredCredentialMetadataServiceImpl implements DeferredCredential
 
     @Override
     public Mono<String> updateDeferredCredentialMetadataByAuthServerNonce(String authServerNonce) {
-        System.out.println("Xivato 2: authServerNonce: " + authServerNonce);
         String transactionId = UUID.randomUUID().toString();
         return deferredCredentialMetadataRepository.findByAuthServerNonce(authServerNonce)
                 .flatMap(deferredCredentialMetadata -> {
-                    System.out.println("Xivato 3: ");
                     deferredCredentialMetadata.setTransactionId(transactionId);
-                    System.out.println("Xivato 4: ");
                     return deferredCredentialMetadataRepository.save(deferredCredentialMetadata)
                             .then(Mono.just(transactionId));
                 })
@@ -230,7 +225,6 @@ public class DeferredCredentialMetadataServiceImpl implements DeferredCredential
         return deferredCredentialMetadataRepository.findByProcedureId(UUID.fromString(procedureId))
                 .flatMap(deferredCredentialMetadata -> {
                     deferredCredentialMetadata.setVcFormat(format);
-                    System.out.println("Xivato 300: " + deferredCredentialMetadata);
                     return deferredCredentialMetadataRepository.save(deferredCredentialMetadata)
                             .then();
                 });
@@ -240,7 +234,6 @@ public class DeferredCredentialMetadataServiceImpl implements DeferredCredential
     public Mono<String> getFormatByProcedureId(String procedureId) {
         return deferredCredentialMetadataRepository.findByProcedureId(UUID.fromString(procedureId))
                 .map(deferredCredentialMetadata -> {
-                    System.out.println("Xivato 200: " + deferredCredentialMetadata);
                     return deferredCredentialMetadata.getVcFormat();
                 });
     }

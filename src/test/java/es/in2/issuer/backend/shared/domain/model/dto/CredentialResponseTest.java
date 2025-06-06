@@ -12,7 +12,10 @@ class CredentialResponseTest {
     void testConstructorAndGetters() {
         // Arrange
         String transactionId = "1234";
-        List<String> expectedCredentials = List.of("LUpixVCWJk0eOt4CXQe1NXK....WZwmhmn9OQp6YxX0a2L");
+        List<CredentialResponse.Credential> expectedCredentials = List.of(
+                CredentialResponse.Credential.builder()
+                        .credential("LUpixVCWJk0eOt4CXQe1NXK....WZwmhmn9OQp6YxX0a2L")
+                        .build());
         // Act
         CredentialResponse responseDTO = new CredentialResponse(expectedCredentials, transactionId);
         // Assert
@@ -23,7 +26,9 @@ class CredentialResponseTest {
     void lombokGeneratedMethodsTest() {
         // Arrange
         String transactionId = "1234";
-        String expectedCredential = "LUpixVCWJk0eOt4CXQe1NXK....WZwmhmn9OQp6YxX0a2L";
+        CredentialResponse.Credential expectedCredential = CredentialResponse.Credential.builder()
+                .credential("LUpixVCWJk0eOt4CXQe1NXK....WZwmhmn9OQp6YxX0a2L")
+                .build();
         // Act
         CredentialResponse dto1 = new CredentialResponse(List.of(expectedCredential), transactionId);
         CredentialResponse dto2 = new CredentialResponse(List.of(expectedCredential), transactionId);

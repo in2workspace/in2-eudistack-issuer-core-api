@@ -298,7 +298,9 @@ class VerifiableCredentialServiceImplTest {
                 .expectNextMatches(response -> {
                     // Log the response for debugging
                     System.out.println("Response: " + response);
-                    return response.credentials().equals(List.of(expectedCredentialJson)) &&
+                    return response.credentials().equals(List.of(CredentialResponse.Credential.builder()
+                            .credential(expectedCredentialJson)
+                            .build())) &&
                             response.transactionId().equals(transactionId);
                 })
                 .verifyComplete();
@@ -399,7 +401,9 @@ class VerifiableCredentialServiceImplTest {
                 .expectNextMatches(response -> {
                     // Log the response for debugging
                     System.out.println("Response: " + response);
-                    return response.credentials().equals(List.of("signedCredential"));
+                    return response.credentials().equals(List.of(CredentialResponse.Credential.builder()
+                            .credential("signedCredential")
+                            .build()));
                 })
                 .verifyComplete();
 
@@ -465,7 +469,9 @@ class VerifiableCredentialServiceImplTest {
 
         StepVerifier.create(result)
                 .expectNextMatches(response ->
-                        response.credentials().equals(List.of(unsignedCredential)) &&
+                        response.credentials().equals(List.of(CredentialResponse.Credential.builder()
+                                .credential(unsignedCredential)
+                                .build())) &&
                                 response.transactionId().equals(transactionId))
                 .verifyComplete();
 

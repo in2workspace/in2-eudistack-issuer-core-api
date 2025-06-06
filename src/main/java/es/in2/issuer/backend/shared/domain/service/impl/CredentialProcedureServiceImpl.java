@@ -94,13 +94,11 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
     public Mono<Void> updateDecodedCredentialByProcedureId(String procedureId, String credential, String format) {
         return credentialProcedureRepository.findById(UUID.fromString(procedureId))
                 .flatMap(credentialProcedure -> {
-                    System.out.println("Xivato 100: credential" + credential);
                     credentialProcedure.setCredentialDecoded(credential);
                     credentialProcedure.setCredentialStatus(CredentialStatus.ISSUED);
                     credentialProcedure.setCredentialFormat(format);
                     credentialProcedure.setUpdatedAt(new Timestamp(Instant.now().toEpochMilli()));
 
-                    System.out.println("Xivato 100: credentialProcedure" + credentialProcedure);
                     return credentialProcedureRepository.save(credentialProcedure)
                             .doOnSuccess(result -> log.info("Updated credential"))
                             .then();
@@ -111,12 +109,10 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
     public Mono<Void> updateDecodedCredentialByProcedureId(String procedureId, String credential) {
         return credentialProcedureRepository.findById(UUID.fromString(procedureId))
                 .flatMap(credentialProcedure -> {
-                    System.out.println("Xivato 100: credential" + credential);
                     credentialProcedure.setCredentialDecoded(credential);
                     credentialProcedure.setCredentialStatus(CredentialStatus.ISSUED);
                     credentialProcedure.setUpdatedAt(new Timestamp(Instant.now().toEpochMilli()));
 
-                    System.out.println("Xivato 100: credentialProcedure" + credentialProcedure);
                     return credentialProcedureRepository.save(credentialProcedure)
                             .doOnSuccess(result -> log.info("Updated credential"))
                             .then();
@@ -323,7 +319,6 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
         return credentialProcedureRepository.findById(UUID.fromString(procedureId))
                 .flatMap(credentialProcedure -> {
                     credentialProcedure.setCredentialFormat(format);
-                    System.out.println("Xivato 299: credentialProcedure");
                     return credentialProcedureRepository.save(credentialProcedure)
                             .doOnSuccess(result -> log.info("Updated format for procedureId: {}", procedureId))
                             .then();

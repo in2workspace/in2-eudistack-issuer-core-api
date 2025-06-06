@@ -360,7 +360,10 @@ class CredentialIssuanceServiceImplTest {
         String jti = "fcca7591-6742-4c30-949c-ee9707196756";
         String did = "did:key:zDnaen23wM76gpiSLHku4bFDbssVS9sty9x3K7yVqjbSdTPWC";
         CredentialResponse credentialResponse = CredentialResponse.builder()
-                .credentials(List.of("credential"))
+                .credentials(List.of(
+                        CredentialResponse.Credential.builder()
+                                .credential("credential")
+                                .build()))
                 .transactionId("4321")
                 .build();
         String procedureId = "123456";
@@ -429,7 +432,10 @@ class CredentialIssuanceServiceImplTest {
         String jti = "fcca7591-6742-4c30-949c-ee9707196756";
         String did = "did:key:zDnaen23wM76gpiSLHku4bFDbssVS9sty9x3K7yVqjbSdTPWC";
         CredentialResponse credentialResponse = CredentialResponse.builder()
-                .credentials(List.of("credential"))
+                .credentials(List.of(
+                        CredentialResponse.Credential.builder()
+                                .credential("credential")
+                                .build()))
                 .transactionId("4321")
                 .build();
         String procedureId = "123456";
@@ -478,7 +484,10 @@ class CredentialIssuanceServiceImplTest {
         String jti = "fcca7591-6742-4c30-949c-ee9707196756";
         String did = "did:key:zDnaen23wM76gpiSLHku4bFDbssVS9sty9x3K7yVqjbSdTPWC";
         CredentialResponse credentialResponse = CredentialResponse.builder()
-                .credentials(List.of("credential"))
+                .credentials(List.of(
+                        CredentialResponse.Credential.builder()
+                                .credential("credential")
+                                .build()))
                 .transactionId("4321")
                 .build();
         String procedureId = "123456";

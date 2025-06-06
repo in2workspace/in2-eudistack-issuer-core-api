@@ -36,7 +36,6 @@ public class M2MTokenServiceImpl implements M2MTokenService {
     public Mono<VerifierOauth2AccessToken> getM2MToken() {
         return Mono.fromCallable(this::getM2MFormUrlEncodeBodyValue)
                 .flatMap(body -> {
-                    System.out.println("Xivato 700");
                     return verifierService.performTokenRequest(body);
                 });
     }

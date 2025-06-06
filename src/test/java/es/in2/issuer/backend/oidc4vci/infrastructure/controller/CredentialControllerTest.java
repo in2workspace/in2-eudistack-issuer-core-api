@@ -41,7 +41,10 @@ class CredentialControllerTest {
                 .credentialConfigurationId("sampleFormat")
                 .build();
         CredentialResponse credentialResponse = CredentialResponse.builder()
-                .credentials(List.of("sampleCredential"))
+                .credentials(List.of(
+                        CredentialResponse.Credential.builder()
+                                .credential("sampleCredential")
+                                .build()))
                 .transactionId("sampleTransactionId")
                 .build();
         ResponseEntity<CredentialResponse> expectedResponse = new ResponseEntity<>(credentialResponse, HttpStatus.ACCEPTED);

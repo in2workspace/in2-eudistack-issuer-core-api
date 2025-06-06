@@ -123,7 +123,6 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
                                             log.info("Decoded Credential obtained: {}", decodedCredential);
                                             return credentialFactory.mapCredentialAndBindMandateeId(processId, credentialType, decodedCredential, subjectDid)
                                                     .flatMap(bindCredentialWithMandateeId -> {
-                                                        System.out.println("Xivato 1: " + bindCredentialWithMandateeId);
                                                         return credentialProcedureService.updateDecodedCredentialByProcedureId(procedureId, bindCredentialWithMandateeId)
                                                                 .then(deferredCredentialMetadataService.updateDeferredCredentialMetadataByAuthServerNonce(authServerNonce))
                                                                 .flatMap(transactionId -> {
@@ -148,7 +147,10 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
                     .flatMap(decodedCredential -> {
                         log.debug("ASYNC Credential JSON: {}", decodedCredential);
                         return Mono.just(CredentialResponse.builder()
-                                .credentials(List.of(decodedCredential))
+                                .credentials(List.of(
+                                        CredentialResponse.Credential.builder()
+                                                .credential(decodedCredential)
+                                                .build()))
                                 .transactionId(transactionId)
                                 .build());
                     });
@@ -157,7 +159,10 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
                     .flatMap(procedureIdReceived ->
                             credentialSignerWorkflow.signAndUpdateCredentialByProcedureId(BEARER_PREFIX + token, procedureIdReceived, JWT_VC)
                                     .flatMap(signedCredential -> Mono.just(CredentialResponse.builder()
-                                            .credentials(List.of(signedCredential))
+                                            .credentials(List.of(
+                                                    CredentialResponse.Credential.builder()
+                                                            .credential(signedCredential)
+                                                            .build()))
                                             .build()))
                                     .onErrorResume(error -> {
                                         if (error instanceof RemoteSignatureException || error instanceof IllegalArgumentException) {
@@ -165,7 +170,10 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
                                             return credentialProcedureService.getDecodedCredentialByProcedureId(procedureIdReceived)
                                                     .flatMap(unsignedCredential ->
                                                             Mono.just(CredentialResponse.builder()
-                                                                    .credentials(List.of(unsignedCredential))
+                                                                    .credentials(List.of(
+                                                                            CredentialResponse.Credential.builder()
+                                                                                    .credential(unsignedCredential)
+                                                                                    .build()))
                                                                     .transactionId(transactionId)
                                                                     .build()));
                                         }

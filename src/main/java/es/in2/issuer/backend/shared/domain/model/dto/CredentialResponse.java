@@ -14,6 +14,11 @@ import java.util.List;
         """)
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record CredentialResponse(
-        @Schema(example = "LUpixVCWJk0eOt4CXQe1NXK....WZwmhmn9OQp6YxX0a2L", description = "Contains issued Credential") @JsonProperty(value = "credentials") List<String> credentials,
+        @Schema(example = "LUpixVCWJk0eOt4CXQe1NXK....WZwmhmn9OQp6YxX0a2L", description = "Contains issued Credential") @JsonProperty(value = "credentials") List<Credential> credentials,
         @Schema(example = "958e84cf-888b-488a-bf30-7f3b14f70699", description = "Transaction id for deferred emission") @JsonProperty("transaction_id") String transactionId) {
+
+    @Builder
+    public record Credential(@JsonProperty String credential) {
+
+    }
 }
