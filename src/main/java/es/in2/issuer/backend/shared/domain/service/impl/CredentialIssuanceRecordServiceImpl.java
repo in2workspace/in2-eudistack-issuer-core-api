@@ -49,6 +49,15 @@ public class CredentialIssuanceRecordServiceImpl implements CredentialIssuanceRe
         return credentialIssuanceRepository.findById(UUID.fromString(id));
     }
 
+    @Override
+    public Mono<Void> setPreAuthorizedCodeById(String id, String preAuthorizedCode) {
+        return credentialIssuanceRepository.findById(UUID.fromString(id))
+                .flatMap(credentialIssuanceRecord -> {
+                    credentialIssuanceRecord.setPreAuthorizedCode(preAuthorizedCode);
+                    return credentialIssuanceRepository.save(credentialIssuanceRecord);
+                }).then();
+    }
+
     private Mono<String> generateActivationCode(String credentialIssuanceRecordId) {
         return generateCustomNonce()
                 .flatMap(activationCode ->

@@ -11,4 +11,6 @@ public interface CredentialIssuanceRecordService {
             String token);
 
     Mono<CredentialIssuanceRecord> get(String id);
+
+    Mono<Void> setPreAuthorizedCodeById(String id, String preAuthorizedCode);
 }
