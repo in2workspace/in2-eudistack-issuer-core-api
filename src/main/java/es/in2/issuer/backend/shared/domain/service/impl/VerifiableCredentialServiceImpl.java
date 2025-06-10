@@ -122,19 +122,17 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
                                         .flatMap(decodedCredential -> {
                                             log.info("Decoded Credential obtained: {}", decodedCredential);
                                             return credentialFactory.mapCredentialAndBindMandateeId(processId, credentialType, decodedCredential, subjectDid)
-                                                    .flatMap(bindCredentialWithMandateeId -> {
-                                                        return credentialProcedureService.updateDecodedCredentialByProcedureId(procedureId, bindCredentialWithMandateeId)
-                                                                .then(deferredCredentialMetadataService.updateDeferredCredentialMetadataByAuthServerNonce(authServerNonce))
-                                                                .flatMap(transactionId -> {
-                                                                    log.info("Transaction ID obtained: {}", transactionId);
-                                                                    return deferredCredentialMetadataService.getFormatByProcedureId(procedureId)
-                                                                            .flatMap(format -> {
-                                                                                return credentialFactory.mapCredentialBindIssuerAndUpdateDB(processId, procedureId, bindCredentialWithMandateeId, credentialType, format, authServerNonce)
-                                                                                        .then(credentialProcedureService.getOperationModeByProcedureId(procedureId))
-                                                                                        .flatMap(actualOperationMode -> buildCredentialResponseBasedOnOperationMode(actualOperationMode, procedureId, transactionId, authServerNonce, token));
-                                                                            });
-                                                                });
-                                                    });
+                                                    .flatMap(bindCredentialWithMandateeId ->
+                                                            credentialProcedureService.updateDecodedCredentialByProcedureId(procedureId, bindCredentialWithMandateeId)
+                                                            .then(deferredCredentialMetadataService.updateDeferredCredentialMetadataByAuthServerNonce(authServerNonce))
+                                                            .flatMap(transactionId -> {
+                                                                log.info("Transaction ID obtained: {}", transactionId);
+                                                                return deferredCredentialMetadataService.getFormatByProcedureId(procedureId)
+                                                                        .flatMap(format ->
+                                                                                credentialFactory.mapCredentialBindIssuerAndUpdateDB(processId, procedureId, bindCredentialWithMandateeId, credentialType, format, authServerNonce)
+                                                                                .then(credentialProcedureService.getOperationModeByProcedureId(procedureId))
+                                                                                .flatMap(actualOperationMode -> buildCredentialResponseBasedOnOperationMode(actualOperationMode, procedureId, transactionId, authServerNonce, token)));
+                                                            }));
                                         });
                             });
                 });

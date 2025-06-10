@@ -244,7 +244,6 @@ class DeferredCredentialMetadataServiceImplTest {
     void testUpdateDeferredCredentialMetadataByAuthServerNonce_Success() {
         // Arrange
         String authServerNonce = "auth-server-nonce";
-        String format = "format";
         DeferredCredentialMetadata deferredCredentialMetadata = new DeferredCredentialMetadata();
         when(deferredCredentialMetadataRepository.findByAuthServerNonce(authServerNonce)).thenReturn(Mono.just(deferredCredentialMetadata));
         when(deferredCredentialMetadataRepository.save(deferredCredentialMetadata)).thenReturn(Mono.just(deferredCredentialMetadata));

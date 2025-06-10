@@ -54,9 +54,7 @@ public class DeferredCredentialMetadataServiceImpl implements DeferredCredential
     public Mono<String> createDeferredCredentialMetadata(String procedureId, String operationMode, String responseUri) {
         log.debug("Creating deferred credential metadata: procedureId={}, operationMode={}, responseUri={}", procedureId, operationMode, responseUri);
         return generateCustomNonce()
-                .flatMap(nonce -> {
-                    return cacheStoreForTransactionCode.add(nonce, nonce);
-                })
+                .flatMap(nonce -> cacheStoreForTransactionCode.add(nonce, nonce))
                 .flatMap(transactionCode -> {
                     DeferredCredentialMetadata deferredCredentialMetadata = DeferredCredentialMetadata
                             .builder()
@@ -233,7 +231,6 @@ public class DeferredCredentialMetadataServiceImpl implements DeferredCredential
     @Override
     public Mono<String> getFormatByProcedureId(String procedureId) {
         return deferredCredentialMetadataRepository.findByProcedureId(UUID.fromString(procedureId))
-                .map(deferredCredentialMetadata ->
-                        deferredCredentialMetadata.getVcFormat());
+                .map(DeferredCredentialMetadata::getVcFormat);
     }
 }

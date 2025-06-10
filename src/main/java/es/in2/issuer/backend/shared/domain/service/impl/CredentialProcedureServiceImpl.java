@@ -34,6 +34,7 @@ import static es.in2.issuer.backend.shared.domain.util.Constants.*;
 @Slf4j
 public class CredentialProcedureServiceImpl implements CredentialProcedureService {
 
+    private static final String UPDATED_CREDENTIAL = "Updated credential";
     private final CredentialProcedureRepository credentialProcedureRepository;
     private final ObjectMapper objectMapper;
 
@@ -100,7 +101,7 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
                     credentialProcedure.setUpdatedAt(new Timestamp(Instant.now().toEpochMilli()));
 
                     return credentialProcedureRepository.save(credentialProcedure)
-                            .doOnSuccess(result -> log.info("Updated credential"))
+                            .doOnSuccess(result -> log.info(UPDATED_CREDENTIAL))
                             .then();
                 });
     }
@@ -114,7 +115,7 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
                     credentialProcedure.setUpdatedAt(new Timestamp(Instant.now().toEpochMilli()));
 
                     return credentialProcedureRepository.save(credentialProcedure)
-                            .doOnSuccess(result -> log.info("Updated credential"))
+                            .doOnSuccess(result -> log.info(UPDATED_CREDENTIAL))
                             .then();
                 });
     }
@@ -286,7 +287,7 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
                 .flatMap(credentialProcedure -> {
                     credentialProcedure.setCredentialStatus(CredentialStatus.VALID);
                     return credentialProcedureRepository.save(credentialProcedure)
-                            .doOnSuccess(result -> log.info("Updated credential"))
+                            .doOnSuccess(result -> log.info(UPDATED_CREDENTIAL))
                             .then();
                 });
     }

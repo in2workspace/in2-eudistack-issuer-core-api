@@ -43,16 +43,9 @@ public class ProofValidationServiceImpl implements ProofValidationService {
                 })
                 .map(Objects::nonNull)
                 // TODO: Check nonce when implemented
-//                .flatMap(this::isNonceValid)
                 .doOnSuccess(result -> log.debug("Final validation result: {}", result))
                 .onErrorMap(e -> new ProofValidationException("Error during JWT validation"));
     }
-
-    /*private Mono<Boolean> isNonceValid(JWSObject jwsObject) {
-        var payload = jwsObject.getPayload().toJSONObject();
-        String nonce = payload.get("nonce").toString();
-        return nonceValidationWorkflow.isValid(Mono.just(nonce));
-    }*/
 
     private Mono<JWSObject> parseAndValidateJwt(String jwtProof) {
         return Mono.fromCallable(() -> {

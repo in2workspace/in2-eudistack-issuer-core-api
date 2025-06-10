@@ -35,9 +35,7 @@ public class M2MTokenServiceImpl implements M2MTokenService {
     @Override
     public Mono<VerifierOauth2AccessToken> getM2MToken() {
         return Mono.fromCallable(this::getM2MFormUrlEncodeBodyValue)
-                .flatMap(body -> {
-                    return verifierService.performTokenRequest(body);
-                });
+                .flatMap(verifierService::performTokenRequest);
     }
 
     private String getM2MFormUrlEncodeBodyValue() {
