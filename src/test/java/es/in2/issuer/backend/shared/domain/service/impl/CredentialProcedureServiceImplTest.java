@@ -680,4 +680,29 @@ class CredentialProcedureServiceImplTest {
                 })
                 .verifyComplete();
     }
+
+    @Test
+    void updateFormatByProcedureId(){
+        // Given
+        String procedureId = UUID.randomUUID().toString();
+        String newFormat = "new_format";
+
+        CredentialProcedure existingCredentialProcedure = new CredentialProcedure();
+        existingCredentialProcedure.setProcedureId(UUID.fromString(procedureId));
+        existingCredentialProcedure.setCredentialFormat("old_format");
+        existingCredentialProcedure.setUpdatedAt(new Timestamp(Instant.now().toEpochMilli()));
+
+        // When
+        when(credentialProcedureRepository.findById(any(UUID.class)))
+                .thenReturn(Mono.just(existingCredentialProcedure));
+        when(credentialProcedureRepository.save(any(CredentialProcedure.class)))
+                .thenReturn(Mono.empty());
+
+        // Execute
+        Mono<Void> result = credentialProcedureService.updateFormatByProcedureId(procedureId, newFormat);
+
+        // Then
+        StepVerifier.create(result)
+                .verifyComplete();
+    }
 }

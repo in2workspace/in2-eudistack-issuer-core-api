@@ -2,7 +2,7 @@ package es.in2.issuer.backend.oidc4vci.infrastructure.controller;
 
 import es.in2.issuer.backend.shared.application.workflow.CredentialIssuanceWorkflow;
 import es.in2.issuer.backend.shared.domain.model.dto.DeferredCredentialRequest;
-import es.in2.issuer.backend.shared.domain.model.dto.VerifiableCredentialResponse;
+import es.in2.issuer.backend.shared.domain.model.dto.DeferredCredentialResponse;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -10,6 +10,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
+
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -32,18 +34,15 @@ class DeferredCredentialControllerTest {
         DeferredCredentialRequest deferredCredentialRequest = DeferredCredentialRequest.builder()
                 .transactionId(newTransactionId)
                 .build();
-        VerifiableCredentialResponse verifiableCredentialResponse = VerifiableCredentialResponse.builder()
-                .credential("sampleCredential")
-                .transactionId("sampleTransactionId")
-                .cNonce("sampleCNonce")
-                .cNonceExpiresIn(35)
+        DeferredCredentialResponse credentialResponse = DeferredCredentialResponse.builder()
+                .credentials(List.of("sampleCredential"))
                 .build();
-        when(credentialIssuanceWorkflow.generateVerifiableCredentialDeferredResponse(anyString(), eq(deferredCredentialRequest))).thenReturn(Mono.just(verifiableCredentialResponse));
+        when(credentialIssuanceWorkflow.generateVerifiableCredentialDeferredResponse(anyString(), eq(deferredCredentialRequest))).thenReturn(Mono.just(credentialResponse));
 
-        Mono<VerifiableCredentialResponse> result = deferredCredentialController.getCredential(authorizationHeader, deferredCredentialRequest);
+        Mono<DeferredCredentialResponse> result = deferredCredentialController.getCredential(authorizationHeader, deferredCredentialRequest);
 
         StepVerifier.create(result)
-                .assertNext(response -> assertEquals(verifiableCredentialResponse, response))
+                .assertNext(response -> assertEquals(credentialResponse, response))
                 .verifyComplete();
     }
 

@@ -10,7 +10,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -33,7 +32,6 @@ class ProofValidationServiceImplTest {
         String token = "token";
 
         when(jwtService.validateJwtSignatureReactive(any())).thenReturn(Mono.just(true));
-        when(nonceValidationWorkflow.isValid(any())).thenReturn(Mono.just(true));
 
         Mono<Boolean> result = service.isProofValid(validProof, token);
         // Verify the output
@@ -42,21 +40,4 @@ class ProofValidationServiceImplTest {
                         assertTrue(response, "The response is wrong"))
                 .verifyComplete();
     }
-
-    @Test
-    void isProofValid_notValid() {
-        String notValidProof = "eyJraWQiOiJkaWQ6a2V5OnpEbmFlbURadmk2UFdMbjRLRjY2NlJzZ3ZTSnR5R1B4V05GQW8xenZNSmliTGFCSHYjekRuYWVtRFp2aTZQV0xuNEtGNjY2UnNndlNKdHlHUHhXTkZBbzF6dk1KaWJMYUJIdiIsInR5cCI6Im9wZW5pZDR2Y2ktcHJvb2Yrand0IiwiYWxnIjoiRVMyNTYifQ.eyJpc3MiOiJkaWQ6a2V5OnpEbmFlbURadmk2UFdMbjRLRjY2NlJzZ3ZTSnR5R1B4V05GQW8xenZNSmliTGFCSHYiLCJhdWQiOiJodHRwOi8vbG9jYWxob3N0OjgwNzEiLCJleHAiOjMzMjE3NjMwOTgzLCJpYXQiOjE3MTMxNjY5ODMsIm5vbmNlIjoiLVNReklWbWxRTUNWd2xRak53SnRRUT09In0.hgLg04YCmEMa30JQYTZSz3vEGxTfBNYdx3A3wSNrtuJcb9p-96MtPCmLTpIFBU_CLTI4Wm4_lc-rbRMitIiOxA";
-        String token = "token";
-
-        when(jwtService.validateJwtSignatureReactive(any())).thenReturn(Mono.just(true));
-        when(nonceValidationWorkflow.isValid(any())).thenReturn(Mono.just(false));
-
-        Mono<Boolean> result = service.isProofValid(notValidProof, token);
-        // Verify the output
-        StepVerifier.create(result)
-                .assertNext(response ->
-                        assertFalse(response, "The response is wrong"))
-                .verifyComplete();
-    }
-
 }

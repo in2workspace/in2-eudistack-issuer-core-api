@@ -75,9 +75,7 @@ class TokenServiceImplTest {
                     assertThat(tokenResponse).isNotNull();
                     assertThat(tokenResponse.accessToken()).isEqualTo(accessToken);
                     assertThat(tokenResponse.tokenType()).isEqualTo("bearer");
-                    assertThat(tokenResponse.nonce()).isNotNull();
                     assertThat(tokenResponse.expiresIn()).isGreaterThan(0);
-                    assertThat(tokenResponse.nonceExpiresIn()).isGreaterThan(0);
                 })
                 .verifyComplete();
     }

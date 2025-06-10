@@ -244,13 +244,12 @@ class DeferredCredentialMetadataServiceImplTest {
     void testUpdateDeferredCredentialMetadataByAuthServerNonce_Success() {
         // Arrange
         String authServerNonce = "auth-server-nonce";
-        String format = "format";
         DeferredCredentialMetadata deferredCredentialMetadata = new DeferredCredentialMetadata();
         when(deferredCredentialMetadataRepository.findByAuthServerNonce(authServerNonce)).thenReturn(Mono.just(deferredCredentialMetadata));
         when(deferredCredentialMetadataRepository.save(deferredCredentialMetadata)).thenReturn(Mono.just(deferredCredentialMetadata));
 
         // Act
-        StepVerifier.create(deferredCredentialMetadataService.updateDeferredCredentialMetadataByAuthServerNonce(authServerNonce, format))
+        StepVerifier.create(deferredCredentialMetadataService.updateDeferredCredentialMetadataByAuthServerNonce(authServerNonce))
                 .expectNextMatches(Objects::nonNull)
                 .verifyComplete();
 
@@ -411,6 +410,18 @@ class DeferredCredentialMetadataServiceImplTest {
 
         verify(cacheStore, times(1)).add(cTransactionCode, transactionCode);
         verify(cacheStore, times(1)).getCacheExpiryInSeconds();
+    }
+
+    @Test
+    void updateFormatByProcedureId(){
+        String procedureId = UUID.randomUUID().toString();
+        String format = "new-format";
+        DeferredCredentialMetadata deferredCredentialMetadata = new DeferredCredentialMetadata();
+        when(deferredCredentialMetadataRepository.findByProcedureId(UUID.fromString(procedureId))).thenReturn(Mono.just(deferredCredentialMetadata));
+        when(deferredCredentialMetadataRepository.save(deferredCredentialMetadata)).thenReturn(Mono.empty());
+
+        StepVerifier.create(deferredCredentialMetadataService.updateFormatByProcedureId(procedureId, format))
+                .verifyComplete();
     }
 
 
