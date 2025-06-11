@@ -12,7 +12,7 @@ import es.in2.issuer.backend.shared.domain.service.DeferredCredentialMetadataSer
 import es.in2.issuer.backend.shared.domain.util.factory.CredentialFactory;
 import es.in2.issuer.backend.shared.domain.util.factory.IssuerFactory;
 import es.in2.issuer.backend.shared.domain.util.factory.LEARCredentialEmployeeFactory;
-import es.in2.issuer.backend.shared.domain.util.factory.VerifiableCertificationFactory;
+import es.in2.issuer.backend.shared.domain.util.factory.LabelCredentialFactory;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -23,7 +23,7 @@ import reactor.test.StepVerifier;
 
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.BEARER_PREFIX;
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.JWT_VC;
-import static es.in2.issuer.backend.shared.domain.util.Constants.VERIFIABLE_CERTIFICATION;
+import static es.in2.issuer.backend.shared.domain.util.Constants.LABEL_CREDENTIAL;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.eq;
@@ -51,7 +51,7 @@ class VerifiableCredentialServiceImplTest {
     @Mock
     private LEARCredentialEmployeeFactory learCredentialEmployeeFactory;
     @Mock
-    private VerifiableCertificationFactory verifiableCertificationFactory;
+    private LabelCredentialFactory labelCredentialFactory;
     @Mock
     private IssuerFactory issuerFactory;
     @InjectMocks
@@ -490,12 +490,12 @@ class VerifiableCredentialServiceImplTest {
                 .thenReturn(Mono.just(metadataId));
 
         DetailedIssuer mockIssuer = mock(DetailedIssuer.class);
-        when(issuerFactory.createIssuer(
+        when(issuerFactory.createDetailedIssuer(
                 procedureId,
-                VERIFIABLE_CERTIFICATION))
+                LABEL_CREDENTIAL))
                 .thenReturn(Mono.just(mockIssuer));
 
-        when(verifiableCertificationFactory.mapIssuerAndSigner(
+        when(labelCredentialFactory.mapIssuerAndSigner(
                 procedureId,
                 mockIssuer))
                 .thenReturn(Mono.just(bindVerifiableCertification));
@@ -525,8 +525,8 @@ class VerifiableCredentialServiceImplTest {
                         preSubmittedCredentialRequest.operationMode(),
                         preSubmittedCredentialRequest.responseUri());
         verify(issuerFactory, times(1))
-                .createIssuer(procedureId, VERIFIABLE_CERTIFICATION);
-        verify(verifiableCertificationFactory, times(1))
+                .createDetailedIssuer(procedureId, LABEL_CREDENTIAL);
+        verify(labelCredentialFactory, times(1))
                 .mapIssuerAndSigner(procedureId, mockIssuer);
         verify(credentialProcedureService, times(1))
                 .updateDecodedCredentialByProcedureId(procedureId, bindVerifiableCertification, JWT_VC);
@@ -568,7 +568,7 @@ class VerifiableCredentialServiceImplTest {
 
         // Mock the LEAR credential employee factory to throw an error
         RuntimeException mockException = new RuntimeException("Error generating issuer");
-        when(issuerFactory.createIssuer(procedureId, VERIFIABLE_CERTIFICATION))
+        when(issuerFactory.createDetailedIssuer(procedureId, LABEL_CREDENTIAL))
                 .thenReturn(Mono.error(mockException));
 
         // Act
@@ -594,10 +594,10 @@ class VerifiableCredentialServiceImplTest {
                         preSubmittedCredentialRequest.responseUri());
 
         verify(issuerFactory, times(1))
-                .createIssuer(procedureId, VERIFIABLE_CERTIFICATION);
+                .createDetailedIssuer(procedureId, LABEL_CREDENTIAL);
 
         // These should not be called due to the error
-        verify(verifiableCertificationFactory, never())
+        verify(labelCredentialFactory, never())
                 .mapIssuerAndSigner(any(), any());
 
         verify(credentialProcedureService, never())
@@ -636,9 +636,9 @@ class VerifiableCredentialServiceImplTest {
                 .createDeferredCredentialMetadata(any(), any(), any());
 
         verify(issuerFactory, never())
-                .createIssuer(any(), any());
+                .createDetailedIssuer(any(), any());
 
-        verify(verifiableCertificationFactory, never())
+        verify(labelCredentialFactory, never())
                 .mapIssuerAndSigner(any(), any());
 
         verify(credentialProcedureService, never())

@@ -24,7 +24,7 @@ import java.util.stream.StreamSupport;
 
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.*;
 import static es.in2.issuer.backend.shared.domain.util.Constants.LEAR_CREDENTIAL_EMPLOYEE;
-import static es.in2.issuer.backend.shared.domain.util.Constants.VERIFIABLE_CERTIFICATION;
+import static es.in2.issuer.backend.shared.domain.util.Constants.LABEL_CREDENTIAL;
 import static es.in2.issuer.backend.shared.domain.util.Utils.extractMandator;
 import static es.in2.issuer.backend.shared.domain.util.Utils.extractPowers;
 
@@ -57,7 +57,7 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
         if (role==null || role.isBlank()) {
             return Mono.error(new UnauthorizedRoleException("Access denied: Role is empty"));
         }
-        if (VERIFIABLE_CERTIFICATION.equals(schema)) {
+        if (LABEL_CREDENTIAL.equals(schema)) {
             return Mono.error(new UnauthorizedRoleException("Access denied: Unauthorized Role '" + role + "'"));
         }
         return switch (role) {
@@ -75,7 +75,7 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
                 return mapVcToLEARCredential(vcClaim, schema)
                     .flatMap(learCredential -> switch (schema) {
                         case LEAR_CREDENTIAL_EMPLOYEE -> authorizeLearCredentialEmployee(learCredential, payload);
-                        case VERIFIABLE_CERTIFICATION -> authorizeVerifiableCertification(learCredential, idToken);
+                        case LABEL_CREDENTIAL -> authorizeVerifiableCertification(learCredential, idToken);
                         default -> Mono.error(new InsufficientPermissionException("Unauthorized: Unsupported schema"));
                     });
             });
@@ -87,7 +87,7 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
      */
     private Mono<String> determineAllowedCredentialType(List<String> types, String schema) {
         return Mono.fromCallable(() -> {
-            if (VERIFIABLE_CERTIFICATION.equals(schema)) {
+            if (LABEL_CREDENTIAL.equals(schema)) {
                 // For verifiable certification, only LEARCredentialMachine into the access token is allowed.
                 if (types.contains(LEAR_CREDENTIAL_MACHINE)) {
                     return LEAR_CREDENTIAL_MACHINE;

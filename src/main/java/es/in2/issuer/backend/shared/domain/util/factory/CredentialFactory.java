@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
 import static es.in2.issuer.backend.shared.domain.util.Constants.LEAR_CREDENTIAL_EMPLOYEE;
-import static es.in2.issuer.backend.shared.domain.util.Constants.VERIFIABLE_CERTIFICATION;
+import static es.in2.issuer.backend.shared.domain.util.Constants.LABEL_CREDENTIAL;
 
 @Component
 @RequiredArgsConstructor
@@ -21,18 +21,18 @@ public class CredentialFactory {
 
     public final LEARCredentialEmployeeFactory learCredentialEmployeeFactory;
     public final LEARCredentialMachineFactory learCredentialMachineFactory;
-    public final VerifiableCertificationFactory verifiableCertificationFactory;
+    public final LabelCredentialFactory labelCredentialFactory;
     private final CredentialProcedureService credentialProcedureService;
     private final DeferredCredentialMetadataService deferredCredentialMetadataService;
 
-    public Mono<CredentialProcedureCreationRequest> mapCredentialIntoACredentialProcedureRequest(String processId, PreSubmittedCredentialRequest preSubmittedCredentialRequest, String token) {
+    public Mono<CredentialProcedureCreationRequest> mapCredentialIntoACredentialProcedureRequest(String processId, PreSubmittedCredentialRequest preSubmittedCredentialRequest) {
         JsonNode credential = preSubmittedCredentialRequest.payload();
         String operationMode = preSubmittedCredentialRequest.operationMode();
         if (preSubmittedCredentialRequest.schema().equals(LEAR_CREDENTIAL_EMPLOYEE)) {
             return learCredentialEmployeeFactory.mapAndBuildLEARCredentialEmployee(credential, operationMode)
                     .doOnSuccess(learCredentialEmployee -> log.info("ProcessID: {} - LEARCredentialEmployee mapped: {}", processId, credential));
-        } else if (preSubmittedCredentialRequest.schema().equals(VERIFIABLE_CERTIFICATION)) {
-            return verifiableCertificationFactory.mapAndBuildVerifiableCertification(credential, token, operationMode)
+        } else if (preSubmittedCredentialRequest.schema().equals(LABEL_CREDENTIAL)) {
+            return labelCredentialFactory.mapAndBuildLabelCredential(credential, operationMode)
                     .doOnSuccess(verifiableCertification -> log.info("ProcessID: {} - VerifiableCertification mapped: {}", processId, credential));
         }
         return Mono.error(new CredentialTypeUnsupportedException(preSubmittedCredentialRequest.schema()));

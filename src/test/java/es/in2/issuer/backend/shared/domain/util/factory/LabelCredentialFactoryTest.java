@@ -6,7 +6,7 @@ import com.nimbusds.jose.Payload;
 import com.nimbusds.jwt.SignedJWT;
 import es.in2.issuer.backend.shared.domain.exception.InvalidCredentialFormatException;
 import es.in2.issuer.backend.shared.domain.model.dto.CredentialProcedureCreationRequest;
-import es.in2.issuer.backend.shared.domain.model.dto.VerifiableCertification;
+import es.in2.issuer.backend.shared.domain.model.dto.credential.LabelCredential;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.DetailedIssuer;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.Mandator;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.employee.LEARCredentialEmployee;
@@ -32,7 +32,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-class VerifiableCertificationFactoryTest {
+class LabelCredentialFactoryTest {
     @Mock
     private ObjectMapper objectMapper;
 
@@ -47,8 +47,8 @@ class VerifiableCertificationFactoryTest {
     @Mock
     private CredentialProcedureService credentialProcedureService;
     @InjectMocks
-    private VerifiableCertificationFactory verifiableCertificationFactory;
-    private VerifiableCertification verifiableCertification;
+    private LabelCredentialFactory labelCredentialFactory;
+    private LabelCredential labelCredential;
     private DetailedIssuer detailedIssuer;
 
     @BeforeEach
@@ -63,19 +63,19 @@ class VerifiableCertificationFactoryTest {
         when(defaultSignerConfig.getSerialNumber()).thenReturn("SerialNumber");
 
         // Create a sample VerifiableCertification
-        verifiableCertification = VerifiableCertification.builder()
+        labelCredential = LabelCredential.builder()
                 .context(Collections.singletonList("https://www.w3.org/2018/credentials/v1"))
                 .id("urn:uuid:123")
                 .type(Collections.singletonList("VerifiableCertification"))
                 .credentialSubject(
-                        VerifiableCertification.CredentialSubject.builder()
+                        LabelCredential.CredentialSubject.builder()
                                 .company(
-                                        VerifiableCertification.CredentialSubject.Company.builder()
+                                        LabelCredential.CredentialSubject.Company.builder()
                                                 .email("company@example.com")
                                                 .build()
                                 )
                                 .product(
-                                        VerifiableCertification.CredentialSubject.Product.builder()
+                                        LabelCredential.CredentialSubject.Product.builder()
                                                 .productId("product-123")
                                                 .productName("Sample Product")
                                                 .build()
@@ -84,7 +84,7 @@ class VerifiableCertificationFactoryTest {
                 )
                 .validFrom("2023-01-01T00:00:00Z")
                 .validUntil("2024-01-01T00:00:00Z")
-                .atester(VerifiableCertification.Atester.builder()
+                .atester(LabelCredential.Atester.builder()
                         .firstName("Test")
                         .lastName("User")
                         .country("TestCountry")
@@ -107,7 +107,7 @@ class VerifiableCertificationFactoryTest {
     }
 
     @Test
-    void testMapAndBuildVerifiableCertification() throws Exception {
+    void testMapAndBuildLabelCredential() throws Exception {
         String token = "valid-token";
         when(remoteSignatureConfig.getRemoteSignatureType()).thenReturn(SIGNATURE_REMOTE_TYPE_SERVER);
         // Given: A mocked JsonNode input representing the VerifiableCertification
@@ -145,18 +145,18 @@ class VerifiableCertificationFactoryTest {
         JsonNode credentialNode = objectMapper.readTree(credentialJson);
 
         // Mock the objectMapper's convertValue method
-        VerifiableCertification verifiableCertificationBuild = VerifiableCertification.builder()
+        LabelCredential labelCredentialBuild = LabelCredential.builder()
                 .context(List.of("https://www.w3.org/2018/credentials/v1"))
                 .id("urn:uuid:" + UUID.randomUUID())
                 .type(List.of("VerifiableCertification"))
-                .issuer(VerifiableCertification.Issuer.builder()
+                .issuer(LabelCredential.Issuer.builder()
                         .commonName("Issuer Common Name")
                         .country("Issuer Country")
                         .id("Issuer ID")
                         .organization("Issuer Organization")
                         .build())
-                .credentialSubject(VerifiableCertification.CredentialSubject.builder()
-                        .company(VerifiableCertification.CredentialSubject.Company.builder()
+                .credentialSubject(LabelCredential.CredentialSubject.builder()
+                        .company(LabelCredential.CredentialSubject.Company.builder()
                                 .address("1234 Example St.")
                                 .commonName("Company Name")
                                 .country("Country")
@@ -164,12 +164,12 @@ class VerifiableCertificationFactoryTest {
                                 .id("company-id")
                                 .organization("Company Organization")
                                 .build())
-                        .compliance(List.of(VerifiableCertification.CredentialSubject.Compliance.builder()
+                        .compliance(List.of(LabelCredential.CredentialSubject.Compliance.builder()
                                 .id("compliance-id")
                                 .scope("compliance-scope")
                                 .standard("compliance-standard")
                                 .build()))
-                        .product(VerifiableCertification.CredentialSubject.Product.builder()
+                        .product(LabelCredential.CredentialSubject.Product.builder()
                                 .productId("product-id")
                                 .productName("Product Name")
                                 .productVersion("1.0")
@@ -177,7 +177,7 @@ class VerifiableCertificationFactoryTest {
                         .build())
                 .validFrom("2023-09-07T00:00:00Z")
                 .validUntil("2024-09-07T00:00:00Z")
-                .signer(VerifiableCertification.Signer.builder()
+                .signer(LabelCredential.Signer.builder()
                         .commonName(defaultSignerConfig.getCommonName())
                         .country(defaultSignerConfig.getCountry())
                         .emailAddress(defaultSignerConfig.getEmail())
@@ -185,13 +185,13 @@ class VerifiableCertificationFactoryTest {
                         .organizationIdentifier(defaultSignerConfig.getOrganizationIdentifier())
                         .serialNumber(defaultSignerConfig.getSerialNumber())
                         .build())
-                .issuer(VerifiableCertification.Issuer.builder()
+                .issuer(LabelCredential.Issuer.builder()
                         .commonName(defaultSignerConfig.getCommonName())
                         .country(defaultSignerConfig.getCountry())
                         .id(DID_ELSI + defaultSignerConfig.getOrganizationIdentifier())
                         .organization(defaultSignerConfig.getOrganization())
                         .build())
-                .atester(VerifiableCertification.Atester.builder()
+                .atester(LabelCredential.Atester.builder()
                         .firstName("John")
                         .lastName("Doe")
                         .country("Country")
@@ -215,11 +215,11 @@ class VerifiableCertificationFactoryTest {
         LEARCredentialEmployee learCredential = getLEARCredentialEmployee();
         when(learCredentialEmployeeFactory.mapStringToLEARCredentialEmployee("vcJson")).thenReturn(learCredential);
 
-        when(objectMapper.convertValue(credentialNode, VerifiableCertification.class)).thenReturn(verifiableCertificationBuild);
-        when(objectMapper.writeValueAsString(any(VerifiableCertification.class))).thenReturn("expectedString");
+        when(objectMapper.convertValue(credentialNode, LabelCredential.class)).thenReturn(labelCredentialBuild);
+        when(objectMapper.writeValueAsString(any(LabelCredential.class))).thenReturn("expectedString");
 
         // When: Calling mapAndBuildVerifiableCertification
-        Mono<CredentialProcedureCreationRequest> resultMono = verifiableCertificationFactory.mapAndBuildVerifiableCertification(credentialNode, token, "S");
+        Mono<CredentialProcedureCreationRequest> resultMono = labelCredentialFactory.mapAndBuildLabelCredential(credentialNode, token, "S");
 
         // Then: Verify the result
         StepVerifier.create(resultMono)
@@ -256,8 +256,8 @@ class VerifiableCertificationFactoryTest {
 
     @Test
     void testBindIssuerAndSigner() {
-        Mono<VerifiableCertification> result = verifiableCertificationFactory.bindIssuerAndSigner(
-                verifiableCertification,
+        Mono<LabelCredential> result = labelCredentialFactory.bindIssuerAndSigner(
+                labelCredential,
                 detailedIssuer
         );
 
@@ -274,7 +274,7 @@ class VerifiableCertificationFactoryTest {
                     assertEquals(detailedIssuer.country(), updatedCertification.signer().country());
                     assertEquals(detailedIssuer.organization(), updatedCertification.signer().organization());
                     assertEquals(detailedIssuer.organizationIdentifier(), updatedCertification.signer().organizationIdentifier());
-                    assertEquals(verifiableCertification.credentialSubject().company().email(), updatedCertification.signer().emailAddress());
+                    assertEquals(labelCredential.credentialSubject().company().email(), updatedCertification.signer().emailAddress());
                 })
                 .verifyComplete();
     }
@@ -287,12 +287,12 @@ class VerifiableCertificationFactoryTest {
         when(credentialProcedureService.getDecodedCredentialByProcedureId(procedureId))
                 .thenReturn(Mono.just(decodedCredential));
 
-        when(objectMapper.readValue(decodedCredential, VerifiableCertification.class))
-                .thenReturn(verifiableCertification);
+        when(objectMapper.readValue(decodedCredential, LabelCredential.class))
+                .thenReturn(labelCredential);
 
-        when(objectMapper.writeValueAsString(any(VerifiableCertification.class)))
+        when(objectMapper.writeValueAsString(any(LabelCredential.class)))
                 .thenAnswer(invocation -> {
-                    VerifiableCertification vc = invocation.getArgument(0);
+                    LabelCredential vc = invocation.getArgument(0);
                     String issuerCommonName = vc.issuer().commonName();
                     String issuerCountry = vc.issuer().country();
                     String issuerOrganization = vc.issuer().organization();
@@ -307,7 +307,7 @@ class VerifiableCertificationFactoryTest {
                             "\"signer\":{\"commonName\":\"" + signerCommonName + "\", \"country\":\"" + signerCountry + "\", \"organization\":\"" + signerOrganization + "\", \"organizationIdentifier\":\"" + signerOrgId + "\", \"emailAddress\":\"" + signerEmail + "\"}}";
                 });
 
-        Mono<String> result = verifiableCertificationFactory.mapIssuerAndSigner(procedureId, detailedIssuer);
+        Mono<String> result = labelCredentialFactory.mapIssuerAndSigner(procedureId, detailedIssuer);
 
         StepVerifier.create(result)
                 .assertNext(jsonString -> {
@@ -334,10 +334,10 @@ class VerifiableCertificationFactoryTest {
         when(credentialProcedureService.getDecodedCredentialByProcedureId(procedureId))
                 .thenReturn(Mono.just(decodedCredential));
 
-        when(objectMapper.readValue(decodedCredential, VerifiableCertification.class))
+        when(objectMapper.readValue(decodedCredential, LabelCredential.class))
                 .thenThrow(new InvalidCredentialFormatException("Invalid credential format"));
 
-        Mono<String> result = verifiableCertificationFactory.mapIssuerAndSigner(procedureId, detailedIssuer);
+        Mono<String> result = labelCredentialFactory.mapIssuerAndSigner(procedureId, detailedIssuer);
 
         StepVerifier.create(result)
                 .expectError(InvalidCredentialFormatException.class)

@@ -2,6 +2,7 @@ package es.in2.issuer.backend.shared.domain.util.factory;
 
 import es.in2.issuer.backend.shared.domain.exception.RemoteSignatureException;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.DetailedIssuer;
+import es.in2.issuer.backend.shared.domain.model.dto.credential.SimpleIssuer;
 import es.in2.issuer.backend.shared.domain.service.impl.RemoteSignatureServiceImpl;
 import es.in2.issuer.backend.shared.infrastructure.config.DefaultSignerConfig;
 import es.in2.issuer.backend.shared.infrastructure.config.RemoteSignatureConfig;
@@ -16,7 +17,7 @@ import java.util.Date;
 
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.*;
 import static es.in2.issuer.backend.shared.domain.util.Constants.LEAR_CREDENTIAL_EMPLOYEE;
-import static es.in2.issuer.backend.shared.domain.util.Constants.VERIFIABLE_CERTIFICATION;
+import static es.in2.issuer.backend.shared.domain.util.Constants.LABEL_CREDENTIAL;
 
 @Component
 @RequiredArgsConstructor
@@ -24,66 +25,59 @@ import static es.in2.issuer.backend.shared.domain.util.Constants.VERIFIABLE_CERT
 public class IssuerFactory {
 
     private final RemoteSignatureConfig remoteSignatureConfig;
-    private final DefaultSignerConfig defaultSignerConfig;
+    private final DefaultSignerConfig    defaultSignerConfig;
     private final RemoteSignatureServiceImpl remoteSignatureServiceImpl;
 
-    public Mono<DetailedIssuer> createIssuer(String procedureId, String credentialType) {
-        if (remoteSignatureConfig.getRemoteSignatureType().equals(SIGNATURE_REMOTE_TYPE_SERVER)) {
-            return Mono.just(
-                    DetailedIssuer.builder()
-                            .id(DID_ELSI + defaultSignerConfig.getOrganizationIdentifier())
-                            .organizationIdentifier(defaultSignerConfig.getOrganizationIdentifier())
-                            .organization(defaultSignerConfig.getOrganization())
-                            .country(defaultSignerConfig.getCountry())
-                            .commonName(defaultSignerConfig.getCommonName())
-                            .emailAddress(defaultSignerConfig.getEmail())
-                            .serialNumber(defaultSignerConfig.getSerialNumber())
-                            .build()
-            );
-        } else {
-            return createIssuerRemote(procedureId, credentialType);
-        }
+    public Mono<DetailedIssuer> createDetailedIssuer(String procedureId, String credentialType) {
+        return isServerMode()
+                ? Mono.just(buildLocalDetailedIssuer())
+                : createRemoteDetailedIssuer(procedureId, credentialType);
     }
 
-    public Mono<DetailedIssuer> createIssuerRemote(String procedureId, String credentialType) {
+    public Mono<SimpleIssuer> createSimpleIssuer(String procedureId, String credentialType) {
+        return isServerMode()
+                ? Mono.just(buildLocalSimpleIssuer())
+                : createRemoteDetailedIssuer(procedureId, credentialType)
+                .map(detailed -> SimpleIssuer.builder()
+                        .id(detailed.getId())
+                        .build());
+    }
+
+    private boolean isServerMode() {
+        return SIGNATURE_REMOTE_TYPE_SERVER.equals(remoteSignatureConfig.getRemoteSignatureType());
+    }
+
+    private DetailedIssuer buildLocalDetailedIssuer() {
+        return DetailedIssuer.builder()
+                .id(DID_ELSI + defaultSignerConfig.getOrganizationIdentifier())
+                .organizationIdentifier(defaultSignerConfig.getOrganizationIdentifier())
+                .organization(defaultSignerConfig.getOrganization())
+                .country(defaultSignerConfig.getCountry())
+                .commonName(defaultSignerConfig.getCommonName())
+                .emailAddress(defaultSignerConfig.getEmail())
+                .serialNumber(defaultSignerConfig.getSerialNumber())
+                .build();
+    }
+
+    private SimpleIssuer buildLocalSimpleIssuer() {
+        return SimpleIssuer.builder()
+                .id(DID_ELSI + defaultSignerConfig.getOrganizationIdentifier())
+                .build();
+    }
+
+    private Mono<DetailedIssuer> createRemoteDetailedIssuer(String procedureId, String credentialType) {
         return Mono.defer(() ->
                         remoteSignatureServiceImpl.validateCredentials()
                                 .flatMap(valid -> {
-                                    if (Boolean.FALSE.equals(valid)) {
+                                    if (!valid) {
                                         log.error("Credentials mismatch. Signature process aborted.");
                                         return Mono.error(new RemoteSignatureException("Credentials mismatch."));
                                     }
-
-                                    return switch (credentialType) {
-                                        case LEAR_CREDENTIAL_EMPLOYEE ->
-                                                remoteSignatureServiceImpl.getMandatorMail(procedureId)
-                                                        .flatMap(mail ->
-                                                                remoteSignatureServiceImpl.requestAccessToken(null, SIGNATURE_REMOTE_SCOPE_SERVICE)
-                                                                        .flatMap(token ->
-                                                                                remoteSignatureServiceImpl.requestCertificateInfo(token, remoteSignatureConfig.getRemoteSignatureCredentialId())
-                                                                        )
-                                                                        .flatMap(certInfo ->
-                                                                                remoteSignatureServiceImpl.extractIssuerFromCertificateInfo(certInfo, mail)
-                                                                        )
-                                                        );
-
-                                        case VERIFIABLE_CERTIFICATION ->
-                                                remoteSignatureServiceImpl.getMailForVerifiableCertification(procedureId)
-                                                        .flatMap(mail ->
-                                                                remoteSignatureServiceImpl.requestAccessToken(null, SIGNATURE_REMOTE_SCOPE_SERVICE)
-                                                                        .flatMap(token ->
-                                                                                remoteSignatureServiceImpl.requestCertificateInfo(token, remoteSignatureConfig.getRemoteSignatureCredentialId())
-                                                                        )
-                                                                        .flatMap(certInfo ->
-                                                                                remoteSignatureServiceImpl.extractIssuerFromCertificateInfo(certInfo, mail)
-                                                                        )
-                                                        );
-
-                                        default -> {
-                                            log.error("Unsupported credentialType: {}", credentialType);
-                                            yield Mono.error(new RemoteSignatureException("Unsupported credentialType: " + credentialType));
-                                        }
-                                    };
+                                    return getMail(procedureId, credentialType)
+                                            .flatMap(mail -> remoteSignatureServiceImpl.requestAccessToken(null, SIGNATURE_REMOTE_SCOPE_SERVICE)
+                                                    .flatMap(token -> remoteSignatureServiceImpl.requestCertificateInfo(token, remoteSignatureConfig.getRemoteSignatureCredentialId()))
+                                                    .flatMap(certInfo -> remoteSignatureServiceImpl.extractIssuerFromCertificateInfo(certInfo, mail))
+                                            );
                                 })
                 )
                 .retryWhen(Retry.backoff(3, Duration.ofSeconds(1))
@@ -99,4 +93,16 @@ public class IssuerFactory {
                 });
     }
 
+    private Mono<String> getMail(String procedureId, String credentialType) {
+        return switch (credentialType) {
+            case LEAR_CREDENTIAL_EMPLOYEE ->
+                    remoteSignatureServiceImpl.getMandatorMail(procedureId);
+            case LABEL_CREDENTIAL ->
+                    remoteSignatureServiceImpl.getMailForVerifiableCertification(procedureId);
+            default -> {
+                log.error("Unsupported credentialType: {}", credentialType);
+                yield Mono.error(new RemoteSignatureException("Unsupported credentialType: " + credentialType));
+            }
+        };
+    }
 }

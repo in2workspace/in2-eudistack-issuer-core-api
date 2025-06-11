@@ -10,7 +10,6 @@ import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatus;
 import es.in2.issuer.backend.shared.domain.service.*;
 import es.in2.issuer.backend.shared.domain.util.factory.LEARCredentialEmployeeFactory;
 import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
-import es.in2.issuer.backend.shared.infrastructure.config.WebClientConfig;
 import es.in2.issuer.backend.shared.infrastructure.config.security.service.VerifiableCredentialPolicyAuthorizationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -37,7 +36,6 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
     private final CredentialProcedureService credentialProcedureService;
     private final DeferredCredentialMetadataService deferredCredentialMetadataService;
     private final CredentialSignerWorkflow credentialSignerWorkflow;
-    private final WebClientConfig webClient;
     private final VerifiableCredentialPolicyAuthorizationService verifiableCredentialPolicyAuthorizationService;
     private final TrustFrameworkService trustFrameworkService;
     private final LEARCredentialEmployeeFactory credentialEmployeeFactory;
@@ -58,7 +56,7 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
         }
 
         // Validate idToken header for VerifiableCertification schema
-        if (preSubmittedCredentialRequest.schema().equals(VERIFIABLE_CERTIFICATION) && idToken == null) {
+        if (preSubmittedCredentialRequest.schema().equals(LABEL_CREDENTIAL) && idToken == null) {
             return Mono.error(new MissingIdTokenHeaderException("Missing required ID Token header for VerifiableCertification issuance."));
         }
 
@@ -68,7 +66,7 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                     if (preSubmittedCredentialRequest.schema().equals(LEAR_CREDENTIAL_EMPLOYEE)) {
                         return verifiableCredentialService.generateVc(processId, preSubmittedCredentialRequest.schema(), preSubmittedCredentialRequest, token)
                                 .flatMap(transactionCode -> sendCredentialOfferEmail(transactionCode, preSubmittedCredentialRequest));
-                    } else if (preSubmittedCredentialRequest.schema().equals(VERIFIABLE_CERTIFICATION)) {
+                    } else if (preSubmittedCredentialRequest.schema().equals(LABEL_CREDENTIAL)) {
                         // Check if responseUri is null, empty, or only contains whitespace
                         if (preSubmittedCredentialRequest.responseUri() == null || preSubmittedCredentialRequest.responseUri().isBlank()) {
                             return Mono.error(new OperationNotSupportedException("For schema: " + preSubmittedCredentialRequest.schema() + " response_uri is required"));

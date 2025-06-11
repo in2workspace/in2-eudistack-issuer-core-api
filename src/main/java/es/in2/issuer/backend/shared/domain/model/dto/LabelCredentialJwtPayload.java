@@ -1,10 +1,11 @@
 package es.in2.issuer.backend.shared.domain.model.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import es.in2.issuer.backend.shared.domain.model.dto.credential.LabelCredential;
 import lombok.Builder;
 
 @Builder
-public record VerifiableCertificationJwtPayload(
+public record LabelCredentialJwtPayload(
         @JsonProperty("sub")
         String subject,
 
@@ -21,7 +22,7 @@ public record VerifiableCertificationJwtPayload(
         Long issuedAt,
 
         @JsonProperty("vc")
-        VerifiableCertification credential,
+        LabelCredential credential,
 
         @JsonProperty("jti")
         String JwtId

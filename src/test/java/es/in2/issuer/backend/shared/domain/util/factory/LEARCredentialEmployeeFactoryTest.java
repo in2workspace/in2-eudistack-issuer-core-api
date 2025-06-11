@@ -131,7 +131,7 @@ class LEARCredentialEmployeeFactoryTest {
                 .thenReturn(learCredentialEmployee);
 
         DetailedIssuer mockIssuer = mock(DetailedIssuer.class);
-        when(issuerFactory.createIssuer(procedureId, Constants.LEAR_CREDENTIAL_EMPLOYEE))
+        when(issuerFactory.createDetailedIssuer(procedureId, Constants.LEAR_CREDENTIAL_EMPLOYEE))
                 .thenReturn(Mono.just(mockIssuer));
 
         when(objectMapper.writeValueAsString(any(LEARCredentialEmployee.class)))
@@ -159,7 +159,7 @@ class LEARCredentialEmployeeFactoryTest {
         when(objectMapper.readValue(credentialString, LEARCredentialEmployee.class))
                 .thenReturn(learCredentialEmployee);
 
-        when(issuerFactory.createIssuer(procedureId, Constants.LEAR_CREDENTIAL_EMPLOYEE))
+        when(issuerFactory.createDetailedIssuer(procedureId, Constants.LEAR_CREDENTIAL_EMPLOYEE))
                 .thenReturn(Mono.empty());
 
         // Act & Assert
@@ -183,7 +183,7 @@ class LEARCredentialEmployeeFactoryTest {
                 .thenReturn(learCredentialEmployee);
 
         DetailedIssuer fakeIssuer = mock(DetailedIssuer.class);
-        when(issuerFactory.createIssuer(procedureId, Constants.LEAR_CREDENTIAL_EMPLOYEE))
+        when(issuerFactory.createDetailedIssuer(procedureId, Constants.LEAR_CREDENTIAL_EMPLOYEE))
                 .thenReturn(Mono.just(fakeIssuer));
 
         when(objectMapper.writeValueAsString(any(LEARCredentialEmployee.class)))
@@ -206,7 +206,7 @@ class LEARCredentialEmployeeFactoryTest {
         when(objectMapper.readValue(credentialString, LEARCredentialEmployee.class))
                 .thenReturn(learCredentialEmployee);
 
-        when(issuerFactory.createIssuer(procedureId, Constants.LEAR_CREDENTIAL_EMPLOYEE))
+        when(issuerFactory.createDetailedIssuer(procedureId, Constants.LEAR_CREDENTIAL_EMPLOYEE))
                 .thenReturn(Mono.empty());
 
         StepVerifier.create(
@@ -227,7 +227,7 @@ class LEARCredentialEmployeeFactoryTest {
                 .thenReturn(learCredentialEmployee);
 
         RuntimeException postRecoveryEx = new RuntimeException("Error in post-recovery handling");
-        when(issuerFactory.createIssuer(procedureId, Constants.LEAR_CREDENTIAL_EMPLOYEE))
+        when(issuerFactory.createDetailedIssuer(procedureId, Constants.LEAR_CREDENTIAL_EMPLOYEE))
                 .thenReturn(Mono.error(postRecoveryEx));
 
         StepVerifier.create(

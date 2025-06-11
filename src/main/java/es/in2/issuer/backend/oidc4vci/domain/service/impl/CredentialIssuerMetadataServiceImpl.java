@@ -34,7 +34,7 @@ public class CredentialIssuerMetadataServiceImpl implements CredentialIssuerMeta
                 .credentialConfigurationsSupported(Map.of(
                         LEAR_CREDENTIAL_EMPLOYEE, buildLearCredentialEmployeeCredentialConfiguration(),
                         LEAR_CREDENTIAL_MACHINE, buildLearCredentialMachineCredentialConfiguration(),
-                        VERIFIABLE_CERTIFICATION, buildVerifiableCertificationCredentialConfiguration()
+                        LABEL_CREDENTIAL, buildVerifiableCertificationCredentialConfiguration()
                 ))
                 .build();
         return Mono.just(credentialIssuerMetadata);
@@ -72,7 +72,7 @@ public class CredentialIssuerMetadataServiceImpl implements CredentialIssuerMeta
                 .scope("verifiable_certification")
                 .credentialSigningAlgValuesSupported(Set.of(ES256_SIGNING_ALG_VALUE))
                 .credentialDefinition(CredentialIssuerMetadata.CredentialConfiguration.CredentialDefinition.builder()
-                        .type(Set.of(VERIFIABLE_CREDENTIAL, VERIFIABLE_CERTIFICATION))
+                        .type(Set.of(VERIFIABLE_CREDENTIAL, LABEL_CREDENTIAL))
                         .build())
                 .build();
     }

@@ -104,7 +104,7 @@ public class LEARCredentialEmployeeFactory {
         LEARCredentialEmployee.CredentialSubject credentialSubject = createCredentialSubject(mandate);
 
         LEARCredentialEmployee credentialEmployee = LEARCredentialEmployee.builder()
-                .context(CREDENTIAL_CONTEXT)
+                .context(LEAR_CREDENTIAL_EMPLOYEE_CONTEXT)
                 .id(UUID.randomUUID().toString())
                 .type(List.of(LEAR_CREDENTIAL_EMPLOYEE, VERIFIABLE_CREDENTIAL))
                 .description(LEAR_CREDENTIAL_EMPLOYEE_DESCRIPTION)
@@ -214,7 +214,7 @@ public class LEARCredentialEmployeeFactory {
     }
 
     private Mono<LEARCredentialEmployee> bindIssuerToLearCredentialEmployee(LEARCredentialEmployee decodedCredential, String procedureId) {
-        return issuerFactory.createIssuer(procedureId, LEAR_CREDENTIAL_EMPLOYEE)
+        return issuerFactory.createDetailedIssuer(procedureId, LEAR_CREDENTIAL_EMPLOYEE)
                 .map(issuer -> LEARCredentialEmployee.builder()
                     .context(decodedCredential.context())
                     .id(decodedCredential.id())

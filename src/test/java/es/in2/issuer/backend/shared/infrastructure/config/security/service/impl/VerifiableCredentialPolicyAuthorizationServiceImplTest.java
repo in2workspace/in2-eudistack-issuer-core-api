@@ -18,7 +18,7 @@ import es.in2.issuer.backend.shared.domain.service.VerifierService;
 import es.in2.issuer.backend.shared.domain.util.factory.CredentialFactory;
 import es.in2.issuer.backend.shared.domain.util.factory.LEARCredentialEmployeeFactory;
 import es.in2.issuer.backend.shared.domain.util.factory.LEARCredentialMachineFactory;
-import es.in2.issuer.backend.shared.domain.util.factory.VerifiableCertificationFactory;
+import es.in2.issuer.backend.shared.domain.util.factory.LabelCredentialFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -35,7 +35,7 @@ import java.util.Map;
 
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.*;
 import static es.in2.issuer.backend.shared.domain.util.Constants.LEAR_CREDENTIAL_EMPLOYEE;
-import static es.in2.issuer.backend.shared.domain.util.Constants.VERIFIABLE_CERTIFICATION;
+import static es.in2.issuer.backend.shared.domain.util.Constants.LABEL_CREDENTIAL;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -54,7 +54,7 @@ class VerifiableCredentialPolicyAuthorizationServiceImplTest {
     @Mock
     private LEARCredentialEmployeeFactory learCredentialEmployeeFactory;
     @Mock
-    private VerifiableCertificationFactory verifiableCertificationFactory;
+    private LabelCredentialFactory labelCredentialFactory;
     @Mock
     private LEARCredentialMachineFactory learCredentialMachineFactory;
     @Mock
@@ -69,7 +69,7 @@ class VerifiableCredentialPolicyAuthorizationServiceImplTest {
     @BeforeEach
     void setUp() {
         // Creamos una instancia real de CredentialFactory, pasando los mocks necesarios
-        CredentialFactory credentialFactory = new CredentialFactory(learCredentialEmployeeFactory, learCredentialMachineFactory, verifiableCertificationFactory, credentialProcedureService, deferredCredentialMetadataService);
+        CredentialFactory credentialFactory = new CredentialFactory(learCredentialEmployeeFactory, learCredentialMachineFactory, labelCredentialFactory, credentialProcedureService, deferredCredentialMetadataService);
 
         // Inicializamos policyAuthorizationService con las dependencias adecuadas
         policyAuthorizationService = new VerifiableCredentialPolicyAuthorizationServiceImpl(
@@ -276,7 +276,7 @@ class VerifiableCredentialPolicyAuthorizationServiceImplTest {
         when(learCredentialEmployeeFactory.mapStringToLEARCredentialEmployee("vcJson")).thenReturn(idTokenCredential);
 
         // Act
-        Mono<Void> result = policyAuthorizationService.authorize(token, VERIFIABLE_CERTIFICATION, payload, idToken);
+        Mono<Void> result = policyAuthorizationService.authorize(token, LABEL_CREDENTIAL, payload, idToken);
 
         // Assert
         StepVerifier.create(result)
@@ -325,7 +325,7 @@ class VerifiableCredentialPolicyAuthorizationServiceImplTest {
         when(learCredentialEmployeeFactory.mapStringToLEARCredentialEmployee("vcJson")).thenReturn(idTokenCredential);
 
         // Act
-        Mono<Void> result = policyAuthorizationService.authorize(token, VERIFIABLE_CERTIFICATION, payload, idToken);
+        Mono<Void> result = policyAuthorizationService.authorize(token, LABEL_CREDENTIAL, payload, idToken);
 
         // Assert
         StepVerifier.create(result)
@@ -559,7 +559,7 @@ class VerifiableCredentialPolicyAuthorizationServiceImplTest {
         when(jwtService.getClaimFromPayload(jwtPayload, ROLE)).thenReturn(roleClaim);
 
         // Act
-        Mono<Void> result = policyAuthorizationService.authorize(token, VERIFIABLE_CERTIFICATION, payload, "dummy-id-token");
+        Mono<Void> result = policyAuthorizationService.authorize(token, LABEL_CREDENTIAL, payload, "dummy-id-token");
 
         // Assert
         StepVerifier.create(result)
@@ -586,7 +586,7 @@ class VerifiableCredentialPolicyAuthorizationServiceImplTest {
         when(jwtService.getClaimFromPayload(jwtPayload, ROLE)).thenReturn(roleClaim);
 
         // Act
-        Mono<Void> result = policyAuthorizationService.authorize(token, VERIFIABLE_CERTIFICATION, payload, "dummy-id-token");
+        Mono<Void> result = policyAuthorizationService.authorize(token, LABEL_CREDENTIAL, payload, "dummy-id-token");
 
         // Assert
         StepVerifier.create(result)
