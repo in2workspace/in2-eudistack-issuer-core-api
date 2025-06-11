@@ -7,7 +7,6 @@ import es.in2.issuer.backend.shared.domain.exception.*;
 import es.in2.issuer.backend.shared.domain.model.dto.SignatureRequest;
 import es.in2.issuer.backend.shared.domain.model.dto.SignedData;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.DetailedIssuer;
-import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatus;
 import es.in2.issuer.backend.shared.domain.service.*;
 import es.in2.issuer.backend.shared.domain.util.HttpUtils;
 import es.in2.issuer.backend.shared.domain.util.JwtUtils;
@@ -71,30 +70,22 @@ public class RemoteSignatureServiceImpl implements RemoteSignatureService {
 
     @Override
     //TODO Cuando se implementen los "settings" del issuer, se debe pasar el clientId, secret, etc. como parámetros en lugar de var entorno
-    public Mono<SignedData> sign(SignatureRequest signatureRequest, String token, String procedureId) {
+    public Mono<SignedData> sign(SignatureRequest signatureRequest, String token) {
         clientId = remoteSignatureConfig.getRemoteSignatureClientId();
         clientSecret = remoteSignatureConfig.getRemoteSignatureClientSecret();
         return Mono.defer(() -> executeSigningFlow(signatureRequest, token)
-            .doOnSuccess(result -> {
+                .doOnSuccess(result -> {
                     log.info("Successfully Signed");
-                    log.info("Procedure with id: {}", procedureId);
                     log.info("at time: {}", new Date());
-                    deferredCredentialMetadataService.deleteDeferredCredentialMetadataById(procedureId);
-            })
-            .retryWhen(Retry.backoff(3, Duration.ofSeconds(1))
-                    .maxBackoff(Duration.ofSeconds(5))
-                    .jitter(0.5)
-                    .filter(this::isRecoverableError)   // Retry only on recoverable errors
-                    .doBeforeRetry(retrySignal -> {
-                        long attempt = retrySignal.totalRetries() + 1;
-                        log.info("Retrying signing process due to recoverable error (Attempt #{} of 3)", attempt);
-                    }))
-            .onErrorResume(throwable -> {
-                log.error("Error after 3 retries, switching to ASYNC mode.");
-                log.error("Error Time: {}", new Date());
-                return handlePostRecoverError(procedureId)
-                        .then(Mono.error(new RemoteSignatureException("Signature Failed, changed to ASYNC mode", throwable)));
-            }));
+                })
+                .retryWhen(Retry.backoff(3, Duration.ofSeconds(1))
+                        .maxBackoff(Duration.ofSeconds(5))
+                        .jitter(0.5)
+                        .filter(this::isRecoverableError)   // Retry only on recoverable errors
+                        .doBeforeRetry(retrySignal -> {
+                            long attempt = retrySignal.totalRetries() + 1;
+                            log.info("Retrying signing process due to recoverable error (Attempt #{} of 3)", attempt);
+                        })));
     }
 
     public boolean isRecoverableError(Throwable throwable) {
@@ -112,13 +103,13 @@ public class RemoteSignatureServiceImpl implements RemoteSignatureService {
 
     private Mono<SignedData> executeSigningFlow(SignatureRequest signatureRequest, String token) {
         return getSignedSignature(signatureRequest, token)
-            .flatMap(response -> {
-                try {
-                    return Mono.just(toSignedData(response));
-                } catch (SignedDataParsingException ex) {
-                    return Mono.error(new RemoteSignatureException("Error parsing signed data", ex));
-                }
-            });
+                .flatMap(response -> {
+                    try {
+                        return Mono.just(toSignedData(response));
+                    } catch (SignedDataParsingException ex) {
+                        return Mono.error(new RemoteSignatureException("Error parsing signed data", ex));
+                    }
+                });
     }
 
     public Mono<Boolean> validateCertificate(String accessToken) {
@@ -205,7 +196,7 @@ public class RemoteSignatureServiceImpl implements RemoteSignatureService {
         requestBody.clear();
         requestBody.put("grant_type", grantType);
         requestBody.put("scope", scope);
-        if(scope.equals(SIGNATURE_REMOTE_SCOPE_CREDENTIAL)){
+        if (scope.equals(SIGNATURE_REMOTE_SCOPE_CREDENTIAL)) {
             requestBody.put("authorization_details", buildAuthorizationDetails(signatureRequest.data(), hashAlgorithmOID));
         }
 
@@ -221,27 +212,27 @@ public class RemoteSignatureServiceImpl implements RemoteSignatureService {
         headers.add(new AbstractMap.SimpleEntry<>(HttpHeaders.AUTHORIZATION, basicAuthHeader));
         headers.add(new AbstractMap.SimpleEntry<>(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE));
         return httpUtils.postRequest(signatureGetAccessTokenEndpoint, headers, requestBodyString)
-            .flatMap(responseJson -> Mono.fromCallable(() -> {
-                try {
-                    Map<String, Object> responseMap = objectMapper.readValue(responseJson, Map.class);
-                    if (!responseMap.containsKey(ACCESS_TOKEN_NAME)) {
-                        throw new AccessTokenException("Access token missing in response");
+                .flatMap(responseJson -> Mono.fromCallable(() -> {
+                    try {
+                        Map<String, Object> responseMap = objectMapper.readValue(responseJson, Map.class);
+                        if (!responseMap.containsKey(ACCESS_TOKEN_NAME)) {
+                            throw new AccessTokenException("Access token missing in response");
+                        }
+                        return (String) responseMap.get(ACCESS_TOKEN_NAME);
+                    } catch (JsonProcessingException e) {
+                        throw new AccessTokenException("Error parsing access token response", e);
                     }
-                    return (String) responseMap.get(ACCESS_TOKEN_NAME);
-                } catch (JsonProcessingException e) {
-                    throw new AccessTokenException("Error parsing access token response", e);
-                }
-            }))
-            .onErrorResume(WebClientResponseException.class, ex ->{
-                if(ex.getStatusCode() == HttpStatus.UNAUTHORIZED){
-                    return Mono.error(new RemoteSignatureException("Unauthorized: Invalid credentials"));
-                }
-                return Mono.error(ex);
-            })
-            .doOnError(error -> log.error("Error retrieving access token: {}", error.getMessage()));
+                }))
+                .onErrorResume(WebClientResponseException.class, ex -> {
+                    if (ex.getStatusCode() == HttpStatus.UNAUTHORIZED) {
+                        return Mono.error(new RemoteSignatureException("Unauthorized: Invalid credentials"));
+                    }
+                    return Mono.error(ex);
+                })
+                .doOnError(error -> log.error("Error retrieving access token: {}", error.getMessage()));
     }
 
-    public Mono<String> requestCertificateInfo(String accessToken, String credentialID){
+    public Mono<String> requestCertificateInfo(String accessToken, String credentialID) {
         String credentialsInfoEndpoint = remoteSignatureConfig.getRemoteSignatureDomain() + "/csc/v2/credentials/info";
         requestBody.clear();
         requestBody.put(CREDENTIAL_ID, credentialID);
@@ -294,22 +285,22 @@ public class RemoteSignatureServiceImpl implements RemoteSignatureService {
                     : Mono.empty();
 
             return organizationIdentifierMono
-                .switchIfEmpty(Mono.error(new OrganizationIdentifierNotFoundException("organizationIdentifier not found in the certificate.")))
-                .flatMap(orgId -> {
-                if (orgId == null || orgId.isEmpty()) {
-                    return Mono.error(new OrganizationIdentifierNotFoundException("organizationIdentifier not found in the certificate."));
-                }
-                DetailedIssuer detailedIssuer = DetailedIssuer.builder()
-                        .id(DID_ELSI + orgId)
-                        .organizationIdentifier(orgId)
-                        .organization(dnAttributes.get("O"))
-                        .country(dnAttributes.get("C"))
-                        .commonName(dnAttributes.get("CN"))
-                        .emailAddress(emailAdress)
-                        .serialNumber(serialNumber)
-                        .build();
-                return Mono.just(detailedIssuer);
-            });
+                    .switchIfEmpty(Mono.error(new OrganizationIdentifierNotFoundException("organizationIdentifier not found in the certificate.")))
+                    .flatMap(orgId -> {
+                        if (orgId == null || orgId.isEmpty()) {
+                            return Mono.error(new OrganizationIdentifierNotFoundException("organizationIdentifier not found in the certificate."));
+                        }
+                        DetailedIssuer detailedIssuer = DetailedIssuer.builder()
+                                .id(DID_ELSI + orgId)
+                                .organizationIdentifier(orgId)
+                                .organization(dnAttributes.get("O"))
+                                .country(dnAttributes.get("C"))
+                                .commonName(dnAttributes.get("CN"))
+                                .emailAddress(emailAdress)
+                                .serialNumber(serialNumber)
+                                .build();
+                        return Mono.just(detailedIssuer);
+                    });
         } catch (JsonProcessingException e) {
             return Mono.error(new RuntimeException("Error parsing certificate info", e));
         } catch (InvalidNameException e) {
@@ -341,15 +332,15 @@ public class RemoteSignatureServiceImpl implements RemoteSignatureService {
     }
 
     //TODO Eliminar la función cuando el mail de Jesús no sea un problema
-    public Mono<String> getMandatorMail(String procedureId){
+    public Mono<String> getMandatorMail(String procedureId) {
         return credentialProcedureRepository.findById(UUID.fromString(procedureId))
                 .flatMap(credentialProcedure -> {
                     try {
                         JsonNode credential = objectMapper.readTree(credentialProcedure.getCredentialDecoded());
-                            if (credential.get(CREDENTIAL_SUBJECT).get(MANDATE).get(MANDATOR).get(EMAIL_ADDRESS).asText().equals("jesus.ruiz@in2.es")) {
-                                return Mono.just("domesupport@in2.es");
-                            } else {
-                                return Mono.just(credential.get(CREDENTIAL_SUBJECT).get(MANDATE).get(MANDATOR).get(EMAIL_ADDRESS).asText());
+                        if (credential.get(CREDENTIAL_SUBJECT).get(MANDATE).get(MANDATOR).get(EMAIL_ADDRESS).asText().equals("jesus.ruiz@in2.es")) {
+                            return Mono.just("domesupport@in2.es");
+                        } else {
+                            return Mono.just(credential.get(CREDENTIAL_SUBJECT).get(MANDATE).get(MANDATOR).get(EMAIL_ADDRESS).asText());
                         }
                     } catch (JsonProcessingException e) {
                         return Mono.error(new RuntimeException());
@@ -358,7 +349,7 @@ public class RemoteSignatureServiceImpl implements RemoteSignatureService {
                 });
     }
 
-    public Mono<String> getMailForVerifiableCertification(String procedureId){
+    public Mono<String> getMailForVerifiableCertification(String procedureId) {
         return credentialProcedureRepository.findById(UUID.fromString(procedureId))
                 .flatMap(credentialProcedure -> {
                     try {
@@ -419,7 +410,7 @@ public class RemoteSignatureServiceImpl implements RemoteSignatureService {
                 String documentsWithSignature = documentsWithSignatureList.get(0);
                 String documentsWithSignatureDecoded = new String(Base64.getDecoder().decode(documentsWithSignature), StandardCharsets.UTF_8);
                 String receivedPayloadDecoded = jwtUtils.decodePayload(documentsWithSignatureDecoded);
-                if(jwtUtils.areJsonsEqual(receivedPayloadDecoded, signatureRequest.data())){
+                if (jwtUtils.areJsonsEqual(receivedPayloadDecoded, signatureRequest.data())) {
                     return objectMapper.writeValueAsString(Map.of(
                             "type", signatureRequest.configuration().type().name(),
                             "data", documentsWithSignatureDecoded
@@ -465,42 +456,5 @@ public class RemoteSignatureServiceImpl implements RemoteSignatureService {
             log.error("Error: {}", e.getMessage());
             throw new SignedDataParsingException("Error parsing signed data");
         }
-    }
-
-    public Mono<Void> handlePostRecoverError(String procedureId) {
-        Mono<Void> updateOperationMode = credentialProcedureRepository.findByProcedureId(UUID.fromString(procedureId))
-            .flatMap(credentialProcedure -> {
-                credentialProcedure.setOperationMode(ASYNC);
-                credentialProcedure.setCredentialStatus(CredentialStatus.PEND_SIGNATURE);
-                return credentialProcedureRepository.save(credentialProcedure)
-                        .doOnSuccess(result -> log.info("Updated operationMode to Async - Procedure"))
-                        .then();
-            });
-
-        Mono<Void> updateDeferredMetadata = deferredCredentialMetadataRepository.findByProcedureId(UUID.fromString(procedureId))
-                .switchIfEmpty(Mono.fromRunnable(() ->
-                        log.error("No deferred metadata found for procedureId: {}", procedureId)
-                ).then(Mono.empty()))
-                .flatMap(credentialProcedure -> {
-                    credentialProcedure.setOperationMode(ASYNC);
-                    return deferredCredentialMetadataRepository.save(credentialProcedure)
-                            .doOnSuccess(result -> log.info("Updated operationMode to Async - Deferred"))
-                            .then();
-                });
-
-        String domain = appConfig.getIssuerFrontendUrl();
-        Mono<Void> sendEmail = credentialProcedureService.getSignerEmailFromDecodedCredentialByProcedureId(procedureId)
-                .flatMap(signerEmail ->
-                        emailService.sendPendingSignatureCredentialNotification(
-                                signerEmail,
-                                "Failed to sign credential, please activate manual signature.",
-                                procedureId,
-                                domain
-                        )
-                );
-
-        return updateOperationMode
-                .then(updateDeferredMetadata)
-                .then(sendEmail);
     }
 }

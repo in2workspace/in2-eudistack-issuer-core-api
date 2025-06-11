@@ -3,14 +3,19 @@ package es.in2.issuer.backend.shared.application.workflow.impl;
 import com.nimbusds.jose.JWSObject;
 import es.in2.issuer.backend.shared.application.workflow.CredentialIssuanceWorkflow;
 import es.in2.issuer.backend.shared.application.workflow.CredentialSignerWorkflow;
-import es.in2.issuer.backend.shared.domain.exception.*;
+import es.in2.issuer.backend.shared.domain.exception.CredentialTypeUnsupportedException;
+import es.in2.issuer.backend.shared.domain.exception.EmailCommunicationException;
+import es.in2.issuer.backend.shared.domain.exception.MissingIdTokenHeaderException;
+import es.in2.issuer.backend.shared.domain.exception.ParseErrorException;
 import es.in2.issuer.backend.shared.domain.model.dto.*;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.employee.LEARCredentialEmployee;
+import es.in2.issuer.backend.shared.domain.model.entities.CredentialIssuanceRecord;
 import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatus;
 import es.in2.issuer.backend.shared.domain.service.*;
+import es.in2.issuer.backend.shared.domain.util.factory.CredentialFactory;
+import es.in2.issuer.backend.shared.domain.util.factory.IssuerFactory;
 import es.in2.issuer.backend.shared.domain.util.factory.LEARCredentialEmployeeFactory;
 import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
-import es.in2.issuer.backend.shared.infrastructure.config.WebClientConfig;
 import es.in2.issuer.backend.shared.infrastructure.config.security.service.VerifiableCredentialPolicyAuthorizationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -40,7 +45,6 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
     private final CredentialProcedureService credentialProcedureService;
     private final DeferredCredentialMetadataService deferredCredentialMetadataService;
     private final CredentialSignerWorkflow credentialSignerWorkflow;
-    private final WebClientConfig webClient;
     private final VerifiableCredentialPolicyAuthorizationService verifiableCredentialPolicyAuthorizationService;
     private final TrustFrameworkService trustFrameworkService;
     private final LEARCredentialEmployeeFactory credentialEmployeeFactory;
@@ -48,6 +52,8 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
     private final M2MTokenService m2mTokenService;
     private final CredentialDeliveryService credentialDeliveryService;
     private final CredentialIssuanceRecordService credentialIssuanceRecordService;
+    private final CredentialFactory credentialFactory;
+    private final IssuerFactory issuerFactory;
 
     @Override
     public Mono<Void> execute(String processId, PreSubmittedDataCredentialRequest preSubmittedDataCredentialRequest, String bearerToken, String idToken) {
@@ -71,7 +77,10 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                 .then(ensureVerifiableCertificationHasIdToken(preSubmittedDataCredentialRequest, idToken)
                         .then(verifiableCredentialService.generateVerifiableCertification(processId, preSubmittedDataCredentialRequest, idToken)
                                 .flatMap(procedureId -> issuerApiClientTokenService.getClientToken()
-                                        .flatMap(internalToken -> credentialSignerWorkflow.signAndUpdateCredentialByProcedureId(BEARER_PREFIX + internalToken, procedureId, JWT_VC))
+                                        .flatMap(internalToken -> credentialSignerWorkflow.signAndUpdateCredentialByProcedureId(
+                                                BEARER_PREFIX + internalToken,
+                                                procedureId,
+                                                JWT_VC))
                                         // TODO instead of updating the credential status to valid,
                                         //  we should update the credential status to pending download
                                         //  but we don't support the verifiable certification download yet
@@ -123,9 +132,7 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
         String email = preSubmittedDataCredentialRequest.payload().get(MANDATEE).get(EMAIL).asText();
         String user = preSubmittedDataCredentialRequest.payload().get(MANDATEE).get(FIRST_NAME).asText() + " " + preSubmittedDataCredentialRequest.payload().get(MANDATEE).get(LAST_NAME).asText();
         String organization = preSubmittedDataCredentialRequest.payload().get(MANDATOR).get(ORGANIZATION).asText();
-        // todo: CHANGE IN FRONTEND
-        // todo: change to https
-        // TODO: Canviar test
+
         String credentialOfferUrl = UriComponentsBuilder
                 .fromHttpUrl(appConfig.getIssuerFrontendUrl())
                 .path("/credentials/activation/" + activationCode)
@@ -140,63 +147,83 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
     @Override
     public Mono<VerifiableCredentialResponse> generateVerifiableCredentialResponse(String processId,
                                                                                    CredentialRequest credentialRequest,
-                                                                                   String token) {
-        try {
-            JWSObject jwsObject = JWSObject.parse(token);
+                                                                                   String authorizationHeader) {
+        return accessTokenService.getCleanBearerToken(authorizationHeader)
+                .flatMap(token -> {
+                    try {
+                        JWSObject jwsObject = JWSObject.parse(token);
 
-            // todo: name->  accessTokenJti
-            String authServerNonce = jwsObject.getPayload().toJSONObject().get("jti").toString();
+                        String accessTokenJti = jwsObject.getPayload().toJSONObject().get("jti").toString();
 
-            // obtenir el cir pel jti (accessToken)
+                        return credentialIssuanceRecordService.getByJti(accessTokenJti)
+                                .flatMap(credentialIssuanceRecord -> {
+                                    if (credentialRequest.proofs() != null && !credentialRequest.proofs().jwt().isEmpty()) {
+                                        return proofValidationService.ensureIsProofValid(credentialRequest.proofs().jwt().get(0), token)
+                                                .then(extractDidFromJwtProof(credentialRequest.proofs().jwt().get(0))
+                                                        .flatMap(did -> credentialFactory.credentialSubjectBinder(
+                                                                credentialIssuanceRecord.getCredentialData(),
+                                                                credentialIssuanceRecord.getCredentialType(),
+                                                                did
+                                                        ))
+                                                        .flatMap(credentialWithDid ->
+                                                                buildVerifiableCredentialResponse(
+                                                                        processId,
+                                                                        token,
+                                                                        credentialIssuanceRecord,
+                                                                        credentialWithDid)));
+                                    } else {
+                                        return buildVerifiableCredentialResponse(
+                                                processId,
+                                                token,
+                                                credentialIssuanceRecord,
+                                                credentialIssuanceRecord.getCredentialData());
+                                    }
+                                });
+                    } catch (ParseException e) {
+                        log.error("Error parsing the accessToken", e);
+                        throw new ParseErrorException("Error parsing accessToken");
+                    }
+                });
+    }
 
-            // TODO: rethink this logic instead of taking the first JWT proof
-            // if -> credentialReqeust has proofs -> cryptographic binding
-            //      1. isProofValid
-            //      2. si ok -> empty, sinó error
-            //      3. si ok -> extractDidFromJwtProof
-            //      4. agafar la credencial json del cir i establir el did que hem extret i vincular amb el id del subjecte mandatee. ->
-                    // credentialFactory -> psf Map<S,S> key key objects, values ruta separada per punts. -> subject_binding_path
-                    // funció -> credentialSubjectBinder
-
-            // comú (extreure en una funció a part fins a punt 9 inclòs) :
-            // 5. omplir camp issuer de la credencial (W3C) -> buscar crida a getList dins de: verifiableCredentialService.buildCredentialResponse
-            // 6. omplir camp credentialStatus  -> omplir hardcoded per ara (només canviar id credencial)
-            // 7. retornar la credencial amb el subjecte vinculat i el issuer
-            // 8. Agafar la credencial i muntar el payload del JWT (buscar on es fa)
-            // 9. Enviar payload JWT a firmar a Digitel (buscar on es fa) ->
-                // if firma es correcta credentialResponse de tipus Credentials
-                    // 10. Muntar CredentialResponse (buildCredentialResponse)
-                // else ->
-                        // canviar mètode signartureMode o operationMode de S a A.
-                        // Generar un nonce -> valor de l'atribut transcationId
-                        // Guardar aquest transcationId al cir
-                        // Muntar CredentialResponse amb el transactionId
-            // Guardar el cir
-
-            return proofValidationService.isProofValid(credentialRequest.proofs().jwt().get(0), token)
-                    .flatMap(isValid -> Boolean.TRUE.equals(isValid)
-                            ? extractDidFromJwtProof(credentialRequest.proofs().jwt().get(0))
-                            : Mono.error(new InvalidOrMissingProofException("Invalid proof")))
-                    .flatMap(subjectDid -> deferredCredentialMetadataService.getOperationModeByAuthServerNonce(authServerNonce)
-                            .flatMap(operationMode -> verifiableCredentialService.buildCredentialResponse(
-                                            processId, subjectDid, authServerNonce, credentialRequest.format(), token)
-                                    .flatMap(credentialResponse ->
-                                            handleOperationMode(operationMode, processId, authServerNonce, credentialResponse)
-                                    )
-                            )
-                    );
-        } catch (ParseException e) {
-            log.error("Error parsing the accessToken", e);
-            throw new ParseErrorException("Error parsing accessToken");
-        }
+    private @NotNull Mono<VerifiableCredentialResponse> buildVerifiableCredentialResponse(String processId, String token, CredentialIssuanceRecord credentialIssuanceRecord, String credentialWithDid) {
+        return issuerFactory.createIssuer(credentialIssuanceRecord.getId().toString(), credentialIssuanceRecord.getCredentialType())
+                .flatMap(detailedIssuer ->
+                        credentialFactory.setIssuer(credentialWithDid, detailedIssuer)
+                                .flatMap(credentialFactory::setCredentialStatus)
+                                .flatMap(credentialWithStatus ->
+                                        credentialSignerWorkflow.signAndUpdateCredential(
+                                                        credentialIssuanceRecord.getId().toString(),
+                                                        credentialIssuanceRecord.getCredentialFormat(),
+                                                        credentialIssuanceRecord.getCredentialType(),
+                                                        credentialWithStatus,
+                                                        BEARER_PREFIX + token)
+                                                .flatMap(signedCredential -> {
+                                                    var response = VerifiableCredentialResponse.builder()
+                                                            .credential(credentialWithStatus)
+                                                            .transactionId(credentialIssuanceRecord.getTransactionId())
+                                                            .build();
+                                                    return handleOperationMode(
+                                                            credentialIssuanceRecord.getOperationMode(),
+                                                            processId,
+                                                            credentialIssuanceRecord.getAccessTokenJti(),
+                                                            response)
+                                                            .flatMap(handledResponse ->
+                                                                    credentialIssuanceRecordService.update(credentialIssuanceRecord)
+                                                                            .thenReturn(handledResponse));
+                                                })));
     }
 
     private Mono<VerifiableCredentialResponse> handleOperationMode(String operationMode, String processId, String authServerNonce, VerifiableCredentialResponse credentialResponse) {
         return switch (operationMode) {
             case ASYNC -> deferredCredentialMetadataService.getProcedureIdByAuthServerNonce(authServerNonce)
-                    .flatMap(credentialProcedureService::getSignerEmailFromDecodedCredentialByProcedureId)
-                    .flatMap(email -> emailService.sendPendingCredentialNotification(email, "Pending Credential")
-                            .thenReturn(credentialResponse));
+                    .flatMap(procedureId ->
+                            credentialProcedureService.getDecodedCredentialByProcedureId(procedureId)
+                                    .flatMap(decodedCredential ->
+                                            credentialProcedureService.getCredentialTypeByProcedureId(procedureId)
+                                                    .flatMap(credentialType -> credentialProcedureService.getSignerEmailFromDecodedCredentialByProcedureId(decodedCredential, credentialType)
+                                                            .flatMap(email -> emailService.sendPendingCredentialNotification(email, "Pending Credential")
+                                                                    .thenReturn(credentialResponse)))));
             case SYNC -> deferredCredentialMetadataService.getProcedureIdByAuthServerNonce(authServerNonce)
                     .flatMap(id -> credentialProcedureService.getCredentialStatusByProcedureId(id)
                             .flatMap(status -> {

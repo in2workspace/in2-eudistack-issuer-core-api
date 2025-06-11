@@ -30,10 +30,7 @@ public class CredentialController {
             @RequestBody CredentialRequest credentialRequest) {
         String processId = UUID.randomUUID().toString();
 
-        // todo: move to the workflow el clean i la resta de lògica del map
-        return accessTokenService.getCleanBearerToken(authorizationHeader)
-                .flatMap(token ->
-                        credentialIssuanceWorkflow.generateVerifiableCredentialResponse(processId, credentialRequest, token))
+        return credentialIssuanceWorkflow.generateVerifiableCredentialResponse(processId, credentialRequest, authorizationHeader)
                 .map(verifiableCredentialResponse -> {
                     if (verifiableCredentialResponse.transactionId() != null) {
                         return ResponseEntity.status(HttpStatus.ACCEPTED).body(verifiableCredentialResponse);

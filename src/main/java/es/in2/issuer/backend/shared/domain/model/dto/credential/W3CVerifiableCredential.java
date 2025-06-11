@@ -10,6 +10,5 @@ public interface W3CVerifiableCredential {
     Issuer issuer();
     String validFrom();
     String validUntil();
-    // TODO afegir Objecte credentialStatus: https://in2workspace.atlassian.net/wiki/spaces/DOME/pages/1378025487/Ontolog+a+de+las+Credenciales+Verificables
-    //
+    CredentialStatusObject credentialStatus();
 }

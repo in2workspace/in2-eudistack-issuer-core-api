@@ -26,7 +26,7 @@ public class ProofValidationServiceImpl implements ProofValidationService {
 
 
     @Override
-    public Mono<Boolean> isProofValid(String jwtProof, String token) {
+    public Mono<Void> ensureIsProofValid(String jwtProof, String token) {
         return Mono.just(jwtProof)
                 .doOnNext(jwt -> log.debug("Starting validation for JWT: {}", jwt))
                 .flatMap(this::parseAndValidateJwt)
@@ -34,24 +34,24 @@ public class ProofValidationServiceImpl implements ProofValidationService {
                 .flatMap(jwsObject ->
                         jwtService.validateJwtSignatureReactive(jwsObject)
                                 .doOnSuccess(isSignatureValid -> log.debug("Signature validation result: {}", isSignatureValid))
-                                .map(isSignatureValid -> Boolean.TRUE.equals(isSignatureValid) ? jwsObject : null)
+                                .flatMap(isSignatureValid -> {
+                                    if (Boolean.TRUE.equals(isSignatureValid)) {
+                                        log.debug("JWT signature validated, checking nonce...");
+                                        return Mono.empty();
+                                    } else {
+                                        log.debug("JWT signature validation failed");
+                                        return Mono.error(new ProofValidationException("Invalid JWT signature"));
+                                    }
+                                })
                 )
                 .doOnNext(jwsObject -> {
                     if (jwsObject == null) log.debug("JWT signature validation failed");
                     else log.debug("JWT signature validated, checking nonce...");
                 })
-                // todo: comentar isNonceValid fins que es creï l'endpoint de nonce
-                //  if -> jwt contains nonoce _> validate nonce
-                // else ->tirar milles
-                .flatMap(this::isNonceValid)
+                // TODO: validate nonce when nonce endpoint
                 .doOnSuccess(result -> log.debug("Final validation result: {}", result))
-                .onErrorMap(e -> new ProofValidationException("Error during JWT validation"));
-    }
-
-    private Mono<Boolean> isNonceValid(JWSObject jwsObject) {
-        var payload = jwsObject.getPayload().toJSONObject();
-        String nonce = payload.get("nonce").toString();
-        return nonceValidationWorkflow.isValid(Mono.just(nonce));
+                .onErrorMap(e -> new ProofValidationException("Error during JWT validation"))
+                .then();
     }
 
     private Mono<JWSObject> parseAndValidateJwt(String jwtProof) {

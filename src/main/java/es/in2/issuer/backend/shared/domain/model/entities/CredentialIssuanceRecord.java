@@ -48,11 +48,11 @@ public class CredentialIssuanceRecord {
     @Column("preauthorized_code")
     private String preAuthorizedCode;
 
-    @Column("access_token")
-    private String accessToken;
+    @Column("access_token_jti")
+    private String accessTokenJti;
 
-    @Column("refresh_token")
-    private String refreshToken;
+    @Column("refresh_token_jti")
+    private String refreshTokenJti;
 
     @Column("transaction_id")
     private String transactionId;

@@ -1,5 +1,6 @@
 package es.in2.issuer.backend.oidc4vci.domain.service.impl;
 
+import com.nimbusds.jose.JWSObject;
 import com.nimbusds.jose.Payload;
 import es.in2.issuer.backend.oidc4vci.domain.model.TokenResponse;
 import es.in2.issuer.backend.oidc4vci.domain.service.TokenWorkflow;
@@ -51,13 +52,31 @@ public class TokenWorkflowImpl implements TokenWorkflow {
         long refreshTokenExpirationTimeEpochSeconds = generateRefreshTokenExpirationTime(issueTime);
         String refreshToken = generateRefreshToken(issueTimeEpochSeconds, refreshTokenExpirationTimeEpochSeconds);
 
-        // todo guardar els 2 tokens a la cir bbdd
-        return Mono.just(TokenResponse.builder()
-                .accessToken(accessToken)
-                .tokenType(tokenType)
-                .expiresIn(expiresIn)
-                .refreshToken(refreshToken)
-                .build());
+        return credentialIssuanceRecordService.getIdByPreAuthorizedCode(preAuthorizedCode)
+                .flatMap(credentialIssuanceRecordId -> {
+                    String accessTokenJti = getJti(accessToken);
+                    String refreshTokenJti = getJti(refreshToken);
+                    return credentialIssuanceRecordService.setJtis(
+                                    credentialIssuanceRecordId,
+                                    accessTokenJti,
+                                    refreshTokenJti)
+                            .thenReturn(TokenResponse.builder()
+                                    .accessToken(accessToken)
+                                    .tokenType(tokenType)
+                                    .expiresIn(expiresIn)
+                                    .refreshToken(refreshToken)
+                                    .build());
+                });
+    }
+
+    private String getJti(String token) {
+        try {
+            JWSObject jwsObject = JWSObject.parse(token);
+            return jwsObject.getPayload().toJSONObject().get("jti").toString();
+        } catch (Exception e) {
+            log.error("Error extracting JTI from access token", e);
+            throw new IllegalArgumentException("Invalid token");
+        }
     }
 
     private String generateRefreshToken(long issueTimeEpochSeconds, long expirationTimeEpochSeconds) {

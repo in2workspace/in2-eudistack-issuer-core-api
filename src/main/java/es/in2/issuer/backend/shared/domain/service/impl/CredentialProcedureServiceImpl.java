@@ -177,12 +177,11 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
 
     //TODO Ajustar estos if-else cuando quede claro que hacer con el mail de jesús y cuando la learemployee v1 ya no exista y el de la certificación arreglarlo
     @Override
-    public Mono<String> getSignerEmailFromDecodedCredentialByProcedureId(String procedureId) {
-        return credentialProcedureRepository.findByProcedureId(UUID.fromString(procedureId))
-            .flatMap(credentialProcedure -> {
+    public Mono<String> getSignerEmailFromDecodedCredentialByProcedureId(String credentialJson, String credentialType) {
+
                 try {
-                    JsonNode credential = objectMapper.readTree(credentialProcedure.getCredentialDecoded());
-                    return switch (credentialProcedure.getCredentialType()) {
+                    JsonNode credential = objectMapper.readTree(credentialJson);
+                    return switch (credentialType) {
                         case LEAR_CREDENTIAL_EMPLOYEE_CREDENTIAL_TYPE -> {
                             if (credential.has(VC)) {
                                 JsonNode vcNode = credential.get(VC);
@@ -200,13 +199,11 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
                         }
                         case VERIFIABLE_CERTIFICATION_CREDENTIAL_TYPE -> Mono.just("domesupport@in2.es");
 
-                        default -> Mono.error(new IllegalArgumentException("Unsupported credential type: " + credentialProcedure.getCredentialType()));
+                        default -> Mono.error(new IllegalArgumentException("Unsupported credential type: " + credentialType));
                     };
                 } catch (JsonProcessingException e) {
                     return Mono.error(new RuntimeException());
                 }
-
-            });
     }
 
     @Override
@@ -296,5 +293,10 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
     @Override
     public Mono<CredentialProcedure> getCredentialProcedureById(String procedureId) {
         return credentialProcedureRepository.findByProcedureId(UUID.fromString(procedureId));
+    }
+
+    @Override
+    public Mono<CredentialProcedure> getByCredentialId(String credentialId) {
+        return credentialProcedureRepository.findByCredentialId(UUID.fromString(credentialId));
     }
 }

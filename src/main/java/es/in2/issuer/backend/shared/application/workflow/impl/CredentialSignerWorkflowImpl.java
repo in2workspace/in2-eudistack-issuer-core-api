@@ -6,13 +6,16 @@ import com.upokecenter.cbor.CBORObject;
 import es.in2.issuer.backend.shared.application.workflow.CredentialSignerWorkflow;
 import es.in2.issuer.backend.shared.application.workflow.DeferredCredentialWorkflow;
 import es.in2.issuer.backend.shared.domain.exception.Base45Exception;
+import es.in2.issuer.backend.shared.domain.exception.RemoteSignatureException;
 import es.in2.issuer.backend.shared.domain.model.dto.*;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.employee.LEARCredentialEmployee;
+import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatus;
 import es.in2.issuer.backend.shared.domain.model.enums.SignatureType;
 import es.in2.issuer.backend.shared.domain.service.*;
 import es.in2.issuer.backend.shared.domain.util.factory.IssuerFactory;
 import es.in2.issuer.backend.shared.domain.util.factory.LEARCredentialEmployeeFactory;
 import es.in2.issuer.backend.shared.domain.util.factory.VerifiableCertificationFactory;
+import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
 import es.in2.issuer.backend.shared.infrastructure.repository.CredentialProcedureRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,14 +29,11 @@ import reactor.core.scheduler.Schedulers;
 import java.io.ByteArrayOutputStream;
 import java.sql.Timestamp;
 import java.time.Instant;
-import java.util.Base64;
-import java.util.Collections;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
-import static es.in2.issuer.backend.backoffice.domain.util.Constants.CWT_VC;
-import static es.in2.issuer.backend.backoffice.domain.util.Constants.JWT_VC;
+import static es.in2.issuer.backend.backoffice.domain.util.Constants.*;
 import static es.in2.issuer.backend.shared.domain.util.Constants.*;
+import static es.in2.issuer.backend.shared.domain.util.Utils.generateCustomNonce;
 
 @Service
 @Slf4j
@@ -50,51 +50,115 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
     private final CredentialDeliveryService credentialDeliveryService;
     private final DeferredCredentialMetadataService deferredCredentialMetadataService;
     private final IssuerFactory issuerFactory;
+    private final CredentialIssuanceRecordService credentialIssuanceRecordService;
+    private final AppConfig appConfig;
+    private final EmailService emailService;
 
     @Override
     public Mono<String> signAndUpdateCredentialByProcedureId(String authorizationHeader, String procedureId, String format) {
         return credentialProcedureRepository.findByProcedureId(UUID.fromString(procedureId))
-            .flatMap(credentialProcedure -> {
-                try{
-                    //TODO eliminar este if en Junio aprox cuando ya no queden credenciales sin vc sin firmar
-                    if(credentialProcedure.getCredentialDecoded().contains("\"vc\"")){
-                        log.info("JWT Payload already created");
-                        return signCredentialOnRequestedFormat(credentialProcedure.getCredentialDecoded(), format, authorizationHeader, procedureId);
+                .flatMap(credentialProcedure -> {
+                    try{
+                        String credentialType = credentialProcedure.getCredentialType();
+
+                        //TODO eliminar este if en Junio aprox cuando ya no queden credenciales sin vc sin firmar
+                        if(credentialProcedure.getCredentialDecoded().contains("\"vc\"")){
+                            log.info("JWT Payload already created");
+                            return signCredentialOnRequestedFormat(credentialProcedure.getCredentialDecoded(), procedureId, format, credentialType, authorizationHeader);
+                        }
+
+                        log.info("Building JWT payload for credential signing for credential with type: {}", credentialType);
+                        return switch (credentialType) {
+                            case VERIFIABLE_CERTIFICATION_CREDENTIAL_TYPE -> {
+                                VerifiableCertification verifiableCertification = verifiableCertificationFactory
+                                        .mapStringToVerifiableCertification(credentialProcedure.getCredentialDecoded());
+                                yield verifiableCertificationFactory.buildVerifiableCertificationJwtPayload(verifiableCertification)
+                                        .flatMap(verifiableCertificationFactory::convertVerifiableCertificationJwtPayloadInToString)
+                                        .flatMap(unsignedCredential -> signCredentialOnRequestedFormat(unsignedCredential, procedureId, format, credentialType, authorizationHeader));
+                            }
+                            case LEAR_CREDENTIAL_EMPLOYEE_CREDENTIAL_TYPE -> {
+                                LEARCredentialEmployee learCredentialEmployee = learCredentialEmployeeFactory
+                                        .mapStringToLEARCredentialEmployee(credentialProcedure.getCredentialDecoded());
+                                yield learCredentialEmployeeFactory.buildLEARCredentialEmployeeJwtPayload(learCredentialEmployee)
+                                        .flatMap(learCredentialEmployeeFactory::convertLEARCredentialEmployeeJwtPayloadInToString)
+                                        .flatMap(unsignedCredential -> signCredentialOnRequestedFormat(unsignedCredential, procedureId, format, credentialType, authorizationHeader));
+                            }
+                            default -> {
+                                log.error("Unsupported credential type: {}", credentialType);
+                                yield Mono.error(new IllegalArgumentException("Unsupported credential type: " + credentialType));
+                            }
+                        };
                     }
-                    String credentialType = credentialProcedure.getCredentialType();
-                    log.info("Building JWT payload for credential signing for credential with type: {}", credentialType);
-                    return switch (credentialType) {
-                        case VERIFIABLE_CERTIFICATION_CREDENTIAL_TYPE -> {
-                            VerifiableCertification verifiableCertification = verifiableCertificationFactory
-                                    .mapStringToVerifiableCertification(credentialProcedure.getCredentialDecoded());
-                            yield verifiableCertificationFactory.buildVerifiableCertificationJwtPayload(verifiableCertification)
-                                    .flatMap(verifiableCertificationFactory::convertVerifiableCertificationJwtPayloadInToString)
-                                    .flatMap(unsignedCredential -> signCredentialOnRequestedFormat(unsignedCredential, format, authorizationHeader, procedureId));
+                    catch (Exception e){
+                        log.error("Error signing credential with procedure id: {} - {}", procedureId, e.getMessage(), e);
+                        return Mono.error(new IllegalArgumentException("Error signing credential"));
+                    }
+                })
+                .flatMap(signedCredential -> {
+                    log.info("Update Signed Credential");
+                    return updateSignedCredential(signedCredential)
+                            .thenReturn(signedCredential);
+                })
+                .doOnSuccess(x -> log.info("Credential Signed and updated successfully."));
+    }
+
+    @Override
+    public Mono<String> signAndUpdateCredential(
+            String credentialId,
+            String credentialFormat,
+            String credentialType,
+            String credentialJson,
+            String authorizationHeader) {
+        try {
+            return credentialIssuanceRecordService.get(credentialId)
+                    .flatMap(credentialIssuanceRecord -> {
+                        //TODO eliminar este if en Junio aprox cuando ya no queden credenciales sin vc sin firmar
+                        if (credentialJson.contains("\"vc\"")) {
+                            log.info("JWT Payload already created");
+                            return signCredentialOnRequestedFormat(
+                                    credentialJson,
+                                    credentialId,
+                                    credentialFormat,
+                                    credentialType,
+                                    authorizationHeader);
                         }
-                        case LEAR_CREDENTIAL_EMPLOYEE_CREDENTIAL_TYPE -> {
-                            LEARCredentialEmployee learCredentialEmployee = learCredentialEmployeeFactory
-                                    .mapStringToLEARCredentialEmployee(credentialProcedure.getCredentialDecoded());
-                            yield learCredentialEmployeeFactory.buildLEARCredentialEmployeeJwtPayload(learCredentialEmployee)
-                                    .flatMap(learCredentialEmployeeFactory::convertLEARCredentialEmployeeJwtPayloadInToString)
-                                    .flatMap(unsignedCredential -> signCredentialOnRequestedFormat(unsignedCredential, format, authorizationHeader, procedureId));
-                        }
-                        default -> {
-                            log.error("Unsupported credential type: {}", credentialType);
-                            yield Mono.error(new IllegalArgumentException("Unsupported credential type: " + credentialType));
-                        }
-                    };
-                }
-                catch (Exception e){
-                    log.error("Error signing credential with procedure id: {} - {}", procedureId, e.getMessage(), e);
-                    return Mono.error(new IllegalArgumentException("Error signing credential"));
-                }
-            })
-            .flatMap(signedCredential -> {
-                log.info("Update Signed Credential");
-                return updateSignedCredential(signedCredential)
-                        .thenReturn(signedCredential);
-            })
-            .doOnSuccess(x -> log.info("Credential Signed and updated successfully."));
+
+                        log.info("Building JWT payload for credential signing for credential with type: {}", credentialType);
+                        return switch (credentialType) {
+                            case VERIFIABLE_CERTIFICATION_CREDENTIAL_TYPE -> {
+                                VerifiableCertification verifiableCertification = verifiableCertificationFactory
+                                        .mapStringToVerifiableCertification(credentialJson);
+                                yield verifiableCertificationFactory.buildVerifiableCertificationJwtPayload(verifiableCertification)
+                                        .flatMap(verifiableCertificationFactory::convertVerifiableCertificationJwtPayloadInToString)
+                                        .flatMap(unsignedCredential -> signCredentialOnRequestedFormat(
+                                                unsignedCredential,
+                                                credentialId,
+                                                credentialFormat,
+                                                credentialType,
+                                                authorizationHeader));
+                            }
+                            case LEAR_CREDENTIAL_EMPLOYEE_CREDENTIAL_TYPE -> {
+                                LEARCredentialEmployee learCredentialEmployee = learCredentialEmployeeFactory
+                                        .mapStringToLEARCredentialEmployee(credentialJson);
+                                yield learCredentialEmployeeFactory.buildLEARCredentialEmployeeJwtPayload(learCredentialEmployee)
+                                        .flatMap(learCredentialEmployeeFactory::convertLEARCredentialEmployeeJwtPayloadInToString)
+                                        .flatMap(unsignedCredential -> signCredentialOnRequestedFormat(
+                                                unsignedCredential,
+                                                credentialId,
+                                                credentialFormat,
+                                                credentialType,
+                                                authorizationHeader));
+                            }
+                            default -> {
+                                log.error("Unsupported credential type: {}", credentialType);
+                                yield Mono.error(new IllegalArgumentException("Unsupported credential type: " + credentialType));
+                            }
+                        };
+                    });
+        } catch (Exception e) {
+            log.error("Error signing credential with credential id: {} - {}", credentialId, e.getMessage(), e);
+            return Mono.error(new IllegalArgumentException("Error signing credential"));
+        }
     }
 
     private Mono<Void> updateSignedCredential(String signedCredential) {
@@ -103,30 +167,48 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
         return deferredCredentialWorkflow.updateSignedCredentials(signedCredentials);
     }
 
-    private Mono<String> signCredentialOnRequestedFormat(String unsignedCredential, String format, String token, String procedureId) {
+    private Mono<String> signCredentialOnRequestedFormat(
+            String credentialJson,
+            String credentialId,
+            String credentialFormat,
+            String credentialType,
+            String token) {
         return Mono.defer(() -> {
-            if (format.equals(JWT_VC)) {
-                log.debug("Credential Payload {}", unsignedCredential);
+            if (credentialFormat.equals(JWT_VC)) {
+                log.debug("Credential Payload {}", credentialJson);
                 log.info("Signing credential in JADES remotely ...");
                 SignatureRequest signatureRequest = new SignatureRequest(
                         new SignatureConfiguration(SignatureType.JADES, Collections.emptyMap()),
-                        unsignedCredential
+                        credentialJson
                 );
 
-                return remoteSignatureService.sign(signatureRequest, token, procedureId)
-                        .doOnSubscribe(s -> {})
-                        .doOnNext(data -> {})
+                return remoteSignatureService.sign(signatureRequest, token)
+                        .doOnSubscribe(s -> {
+                        })
+                        .doOnNext(data -> {
+                        })
                         .publishOn(Schedulers.boundedElastic())
                         .map(SignedData::data)
-                        .doOnSuccess(result -> {})
-                        .doOnError(e -> {});
-            } else if (format.equals(CWT_VC)) {
-                log.info(unsignedCredential);
-                return generateCborFromJson(unsignedCredential)
+                        .doOnSuccess(result -> {
+                        })
+                        .doOnError(e -> {
+                        })
+                        .onErrorResume(throwable -> {
+                            log.error("Error after 3 retries, switching to ASYNC mode.");
+                            log.error("Error Time: {}", new Date());
+                            return handlePostRecoverError(
+                                    credentialJson,
+                                    credentialId,
+                                    credentialType)
+                                    .then(Mono.error(new RemoteSignatureException("Signature Failed, changed to ASYNC mode", throwable)));
+                        });
+            } else if (credentialFormat.equals(CWT_VC)) {
+                log.info(credentialJson);
+                return generateCborFromJson(credentialJson)
                         .flatMap(cbor -> generateCOSEBytesFromCBOR(cbor, token))
                         .flatMap(this::compressAndConvertToBase45FromCOSE);
             } else {
-                return Mono.error(new IllegalArgumentException("Unsupported credential format: " + format));
+                return Mono.error(new IllegalArgumentException("Unsupported credential format: " + credentialFormat));
             }
         });
     }
@@ -155,7 +237,7 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
                 new SignatureConfiguration(SignatureType.COSE, Collections.emptyMap()),
                 cborBase64
         );
-        return remoteSignatureService.sign(signatureRequest, token, "").map(signedData -> Base64.getDecoder().decode(signedData.data()));
+        return remoteSignatureService.sign(signatureRequest, token).map(signedData -> Base64.getDecoder().decode(signedData.data()));
     }
 
     /**
@@ -246,6 +328,33 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
                         })
                 )
                 .then();
+    }
+
+    private Mono<Void> handlePostRecoverError(String credentialJson, String credentialId, String credentialType) {
+        Mono<Void> updateCredentialIssuanceRecord = credentialIssuanceRecordService.updateOperationModeAndStatus(
+                        credentialId,
+                        ASYNC,
+                        CredentialStatus.PEND_SIGNATURE)
+                .doOnSuccess(result -> log.info("Updated CredentialIssuanceRecord Operation to Async and Status to PEND_SIGNATURE - Procedure"))
+                .then();
+
+        Mono<Void> updateTransactionId = generateCustomNonce()
+                .flatMap(nonce -> credentialIssuanceRecordService.setTransactionCodeById(credentialId, nonce));
+
+        String domain = appConfig.getIssuerFrontendUrl();
+        Mono<Void> sendEmail = credentialProcedureService.getSignerEmailFromDecodedCredentialByProcedureId(credentialJson, credentialType)
+                .flatMap(signerEmail ->
+                        emailService.sendPendingSignatureCredentialNotification(
+                                signerEmail,
+                                "Failed to sign credential, please activate manual signature.",
+                                credentialId,
+                                domain
+                        )
+                );
+
+        return updateCredentialIssuanceRecord
+                .then(updateTransactionId)
+                .then(sendEmail);
     }
 
 }
