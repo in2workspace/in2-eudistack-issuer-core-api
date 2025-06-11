@@ -84,22 +84,27 @@ class IssuerFactoryTest {
     void createIssuerRemote_LearCredentialEmployee_SuccessPath() {
         when(remoteSignatureConfig.getRemoteSignatureType()).thenReturn(SIGNATURE_REMOTE_TYPE_CLOUD);
         when(remoteSignatureServiceImpl.validateCredentials()).thenReturn(Mono.just(true));
-        when(remoteSignatureServiceImpl.getMandatorMail(procedureId)).thenReturn(Mono.just("mandator@mail"));
         when(remoteSignatureServiceImpl.requestAccessToken(any(), eq(SIGNATURE_REMOTE_SCOPE_SERVICE)))
                 .thenReturn(Mono.just("token"));
         when(remoteSignatureServiceImpl.requestCertificateInfo("token", "cred-id"))
                 .thenReturn(Mono.just("cert-info"));
+
+        when(defaultSignerConfig.getEmail()).thenReturn("default@issuer.com");
+
         DetailedIssuer expected = DetailedIssuer.builder()
                 .id("id1").organizationIdentifier("org1").organization("o")
                 .country("c").commonName("cn").emailAddress("e").serialNumber("sn")
                 .build();
         when(remoteSignatureConfig.getRemoteSignatureCredentialId()).thenReturn("cred-id");
-        when(remoteSignatureServiceImpl.extractIssuerFromCertificateInfo("cert-info", "mandator@mail"))
+
+        when(remoteSignatureServiceImpl.extractIssuerFromCertificateInfo("cert-info", "default@issuer.com"))
                 .thenReturn(Mono.just(expected));
 
         StepVerifier.create(issuerFactory.createIssuer(procedureId, learType))
                 .expectNext(expected)
                 .verifyComplete();
+
+        verify(defaultSignerConfig).getEmail();
     }
 
     @Test

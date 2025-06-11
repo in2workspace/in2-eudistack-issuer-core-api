@@ -56,16 +56,13 @@ public class IssuerFactory {
 
                                     return switch (credentialType) {
                                         case LEAR_CREDENTIAL_EMPLOYEE ->
-                                                remoteSignatureServiceImpl.getMandatorMail(procedureId)
-                                                        .flatMap(mail ->
                                                                 remoteSignatureServiceImpl.requestAccessToken(null, SIGNATURE_REMOTE_SCOPE_SERVICE)
                                                                         .flatMap(token ->
                                                                                 remoteSignatureServiceImpl.requestCertificateInfo(token, remoteSignatureConfig.getRemoteSignatureCredentialId())
                                                                         )
                                                                         .flatMap(certInfo ->
-                                                                                remoteSignatureServiceImpl.extractIssuerFromCertificateInfo(certInfo, mail)
-                                                                        )
-                                                        );
+                                                                                remoteSignatureServiceImpl.extractIssuerFromCertificateInfo(certInfo, defaultSignerConfig.getEmail()
+                                                                        ));
 
                                         case VERIFIABLE_CERTIFICATION ->
                                                 remoteSignatureServiceImpl.getMailForVerifiableCertification(procedureId)
