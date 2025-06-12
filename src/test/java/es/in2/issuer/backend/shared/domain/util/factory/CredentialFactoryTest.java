@@ -3,7 +3,7 @@ package es.in2.issuer.backend.shared.domain.util.factory;
 import com.fasterxml.jackson.databind.JsonNode;
 import es.in2.issuer.backend.shared.domain.exception.CredentialTypeUnsupportedException;
 import es.in2.issuer.backend.shared.domain.model.dto.CredentialProcedureCreationRequest;
-import es.in2.issuer.backend.shared.domain.model.dto.PreSubmittedCredentialDataRequest;
+import es.in2.issuer.backend.shared.domain.model.dto.PreSubmittedCredentialRequest;
 import es.in2.issuer.backend.shared.domain.service.CredentialProcedureService;
 import es.in2.issuer.backend.shared.domain.service.DeferredCredentialMetadataService;
 import org.junit.jupiter.api.Test;
@@ -37,7 +37,7 @@ class CredentialFactoryTest {
         //Arrange
         String processId = "processId";
         JsonNode jsonNode = mock(JsonNode.class);
-        PreSubmittedCredentialDataRequest preSubmittedCredentialDataRequest = PreSubmittedCredentialDataRequest.builder()
+        PreSubmittedCredentialRequest preSubmittedCredentialRequest = PreSubmittedCredentialRequest.builder()
                 .operationMode("S")
                 .schema("LEARCredentialEmployee")
                 .payload(jsonNode)
@@ -45,27 +45,27 @@ class CredentialFactoryTest {
 
         CredentialProcedureCreationRequest credentialProcedureCreationRequest = mock(CredentialProcedureCreationRequest.class);
 
-        when(learCredentialEmployeeFactory.mapAndBuildLEARCredentialEmployee(jsonNode, preSubmittedCredentialDataRequest.operationMode()))
+        when(learCredentialEmployeeFactory.mapAndBuildLEARCredentialEmployee(jsonNode, preSubmittedCredentialRequest.operationMode()))
                 .thenReturn(Mono.just(credentialProcedureCreationRequest));
 
         //Act & Assert
-        StepVerifier.create(credentialFactory.mapCredentialIntoACredentialProcedureRequest(processId, preSubmittedCredentialDataRequest, "token"))
+        StepVerifier.create(credentialFactory.mapCredentialIntoACredentialProcedureRequest(processId, preSubmittedCredentialRequest, "token"))
                 .expectNext(credentialProcedureCreationRequest)
                 .verifyComplete();
 
-        verify(learCredentialEmployeeFactory).mapAndBuildLEARCredentialEmployee(jsonNode, preSubmittedCredentialDataRequest.operationMode());
+        verify(learCredentialEmployeeFactory).mapAndBuildLEARCredentialEmployee(jsonNode, preSubmittedCredentialRequest.operationMode());
     }
 
     @Test
     void testMapCredentialIntoACredentialProcedureRequest_Failure() {
         //Arrange
         String processId = "processId";
-        PreSubmittedCredentialDataRequest preSubmittedCredentialDataRequest = PreSubmittedCredentialDataRequest.builder()
+        PreSubmittedCredentialRequest preSubmittedCredentialRequest = PreSubmittedCredentialRequest.builder()
                 .schema("UNSUPPORTED_CREDENTIAL")
                 .build();
 
         //Act & Assert
-        StepVerifier.create(credentialFactory.mapCredentialIntoACredentialProcedureRequest(processId, preSubmittedCredentialDataRequest, "token"))
+        StepVerifier.create(credentialFactory.mapCredentialIntoACredentialProcedureRequest(processId, preSubmittedCredentialRequest, "token"))
                 .expectError(CredentialTypeUnsupportedException.class)
                 .verify();
 
@@ -147,7 +147,7 @@ class CredentialFactoryTest {
 
         verify(learCredentialEmployeeFactory, never()).mapCredentialAndBindIssuerInToTheCredential(any(), any());
         verify(credentialProcedureService, never()).updateDecodedCredentialByProcedureId(any(), any(), any());
-        verify(deferredCredentialMetadataService, never()).updateDeferredCredentialMetadataByAuthServerNonce(any());
+        verify(deferredCredentialMetadataService, never()).updateDeferredCredentialMetadataByAuthServerNonce(any(), any());
     }
 
     @Test
@@ -167,7 +167,7 @@ class CredentialFactoryTest {
 
         verify(learCredentialEmployeeFactory).mapCredentialAndBindIssuerInToTheCredential(decodedCredential, procedureId);
         verify(credentialProcedureService, never()).updateDecodedCredentialByProcedureId(any(), any(), any());
-        verify(deferredCredentialMetadataService, never()).updateDeferredCredentialMetadataByAuthServerNonce(any());
+        verify(deferredCredentialMetadataService, never()).updateDeferredCredentialMetadataByAuthServerNonce(any(), any());
     }
 
     @Test

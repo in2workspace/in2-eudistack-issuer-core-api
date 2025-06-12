@@ -37,7 +37,8 @@ class TokenControllerTest {
                 "access-token",
                 "token-type",
                 3600L,
-                "null");
+                "nonce",
+                3600L);
         when(tokenService.generateTokenResponse(
                 grantType,
                 preAuthorizedCode,
