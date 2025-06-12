@@ -9,11 +9,15 @@ import es.in2.issuer.backend.shared.domain.exception.EmailCommunicationException
 import es.in2.issuer.backend.shared.domain.exception.InvalidOrMissingProofException;
 import es.in2.issuer.backend.shared.domain.exception.ProofValidationException;
 import es.in2.issuer.backend.shared.domain.model.dto.*;
+import es.in2.issuer.backend.shared.domain.model.dto.credential.DetailedIssuer;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.Mandator;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.Signer;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.employee.LEARCredentialEmployee;
+import es.in2.issuer.backend.shared.domain.model.entities.CredentialIssuanceRecord;
 import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatus;
 import es.in2.issuer.backend.shared.domain.service.*;
+import es.in2.issuer.backend.shared.domain.util.factory.CredentialFactory;
+import es.in2.issuer.backend.shared.domain.util.factory.IssuerFactory;
 import es.in2.issuer.backend.shared.domain.util.factory.LEARCredentialEmployeeFactory;
 import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
 import es.in2.issuer.backend.shared.infrastructure.config.WebClientConfig;
@@ -27,6 +31,7 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import java.util.List;
+import java.util.UUID;
 
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.*;
 import static es.in2.issuer.backend.shared.domain.util.Constants.JWT_VC_JSON;
@@ -83,6 +88,12 @@ class CredentialIssuanceServiceImplTest {
 
     @Mock
     private CredentialIssuanceRecordService credentialIssuanceRecordService;
+
+    @Mock
+    private CredentialFactory credentialFactory;
+
+    @Mock
+    private IssuerFactory issuerFactory;
 
     @InjectMocks
     private CredentialIssuanceWorkflowImpl verifiableCredentialIssuanceWorkflow;
@@ -324,7 +335,6 @@ class CredentialIssuanceServiceImplTest {
         String decodedCredential = "decodedCredential";
 
         when(proofValidationService.ensureIsProofValid(credentialRequest.proofs().jwt().get(0), token)).thenReturn(Mono.empty());
-        when(verifiableCredentialService.buildCredentialResponse(processId, did, jti, credentialRequest.format(), token)).thenReturn(Mono.just(verifiableCredentialResponse));
         when(deferredCredentialMetadataService.getProcedureIdByAuthServerNonce(jti)).thenReturn(Mono.just(procedureId));
         when(deferredCredentialMetadataService.getOperationModeByAuthServerNonce(jti)).thenReturn(Mono.just("S"));
         when(deferredCredentialMetadataService.getProcedureIdByAuthServerNonce(jti)).thenReturn(Mono.just("procedureId"));
@@ -395,7 +405,6 @@ class CredentialIssuanceServiceImplTest {
         String decodedCredential = "decodedCredential";
 
         when(proofValidationService.ensureIsProofValid(credentialRequest.proofs().jwt().get(0), token)).thenReturn(Mono.empty());
-        when(verifiableCredentialService.buildCredentialResponse(processId, did, jti, credentialRequest.format(), token)).thenReturn(Mono.just(verifiableCredentialResponse));
         when(deferredCredentialMetadataService.getProcedureIdByAuthServerNonce(jti)).thenReturn(Mono.just(procedureId));
         when(deferredCredentialMetadataService.getOperationModeByAuthServerNonce(jti)).thenReturn(Mono.just("S"));
         when(deferredCredentialMetadataService.getProcedureIdByAuthServerNonce(jti)).thenReturn(Mono.just("procedureId"));
@@ -444,9 +453,31 @@ class CredentialIssuanceServiceImplTest {
         String procedureId = "123456";
         String decodedCredential = "decodedCredential";
 
-        when(accessTokenService.getCleanBearerToken())
+        CredentialIssuanceRecord credentialIssuanceRecord = new CredentialIssuanceRecord();
+        credentialIssuanceRecord.setId(UUID.fromString("b434ef4a-17b5-4675-b8e8-ea385222a1d9"));
+        credentialIssuanceRecord.setCredentialData("data");
+        credentialIssuanceRecord.setCredentialType("type");
+
+        DetailedIssuer detailedIssuer = DetailedIssuer.builder().build();
+
+        when(accessTokenService.getCleanBearerToken(token))
+                .thenReturn(Mono.just(token));
+        when(credentialIssuanceRecordService.getByJti(jti))
+                .thenReturn(Mono.just(credentialIssuanceRecord));
+        when(credentialFactory.credentialSubjectBinder(
+                credentialIssuanceRecord.getCredentialData(),
+                credentialIssuanceRecord.getCredentialType(),
+                did))
+                .thenReturn(Mono.just("credentialWithSubject"));
+        when(issuerFactory.createIssuer(
+                credentialIssuanceRecord.getId().toString(),
+                credentialIssuanceRecord.getCredentialType()))
+                .thenReturn(Mono.just(detailedIssuer));
+        when(credentialFactory.setIssuer(
+                "credentialWithSubject",
+                detailedIssuer))
+                .thenReturn(Mono.just("credentialWithIssuer"));
         when(proofValidationService.ensureIsProofValid(credentialRequest.proofs().jwt().get(0), token)).thenReturn(Mono.empty());
-        when(verifiableCredentialService.buildCredentialResponse(processId, did, jti, credentialRequest.format(), token)).thenReturn(Mono.just(verifiableCredentialResponse));
         when(deferredCredentialMetadataService.getProcedureIdByAuthServerNonce(jti)).thenReturn(Mono.just(procedureId));
         when(deferredCredentialMetadataService.getOperationModeByAuthServerNonce(jti)).thenReturn(Mono.just("S"));
         when(deferredCredentialMetadataService.getProcedureIdByAuthServerNonce(jti)).thenReturn(Mono.just("procedureId"));

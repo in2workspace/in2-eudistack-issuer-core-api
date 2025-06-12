@@ -163,14 +163,13 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                                                         .flatMap(did -> credentialFactory.credentialSubjectBinder(
                                                                 credentialIssuanceRecord.getCredentialData(),
                                                                 credentialIssuanceRecord.getCredentialType(),
-                                                                did
-                                                        ))
-                                                        .flatMap(credentialWithDid ->
-                                                                buildVerifiableCredentialResponse(
-                                                                        processId,
-                                                                        token,
-                                                                        credentialIssuanceRecord,
-                                                                        credentialWithDid)));
+                                                                did)
+                                                                .flatMap(credentialWithDid ->
+                                                                        buildVerifiableCredentialResponse(
+                                                                                processId,
+                                                                                token,
+                                                                                credentialIssuanceRecord,
+                                                                                credentialWithDid))));
                                     } else {
                                         return buildVerifiableCredentialResponse(
                                                 processId,
