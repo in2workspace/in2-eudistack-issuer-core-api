@@ -1,6 +1,7 @@
 package es.in2.issuer.backend.shared.domain.service.impl;
 
 import es.in2.issuer.backend.shared.application.workflow.NonceValidationWorkflow;
+import es.in2.issuer.backend.shared.domain.exception.ProofValidationException;
 import es.in2.issuer.backend.shared.domain.service.JWTService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -10,8 +11,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -35,11 +34,9 @@ class ProofValidationServiceImplTest {
         when(jwtService.validateJwtSignatureReactive(any())).thenReturn(Mono.just(true));
         when(nonceValidationWorkflow.isValid(any())).thenReturn(Mono.just(true));
 
-        Mono<Boolean> result = service.ensureIsProofValid(validProof, token);
+        Mono<Void> result = service.ensureIsProofValid(validProof, token);
         // Verify the output
         StepVerifier.create(result)
-                .assertNext(response ->
-                        assertTrue(response, "The response is wrong"))
                 .verifyComplete();
     }
 
@@ -51,12 +48,10 @@ class ProofValidationServiceImplTest {
         when(jwtService.validateJwtSignatureReactive(any())).thenReturn(Mono.just(true));
         when(nonceValidationWorkflow.isValid(any())).thenReturn(Mono.just(false));
 
-        Mono<Boolean> result = service.ensureIsProofValid(notValidProof, token);
+        Mono<Void> result = service.ensureIsProofValid(notValidProof, token);
         // Verify the output
         StepVerifier.create(result)
-                .assertNext(response ->
-                        assertFalse(response, "The response is wrong"))
-                .verifyComplete();
+                .expectErrorMatches(ProofValidationException.class::isInstance);
     }
 
 }

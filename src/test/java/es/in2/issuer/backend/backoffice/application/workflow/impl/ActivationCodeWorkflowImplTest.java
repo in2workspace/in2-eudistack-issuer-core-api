@@ -70,6 +70,10 @@ class ActivationCodeWorkflowImplTest {
                     .thenReturn(Mono.empty());
             when(credentialIssuanceRecordService.get(credentialIssuanceRecord.getId().toString()))
                     .thenReturn(Mono.just(credentialIssuanceRecord));
+            when(credentialIssuanceRecordService.setPreAuthorizedCodeById(
+                    credentialIssuanceRecord.getId().toString(),
+                    preAuthorizedCodeResponse.preAuthorizedCode()))
+                    .thenReturn(Mono.empty());
             when(preAuthorizedCodeWorkflow.generatePreAuthorizedCode())
                     .thenReturn(Mono.just(preAuthorizedCodeResponse));
             when(credentialOfferService.buildCustomCredentialOffer(
@@ -120,6 +124,10 @@ class ActivationCodeWorkflowImplTest {
                     .thenReturn(Mono.empty());
             when(credentialIssuanceRecordService.get(credentialIssuanceRecord.getId().toString()))
                     .thenReturn(Mono.just(credentialIssuanceRecord));
+            when(credentialIssuanceRecordService.setPreAuthorizedCodeById(
+                    credentialIssuanceRecord.getId().toString(),
+                    preAuthorizedCodeResponse.preAuthorizedCode()))
+                    .thenReturn(Mono.empty());
             when(preAuthorizedCodeWorkflow.generatePreAuthorizedCode())
                     .thenReturn(Mono.just(preAuthorizedCodeResponse));
             when(credentialOfferService.buildCustomCredentialOffer(

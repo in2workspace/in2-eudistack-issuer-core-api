@@ -115,7 +115,7 @@ class RemoteSignatureServiceImplTest {
                 .thenReturn(Mono.just(signedResponse));
         when(objectMapper.readValue(signedResponse, SignedData.class)).thenReturn(signedData);
 
-        Mono<SignedData> result = remoteSignatureService.sign(signatureRequest, token, "550e8400-e29b-41d4-a716-446655440000");
+        Mono<SignedData> result = remoteSignatureService.sign(signatureRequest, token);
 
         StepVerifier.create(result)
                 .expectNext(signedData)
@@ -137,7 +137,7 @@ class RemoteSignatureServiceImplTest {
                 .thenReturn(Mono.error(new RemoteSignatureException("Error serializing signature request")));
         doReturn(Mono.empty()).when(remoteSignatureService).handlePostRecoverError(anyString());
 
-        Mono<SignedData> result = remoteSignatureService.sign(signatureRequest, token, "550e8400-e29b-41d4-a716-446655440000");
+        Mono<SignedData> result = remoteSignatureService.sign(signatureRequest, token);
 
         StepVerifier.create(result)
                 .expectErrorSatisfies(throwable -> {
@@ -367,7 +367,7 @@ class RemoteSignatureServiceImplTest {
         when(jwtUtils.decodePayload(any())).thenReturn("\"vc\": {\"id\": \"fa7376e0-fcc1-44c0-a91e-001a1301c06e\"}");
 
         // Act
-        Mono<SignedData> result = remoteSignatureService.sign(signatureRequest, token, procedureId);
+        Mono<SignedData> result = remoteSignatureService.sign(signatureRequest, token);
 
         // Assert
         StepVerifier.create(result)
@@ -431,7 +431,7 @@ class RemoteSignatureServiceImplTest {
         when(jwtUtils.decodePayload(any())).thenReturn("\"vc\": {\"id\": \"fa7376e0-fcc1-44c0-a91e-001a1301c06e\"}");
 
         // Act
-        Mono<SignedData> result = remoteSignatureService.sign(signatureRequest, token, procedureId);
+        Mono<SignedData> result = remoteSignatureService.sign(signatureRequest, token);
 
         // Assert
         StepVerifier.create(result)
@@ -497,7 +497,7 @@ class RemoteSignatureServiceImplTest {
         when(emailService.sendPendingSignatureCredentialNotification(anyString(), anyString(), eq(procedureUUID.toString()), eq("http://issuer-ui.com")))
                 .thenReturn(Mono.empty());
         // Act
-        Mono<SignedData> result = remoteSignatureService.sign(signatureRequest, token, procedureId);
+        Mono<SignedData> result = remoteSignatureService.sign(signatureRequest, token);
 
         // Assert
         StepVerifier.create(result)

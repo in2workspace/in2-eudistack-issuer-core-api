@@ -7,6 +7,7 @@ import es.in2.issuer.backend.shared.domain.exception.*;
 import es.in2.issuer.backend.shared.domain.model.dto.SignatureRequest;
 import es.in2.issuer.backend.shared.domain.model.dto.SignedData;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.DetailedIssuer;
+import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatus;
 import es.in2.issuer.backend.shared.domain.service.*;
 import es.in2.issuer.backend.shared.domain.util.HttpUtils;
 import es.in2.issuer.backend.shared.domain.util.JwtUtils;
@@ -456,5 +457,43 @@ public class RemoteSignatureServiceImpl implements RemoteSignatureService {
             log.error("Error: {}", e.getMessage());
             throw new SignedDataParsingException("Error parsing signed data");
         }
+    }
+
+    @Override
+    public Mono<Void> handlePostRecoverError(String procedureId) {
+        Mono<Void> updateOperationMode = credentialProcedureRepository.findByProcedureId(UUID.fromString(procedureId))
+                .flatMap(credentialProcedure -> {
+                    credentialProcedure.setOperationMode(ASYNC);
+                    credentialProcedure.setCredentialStatus(CredentialStatus.PEND_SIGNATURE);
+                    return credentialProcedureRepository.save(credentialProcedure)
+                            .doOnSuccess(result -> log.info("Updated operationMode to Async - Procedure"))
+                            .then();
+                });
+
+        Mono<Void> updateDeferredMetadata = deferredCredentialMetadataRepository.findByProcedureId(UUID.fromString(procedureId))
+                .switchIfEmpty(Mono.fromRunnable(() ->
+                        log.error("No deferred metadata found for procedureId: {}", procedureId)
+                ).then(Mono.empty()))
+                .flatMap(credentialProcedure -> {
+                    credentialProcedure.setOperationMode(ASYNC);
+                    return deferredCredentialMetadataRepository.save(credentialProcedure)
+                            .doOnSuccess(result -> log.info("Updated operationMode to Async - Deferred"))
+                            .then();
+                });
+
+        String domain = appConfig.getIssuerFrontendUrl();
+        Mono<Void> sendEmail = credentialProcedureService.getSignerEmailFromDecodedCredentialByProcedureId(procedureId)
+                .flatMap(signerEmail ->
+                        emailService.sendPendingSignatureCredentialNotification(
+                                signerEmail,
+                                "Failed to sign credential, please activate manual signature.",
+                                procedureId,
+                                domain
+                        )
+                );
+
+        return updateOperationMode
+                .then(updateDeferredMetadata)
+                .then(sendEmail);
     }
 }

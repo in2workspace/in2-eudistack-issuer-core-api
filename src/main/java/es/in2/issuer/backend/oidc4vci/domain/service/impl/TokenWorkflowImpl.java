@@ -6,6 +6,7 @@ import es.in2.issuer.backend.oidc4vci.domain.model.TokenResponse;
 import es.in2.issuer.backend.oidc4vci.domain.service.TokenWorkflow;
 import es.in2.issuer.backend.shared.domain.service.CredentialIssuanceRecordService;
 import es.in2.issuer.backend.shared.domain.service.JWTService;
+import es.in2.issuer.backend.shared.domain.util.JwtUtils;
 import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
 import es.in2.issuer.backend.shared.infrastructure.repository.CacheStore;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +32,7 @@ public class TokenWorkflowImpl implements TokenWorkflow {
     private final CacheStore<String> txCodeByPreAuthorizedCodeCacheStore;
     private final JWTService jwtService;
     private final AppConfig appConfig;
+    private final JwtUtils jwtUtils;
 
     @Override
     public Mono<TokenResponse> generateTokenResponse(
@@ -54,8 +56,8 @@ public class TokenWorkflowImpl implements TokenWorkflow {
 
         return credentialIssuanceRecordService.getIdByPreAuthorizedCode(preAuthorizedCode)
                 .flatMap(credentialIssuanceRecordId -> {
-                    String accessTokenJti = getJti(accessToken);
-                    String refreshTokenJti = getJti(refreshToken);
+                    String accessTokenJti = jwtUtils.getJti(accessToken);
+                    String refreshTokenJti = jwtUtils.getJti(refreshToken);
                     return credentialIssuanceRecordService.setJtis(
                                     credentialIssuanceRecordId,
                                     accessTokenJti,
@@ -67,16 +69,6 @@ public class TokenWorkflowImpl implements TokenWorkflow {
                                     .refreshToken(refreshToken)
                                     .build());
                 });
-    }
-
-    private String getJti(String token) {
-        try {
-            JWSObject jwsObject = JWSObject.parse(token);
-            return jwsObject.getPayload().toJSONObject().get("jti").toString();
-        } catch (Exception e) {
-            log.error("Error extracting JTI from access token", e);
-            throw new IllegalArgumentException("Invalid token");
-        }
     }
 
     private String generateRefreshToken(long issueTimeEpochSeconds, long expirationTimeEpochSeconds) {

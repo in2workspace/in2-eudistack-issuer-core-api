@@ -207,6 +207,40 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
     }
 
     @Override
+    public Mono<String> getSignerEmailFromDecodedCredentialByProcedureId(String procedureId) {
+        return credentialProcedureRepository.findByProcedureId(UUID.fromString(procedureId))
+                .flatMap(credentialProcedure -> {
+                    try {
+                        JsonNode credential = objectMapper.readTree(credentialProcedure.getCredentialDecoded());
+                        return switch (credentialProcedure.getCredentialType()) {
+                            case LEAR_CREDENTIAL_EMPLOYEE_CREDENTIAL_TYPE -> {
+                                if (credential.has(VC)) {
+                                    JsonNode vcNode = credential.get(VC);
+                                    JsonNode mandateNode = vcNode.get(CREDENTIAL_SUBJECT).get(MANDATE);
+                                    if (mandateNode.has(SIGNER)) {
+                                        yield Mono.just(mandateNode.get(SIGNER).get(EMAIL_ADDRESS).asText());
+                                    } else {
+                                        yield Mono.just(vcNode.get(ISSUER).get(EMAIL_ADDRESS).asText());
+                                    }
+                                } else {
+                                    JsonNode mandatorEmailNode = credential.get(CREDENTIAL_SUBJECT).get(MANDATE).get(MANDATOR).get(EMAIL_ADDRESS);
+                                    String email = mandatorEmailNode.asText();
+                                    yield Mono.just(email.equals("jesus.ruiz@in2.es") ? "domesupport@in2.es" : email);
+                                }
+                            }
+                            case VERIFIABLE_CERTIFICATION_CREDENTIAL_TYPE -> Mono.just("domesupport@in2.es");
+
+                            default ->
+                                    Mono.error(new IllegalArgumentException("Unsupported credential type: " + credentialProcedure.getCredentialType()));
+                        };
+                    } catch (JsonProcessingException e) {
+                        return Mono.error(new RuntimeException());
+                    }
+
+                });
+    }
+
+    @Override
     public Flux<String> getAllIssuedCredentialByOrganizationIdentifier(String organizationIdentifier) {
         return credentialProcedureRepository.findByCredentialStatusAndOrganizationIdentifier(CredentialStatus.ISSUED, organizationIdentifier)
                 .map(CredentialProcedure::getCredentialDecoded);

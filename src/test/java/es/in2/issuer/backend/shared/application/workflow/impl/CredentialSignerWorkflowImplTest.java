@@ -85,7 +85,7 @@ class CredentialSignerWorkflowImplTest {
         CredentialProcedure credentialProcedure = new CredentialProcedure();
         credentialProcedure.setCredentialDecoded(unsignedCredential);
         credentialProcedure.setCredentialType(LEAR_CREDENTIAL_EMPLOYEE_CREDENTIAL_TYPE);
-        when(remoteSignatureService.sign(any(SignatureRequest.class), eq(token), eq(procedureId)))
+        when(remoteSignatureService.sign(any(SignatureRequest.class), eq(token)))
                 .thenReturn(Mono.just(new SignedData(SignatureType.JADES,signedCredential)));
 
         when(learCredentialEmployeeFactory.mapStringToLEARCredentialEmployee(unsignedCredential)).thenReturn(LEARCredentialEmployee .builder().build());
@@ -111,7 +111,7 @@ class CredentialSignerWorkflowImplTest {
         credentialProcedure.setCredentialDecoded(unsignedCredential);
         credentialProcedure.setCredentialType(LEAR_CREDENTIAL_EMPLOYEE_CREDENTIAL_TYPE);
 
-        when(remoteSignatureService.sign(any(SignatureRequest.class), eq(token), eq("")))
+        when(remoteSignatureService.sign(any(SignatureRequest.class), eq(token)))
                 .thenReturn(Mono.just(new SignedData(SignatureType.COSE, signedCredential)));
 
         when(learCredentialEmployeeFactory.mapStringToLEARCredentialEmployee(unsignedCredential)).thenReturn(LEARCredentialEmployee .builder().build());
@@ -150,7 +150,7 @@ class CredentialSignerWorkflowImplTest {
         credentialProcedure.setCredentialDecoded(unsignedCredential);
         credentialProcedure.setCredentialType(LEAR_CREDENTIAL_EMPLOYEE_CREDENTIAL_TYPE);
 
-        when(remoteSignatureService.sign(any(SignatureRequest.class), eq(token), eq(procedureId)))
+        when(remoteSignatureService.sign(any(SignatureRequest.class), eq(token)))
                 .thenReturn(Mono.just(new SignedData(SignatureType.JADES, signedCredential)));
         when(deferredCredentialWorkflow.updateSignedCredentials(any(SignedCredentials.class))).thenReturn(Mono.empty());
         when(credentialProcedureRepository.findByProcedureId(UUID.fromString(procedureId))).thenReturn(Mono.just(credentialProcedure));
@@ -158,7 +158,7 @@ class CredentialSignerWorkflowImplTest {
                 .assertNext(result -> assertEquals(signedCredential, result))
                 .verifyComplete();
 
-        verify(remoteSignatureService).sign(any(SignatureRequest.class), eq(token), eq(procedureId));
+        verify(remoteSignatureService).sign(any(SignatureRequest.class), eq(token));
         verify(deferredCredentialWorkflow).updateSignedCredentials(any(SignedCredentials.class));
     }
 
@@ -178,7 +178,7 @@ class CredentialSignerWorkflowImplTest {
         when(verifiableCertificationFactory.buildVerifiableCertificationJwtPayload(mockCertification)).thenReturn(Mono.just(mockVerifiablePayload));
         when(verifiableCertificationFactory.convertVerifiableCertificationJwtPayloadInToString(any(VerifiableCertificationJwtPayload.class)))
                 .thenReturn(Mono.just(unsignedJwtPayload));
-        when(remoteSignatureService.sign(any(SignatureRequest.class), eq(token), eq(procedureId)))
+        when(remoteSignatureService.sign(any(SignatureRequest.class), eq(token)))
                 .thenReturn(Mono.just(new SignedData(SignatureType.JADES, signedCredential)));
         when(deferredCredentialWorkflow.updateSignedCredentials(any(SignedCredentials.class))).thenReturn(Mono.empty());
         when(credentialProcedureRepository.findByProcedureId(UUID.fromString(procedureId))).thenReturn(Mono.just(credentialProcedure));
@@ -188,7 +188,7 @@ class CredentialSignerWorkflowImplTest {
 
         verify(verifiableCertificationFactory).mapStringToVerifiableCertification(decodedCredential);
         verify(verifiableCertificationFactory).buildVerifiableCertificationJwtPayload(any(VerifiableCertification.class));
-        verify(remoteSignatureService).sign(any(SignatureRequest.class), eq(token), eq(procedureId));
+        verify(remoteSignatureService).sign(any(SignatureRequest.class), eq(token));
         verify(deferredCredentialWorkflow).updateSignedCredentials(any(SignedCredentials.class));
     }
 
@@ -209,7 +209,7 @@ class CredentialSignerWorkflowImplTest {
         when(learCredentialEmployeeFactory.buildLEARCredentialEmployeeJwtPayload(mockEmployee)).thenReturn(Mono.just(mockLearPayload));
         when(learCredentialEmployeeFactory.convertLEARCredentialEmployeeJwtPayloadInToString(any(LEARCredentialEmployeeJwtPayload.class)))
                 .thenReturn(Mono.just(unsignedJwtPayload));
-        when(remoteSignatureService.sign(any(SignatureRequest.class), eq(token), eq(procedureId)))
+        when(remoteSignatureService.sign(any(SignatureRequest.class), eq(token)))
                 .thenReturn(Mono.just(new SignedData(SignatureType.JADES, signedCredential)));
         when(deferredCredentialWorkflow.updateSignedCredentials(any(SignedCredentials.class))).thenReturn(Mono.empty());
         when(credentialProcedureRepository.findByProcedureId(UUID.fromString(procedureId))).thenReturn(Mono.just(credentialProcedure));
@@ -219,7 +219,7 @@ class CredentialSignerWorkflowImplTest {
 
         verify(learCredentialEmployeeFactory).mapStringToLEARCredentialEmployee(decodedCredential);
         verify(learCredentialEmployeeFactory).buildLEARCredentialEmployeeJwtPayload(any(LEARCredentialEmployee.class));
-        verify(remoteSignatureService).sign(any(SignatureRequest.class), eq(token), eq(procedureId));
+        verify(remoteSignatureService).sign(any(SignatureRequest.class), eq(token));
         verify(deferredCredentialWorkflow).updateSignedCredentials(any(SignedCredentials.class));
     }
 
@@ -239,7 +239,7 @@ class CredentialSignerWorkflowImplTest {
                 .verify();
 
         verify(verifiableCertificationFactory).mapStringToVerifiableCertification(decodedCredential);
-        verify(remoteSignatureService, never()).sign(any(SignatureRequest.class), eq(token), eq(procedureId));
+        verify(remoteSignatureService, never()).sign(any(SignatureRequest.class), eq(token));
         verify(deferredCredentialWorkflow, never()).updateSignedCredentials(any(SignedCredentials.class));
     }
     @Test

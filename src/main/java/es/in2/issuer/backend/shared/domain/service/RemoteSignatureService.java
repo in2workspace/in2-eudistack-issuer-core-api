@@ -7,4 +7,6 @@ import reactor.core.publisher.Mono;
 
 public interface RemoteSignatureService {
     Mono<SignedData> sign(SignatureRequest signatureRequest, String token);
+
+    Mono<Void> handlePostRecoverError(String procedureId);
 }

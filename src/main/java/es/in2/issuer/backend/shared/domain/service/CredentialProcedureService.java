@@ -28,6 +28,8 @@ public interface CredentialProcedureService {
 
     Mono<String> getSignerEmailFromDecodedCredentialByProcedureId(String credentialJson, String credentialType);
 
+    Mono<String> getSignerEmailFromDecodedCredentialByProcedureId(String procedureId);
+
     Flux<String> getAllIssuedCredentialByOrganizationIdentifier(String organizationIdentifier);
 
     Mono<CredentialProcedures> getAllProceduresBasicInfoByOrganizationId(String organizationIdentifier);

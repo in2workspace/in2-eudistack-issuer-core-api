@@ -69,7 +69,7 @@ class VerifiableCredentialPolicyAuthorizationServiceImplTest {
     @BeforeEach
     void setUp() {
         // Creamos una instancia real de CredentialFactory, pasando los mocks necesarios
-        CredentialFactory credentialFactory = new CredentialFactory(learCredentialEmployeeFactory, learCredentialMachineFactory, verifiableCertificationFactory, credentialProcedureService, deferredCredentialMetadataService);
+        CredentialFactory credentialFactory = new CredentialFactory(learCredentialEmployeeFactory, learCredentialMachineFactory, verifiableCertificationFactory, credentialProcedureService, deferredCredentialMetadataService, objectMapper);
 
         // Inicializamos policyAuthorizationService con las dependencias adecuadas
         policyAuthorizationService = new VerifiableCredentialPolicyAuthorizationServiceImpl(
