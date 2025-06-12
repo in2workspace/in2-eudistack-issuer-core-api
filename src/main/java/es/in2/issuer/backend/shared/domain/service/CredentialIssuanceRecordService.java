@@ -1,6 +1,7 @@
 package es.in2.issuer.backend.shared.domain.service;
 
 import es.in2.issuer.backend.shared.domain.model.dto.PreSubmittedDataCredentialRequest;
+import es.in2.issuer.backend.shared.domain.model.dto.VerifiableCredentialResponse;
 import es.in2.issuer.backend.shared.domain.model.entities.CredentialIssuanceRecord;
 import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatus;
 import reactor.core.publisher.Mono;
@@ -26,4 +27,6 @@ public interface CredentialIssuanceRecordService {
     Mono<Void> setTransactionCodeById(String id, String transactionId);
 
     Mono<Void> update(CredentialIssuanceRecord credentialIssuanceRecord);
+
+    Mono<String> getOperationModeById(String id);
 }

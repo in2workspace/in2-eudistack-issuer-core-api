@@ -161,9 +161,9 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                                         return proofValidationService.ensureIsProofValid(credentialRequest.proofs().jwt().get(0), token)
                                                 .then(extractDidFromJwtProof(credentialRequest.proofs().jwt().get(0))
                                                         .flatMap(did -> credentialFactory.credentialSubjectBinder(
-                                                                credentialIssuanceRecord.getCredentialData(),
-                                                                credentialIssuanceRecord.getCredentialType(),
-                                                                did)
+                                                                        credentialIssuanceRecord.getCredentialData(),
+                                                                        credentialIssuanceRecord.getCredentialType(),
+                                                                        did)
                                                                 .flatMap(credentialWithDid ->
                                                                         buildVerifiableCredentialResponse(
                                                                                 processId,
@@ -202,14 +202,18 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                                                             .credential(credentialWithStatus)
                                                             .transactionId(credentialIssuanceRecord.getTransactionId())
                                                             .build();
-                                                    return handleOperationMode(
-                                                            credentialIssuanceRecord.getOperationMode(),
-                                                            processId,
-                                                            credentialIssuanceRecord.getAccessTokenJti(),
-                                                            response)
-                                                            .flatMap(handledResponse ->
-                                                                    credentialIssuanceRecordService.update(credentialIssuanceRecord)
-                                                                            .thenReturn(handledResponse));
+                                                    return credentialIssuanceRecordService
+                                                            .getOperationModeById(
+                                                                    credentialIssuanceRecord.getId().toString())
+                                                            .flatMap(currentOperationMode ->
+                                                                    handleOperationMode(
+                                                                            currentOperationMode,
+                                                                            processId,
+                                                                            credentialIssuanceRecord.getAccessTokenJti(),
+                                                                            response)
+                                                                            .flatMap(handledResponse ->
+                                                                                    credentialIssuanceRecordService.update(credentialIssuanceRecord)
+                                                                                            .thenReturn(handledResponse)));
                                                 })));
     }
 

@@ -107,6 +107,12 @@ public class CredentialIssuanceRecordServiceImpl implements CredentialIssuanceRe
         return credentialIssuanceRepository.save(credentialIssuanceRecord).then();
     }
 
+    @Override
+    public Mono<String> getOperationModeById(String id) {
+        return credentialIssuanceRepository.findById(UUID.fromString(id))
+                .map(CredentialIssuanceRecord::getOperationMode);
+    }
+
     private Mono<String> generateActivationCode(String credentialIssuanceRecordId) {
         return generateCustomNonce()
                 .flatMap(activationCode ->
