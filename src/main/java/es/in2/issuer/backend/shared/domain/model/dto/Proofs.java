@@ -8,6 +8,5 @@ import java.util.List;
 
 @Builder
 public record Proofs(
-        @Schema(example = "jwt", description = "Format of the proof sent") @JsonProperty("proof_type") String proofType,
         @Schema(example = "eyJhbGciOiJIUzI1NiIsInR5cCIgOiAiSldUIiw....WZwmhmn9OQp6YxX0a2L", description = "Contains the access token obtained with the pre-authorized code") @JsonProperty("jwt") List<String> jwt) {
 }

@@ -5,9 +5,8 @@ import lombok.Builder;
 
 @Builder
 public record TokenResponse(
-        @JsonProperty("access_token") String accessToken,
-        @JsonProperty("token_type") String tokenType,
-        @JsonProperty("expires_in") long expiresIn,
-        @JsonProperty("c_nonce") String nonce,
-        @JsonProperty("c_nonce_expires_in") Long nonceExpiresIn) {
+        @JsonProperty(value = "access_token", required = true) String accessToken,
+        @JsonProperty(value = "token_type", required = true) String tokenType,
+        @JsonProperty(value = "expires_in", required = true) long expiresIn,
+        @JsonProperty(value = "refresh_token", required = true) String refreshToken) {
 }

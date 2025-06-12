@@ -2,7 +2,8 @@ package es.in2.issuer.backend.oidc4vci.infrastructure.controller;
 
 import es.in2.issuer.backend.shared.application.workflow.CredentialIssuanceWorkflow;
 import es.in2.issuer.backend.shared.domain.model.dto.DeferredCredentialRequest;
-import es.in2.issuer.backend.shared.domain.model.dto.VerifiableCredentialResponse;
+import es.in2.issuer.backend.shared.domain.model.dto.CredentialResponse;
+import es.in2.issuer.backend.shared.domain.model.dto.DeferredCredentialResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
@@ -23,7 +24,7 @@ public class DeferredCredentialController {
 
     @PostMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseStatus(HttpStatus.OK)
-    public Mono<VerifiableCredentialResponse> getCredential(
+    public Mono<DeferredCredentialResponse> getCredential(
             @RequestHeader(HttpHeaders.AUTHORIZATION) String authorizationHeader,
             @RequestBody DeferredCredentialRequest deferredCredentialRequest) {
         // todo: Check if the authorization header is needed here

@@ -2,7 +2,7 @@ package es.in2.issuer.backend.oidc4vci.infrastructure.controller;
 
 import es.in2.issuer.backend.shared.application.workflow.CredentialIssuanceWorkflow;
 import es.in2.issuer.backend.shared.domain.model.dto.CredentialRequest;
-import es.in2.issuer.backend.shared.domain.model.dto.VerifiableCredentialResponse;
+import es.in2.issuer.backend.shared.domain.model.dto.CredentialResponse;
 import es.in2.issuer.backend.shared.domain.service.AccessTokenService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,7 +25,8 @@ public class CredentialController {
     private final AccessTokenService accessTokenService;
 
     @PostMapping(produces = MediaType.APPLICATION_JSON_VALUE)
-    public Mono<ResponseEntity<VerifiableCredentialResponse>> createVerifiableCredential(
+    @ResponseStatus(HttpStatus.OK)
+    public Mono<ResponseEntity<CredentialResponse>> createVerifiableCredential(
             @RequestHeader(HttpHeaders.AUTHORIZATION) String authorizationHeader,
             @RequestBody CredentialRequest credentialRequest) {
         String processId = UUID.randomUUID().toString();

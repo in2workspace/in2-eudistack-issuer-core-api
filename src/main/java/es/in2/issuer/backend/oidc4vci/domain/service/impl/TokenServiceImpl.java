@@ -16,11 +16,9 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Map;
 import java.util.NoSuchElementException;
-import java.util.concurrent.TimeUnit;
 
 import static es.in2.issuer.backend.oidc4vci.domain.util.Constants.ACCESS_TOKEN_EXPIRATION_TIME_DAYS;
 import static es.in2.issuer.backend.shared.domain.util.Constants.GRANT_TYPE;
-import static es.in2.issuer.backend.shared.domain.util.Constants.PRE_AUTH_CODE_EXPIRY_DURATION_MINUTES;
 import static es.in2.issuer.backend.shared.domain.util.Utils.generateCustomNonce;
 
 @Slf4j
@@ -49,16 +47,11 @@ public class TokenServiceImpl implements TokenService {
                             String accessToken = generateAccessToken(preAuthorizedCode, issueTimeEpochSeconds, expirationTimeEpochSeconds);
                             String tokenType = "bearer";
                             long expiresIn = expirationTimeEpochSeconds - Instant.now().getEpochSecond();
-                            long nonceExpiresIn = (int) TimeUnit.SECONDS.convert(
-                                    PRE_AUTH_CODE_EXPIRY_DURATION_MINUTES,
-                                    TimeUnit.MINUTES);
 
                             return TokenResponse.builder()
                                     .accessToken(accessToken)
                                     .tokenType(tokenType)
                                     .expiresIn(expiresIn)
-                                    .nonce(nonce)
-                                    .nonceExpiresIn(nonceExpiresIn)
                                     .build();
                         }));
     }
