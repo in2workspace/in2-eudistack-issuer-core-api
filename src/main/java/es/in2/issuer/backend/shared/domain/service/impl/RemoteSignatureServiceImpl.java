@@ -71,7 +71,7 @@ public class RemoteSignatureServiceImpl implements RemoteSignatureService {
 
     @Override
     //TODO Cuando se implementen los "settings" del issuer, se debe pasar el clientId, secret, etc. como parámetros en lugar de var entorno
-    public Mono<SignedData> sign(SignatureRequest signatureRequest, String token) {
+    public Mono<SignedData> sign(SignatureRequest signatureRequest, String token, String credentialId) {
         clientId = remoteSignatureConfig.getRemoteSignatureClientId();
         clientSecret = remoteSignatureConfig.getRemoteSignatureClientSecret();
         return Mono.defer(() -> executeSigningFlow(signatureRequest, token)
@@ -86,7 +86,13 @@ public class RemoteSignatureServiceImpl implements RemoteSignatureService {
                         .doBeforeRetry(retrySignal -> {
                             long attempt = retrySignal.totalRetries() + 1;
                             log.info("Retrying signing process due to recoverable error (Attempt #{} of 3)", attempt);
-                        })));
+                        })))
+                .onErrorResume(throwable -> {
+                    log.error("Error after 3 retries, switching to ASYNC mode.");
+                    log.error("Error Time: {}", new Date());
+                    return handlePostRecoverError(credentialId)
+                            .then(Mono.error(new RemoteSignatureException("Signature Failed, changed to ASYNC mode", throwable)));
+                });
     }
 
     public boolean isRecoverableError(Throwable throwable) {

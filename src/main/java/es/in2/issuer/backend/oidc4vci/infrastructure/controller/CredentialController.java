@@ -3,7 +3,6 @@ package es.in2.issuer.backend.oidc4vci.infrastructure.controller;
 import es.in2.issuer.backend.shared.application.workflow.CredentialIssuanceWorkflow;
 import es.in2.issuer.backend.shared.domain.model.dto.CredentialRequest;
 import es.in2.issuer.backend.shared.domain.model.dto.VerifiableCredentialResponse;
-import es.in2.issuer.backend.shared.domain.service.AccessTokenService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
@@ -22,7 +21,6 @@ import java.util.UUID;
 public class CredentialController {
 
     private final CredentialIssuanceWorkflow credentialIssuanceWorkflow;
-    private final AccessTokenService accessTokenService;
 
     @PostMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     public Mono<ResponseEntity<VerifiableCredentialResponse>> createVerifiableCredential(
@@ -41,5 +39,4 @@ public class CredentialController {
                 .doOnSuccess(result ->
                         log.info("VerifiableCredentialController - createVerifiableCredential(): {}", result.toString()));
     }
-
 }

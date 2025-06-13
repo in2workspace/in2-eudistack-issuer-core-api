@@ -40,6 +40,7 @@ import static es.in2.issuer.backend.shared.domain.util.Utils.generateCustomNonce
 @RequiredArgsConstructor
 public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
 
+    private static final String UNSUPPORTED_CREDENTIAL_TYPE = "Unsupported credential type: ";
     private final DeferredCredentialWorkflow deferredCredentialWorkflow;
     private final RemoteSignatureService remoteSignatureService;
     private final LEARCredentialEmployeeFactory learCredentialEmployeeFactory;
@@ -84,8 +85,8 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
                                         .flatMap(unsignedCredential -> signCredentialOnRequestedFormat(unsignedCredential, procedureId, format, credentialType, authorizationHeader));
                             }
                             default -> {
-                                log.error("Unsupported credential type: {}", credentialType);
-                                yield Mono.error(new IllegalArgumentException("Unsupported credential type: " + credentialType));
+                                log.error(UNSUPPORTED_CREDENTIAL_TYPE + "{}", credentialType);
+                                yield Mono.error(new IllegalArgumentException(UNSUPPORTED_CREDENTIAL_TYPE + credentialType));
                             }
                         };
                     }
@@ -150,8 +151,8 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
                                                 authorizationHeader));
                             }
                             default -> {
-                                log.error("Unsupported credential type: {}", credentialType);
-                                yield Mono.error(new IllegalArgumentException("Unsupported credential type: " + credentialType));
+                                log.error(UNSUPPORTED_CREDENTIAL_TYPE + "{}", credentialType);
+                                yield Mono.error(new IllegalArgumentException(UNSUPPORTED_CREDENTIAL_TYPE + credentialType));
                             }
                         };
                     });
@@ -182,7 +183,7 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
                         credentialJson
                 );
 
-                return remoteSignatureService.sign(signatureRequest, token)
+                return remoteSignatureService.sign(signatureRequest, token, credentialId)
                         .doOnSubscribe(s -> {
                         })
                         .doOnNext(data -> {
@@ -237,7 +238,7 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
                 new SignatureConfiguration(SignatureType.COSE, Collections.emptyMap()),
                 cborBase64
         );
-        return remoteSignatureService.sign(signatureRequest, token).map(signedData -> Base64.getDecoder().decode(signedData.data()));
+        return remoteSignatureService.sign(signatureRequest, token, "").map(signedData -> Base64.getDecoder().decode(signedData.data()));
     }
 
     /**
@@ -284,7 +285,7 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
 
                     default -> {
                         log.error("Unknown credential type: {}", credentialProcedure.getCredentialType());
-                        yield Mono.error(new IllegalArgumentException("Unsupported credential type: " + credentialProcedure.getCredentialType()));
+                        yield Mono.error(new IllegalArgumentException(UNSUPPORTED_CREDENTIAL_TYPE + credentialProcedure.getCredentialType()));
                     }
                 })
                 .then(this.signAndUpdateCredentialByProcedureId(authorizationHeader, procedureId, JWT_VC))
