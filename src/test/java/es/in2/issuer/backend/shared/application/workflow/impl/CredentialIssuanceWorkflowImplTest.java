@@ -6,7 +6,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import es.in2.issuer.backend.shared.application.workflow.CredentialSignerWorkflow;
 import es.in2.issuer.backend.shared.domain.exception.EmailCommunicationException;
-import es.in2.issuer.backend.shared.domain.exception.FormatUnsupportedException;
 import es.in2.issuer.backend.shared.domain.exception.InvalidOrMissingProofException;
 import es.in2.issuer.backend.shared.domain.model.dto.*;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.Mandator;
@@ -26,7 +25,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-import javax.naming.OperationNotSupportedException;
 import java.util.List;
 
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.*;
@@ -40,6 +38,9 @@ class CredentialIssuanceServiceImplTest {
 
     @Mock
     private CredentialDeliveryService credentialDeliveryService;
+
+    @Mock
+    private AccessTokenService accessTokenService;
 
     @Mock
     private VerifiableCredentialService verifiableCredentialService;
@@ -79,41 +80,11 @@ class CredentialIssuanceServiceImplTest {
     @Mock
     private M2MTokenService m2MTokenService;
 
+    @Mock
+    private CredentialIssuanceRecordService credentialIssuanceRecordService;
+
     @InjectMocks
     private CredentialIssuanceWorkflowImpl verifiableCredentialIssuanceWorkflow;
-
-    @Test
-    void unsupportedFormatErrorExceptionTest() {
-        String processId = "1234";
-        PreSubmittedCredentialRequest preSubmittedCredentialRequest = PreSubmittedCredentialRequest.builder().payload(null).schema("LEARCredentialEmployee").format("json_ldp").operationMode("S").build();
-        StepVerifier.create(verifiableCredentialIssuanceWorkflow.execute(processId, preSubmittedCredentialRequest, "token", null))
-                .expectError(FormatUnsupportedException.class)
-                .verify();
-    }
-
-    @Test
-    void unsupportedOperationModeExceptionTest() {
-        String processId = "1234";
-        PreSubmittedCredentialRequest preSubmittedCredentialRequest = PreSubmittedCredentialRequest.builder().payload(null).schema("LEARCredentialEmployee").format(JWT_VC).operationMode("F").build();
-        StepVerifier.create(verifiableCredentialIssuanceWorkflow.execute(processId, preSubmittedCredentialRequest, "token", null))
-                .expectError(OperationNotSupportedException.class)
-                .verify();
-    }
-
-    @Test
-    void operationNotSupportedExceptionDueInvalidResponseUriTest() {
-        String processId = "1234";
-        String token = "token";
-        String type = "VerifiableCertification";
-        String idToken = "idToken";
-        JsonNode jsonNode = mock(JsonNode.class);
-
-        PreSubmittedCredentialRequest preSubmittedCredentialRequest = PreSubmittedCredentialRequest.builder().payload(jsonNode).schema("VerifiableCertification").format(JWT_VC).operationMode("S").responseUri("").build();
-        when(verifiableCredentialPolicyAuthorizationService.authorize(token, type, jsonNode, idToken)).thenReturn(Mono.empty());
-        StepVerifier.create(verifiableCredentialIssuanceWorkflow.execute(processId, preSubmittedCredentialRequest, token, idToken))
-                .expectError(OperationNotSupportedException.class)
-                .verify();
-    }
 
     @Test
     void completeWithdrawLEARProcessSyncSuccess() throws JsonProcessingException {
@@ -123,69 +94,40 @@ class CredentialIssuanceServiceImplTest {
         String issuerUiExternalDomain = "https://example.com";
         String token = "token";
         String idToken = "idToken";
-        String json = """
-                {
-                    "life_span": {
-                        "end_date_time": "2025-04-02 09:23:22.637345122 +0000 UTC",
-                        "start_date_time": "2024-04-02 09:23:22.637345122 +0000 UTC"
-                    },
-                    "mandatee": {
-                        "email": "example@in2.es",
-                        "firstName": "Jhon",
-                        "lastName": "Doe",
-                        "mobile_phone": "+34666336699"
-                    },
-                    "mandator": {
-                        "commonName": "IN2",
-                        "country": "ES",
-                        "emailAddress": "rrhh@in2.es",
-                        "organization": "IN2, Ingeniería de la Información, S.L.",
-                        "organizationIdentifier": "VATES-B26246436",
-                        "serialNumber": "3424320"
-                    },
-                    "power": [
-                        {
-                            "id": "6b8f3137-a57a-46a5-97e7-1117a20142fv",
-                            "tmf_domain": "DOME",
-                            "tmf_function": "DomePlatform",
-                            "tmf_type": "Domain",
-                            "tmf_action": [
-                                "Operator",
-                                "Customer",
-                                "Provider"
-                            ]
-                        },
-                        {
-                            "id": "6b8f3137-a57a-46a5-97e7-1117a20142fb",
-                            "tmf_action": "Execute",
-                            "tmf_domain": "DOME",
-                            "tmf_function": "Onboarding",
-                            "tmf_type": "Domain"
-                        },
-                        {
-                            "id": "ad9b1509-60ea-47d4-9878-18b581d8e19b",
-                            "tmf_action": [
-                                "Create",
-                                "Update"
-                            ],
-                            "tmf_domain": "DOME",
-                            "tmf_function": "ProductOffering",
-                            "tmf_type": "Domain"
-                        }
-                    ]
-                }
-                """;
-        ObjectMapper objectMapper = new ObjectMapper();
-        JsonNode jsonNode = objectMapper.readTree(json);
-        PreSubmittedCredentialRequest preSubmittedCredentialRequest = PreSubmittedCredentialRequest.builder().payload(jsonNode).schema("LEARCredentialEmployee").format(JWT_VC_JSON).operationMode("S").build();
-        String transactionCode = "4321";
+        JsonNode jsonNode = getJsonNode();
+        PreSubmittedDataCredentialRequest preSubmittedDataCredentialRequest =
+                PreSubmittedDataCredentialRequest
+                        .builder()
+                        .payload(jsonNode)
+                        .schema("LEARCredentialEmployee")
+                        .format(JWT_VC_JSON)
+                        .operationMode("S")
+                        .build();
+        String activationCode = "4321";
 
-        when(verifiableCredentialPolicyAuthorizationService.authorize(token, type, jsonNode, idToken)).thenReturn(Mono.empty());
-        when(verifiableCredentialService.generateVc(processId, type, preSubmittedCredentialRequest, token)).thenReturn(Mono.just(transactionCode));
+        when(accessTokenService.getCleanBearerToken(token))
+                .thenReturn(Mono.just(token));
+        when(verifiableCredentialPolicyAuthorizationService.authorize(token, type, jsonNode, idToken))
+                .thenReturn(Mono.empty());
+        when(credentialIssuanceRecordService.create(processId, preSubmittedDataCredentialRequest, token))
+                .thenReturn(Mono.just(activationCode));
+        when(emailService.sendCredentialActivationEmail(
+                "example@in2.es",
+                "Activate your new credential",
+                issuerUiExternalDomain + "/credentials/activation/" + activationCode,
+                knowledgebaseWalletUrl, "Jhon Doe", "IN2, Ingeniería de la Información, S.L."))
+                .thenReturn(Mono.empty());
         when(appConfig.getIssuerFrontendUrl()).thenReturn(issuerUiExternalDomain);
         when(appConfig.getKnowledgebaseWalletUrl()).thenReturn(knowledgebaseWalletUrl);
-        when(emailService.sendCredentialActivationEmail("example@in2.es", "Activate your new credential", issuerUiExternalDomain + "/credential-offer?transaction_code=" + transactionCode, knowledgebaseWalletUrl, "Jhon Doe", "IN2, Ingeniería de la Información, S.L.")).thenReturn(Mono.empty());
-        StepVerifier.create(verifiableCredentialIssuanceWorkflow.execute(processId, preSubmittedCredentialRequest, token, idToken))
+
+        var result = verifiableCredentialIssuanceWorkflow.execute(
+                processId,
+                preSubmittedDataCredentialRequest,
+                token,
+                idToken);
+
+        StepVerifier
+                .create(result)
                 .verifyComplete();
     }
 
@@ -196,6 +138,42 @@ class CredentialIssuanceServiceImplTest {
         String knowledgebaseWalletUrl = "https://knowledgebase.com";
         String issuerUiExternalDomain = "https://example.com";
         String token = "token";
+        JsonNode jsonNode = getJsonNode();
+        PreSubmittedDataCredentialRequest preSubmittedDataCredentialRequest = PreSubmittedDataCredentialRequest.builder()
+                .payload(jsonNode)
+                .schema("LEARCredentialEmployee")
+                .format(JWT_VC_JSON)
+                .operationMode("S")
+                .build();
+        String transactionCode = "4321";
+
+        when(accessTokenService.getCleanBearerToken(token)).thenReturn(Mono.just(token));
+        when(credentialIssuanceRecordService.create(processId, preSubmittedDataCredentialRequest, token))
+                .thenReturn(Mono.just(transactionCode));
+        when(verifiableCredentialPolicyAuthorizationService.authorize(token, type, jsonNode, null)).thenReturn(Mono.empty());
+        when(appConfig.getIssuerFrontendUrl()).thenReturn(issuerUiExternalDomain);
+        when(appConfig.getKnowledgebaseWalletUrl()).thenReturn(knowledgebaseWalletUrl);
+
+        // Simulación de fallo en el envío del email
+        when(emailService.sendCredentialActivationEmail(
+                "example@in2.es",
+                "Activate your new credential",
+                issuerUiExternalDomain + "/credentials/activation/" + transactionCode,
+                knowledgebaseWalletUrl,
+                "Jhon Doe",
+                "IN2, Ingeniería de la Información, S.L."))
+                .thenReturn(Mono.error(new RuntimeException("Email sending failed")));
+
+        var result = verifiableCredentialIssuanceWorkflow.execute(processId, preSubmittedDataCredentialRequest, token, null);
+
+        StepVerifier.create(result)
+                .expectErrorMatches(throwable ->
+                        throwable instanceof EmailCommunicationException &&
+                                throwable.getMessage().contains(MAIL_ERROR_COMMUNICATION_EXCEPTION_MESSAGE))
+                .verify();
+    }
+
+    private static JsonNode getJsonNode() throws JsonProcessingException {
         String json = """
                 {
                     "life_span": {
@@ -249,35 +227,7 @@ class CredentialIssuanceServiceImplTest {
                 }
                 """;
         ObjectMapper objectMapper = new ObjectMapper();
-        JsonNode jsonNode = objectMapper.readTree(json);
-        PreSubmittedCredentialRequest preSubmittedCredentialRequest = PreSubmittedCredentialRequest.builder()
-                .payload(jsonNode)
-                .schema("LEARCredentialEmployee")
-                .format(JWT_VC_JSON)
-                .operationMode("S")
-                .build();
-        String transactionCode = "4321";
-
-        when(verifiableCredentialPolicyAuthorizationService.authorize(token, type, jsonNode, null)).thenReturn(Mono.empty());
-        when(verifiableCredentialService.generateVc(processId, type, preSubmittedCredentialRequest, token)).thenReturn(Mono.just(transactionCode));
-        when(appConfig.getIssuerFrontendUrl()).thenReturn(issuerUiExternalDomain);
-        when(appConfig.getKnowledgebaseWalletUrl()).thenReturn(knowledgebaseWalletUrl);
-
-        // Simulación de fallo en el envío del email
-        when(emailService.sendCredentialActivationEmail(
-                "example@in2.es",
-                "Activate your new credential",
-                issuerUiExternalDomain + "/credential-offer?transaction_code=" + transactionCode,
-                knowledgebaseWalletUrl,
-                "Jhon Doe",
-                "IN2, Ingeniería de la Información, S.L."))
-                .thenReturn(Mono.error(new RuntimeException("Email sending failed")));
-
-        StepVerifier.create(verifiableCredentialIssuanceWorkflow.execute(processId, preSubmittedCredentialRequest, token, null))
-                .expectErrorMatches(throwable ->
-                        throwable instanceof EmailCommunicationException &&
-                                throwable.getMessage().contains(MAIL_ERROR_COMMUNICATION_EXCEPTION_MESSAGE))
-                .verify();
+        return objectMapper.readTree(json);
     }
 
 
@@ -288,6 +238,29 @@ class CredentialIssuanceServiceImplTest {
         String procedureId = "procedureId";
         String token = "token";
         String idToken = "idToken";
+        JsonNode jsonNode = getNode();
+        PreSubmittedDataCredentialRequest preSubmittedDataCredentialRequest = PreSubmittedDataCredentialRequest.builder().payload(jsonNode).schema("VerifiableCertification").format(JWT_VC_JSON).responseUri("https://example.com/1234").operationMode("S").build();
+
+        when(accessTokenService.getCleanBearerToken(token)).thenReturn(Mono.just(token));
+        when(verifiableCredentialPolicyAuthorizationService.authorize(token, type, jsonNode, idToken)).thenReturn(Mono.empty());
+        when(verifiableCredentialService.generateVerifiableCertification(processId, preSubmittedDataCredentialRequest, idToken)).thenReturn(Mono.just(procedureId));
+        when(issuerApiClientTokenService.getClientToken()).thenReturn(Mono.just("internalToken"));
+        when(credentialProcedureService.updateCredentialProcedureCredentialStatusToValidByProcedureId(procedureId)).thenReturn(Mono.empty());
+        when(m2MTokenService.getM2MToken()).thenReturn(Mono.just(new VerifierOauth2AccessToken("", "", "")));
+        when(credentialSignerWorkflow.signAndUpdateCredentialByProcedureId(BEARER_PREFIX + "internalToken", procedureId, JWT_VC_JSON)).thenReturn(Mono.just("signedCredential"));
+        when(credentialDeliveryService.sendVcToResponseUri(
+                anyString(),
+                anyString(),
+                anyString(),
+                anyString(),
+                anyString()
+        )).thenReturn(Mono.empty());
+
+        StepVerifier.create(verifiableCredentialIssuanceWorkflow.execute(processId, preSubmittedDataCredentialRequest, token, idToken))
+                .verifyComplete();
+    }
+
+    private static JsonNode getNode() throws JsonProcessingException {
         String json = """
                 {
                     "type": [
@@ -326,25 +299,7 @@ class CredentialIssuanceServiceImplTest {
                 }
                 """;
         ObjectMapper objectMapper = new ObjectMapper();
-        JsonNode jsonNode = objectMapper.readTree(json);
-        PreSubmittedCredentialRequest preSubmittedCredentialRequest = PreSubmittedCredentialRequest.builder().payload(jsonNode).schema("VerifiableCertification").format(JWT_VC_JSON).responseUri("https://example.com/1234").operationMode("S").build();
-
-        when(verifiableCredentialPolicyAuthorizationService.authorize(token, type, jsonNode, idToken)).thenReturn(Mono.empty());
-        when(verifiableCredentialService.generateVerifiableCertification(processId, preSubmittedCredentialRequest, idToken)).thenReturn(Mono.just(procedureId));
-        when(issuerApiClientTokenService.getClientToken()).thenReturn(Mono.just("internalToken"));
-        when(credentialProcedureService.updateCredentialProcedureCredentialStatusToValidByProcedureId(procedureId)).thenReturn(Mono.empty());
-        when(m2MTokenService.getM2MToken()).thenReturn(Mono.just(new VerifierOauth2AccessToken("", "", "")));
-        when(credentialSignerWorkflow.signAndUpdateCredentialByProcedureId(BEARER_PREFIX + "internalToken", procedureId, JWT_VC_JSON)).thenReturn(Mono.just("signedCredential"));
-        when(credentialDeliveryService.sendVcToResponseUri(
-                anyString(),
-                anyString(),
-                anyString(),
-                anyString(),
-                anyString()
-        )).thenReturn(Mono.empty());
-
-        StepVerifier.create(verifiableCredentialIssuanceWorkflow.execute(processId, preSubmittedCredentialRequest, token, idToken))
-                .verifyComplete();
+        return objectMapper.readTree(json);
     }
 
     @Test

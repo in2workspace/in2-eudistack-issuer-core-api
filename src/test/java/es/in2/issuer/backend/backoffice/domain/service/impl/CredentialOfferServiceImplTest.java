@@ -1,6 +1,5 @@
 package es.in2.issuer.backend.backoffice.domain.service.impl;
 
-import es.in2.issuer.backend.shared.domain.model.dto.Grants;
 import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,17 +34,14 @@ class CredentialOfferServiceImplTest {
     void testBuildCustomCredentialOffer() {
         String credentialType = "type1";
         String preAuthCode = "code123";
-        String email = "example@exmple.com";
-        String pin = "1234";
-        Grants grants = Grants.builder().preAuthorizedCode(preAuthCode).txCode(Grants.TxCode.builder().length(4).build()).build();
         when(appConfig.getIssuerBackendUrl()).thenReturn("https://example.com");
-        StepVerifier.create(credentialOfferService.buildCustomCredentialOffer(credentialType, grants, email, pin))
+        StepVerifier.create(credentialOfferService.buildCustomCredentialOffer(credentialType, preAuthCode))
                 .expectNextMatches(offer ->
-                        offer.credentialOffer().credentialIssuer().equals("https://example.com") &&
-                                offer.credentialOffer().credentialConfigurationIds().equals(List.of(LEAR_CREDENTIAL_EMPLOYEE)) &&
-                                offer.credentialOffer().grants().containsKey(GRANT_TYPE) &&
-                                offer.credentialOffer().grants().get(GRANT_TYPE).preAuthorizedCode().equals(preAuthCode) &&
-                                offer.credentialOffer().grants().get(GRANT_TYPE).txCode().length() == 4
+                        offer.credentialIssuer().equals("https://example.com") &&
+                                offer.credentialConfigurationIds().equals(List.of(LEAR_CREDENTIAL_EMPLOYEE)) &&
+                                offer.grants().containsKey(GRANT_TYPE) &&
+                                offer.grants().get(GRANT_TYPE).preAuthorizedCode().equals(preAuthCode) &&
+                                offer.grants().get(GRANT_TYPE).txCode().length() == 4
                 )
                 .verifyComplete();
     }

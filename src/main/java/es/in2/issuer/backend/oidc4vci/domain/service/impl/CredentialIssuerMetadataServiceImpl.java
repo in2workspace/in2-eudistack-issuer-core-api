@@ -1,10 +1,12 @@
 package es.in2.issuer.backend.oidc4vci.domain.service.impl;
 
+import es.in2.issuer.backend.shared.domain.model.CredentialConfigurationsSupported;
 import es.in2.issuer.backend.oidc4vci.domain.model.CredentialIssuerMetadata;
 import es.in2.issuer.backend.oidc4vci.domain.service.CredentialIssuerMetadataService;
 import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
@@ -31,11 +33,7 @@ public class CredentialIssuerMetadataServiceImpl implements CredentialIssuerMeta
                 .issuanceEndpoint(credentialIssuerUrl + VCI_ISSUANCES_PATH)
                 .credentialEndpoint(credentialIssuerUrl + OID4VCI_CREDENTIAL_PATH)
                 .deferredCredentialEndpoint(credentialIssuerUrl + OID4VCI_DEFERRED_CREDENTIAL_PATH)
-                .credentialConfigurationsSupported(Map.of(
-                        LEAR_CREDENTIAL_EMPLOYEE, buildLearCredentialEmployeeCredentialConfiguration(),
-                        LEAR_CREDENTIAL_MACHINE, buildLearCredentialMachineCredentialConfiguration(),
-                        VERIFIABLE_CERTIFICATION, buildVerifiableCertificationCredentialConfiguration()
-                ))
+                .credentialConfigurationsSupported(getCredentialConfigurationsSupported())
                 .build();
         return Mono.just(credentialIssuerMetadata);
     }
@@ -77,4 +75,11 @@ public class CredentialIssuerMetadataServiceImpl implements CredentialIssuerMeta
                 .build();
     }
 
+    private @NotNull Map<String, CredentialIssuerMetadata.CredentialConfiguration> getCredentialConfigurationsSupported() {
+        return Map.of(
+                CredentialConfigurationsSupported.LEAR_CREDENTIAL_EMPLOYEE.toString(), buildLearCredentialEmployeeCredentialConfiguration(),
+                CredentialConfigurationsSupported.LEAR_CREDENTIAL_MACHINE.toString(), buildLearCredentialMachineCredentialConfiguration(),
+                CredentialConfigurationsSupported.VERIFIABLE_CERTIFICATION.toString(), buildVerifiableCertificationCredentialConfiguration()
+        );
+    }
 }

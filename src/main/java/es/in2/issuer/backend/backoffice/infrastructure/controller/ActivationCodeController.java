@@ -1,6 +1,7 @@
 package es.in2.issuer.backend.backoffice.infrastructure.controller;
 
 import es.in2.issuer.backend.backoffice.application.workflow.ActivationCodeWorkflow;
+import es.in2.issuer.backend.backoffice.domain.model.dtos.ActivationCodeRequest;
 import es.in2.issuer.backend.backoffice.domain.model.dtos.CredentialOfferUriResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -12,31 +13,43 @@ import java.util.UUID;
 
 @Slf4j
 @RestController
-@RequestMapping("/oid4vci/v1/credential-offer")
+@RequestMapping("/backoffice/v1/credentials/activate")
 @RequiredArgsConstructor
 public class ActivationCodeController {
 
     private final ActivationCodeWorkflow activationCodeWorkflow;
 
-    @GetMapping("/transaction-code/{id}")
+    @PostMapping
     @ResponseStatus(HttpStatus.OK)
-    public Mono<CredentialOfferUriResponse> getCredentialOfferByTransactionCode(@PathVariable("id") String transactionCode) {
-        log.info("Retrieving Credential Offer with Transaction Code...");
+    public Mono<CredentialOfferUriResponse> getCredentialOfferByActivationCode(
+            @RequestBody ActivationCodeRequest activationCodeRequest) {
+        log.info("Retrieving Credential Offer with Activation Code...");
         String processId = UUID.randomUUID().toString();
-        return activationCodeWorkflow.buildCredentialOfferUri(processId, transactionCode)
-                .doOnSuccess(credentialOfferUri -> {
-                            log.debug("Credential Offer URI created successfully: {}", credentialOfferUri);
-                            log.info("Credential Offer created successfully.");
-                        }
-                );
+
+        if (hasActivationCode(activationCodeRequest)) {
+            return activationCodeWorkflow.buildCredentialOfferUri(
+                    processId,
+                    activationCodeRequest.activationCode());
+        } else if (hasCActivationCode(activationCodeRequest)) {
+            return activationCodeWorkflow.buildNewCredentialOfferUri(
+                    processId,
+                    activationCodeRequest.cActivationCode());
+        } else {
+            log.error("Error getting activationCode or cActivationCode. Either 'activationCode' or 'cActivationCode' " +
+                    "must be provided, but not both.");
+            return Mono.error(new IllegalArgumentException("Either 'activationCode' or 'cActivationCode' must be " +
+                    "provided, but not both."));
+        }
     }
 
-    @GetMapping("/c-transaction-code/{id}")
-    @ResponseStatus(HttpStatus.OK)
-    public Mono<CredentialOfferUriResponse> getCredentialOfferByCTransactionCode(@PathVariable("id") String cTransactionCode) {
-        log.info("Retrieving Credential Offer with C Transaction Code...");
-        String processId = UUID.randomUUID().toString();
-        return activationCodeWorkflow.buildNewCredentialOfferUri(processId, cTransactionCode);
+    private static boolean hasCActivationCode(ActivationCodeRequest activationCodeRequest) {
+        return activationCodeRequest.cActivationCode() != null && !activationCodeRequest.cActivationCode().isEmpty()
+                && (activationCodeRequest.activationCode() == null || activationCodeRequest.activationCode().isEmpty());
     }
 
+    private static boolean hasActivationCode(ActivationCodeRequest activationCodeRequest) {
+        return activationCodeRequest.activationCode() != null && !activationCodeRequest.activationCode().isEmpty()
+                && (activationCodeRequest.cActivationCode() == null
+                || activationCodeRequest.cActivationCode().isEmpty());
+    }
 }

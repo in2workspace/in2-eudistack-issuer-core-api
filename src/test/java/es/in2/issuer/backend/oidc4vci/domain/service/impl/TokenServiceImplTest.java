@@ -1,7 +1,6 @@
 package es.in2.issuer.backend.oidc4vci.domain.service.impl;
 
 import es.in2.issuer.backend.oidc4vci.domain.model.TokenResponse;
-import es.in2.issuer.backend.shared.domain.model.dto.CredentialIdAndTxCode;
 import es.in2.issuer.backend.shared.domain.service.JWTService;
 import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
 import es.in2.issuer.backend.shared.infrastructure.repository.CacheStore;
@@ -15,7 +14,6 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import java.util.NoSuchElementException;
-import java.util.UUID;
 
 import static es.in2.issuer.backend.shared.domain.util.Constants.GRANT_TYPE;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -26,7 +24,7 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class TokenServiceImplTest {
     @Mock
-    private CacheStore<CredentialIdAndTxCode> credentialIdAndTxCodeByPreAuthorizedCodeCacheStore;
+    private CacheStore<String> txCodeByPreAuthorizedCodeCacheStore;
 
     @Mock
     private CacheStore<String> nonceCacheStore;
@@ -43,7 +41,7 @@ class TokenServiceImplTest {
     @BeforeEach
     void setUp() {
         tokenService = new TokenServiceImpl(
-                credentialIdAndTxCodeByPreAuthorizedCodeCacheStore,
+                txCodeByPreAuthorizedCodeCacheStore,
                 nonceCacheStore,
                 jwtService,
                 appConfig
@@ -54,13 +52,10 @@ class TokenServiceImplTest {
     void generateTokenResponse_ShouldReturnValidTokenResponse() {
         String preAuthorizedCode = "validPreAuthCode";
         String txCode = "validTxCode";
-        CredentialIdAndTxCode credential = new CredentialIdAndTxCode(UUID.fromString(
-                "2f30e394-f29d-4fcf-a47b-274a4659f3e6"),
-                txCode);
         String accessToken = "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9";
 
-        when(credentialIdAndTxCodeByPreAuthorizedCodeCacheStore.get(anyString()))
-                .thenReturn(Mono.just(credential));
+        when(txCodeByPreAuthorizedCodeCacheStore.get(anyString()))
+                .thenReturn(Mono.just(txCode));
         when(nonceCacheStore.add(anyString(), anyString()))
                 .thenReturn(Mono.just("mockedNonce"));
         when(jwtService.generateJWT(any()))
@@ -100,7 +95,7 @@ class TokenServiceImplTest {
         String preAuthorizedCode = "invalidPreAuthCode";
         String txCode = "validTxCode";
 
-        when(credentialIdAndTxCodeByPreAuthorizedCodeCacheStore.get(preAuthorizedCode))
+        when(txCodeByPreAuthorizedCodeCacheStore.get(preAuthorizedCode))
                 .thenReturn(Mono.error(new NoSuchElementException("Value is not present.")));
 
         Mono<TokenResponse> result = tokenService.generateTokenResponse(GRANT_TYPE, preAuthorizedCode, txCode);
@@ -115,11 +110,9 @@ class TokenServiceImplTest {
         String preAuthorizedCode = "validPreAuthCode";
         String txCode = "invalidTxCode";
 
-        CredentialIdAndTxCode credential = new CredentialIdAndTxCode(UUID.fromString(
-                "2f30e394-f29d-4fcf-a47b-274a4659f3e6"),
-                "validTxCode");
-        when(credentialIdAndTxCodeByPreAuthorizedCodeCacheStore.get(preAuthorizedCode))
-                .thenReturn(Mono.just(credential));
+        String cacheTxCode = "2f30e394-f29d-4fcf-a47b-274a4659f3e6";
+        when(txCodeByPreAuthorizedCodeCacheStore.get(preAuthorizedCode))
+                .thenReturn(Mono.just(cacheTxCode));
 
         Mono<TokenResponse> result = tokenService.generateTokenResponse(GRANT_TYPE, preAuthorizedCode, txCode);
 

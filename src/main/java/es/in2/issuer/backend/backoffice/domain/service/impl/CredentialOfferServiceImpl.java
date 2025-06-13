@@ -2,7 +2,6 @@ package es.in2.issuer.backend.backoffice.domain.service.impl;
 
 import es.in2.issuer.backend.backoffice.domain.service.CredentialOfferService;
 import es.in2.issuer.backend.shared.domain.model.dto.CredentialOffer;
-import es.in2.issuer.backend.shared.domain.model.dto.CredentialOfferData;
 import es.in2.issuer.backend.shared.domain.model.dto.Grants;
 import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +14,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 
+import static es.in2.issuer.backend.oidc4vci.domain.util.Constants.*;
 import static es.in2.issuer.backend.shared.domain.util.Constants.GRANT_TYPE;
 import static es.in2.issuer.backend.shared.domain.util.Constants.LEAR_CREDENTIAL_EMPLOYEE;
 import static es.in2.issuer.backend.shared.domain.util.EndpointsConstants.OID4VCI_CREDENTIAL_OFFER_PATH;
@@ -28,19 +28,14 @@ public class CredentialOfferServiceImpl implements CredentialOfferService {
     private final AppConfig appConfig;
 
     @Override
-    public Mono<CredentialOfferData> buildCustomCredentialOffer(String credentialType, Grants grants, String employeeEmail, String pin) {
+    public Mono<CredentialOffer> buildCustomCredentialOffer(String credentialType, String preAuthorizedCode) {
         return Mono.just(
-
-                CredentialOfferData.builder()
-                        .credentialOffer(CredentialOffer.builder()
-                                .credentialIssuer(appConfig.getIssuerBackendUrl())
-                                .credentialConfigurationIds(List.of(LEAR_CREDENTIAL_EMPLOYEE))
-                                .grants(Map.of(GRANT_TYPE, grants))
-                                .build()
-                        )
-                        .employeeEmail(employeeEmail)
-                        .pin(pin)
-                        .build());
+                CredentialOffer.builder()
+                        .credentialIssuer(appConfig.getIssuerBackendUrl())
+                        .credentialConfigurationIds(List.of(LEAR_CREDENTIAL_EMPLOYEE))
+                        .grants(Map.of(GRANT_TYPE, buildGrants(preAuthorizedCode)))
+                        .build()
+        );
     }
 
     @Override
@@ -51,4 +46,11 @@ public class CredentialOfferServiceImpl implements CredentialOfferService {
         return Mono.just(credentialOfferPrefix + encodedUrl);
     }
 
+    private Grants buildGrants(String preAuthorizedCode) {
+        Grants.TxCode grantTxCode = new Grants.TxCode(TX_CODE_SIZE, TX_INPUT_MODE, TX_CODE_DESCRIPTION);
+        return Grants.builder()
+                .preAuthorizedCode(preAuthorizedCode)
+                .txCode(grantTxCode)
+                .build();
+    }
 }

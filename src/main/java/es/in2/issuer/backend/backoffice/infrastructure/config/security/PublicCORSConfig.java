@@ -34,6 +34,7 @@ public class PublicCORSConfig {
         source.registerCorsConfiguration(DEFERRED_CREDENTIALS, configuration);
         source.registerCorsConfiguration(OAUTH_TOKEN_PATH, configuration);
         source.registerCorsConfiguration(PROMETHEUS_PATH, configuration);
+        source.registerCorsConfiguration(OID4VCI_ACTIVATION_CODE_PATH, configuration);
         return source;
     }
 }

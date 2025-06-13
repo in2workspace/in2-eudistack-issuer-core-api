@@ -10,6 +10,7 @@ import org.springframework.data.relational.core.mapping.Table;
 import java.sql.Timestamp;
 import java.util.UUID;
 
+// todo: delete
 @Getter
 @Setter
 @Builder

@@ -36,12 +36,11 @@ class PreAuthorizedCodeWorkflowTest {
         PreAuthorizedCodeResponse expected = PreAuthorizedCodeResponseMother.dummy();
         UUID credentialId = UUID.fromString("cfcd6d7c-5cc2-4601-a992-86f96afb0706");
 
-        when(preAuthorizedCodeService.generatePreAuthorizedCode(anyString(), any()))
+        when(preAuthorizedCodeService.generatePreAuthorizedCode(anyString()))
                 .thenReturn(Mono.just(expected));
 
         Mono<PreAuthorizedCodeResponse> resultMono = preAuthorizedCodeWorkflow
-                .generatePreAuthorizedCode(
-                        Mono.just(credentialId));
+                .generatePreAuthorizedCode();
 
         StepVerifier
                 .create(resultMono)
@@ -50,12 +49,7 @@ class PreAuthorizedCodeWorkflowTest {
                 .verifyComplete();
 
         verify(preAuthorizedCodeService, times(1))
-                .generatePreAuthorizedCode(anyString(), credentialIdCaptor.capture());
+                .generatePreAuthorizedCode(anyString());
         verifyNoMoreInteractions(preAuthorizedCodeService);
-        StepVerifier
-                .create(credentialIdCaptor.getValue())
-                .assertNext(passedCredentialId -> assertThat(passedCredentialId)
-                        .isEqualTo(credentialId))
-                .verifyComplete();
     }
 }

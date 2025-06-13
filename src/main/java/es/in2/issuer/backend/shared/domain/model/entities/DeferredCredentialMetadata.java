@@ -7,6 +7,7 @@ import org.springframework.data.relational.core.mapping.Table;
 
 import java.util.UUID;
 
+// TODO: delete
 @Getter
 @Setter
 @Builder
