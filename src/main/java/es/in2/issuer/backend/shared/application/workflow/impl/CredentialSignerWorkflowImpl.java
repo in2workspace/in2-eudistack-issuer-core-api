@@ -56,11 +56,6 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
         return credentialProcedureRepository.findByProcedureId(UUID.fromString(procedureId))
             .flatMap(credentialProcedure -> {
                 try{
-                    //TODO eliminar este if en Junio aprox cuando ya no queden credenciales sin vc sin firmar
-                    if(credentialProcedure.getCredentialDecoded().contains("\"vc\"")){
-                        log.info("JWT Payload already created");
-                        return signCredentialOnRequestedFormat(credentialProcedure.getCredentialDecoded(), format, authorizationHeader, procedureId);
-                    }
                     String credentialType = credentialProcedure.getCredentialType();
                     log.info("Building JWT payload for credential signing for credential with type: {}", credentialType);
                     return switch (credentialType) {
