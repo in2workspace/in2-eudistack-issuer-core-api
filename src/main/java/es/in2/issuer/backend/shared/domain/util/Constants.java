@@ -28,4 +28,6 @@ public final class Constants {
 
     public static final long PRE_AUTH_CODE_EXPIRY_DURATION_MINUTES = 5;
     public static final String ENGLISH = "en";
+    public static final String DEFAULT_USER_NAME = "Cloud Provider";
+    public static final String DEFAULT_ORGANIZATION_NAME = "DOME";
 }

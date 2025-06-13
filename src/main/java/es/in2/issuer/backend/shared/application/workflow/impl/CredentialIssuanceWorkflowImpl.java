@@ -8,6 +8,7 @@ import es.in2.issuer.backend.shared.domain.model.dto.*;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.employee.LEARCredentialEmployee;
 import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatus;
 import es.in2.issuer.backend.shared.domain.service.*;
+import es.in2.issuer.backend.shared.domain.util.Constants;
 import es.in2.issuer.backend.shared.domain.util.factory.LEARCredentialEmployeeFactory;
 import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
 import es.in2.issuer.backend.shared.infrastructure.config.security.service.VerifiableCredentialPolicyAuthorizationService;
@@ -23,6 +24,7 @@ import java.text.ParseException;
 
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.*;
 import static es.in2.issuer.backend.shared.domain.util.Constants.*;
+import static es.in2.issuer.backend.shared.domain.util.Constants.LEAR_CREDENTIAL_MACHINE;
 
 @Slf4j
 @Service
@@ -35,13 +37,13 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
     private final EmailService emailService;
     private final CredentialProcedureService credentialProcedureService;
     private final DeferredCredentialMetadataService deferredCredentialMetadataService;
-    private final CredentialSignerWorkflow credentialSignerWorkflow;
+//    private final CredentialSignerWorkflow credentialSignerWorkflow;
     private final VerifiableCredentialPolicyAuthorizationService verifiableCredentialPolicyAuthorizationService;
     private final TrustFrameworkService trustFrameworkService;
     private final LEARCredentialEmployeeFactory credentialEmployeeFactory;
-    private final IssuerApiClientTokenService issuerApiClientTokenService;
-    private final M2MTokenService m2mTokenService;
-    private final CredentialDeliveryService credentialDeliveryService;
+//    private final IssuerApiClientTokenService issuerApiClientTokenService;
+//    private final M2MTokenService m2mTokenService;
+//    private final CredentialDeliveryService credentialDeliveryService;
 
     @Override
     public Mono<Void> execute(String processId, PreSubmittedCredentialRequest preSubmittedCredentialRequest, String token, String idToken) {
@@ -62,60 +64,95 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
 
         // Validate user policy before proceeding
         return verifiableCredentialPolicyAuthorizationService.authorize(token, preSubmittedCredentialRequest.schema(), preSubmittedCredentialRequest.payload(), idToken)
-                .then(Mono.defer(() -> {
-                    if (preSubmittedCredentialRequest.schema().equals(LEAR_CREDENTIAL_EMPLOYEE)) {
-                        return verifiableCredentialService.generateVc(processId, preSubmittedCredentialRequest.schema(), preSubmittedCredentialRequest, token)
-                                .flatMap(transactionCode -> sendCredentialOfferEmail(transactionCode, preSubmittedCredentialRequest));
-                    } else if (preSubmittedCredentialRequest.schema().equals(LABEL_CREDENTIAL)) {
-                        // Check if responseUri is null, empty, or only contains whitespace
-                        if (preSubmittedCredentialRequest.responseUri() == null || preSubmittedCredentialRequest.responseUri().isBlank()) {
-                            return Mono.error(new OperationNotSupportedException("For schema: " + preSubmittedCredentialRequest.schema() + " response_uri is required"));
-                        }
-                        // Extract values from payload
-                        String productId = preSubmittedCredentialRequest.payload()
-                                .get(CREDENTIAL_SUBJECT)
-                                .get(PRODUCT)
-                                .get(PRODUCT_ID)
-                                .asText();
-
-                        String companyEmail = preSubmittedCredentialRequest.payload()
-                                .get(CREDENTIAL_SUBJECT)
-                                .get(COMPANY)
-                                .get(EMAIL)
-                                .asText();
-                        return verifiableCredentialService.generateVerifiableCertification(processId, preSubmittedCredentialRequest, idToken)
-                                .flatMap(procedureId -> issuerApiClientTokenService.getClientToken()
-                                        .flatMap(internalToken -> credentialSignerWorkflow.signAndUpdateCredentialByProcedureId(BEARER_PREFIX + internalToken, procedureId, JWT_VC))
-                                        // todo instead of updating the credential status to valid, we should update the credential status to pending download but we don't support the verifiable certification download yet
-                                        .flatMap(encodedVc -> credentialProcedureService.updateCredentialProcedureCredentialStatusToValidByProcedureId(procedureId)
-                                                .then(m2mTokenService.getM2MToken()
-                                                        .flatMap(m2mAccessToken ->
-                                                                credentialDeliveryService.sendVcToResponseUri(
-                                                                        preSubmittedCredentialRequest.responseUri(),
-                                                                        encodedVc,
-                                                                        productId,
-                                                                        companyEmail,
-                                                                        m2mAccessToken.accessToken())))));
-                    }
-                    return Mono.error(new CredentialTypeUnsupportedException(preSubmittedCredentialRequest.schema()));
-                }));
+                .then(verifiableCredentialService.generateVc(processId, preSubmittedCredentialRequest.schema(), preSubmittedCredentialRequest)
+                        .flatMap(transactionCode -> sendCredentialOfferEmail(transactionCode, preSubmittedCredentialRequest))
+                );
+//                    } else if (preSubmittedCredentialRequest.schema().equals(LABEL_CREDENTIAL)) {
+//                        // Check if responseUri is null, empty, or only contains whitespace
+//                        if (preSubmittedCredentialRequest.responseUri() == null || preSubmittedCredentialRequest.responseUri().isBlank()) {
+//                            return Mono.error(new OperationNotSupportedException("For schema: " + preSubmittedCredentialRequest.schema() + " response_uri is required"));
+//                        }
+//                        // Extract values from payload
+//                        String productId = preSubmittedCredentialRequest.payload()
+//                                .get(CREDENTIAL_SUBJECT)
+//                                .get(PRODUCT)
+//                                .get(PRODUCT_ID)
+//                                .asText();
+//
+//                        String companyEmail = preSubmittedCredentialRequest.payload()
+//                                .get(CREDENTIAL_SUBJECT)
+//                                .get(COMPANY)
+//                                .get(EMAIL)
+//                                .asText();
+//                        return verifiableCredentialService.generateVerifiableCertification(processId, preSubmittedCredentialRequest, idToken)
+//                                .flatMap(procedureId -> issuerApiClientTokenService.getClientToken()
+//                                        .flatMap(internalToken -> credentialSignerWorkflow.signAndUpdateCredentialByProcedureId(BEARER_PREFIX + internalToken, procedureId, JWT_VC))
+//                                        // todo instead of updating the credential status to valid, we should update the credential status to pending download but we don't support the verifiable certification download yet
+//                                        .flatMap(encodedVc -> credentialProcedureService.updateCredentialProcedureCredentialStatusToValidByProcedureId(procedureId)
+//                                                .then(m2mTokenService.getM2MToken()
+//                                                        .flatMap(m2mAccessToken ->
+//                                                                credentialDeliveryService.sendVcToResponseUri(
+//                                                                        preSubmittedCredentialRequest.responseUri(),
+//                                                                        encodedVc,
+//                                                                        productId,
+//                                                                        companyEmail,
+//                                                                        m2mAccessToken.accessToken())))));
+//                    }
+//                    return Mono.error(new CredentialTypeUnsupportedException(preSubmittedCredentialRequest.schema()));
+//                }));
     }
 
-    private Mono<Void> sendCredentialOfferEmail(String transactionCode, PreSubmittedCredentialRequest preSubmittedCredentialRequest) {
-        String email = preSubmittedCredentialRequest.payload().get(MANDATEE).get(EMAIL).asText();
-        String user = preSubmittedCredentialRequest.payload().get(MANDATEE).get(FIRST_NAME).asText() + " " + preSubmittedCredentialRequest.payload().get(MANDATEE).get(LAST_NAME).asText();
-        String organization = preSubmittedCredentialRequest.payload().get(MANDATOR).get(ORGANIZATION).asText();
-        // TODO we are only validating that the url its well formed, we should return the proper object not a string
-        String credentialOfferUrl = UriComponentsBuilder
+    private Mono<Void> sendCredentialOfferEmail(
+            String transactionCode,
+            PreSubmittedCredentialRequest request
+    ) {
+        String credentialOfferUrl = buildCredentialOfferUrl(transactionCode);
+
+        EmailCredentialOfferInfo info = extractCredentialOfferEmailInfo(request);
+
+        return emailService.sendCredentialActivationEmail(
+                        info.email(),
+                        CREDENTIAL_ACTIVATION_EMAIL_SUBJECT,
+                        credentialOfferUrl,
+                        appConfig.getKnowledgebaseWalletUrl(),
+                        info.user(),
+                        info.organization()
+                )
+                .onErrorMap(ex -> new EmailCommunicationException(MAIL_ERROR_COMMUNICATION_EXCEPTION_MESSAGE));
+    }
+
+    private String buildCredentialOfferUrl(String transactionCode) {
+        return UriComponentsBuilder
                 .fromHttpUrl(appConfig.getIssuerFrontendUrl())
                 .path("/credential-offer")
                 .queryParam("transaction_code", transactionCode)
                 .build()
                 .toUriString();
+    }
 
-        return emailService.sendCredentialActivationEmail(email, CREDENTIAL_ACTIVATION_EMAIL_SUBJECT, credentialOfferUrl, appConfig.getKnowledgebaseWalletUrl(), user, organization)
-                .onErrorMap(exception ->
-                        new EmailCommunicationException(MAIL_ERROR_COMMUNICATION_EXCEPTION_MESSAGE));
+    // Get the necessary information to send the credential offer email
+    private EmailCredentialOfferInfo extractCredentialOfferEmailInfo(PreSubmittedCredentialRequest req) {
+        String schema = req.schema();
+        var payload = req.payload();
+
+        return switch (schema) {
+            case LEAR_CREDENTIAL_EMPLOYEE -> {
+                String email = payload.get(MANDATEE).get(EMAIL).asText();
+                String user  = payload.get(MANDATEE).get(FIRST_NAME).asText()
+                        + " " + payload.get(MANDATEE).get(LAST_NAME).asText();
+                String org   = payload.get(MANDATOR).get(ORGANIZATION).asText();
+                yield new EmailCredentialOfferInfo(email, user, org);
+            }
+            case LABEL_CREDENTIAL -> {
+                    // todo: need to know how Dekra is gonna send the email
+                    String user = DEFAULT_USER_NAME;
+                    String org = DEFAULT_ORGANIZATION_NAME;
+                    yield null;
+            }
+            default -> throw new FormatUnsupportedException(
+                    "Unknown schema: " + schema
+            );
+        };
     }
 
     @Override
