@@ -135,6 +135,8 @@ public class CredentialFactory {
             ObjectNode credentialStatus = objectMapper.createObjectNode();
             String uuid = credential.get("id").asText();
 
+            // TODO: Generate nonce to ensure credential privacy. The nonce will be saved in DDBB.
+
             credentialStatus.put("id", "https://issuer.dome-marketplace.eu/credentials/status/1#" + uuid);
             credentialStatus.put("type", "PlainListEntity");
             credentialStatus.put("statusPurpose", "revocation");
