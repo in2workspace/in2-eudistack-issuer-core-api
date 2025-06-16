@@ -52,12 +52,9 @@ public class CredentialIssuanceRecordServiceImpl implements CredentialIssuanceRe
     }
 
     @Override
-    public Mono<Void> setPreAuthorizedCodeById(String id, String preAuthorizedCode) {
-        return credentialIssuanceRepository.findById(UUID.fromString(id))
-                .flatMap(credentialIssuanceRecord -> {
-                    credentialIssuanceRecord.setPreAuthorizedCode(preAuthorizedCode);
-                    return credentialIssuanceRepository.save(credentialIssuanceRecord);
-                }).then();
+    public Mono<Void> setPreAuthorizedCodeById(CredentialIssuanceRecord credentialIssuanceRecord, String preAuthorizedCode) {
+        credentialIssuanceRecord.setPreAuthorizedCode(preAuthorizedCode);
+        return credentialIssuanceRepository.save(credentialIssuanceRecord).then();
     }
 
     @Override
