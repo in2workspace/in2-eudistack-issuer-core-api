@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS issuer.credential_issuance_record (
     credential_type VARCHAR(50),
     credential_status VARCHAR(20),
     credential_data TEXT,
-    preauthorized_code VARCHAR(255),
+    pre_authorized_code VARCHAR(255),
     access_token VARCHAR(255),
     refresh_token VARCHAR(255),
     transaction_id VARCHAR(255),
