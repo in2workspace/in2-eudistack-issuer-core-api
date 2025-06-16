@@ -91,10 +91,10 @@ public class CredentialIssuanceRecordServiceImpl implements CredentialIssuanceRe
     }
 
     @Override
-    public Mono<Void> setTransactionCodeById(String id, String transactionId) {
+    public Mono<Void> setTransactionCodeById(String id, String transactionCode) {
         return credentialIssuanceRepository.findById(UUID.fromString(id))
                 .flatMap(credentialIssuanceRecord -> {
-                    credentialIssuanceRecord.setTransactionId(transactionId);
+                    credentialIssuanceRecord.setTransactionId(transactionCode);
                     return credentialIssuanceRepository.save(credentialIssuanceRecord);
                 }).then();
     }

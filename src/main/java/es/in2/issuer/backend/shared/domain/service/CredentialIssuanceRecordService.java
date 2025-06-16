@@ -23,7 +23,7 @@ public interface CredentialIssuanceRecordService {
 
     Mono<Void> updateOperationModeAndStatus(String id, String operationMode, CredentialStatus credentialStatus);
 
-    Mono<Void> setTransactionCodeById(String id, String transactionId);
+    Mono<Void> setTransactionCodeById(String id, String transactionCode);
 
     Mono<Void> update(CredentialIssuanceRecord credentialIssuanceRecord);
 
