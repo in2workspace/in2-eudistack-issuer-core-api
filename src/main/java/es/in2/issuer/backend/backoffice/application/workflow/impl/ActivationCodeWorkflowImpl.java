@@ -57,34 +57,41 @@ public class ActivationCodeWorkflowImpl implements ActivationCodeWorkflow {
                 .flatMap(credentialIssuanceRecord ->
                         preAuthorizedCodeWorkflow.generatePreAuthorizedCode()
                                 .flatMap(preAuthorizedCodeResponse ->
-                                        credentialOfferService.buildCustomCredentialOffer(
-                                                        credentialIssuanceRecord.getCredentialType(),
+                                        credentialIssuanceRecordService.setPreAuthorizedCodeById(
+                                                        credentialIssuanceRecord,
                                                         preAuthorizedCodeResponse.preAuthorizedCode())
-                                                .flatMap(credentialOffer ->
-                                                        buildIssuanceMetadata(
-                                                                preAuthorizedCodeResponse.preAuthorizedCode(),
-                                                                credentialIssuanceRecord.getId().toString(),
-                                                                preAuthorizedCodeResponse.txCode(),
-                                                                credentialIssuanceRecord.getEmail(),
-                                                                credentialOffer)
-                                                                .flatMap(issuanceMetadata ->
-                                                                        generateCustomNonce()
-                                                                                .flatMap(activationCodeNonce ->
-                                                                                        cacheStoreForIssuanceMetadata.add(activationCodeNonce, issuanceMetadata)
-                                                                                                .then(credentialOfferService.createCredentialOfferUriResponse(activationCodeNonce))
-                                                                                                .flatMap(credentialOfferUri ->
-                                                                                                        generateCustomNonce()
-                                                                                                                .flatMap(cActivationCodeNonce ->
-                                                                                                                        cacheStoreForCActivationCode.add(cActivationCodeNonce, activationCodeNonce)
-                                                                                                                                .then(buildCredentialOfferUriResponse(credentialOfferUri, cActivationCodeNonce))
-                                                                                                                )
-                                                                                                )
-                                                                                )
-                                                                )
+                                                .then(credentialOfferService.buildCustomCredentialOffer(
+                                                                credentialIssuanceRecord.getCredentialType(),
+                                                                preAuthorizedCodeResponse.preAuthorizedCode())
+                                                        .flatMap(credentialOffer ->
+                                                                buildIssuanceMetadata(
+                                                                        preAuthorizedCodeResponse.preAuthorizedCode(),
+                                                                        credentialIssuanceRecord.getId().toString(),
+                                                                        preAuthorizedCodeResponse.txCode(),
+                                                                        credentialIssuanceRecord.getEmail(),
+                                                                        credentialOffer)
+                                                                        .flatMap(issuanceMetadata ->
+                                                                                generateCustomNonce()
+                                                                                        .flatMap(activationCodeNonce ->
+                                                                                                cacheStoreForIssuanceMetadata.add(activationCodeNonce, issuanceMetadata)
+                                                                                                        .then(
+                                                                                                                credentialOfferService.createCredentialOfferUriResponse(activationCodeNonce)
+                                                                                                                        .flatMap(credentialOfferUri ->
+                                                                                                                                generateCustomNonce()
+                                                                                                                                        .flatMap(cActivationCodeNonce ->
+                                                                                                                                                cacheStoreForCActivationCode.add(cActivationCodeNonce, activationCodeNonce)
+                                                                                                                                                        .then(buildCredentialOfferUriResponse(credentialOfferUri, cActivationCodeNonce))
+                                                                                                                                        )
+                                                                                                                        )
+                                                                                                        )
+                                                                                        )
+                                                                        )
+                                                        )
                                                 )
                                 )
                 );
     }
+
 
     private Mono<IssuanceMetadata> buildIssuanceMetadata(String preAuthorizedCode, String credentialIssuanceRecordId,
                                                          String txCode, String email, CredentialOffer credentialOffer) {

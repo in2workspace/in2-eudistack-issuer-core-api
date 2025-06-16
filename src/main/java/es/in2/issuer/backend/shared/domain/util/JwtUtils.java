@@ -1,5 +1,6 @@
 package es.in2.issuer.backend.shared.domain.util;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.nimbusds.jose.JWSObject;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -30,6 +31,16 @@ public class JwtUtils {
         } catch (Exception e) {
             log.error("Error comparing JSONs", e);
             return false;
+        }
+    }
+
+    public String getJti(String token) {
+        try {
+            JWSObject jwsObject = JWSObject.parse(token);
+            return jwsObject.getPayload().toJSONObject().get("jti").toString();
+        } catch (Exception e) {
+            log.error("Error extracting JTI from access token", e);
+            throw new IllegalArgumentException("Invalid token");
         }
     }
 }

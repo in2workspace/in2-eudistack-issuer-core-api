@@ -10,4 +10,5 @@ public interface W3CVerifiableCredential {
     Issuer issuer();
     String validFrom();
     String validUntil();
+    CredentialStatusObject credentialStatus();
 }

@@ -1,7 +1,9 @@
 package es.in2.issuer.backend.oidc4vci.domain.service.impl;
 
 import es.in2.issuer.backend.oidc4vci.domain.model.TokenResponse;
+import es.in2.issuer.backend.shared.domain.service.CredentialIssuanceRecordService;
 import es.in2.issuer.backend.shared.domain.service.JWTService;
+import es.in2.issuer.backend.shared.domain.util.JwtUtils;
 import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
 import es.in2.issuer.backend.shared.infrastructure.repository.CacheStore;
 import org.junit.jupiter.api.BeforeEach;
@@ -22,12 +24,13 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class TokenServiceImplTest {
-    @Mock
-    private CacheStore<String> txCodeByPreAuthorizedCodeCacheStore;
+class TokenWorkflowImplTest {
 
     @Mock
-    private CacheStore<String> nonceCacheStore;
+    CredentialIssuanceRecordService credentialIssuanceRecordService;
+
+    @Mock
+    private CacheStore<String> stringCacheStore;
 
     @Mock
     private JWTService jwtService;
@@ -35,16 +38,20 @@ class TokenServiceImplTest {
     @Mock
     private AppConfig appConfig;
 
+    @Mock
+    private JwtUtils jwtUtils;
+
     @InjectMocks
-    private TokenServiceImpl tokenService;
+    private TokenWorkflowImpl tokenService;
 
     @BeforeEach
     void setUp() {
-        tokenService = new TokenServiceImpl(
-                txCodeByPreAuthorizedCodeCacheStore,
-                nonceCacheStore,
+        tokenService = new TokenWorkflowImpl(
+                credentialIssuanceRecordService,
+                stringCacheStore,
                 jwtService,
-                appConfig
+                appConfig,
+                jwtUtils
         );
     }
 
@@ -53,13 +60,24 @@ class TokenServiceImplTest {
         String preAuthorizedCode = "validPreAuthCode";
         String txCode = "validTxCode";
         String accessToken = "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9";
+        String refreshToken = "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.refresh";
+        String id = "id";
 
-        when(txCodeByPreAuthorizedCodeCacheStore.get(anyString()))
+        when(credentialIssuanceRecordService.getIdByPreAuthorizedCode(preAuthorizedCode))
+                .thenReturn(Mono.just(id));
+        String jtiAccessToken = "jtiAccessToken";
+        when(jwtUtils.getJti(accessToken))
+                .thenReturn(jtiAccessToken);
+        String jtiRefreshToken = "jtiRefreshToken";
+        when(jwtUtils.getJti(refreshToken))
+                .thenReturn(jtiRefreshToken);
+        when(credentialIssuanceRecordService.setJtis(id, jtiAccessToken, jtiRefreshToken))
+                .thenReturn(Mono.empty());
+        when(stringCacheStore.get(anyString()))
                 .thenReturn(Mono.just(txCode));
-        when(nonceCacheStore.add(anyString(), anyString()))
-                .thenReturn(Mono.just("mockedNonce"));
         when(jwtService.generateJWT(any()))
-                .thenReturn(accessToken);
+                .thenReturn(accessToken)
+                .thenReturn(refreshToken);
         when(appConfig.getIssuerBackendUrl())
                 .thenReturn("mockedIssuerDomain");
 
@@ -69,10 +87,9 @@ class TokenServiceImplTest {
                 .assertNext(tokenResponse -> {
                     assertThat(tokenResponse).isNotNull();
                     assertThat(tokenResponse.accessToken()).isEqualTo(accessToken);
+                    assertThat(tokenResponse.refreshToken()).isEqualTo(refreshToken);
                     assertThat(tokenResponse.tokenType()).isEqualTo("bearer");
-                    assertThat(tokenResponse.nonce()).isNotNull();
                     assertThat(tokenResponse.expiresIn()).isGreaterThan(0);
-                    assertThat(tokenResponse.nonceExpiresIn()).isGreaterThan(0);
                 })
                 .verifyComplete();
     }
@@ -82,6 +99,11 @@ class TokenServiceImplTest {
         String grantType = "invalidGrantType";
         String preAuthorizedCode = "validPreAuthCode";
         String txCode = "validTxCode";
+
+        when(appConfig.getIssuerBackendUrl())
+                .thenReturn("a");
+        when(credentialIssuanceRecordService.getIdByPreAuthorizedCode(preAuthorizedCode))
+                .thenReturn(Mono.just("id"));
 
         Mono<TokenResponse> result = tokenService.generateTokenResponse(grantType, preAuthorizedCode, txCode);
 
@@ -95,8 +117,12 @@ class TokenServiceImplTest {
         String preAuthorizedCode = "invalidPreAuthCode";
         String txCode = "validTxCode";
 
-        when(txCodeByPreAuthorizedCodeCacheStore.get(preAuthorizedCode))
+        when(stringCacheStore.get(preAuthorizedCode))
                 .thenReturn(Mono.error(new NoSuchElementException("Value is not present.")));
+        when(appConfig.getIssuerBackendUrl())
+                .thenReturn("a");
+        when(credentialIssuanceRecordService.getIdByPreAuthorizedCode(preAuthorizedCode))
+                .thenReturn(Mono.just("id"));
 
         Mono<TokenResponse> result = tokenService.generateTokenResponse(GRANT_TYPE, preAuthorizedCode, txCode);
 
@@ -111,8 +137,12 @@ class TokenServiceImplTest {
         String txCode = "invalidTxCode";
 
         String cacheTxCode = "2f30e394-f29d-4fcf-a47b-274a4659f3e6";
-        when(txCodeByPreAuthorizedCodeCacheStore.get(preAuthorizedCode))
+        when(stringCacheStore.get(preAuthorizedCode))
                 .thenReturn(Mono.just(cacheTxCode));
+        when(appConfig.getIssuerBackendUrl())
+                .thenReturn("mockedIssuerDomain");
+        when(credentialIssuanceRecordService.getIdByPreAuthorizedCode(preAuthorizedCode))
+                .thenReturn(Mono.just("id"));
 
         Mono<TokenResponse> result = tokenService.generateTokenResponse(GRANT_TYPE, preAuthorizedCode, txCode);
 

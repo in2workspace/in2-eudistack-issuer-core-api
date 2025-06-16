@@ -7,6 +7,7 @@ import es.in2.issuer.backend.shared.domain.exception.ParseErrorException;
 import es.in2.issuer.backend.shared.domain.model.dto.PreSubmittedDataCredentialRequest;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.employee.LEARCredentialEmployee;
 import es.in2.issuer.backend.shared.domain.model.entities.CredentialIssuanceRecord;
+import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatus;
 import es.in2.issuer.backend.shared.domain.repository.CredentialIssuanceRepository;
 import es.in2.issuer.backend.shared.domain.service.AccessTokenService;
 import es.in2.issuer.backend.shared.domain.service.CredentialIssuanceRecordService;
@@ -18,6 +19,7 @@ import reactor.core.publisher.Mono;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.NoSuchElementException;
 import java.util.UUID;
 
 import static es.in2.issuer.backend.shared.domain.util.Utils.generateCustomNonce;
@@ -47,6 +49,65 @@ public class CredentialIssuanceRecordServiceImpl implements CredentialIssuanceRe
     @Override
     public Mono<CredentialIssuanceRecord> get(String id) {
         return credentialIssuanceRepository.findById(UUID.fromString(id));
+    }
+
+    @Override
+    public Mono<Void> setPreAuthorizedCodeById(CredentialIssuanceRecord credentialIssuanceRecord, String preAuthorizedCode) {
+        credentialIssuanceRecord.setPreAuthorizedCode(preAuthorizedCode);
+        return credentialIssuanceRepository.save(credentialIssuanceRecord).then();
+    }
+
+    @Override
+    public Mono<String> getIdByPreAuthorizedCode(String preAuthorizedCode) {
+        return credentialIssuanceRepository.findByPreAuthorizedCode(preAuthorizedCode)
+                .map(credentialIssuanceRecord -> credentialIssuanceRecord.getId().toString())
+                .switchIfEmpty(Mono.error(new NoSuchElementException("No CredentialIssuanceRecord found for preAuthorizedCode: " + preAuthorizedCode)));
+    }
+
+    @Override
+    public Mono<Void> setJtis(String id, String accessTokenJti, String refreshTokenJti) {
+        return credentialIssuanceRepository.findById(UUID.fromString(id))
+                .flatMap(credentialIssuanceRecord -> {
+                    credentialIssuanceRecord.setAccessTokenJti(accessTokenJti);
+                    credentialIssuanceRecord.setRefreshTokenJti(refreshTokenJti);
+                    return credentialIssuanceRepository.save(credentialIssuanceRecord);
+                }).then();
+    }
+
+    @Override
+    public Mono<CredentialIssuanceRecord> getByJti(String accessTokenJti) {
+        return credentialIssuanceRepository.findByAccessTokenJti(accessTokenJti)
+                .switchIfEmpty(Mono.error(new NoSuchElementException("No CredentialIssuanceRecord found for accessToken JTI: " + accessTokenJti)));
+    }
+
+    @Override
+    public Mono<Void> updateOperationModeAndStatus(String id, String operationMode, CredentialStatus credentialStatus) {
+        return credentialIssuanceRepository.findById(UUID.fromString(id))
+                .flatMap(credentialIssuanceRecord -> {
+                    credentialIssuanceRecord.setOperationMode(operationMode);
+                    credentialIssuanceRecord.setCredentialStatus(credentialStatus);
+                    return credentialIssuanceRepository.save(credentialIssuanceRecord);
+                }).then();
+    }
+
+    @Override
+    public Mono<Void> setTransactionCodeById(String id, String transactionCode) {
+        return credentialIssuanceRepository.findById(UUID.fromString(id))
+                .flatMap(credentialIssuanceRecord -> {
+                    credentialIssuanceRecord.setTransactionId(transactionCode);
+                    return credentialIssuanceRepository.save(credentialIssuanceRecord);
+                }).then();
+    }
+
+    @Override
+    public Mono<Void> update(CredentialIssuanceRecord credentialIssuanceRecord) {
+        return credentialIssuanceRepository.save(credentialIssuanceRecord).then();
+    }
+
+    @Override
+    public Mono<String> getOperationModeById(String id) {
+        return credentialIssuanceRepository.findById(UUID.fromString(id))
+                .map(CredentialIssuanceRecord::getOperationMode);
     }
 
     private Mono<String> generateActivationCode(String credentialIssuanceRecordId) {

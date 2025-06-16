@@ -1,7 +1,7 @@
 package es.in2.issuer.backend.oidc4vci.infrastructure.controller;
 
 import es.in2.issuer.backend.oidc4vci.domain.model.TokenResponse;
-import es.in2.issuer.backend.oidc4vci.domain.service.TokenService;
+import es.in2.issuer.backend.oidc4vci.domain.service.TokenWorkflow;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
@@ -23,7 +23,7 @@ import static org.springframework.security.test.web.reactive.server.SecurityMock
 class TokenControllerTest {
 
     @MockBean
-    TokenService tokenService;
+    TokenWorkflow tokenWorkflow;
 
     @Autowired
     WebTestClient webTestClient;
@@ -37,9 +37,8 @@ class TokenControllerTest {
                 "access-token",
                 "token-type",
                 3600L,
-                "nonce",
-                3600L);
-        when(tokenService.generateTokenResponse(
+                "eyy");
+        when(tokenWorkflow.generateTokenResponse(
                 grantType,
                 preAuthorizedCode,
                 txCode))

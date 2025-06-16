@@ -48,7 +48,6 @@ class CredentialControllerTest {
                 .cNonceExpiresIn(35)
                 .build();
         ResponseEntity<VerifiableCredentialResponse> expectedResponse = new ResponseEntity<>(verifiableCredentialResponse, HttpStatus.ACCEPTED);
-        when(accessTokenService.getCleanBearerToken(authorizationHeader)).thenReturn(Mono.just("testToken"));
         when(credentialIssuanceWorkflow.generateVerifiableCredentialResponse(anyString(), eq(credentialRequest), anyString())).thenReturn(Mono.just(verifiableCredentialResponse));
 
         Mono<ResponseEntity<VerifiableCredentialResponse>> result = credentialController.createVerifiableCredential(authorizationHeader, credentialRequest);

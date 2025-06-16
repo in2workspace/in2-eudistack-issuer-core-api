@@ -45,8 +45,14 @@ public class CredentialIssuanceRecord {
 
     // Issuance Metadata
 
-    @Column("refresh_token")
-    private String refreshToken;
+    @Column("pre_authorized_code")
+    private String preAuthorizedCode;
+
+    @Column("access_token_jti")
+    private String accessTokenJti;
+
+    @Column("refresh_token_jti")
+    private String refreshTokenJti;
 
     @Column("transaction_id")
     private String transactionId;

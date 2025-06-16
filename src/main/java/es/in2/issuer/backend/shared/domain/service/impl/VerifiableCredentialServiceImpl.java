@@ -75,7 +75,6 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
     }
 
 
-
     @Override
     public Mono<VerifiableCredentialResponse> generateDeferredCredentialResponse(String processId, DeferredCredentialRequest deferredCredentialRequest) {
         return deferredCredentialMetadataService.getVcByTransactionId(deferredCredentialRequest.transactionId())
@@ -100,40 +99,14 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
             JWSObject jwsObject = JWSObject.parse(accessToken);
             String newAuthServerNonce = jwsObject.getPayload().toJSONObject().get("jti").toString();
             return deferredCredentialMetadataService.updateAuthServerNonceByAuthServerNonce(newAuthServerNonce, preAuthCode);
-        } catch (ParseException e){
+        } catch (ParseException e) {
             return Mono.error(RuntimeException::new);
         }
 
     }
 
     @Override
-    public Mono<VerifiableCredentialResponse> buildCredentialResponse(String processId, String subjectDid, String authServerNonce, String format, String token) {
-        return deferredCredentialMetadataService.getProcedureIdByAuthServerNonce(authServerNonce)
-            .flatMap(procedureId -> {
-                log.info("Procedure ID obtained: {}", procedureId);
-                return credentialProcedureService.getCredentialTypeByProcedureId(procedureId)
-                        .flatMap(credentialType -> {
-                            log.info("Credential Type obtained: {}", credentialType);
-                            return credentialProcedureService.getDecodedCredentialByProcedureId(procedureId)
-                                    .flatMap(decodedCredential -> {
-                                        log.info("Decoded Credential obtained: {}", decodedCredential);
-                                        return credentialFactory.mapCredentialAndBindMandateeId(processId, credentialType, decodedCredential, subjectDid)
-                                                .flatMap(bindCredentialWithMandateeId -> credentialProcedureService.updateDecodedCredentialByProcedureId(procedureId, bindCredentialWithMandateeId, format)
-                                                    .then(deferredCredentialMetadataService.updateDeferredCredentialMetadataByAuthServerNonce(authServerNonce, format))
-                                                        .flatMap(transactionId -> {
-                                                            log.info("Transaction ID obtained: {}", transactionId);
-                                                            return credentialFactory.mapCredentialBindIssuerAndUpdateDB(processId, procedureId, bindCredentialWithMandateeId, credentialType, format, authServerNonce)
-                                                                    .then(credentialProcedureService.getOperationModeByProcedureId(procedureId))
-                                                                    .flatMap(actualOperationMode -> buildCredentialResponseBasedOnOperationMode(actualOperationMode, procedureId, transactionId, authServerNonce, token));
-                                                        }));
-                                    });
-                        });
-            });
-    }
-
-
-
-    private Mono<VerifiableCredentialResponse> buildCredentialResponseBasedOnOperationMode(String operationMode, String procedureId, String transactionId, String authServerNonce, String token) {
+    public Mono<VerifiableCredentialResponse> buildCredentialResponseBasedOnOperationMode(String operationMode, String procedureId, String transactionId, String authServerNonce, String token) {
         if (operationMode.equals(ASYNC)) {
             return credentialProcedureService.getDecodedCredentialByProcedureId(procedureId)
                     .flatMap(decodedCredential -> {
@@ -163,8 +136,7 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
                                         return Mono.error(error);
                                     })
                     );
-        }
-        else {
+        } else {
             return Mono.error(new IllegalArgumentException("Unknown operation mode: " + operationMode));
         }
     }

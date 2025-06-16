@@ -115,7 +115,7 @@ class RemoteSignatureServiceImplTest {
                 .thenReturn(Mono.just(signedResponse));
         when(objectMapper.readValue(signedResponse, SignedData.class)).thenReturn(signedData);
 
-        Mono<SignedData> result = remoteSignatureService.sign(signatureRequest, token, "550e8400-e29b-41d4-a716-446655440000");
+        Mono<SignedData> result = remoteSignatureService.sign(signatureRequest, token, "");
 
         StepVerifier.create(result)
                 .expectNext(signedData)
@@ -146,7 +146,7 @@ class RemoteSignatureServiceImplTest {
                 })
                 .verify();
     }
-    
+
     @Test
     void testGetSignedDocumentExternal() throws JsonProcessingException, HashGenerationException {
         signatureType = SignatureType.JADES;
@@ -333,7 +333,7 @@ class RemoteSignatureServiceImplTest {
         verify(procedure).setCredentialStatus(CredentialStatus.PEND_SIGNATURE);
         verify(deferredProcedure).setOperationMode(ASYNC);
     }
-    
+
     @Test
     void testSignSuccessOnFirstAttempt() throws JsonProcessingException {
         // Arrange
@@ -343,7 +343,7 @@ class RemoteSignatureServiceImplTest {
         SignatureConfiguration signatureConfiguration = new SignatureConfiguration(signatureType, parameters);
         signatureRequest = new SignatureRequest(signatureConfiguration, "\"vc\": {\"id\": \"fa7376e0-fcc1-44c0-a91e-001a1301c06e\"}");
         token = "dummyToken";
-        String procedureId = "550e8400-e29b-41d4-a716-446655440000";
+
 
         // Configure server endpoint
         when(remoteSignatureConfig.getRemoteSignatureDomain()).thenReturn("http://remote-signature.com");
@@ -367,21 +367,18 @@ class RemoteSignatureServiceImplTest {
         when(jwtUtils.decodePayload(any())).thenReturn("\"vc\": {\"id\": \"fa7376e0-fcc1-44c0-a91e-001a1301c06e\"}");
 
         // Act
-        Mono<SignedData> result = remoteSignatureService.sign(signatureRequest, token, procedureId);
+        Mono<SignedData> result = remoteSignatureService.sign(signatureRequest, token, "");
 
         // Assert
         StepVerifier.create(result)
                 .expectComplete()
                 .verify();
 
-        // Verify deferredCredentialMetadataService was called to delete the metadata
-        verify(deferredCredentialMetadataService).deleteDeferredCredentialMetadataById(procedureId);
-
         // Verify handlePostRecoverError was not called (no recovery needed)
         verify(credentialProcedureRepository, never()).findByProcedureId(any(UUID.class));
         verify(deferredCredentialMetadataRepository, never()).findByProcedureId(any(UUID.class));
     }
-    
+
     @Test
     void testSignSuccessAfterRetries() throws JsonProcessingException {
         // Arrange
@@ -391,7 +388,7 @@ class RemoteSignatureServiceImplTest {
         SignatureConfiguration signatureConfiguration = new SignatureConfiguration(signatureType, parameters);
         signatureRequest = new SignatureRequest(signatureConfiguration, "\"vc\": {\"id\": \"fa7376e0-fcc1-44c0-a91e-001a1301c06e\"}");
         token = "dummyToken";
-        String procedureId = "550e8400-e29b-41d4-a716-446655440000";
+
 
         // Create a server error response
         WebClientResponseException serverError = WebClientResponseException.create(
@@ -431,7 +428,7 @@ class RemoteSignatureServiceImplTest {
         when(jwtUtils.decodePayload(any())).thenReturn("\"vc\": {\"id\": \"fa7376e0-fcc1-44c0-a91e-001a1301c06e\"}");
 
         // Act
-        Mono<SignedData> result = remoteSignatureService.sign(signatureRequest, token, procedureId);
+        Mono<SignedData> result = remoteSignatureService.sign(signatureRequest, token, "");
 
         // Assert
         StepVerifier.create(result)
@@ -439,14 +436,12 @@ class RemoteSignatureServiceImplTest {
                 .verify();
 
         verify(httpUtils, times(4)).postRequest(any(), any(), any());
-        // Verify deferredCredentialMetadataService was called to delete the metadata
-        verify(deferredCredentialMetadataService).deleteDeferredCredentialMetadataById(procedureId);
 
         // Verify handlePostRecoverError was not called (no recovery needed)
         verify(credentialProcedureRepository, never()).findByProcedureId(any(UUID.class));
         verify(deferredCredentialMetadataRepository, never()).findByProcedureId(any(UUID.class));
     }
-    
+
     @Test
     void testSignFailAfterAllRetries() throws JsonProcessingException {
         // Arrange
@@ -759,6 +754,7 @@ class RemoteSignatureServiceImplTest {
                 .verify();
 
     }
+
     @Test
     void extractIssuerFromCertificateInfo_Success_X509Branch() throws Exception {
         String dummyCertContent = "-----BEGIN CERTIFICATE-----\nMIIDummyCertificateContent\n-----END CERTIFICATE-----";
@@ -793,6 +789,7 @@ class RemoteSignatureServiceImplTest {
                     .verifyComplete();
         }
     }
+
     @Test
     void extractOrgFromX509_NoOrganizationIdentifier() throws Exception {
         byte[] dummyBytes = "dummy".getBytes(StandardCharsets.UTF_8);

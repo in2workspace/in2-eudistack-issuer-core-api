@@ -22,7 +22,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class M2MTokenServiceImplTest {
+class M2MTokenWorkflowImplTest {
 
     @Mock
     private JWTService jwtService;
