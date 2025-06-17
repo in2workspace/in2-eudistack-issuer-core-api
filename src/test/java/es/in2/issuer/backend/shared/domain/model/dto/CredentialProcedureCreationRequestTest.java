@@ -66,7 +66,7 @@ class CredentialProcedureCreationRequestTest {
         String expectedOrganizationIdentifier = "org123";
         String expectedCredentialDecoded = "Decoded Credential";
         CredentialType expectedCredentialType1 = CredentialType.LEAR_CREDENTIAL_EMPLOYEE;
-        CredentialType expectedCredentialType2 = CredentialType.VERIFIABLE_CERTIFICATION;
+        CredentialType expectedCredentialType2 = CredentialType.LABEL_CREDENTIAL;
         String expectedSubject = "Subject";
         Timestamp expectedValidUntil = new Timestamp(System.currentTimeMillis());
         String expectedOperationMode = "S";

@@ -23,7 +23,6 @@ import java.text.ParseException;
 import java.util.List;
 
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.*;
-import static es.in2.issuer.backend.shared.domain.util.Constants.LABEL_CREDENTIAL;
 
 
 @Service
@@ -39,8 +38,8 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
     private final IssuerFactory issuerFactory;
 
     @Override
-    public Mono<String> generateVc(String processId, String vcType, PreSubmittedCredentialRequest preSubmittedCredentialRequest) {
-        return credentialFactory.mapCredentialIntoACredentialProcedureRequest(processId, preSubmittedCredentialRequest)
+    public Mono<String> generateVc(String processId, String vcType, PreSubmittedCredentialDataRequest preSubmittedCredentialDataRequest) {
+        return credentialFactory.mapCredentialIntoACredentialProcedureRequest(processId, preSubmittedCredentialDataRequest)
                 .flatMap(credentialProcedureService::createCredentialProcedure)
                 //TODO repensar esto cuando el flujo del Verification cumpla con el OIDC4VC
                 .flatMap(procedureId -> deferredCredentialMetadataService.createDeferredCredentialMetadata(

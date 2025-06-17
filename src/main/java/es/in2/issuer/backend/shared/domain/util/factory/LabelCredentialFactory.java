@@ -145,7 +145,7 @@ public class LabelCredentialFactory {
                 .credentialId(labelCredentialDecoded.id())
                 .organizationIdentifier(organizationId)
                 .credentialDecoded(decodedCredential)
-                .credentialType(CredentialType.VERIFIABLE_CERTIFICATION)
+                .credentialType(CredentialType.LABEL_CREDENTIAL)
                 .subject(labelCredentialDecoded.credentialSubject().id())
                 .validUntil(parseEpochSecondIntoTimestamp(parseDateToUnixTime(labelCredentialDecoded.validUntil())))
                 .operationMode(operationMode)

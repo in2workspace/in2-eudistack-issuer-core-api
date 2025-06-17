@@ -641,7 +641,7 @@ class CredentialProcedureServiceImplTest {
         credentialProcedure2.setCredentialStatus(CredentialStatus.DRAFT);
         credentialProcedure2.setOrganizationIdentifier(organizationIdentifier);
         credentialProcedure2.setUpdatedAt(updated2);
-        credentialProcedure2.setCredentialType(CredentialType.VERIFIABLE_CERTIFICATION.toString());
+        credentialProcedure2.setCredentialType(CredentialType.LABEL_CREDENTIAL.toString());
         credentialProcedure2.setSubject("ProductName");
 
 
@@ -675,7 +675,7 @@ class CredentialProcedureServiceImplTest {
                             credentialProcedureList.get(1).credentialProcedure().procedureId().equals(procedureId2) &&
                             credentialProcedureList.get(1).credentialProcedure().subject().equals("ProductName") &&
                             credentialProcedureList.get(1).credentialProcedure().status().equals(CredentialStatus.DRAFT.name()) &&
-                            credentialProcedureList.get(1).credentialProcedure().credentialType().equals(CredentialType.VERIFIABLE_CERTIFICATION.name()) &&
+                            credentialProcedureList.get(1).credentialProcedure().credentialType().equals(CredentialType.LABEL_CREDENTIAL.name()) &&
                             credentialProcedureList.get(1).credentialProcedure().updated().equals(updated2);
                 })
                 .verifyComplete();

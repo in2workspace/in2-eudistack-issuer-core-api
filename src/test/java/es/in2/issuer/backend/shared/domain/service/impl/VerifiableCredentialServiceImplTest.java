@@ -108,7 +108,7 @@ class VerifiableCredentialServiceImplTest {
                 .credentialDecoded("decoded-credential")
                 .build();
         String vcType = "vc-type-789";
-        when(credentialFactory.mapCredentialIntoACredentialProcedureRequest(processId, preSubmittedCredentialDataRequest, token))
+        when(credentialFactory.mapCredentialIntoACredentialProcedureRequest(processId, preSubmittedCredentialDataRequest))
                 .thenReturn(Mono.just(mockCreationRequest));
 
         // Mock the behavior of credentialProcedureService
@@ -128,7 +128,7 @@ class VerifiableCredentialServiceImplTest {
                 .thenReturn(Mono.empty());
 
         // Act: Call the generateVc method
-        Mono<String> result = verifiableCredentialServiceImpl.generateVc(processId, vcType, preSubmittedCredentialDataRequest, token);
+        Mono<String> result = verifiableCredentialServiceImpl.generateVc(processId, vcType, preSubmittedCredentialDataRequest);
 
         // Assert: Verify the result
         StepVerifier.create(result)
@@ -137,7 +137,7 @@ class VerifiableCredentialServiceImplTest {
 
         // Verify that all the interactions occurred as expected
         verify(credentialFactory, times(1))
-                .mapCredentialIntoACredentialProcedureRequest(processId, preSubmittedCredentialDataRequest, token);
+                .mapCredentialIntoACredentialProcedureRequest(processId, preSubmittedCredentialDataRequest);
 
         verify(credentialProcedureService, times(1))
                 .createCredentialProcedure(mockCreationRequest);
@@ -639,12 +639,12 @@ class VerifiableCredentialServiceImplTest {
 
         // Mock the credential factory to throw an error
         RuntimeException mockException = new RuntimeException("Error mapping credential");
-        when(credentialFactory.mapCredentialIntoACredentialProcedureRequest(processId, preSubmittedCredentialDataRequest, token))
+        when(credentialFactory.mapCredentialIntoACredentialProcedureRequest(processId, preSubmittedCredentialDataRequest))
                 .thenReturn(Mono.error(mockException));
 
         // Act & Assert
-        StepVerifier.create(verifiableCredentialServiceImpl.generateVerifiableCertification(
-                        processId, preSubmittedCredentialDataRequest, token))
+        StepVerifier.create(verifiableCredentialServiceImpl.generateVc(
+                        processId, preSubmittedCredentialDataRequest.schema(),preSubmittedCredentialDataRequest))
                 .expectErrorMatches(error -> error instanceof RuntimeException &&
                         "Error mapping credential".equals(error.getMessage()))
                 .verify();

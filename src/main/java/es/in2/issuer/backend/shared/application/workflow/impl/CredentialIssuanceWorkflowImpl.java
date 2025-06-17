@@ -2,13 +2,12 @@ package es.in2.issuer.backend.shared.application.workflow.impl;
 
 import com.nimbusds.jose.JWSObject;
 import es.in2.issuer.backend.shared.application.workflow.CredentialIssuanceWorkflow;
-import es.in2.issuer.backend.shared.application.workflow.CredentialSignerWorkflow;
 import es.in2.issuer.backend.shared.domain.exception.*;
 import es.in2.issuer.backend.shared.domain.model.dto.*;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.employee.LEARCredentialEmployee;
 import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatus;
+import es.in2.issuer.backend.shared.domain.model.enums.CredentialType;
 import es.in2.issuer.backend.shared.domain.service.*;
-import es.in2.issuer.backend.shared.domain.util.Constants;
 import es.in2.issuer.backend.shared.domain.util.factory.LEARCredentialEmployeeFactory;
 import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
 import es.in2.issuer.backend.shared.infrastructure.config.security.service.VerifiableCredentialPolicyAuthorizationService;
@@ -16,7 +15,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriComponentsBuilder;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import javax.naming.OperationNotSupportedException;
@@ -24,7 +22,6 @@ import java.text.ParseException;
 
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.*;
 import static es.in2.issuer.backend.shared.domain.util.Constants.*;
-import static es.in2.issuer.backend.shared.domain.util.Constants.LEAR_CREDENTIAL_MACHINE;
 
 @Slf4j
 @Service
@@ -58,14 +55,14 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
         }
 
         // Validate idToken header for VerifiableCertification schema
-        if (preSubmittedCredentialDataRequest.schema().equals(VERIFIABLE_CERTIFICATION) && idToken == null) {
+        if (preSubmittedCredentialDataRequest.schema().equals(CredentialType.LABEL_CREDENTIAL) && idToken == null) {
             return Mono.error(new MissingIdTokenHeaderException("Missing required ID Token header for VerifiableCertification issuance."));
         }
 
         // Validate user policy before proceeding
-        return verifiableCredentialPolicyAuthorizationService.authorize(token, preSubmittedCredentialRequest.schema(), preSubmittedCredentialRequest.payload(), idToken)
-                .then(verifiableCredentialService.generateVc(processId, preSubmittedCredentialRequest.schema(), preSubmittedCredentialRequest)
-                        .flatMap(transactionCode -> sendCredentialOfferEmail(transactionCode, preSubmittedCredentialRequest))
+        return verifiableCredentialPolicyAuthorizationService.authorize(token, preSubmittedCredentialDataRequest.schema(), preSubmittedCredentialDataRequest.payload(), idToken)
+                .then(verifiableCredentialService.generateVc(processId, preSubmittedCredentialDataRequest.schema(), preSubmittedCredentialDataRequest)
+                        .flatMap(transactionCode -> sendCredentialOfferEmail(transactionCode, preSubmittedCredentialDataRequest))
                 );
 //                    } else if (preSubmittedCredentialRequest.schema().equals(LABEL_CREDENTIAL)) {
 //                        // Check if responseUri is null, empty, or only contains whitespace
@@ -104,7 +101,7 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
 
     private Mono<Void> sendCredentialOfferEmail(
             String transactionCode,
-            PreSubmittedCredentialRequest request
+            PreSubmittedCredentialDataRequest request
     ) {
         String credentialOfferUrl = buildCredentialOfferUrl(transactionCode);
 
@@ -131,7 +128,7 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
     }
 
     // Get the necessary information to send the credential offer email
-    private EmailCredentialOfferInfo extractCredentialOfferEmailInfo(PreSubmittedCredentialRequest req) {
+    private EmailCredentialOfferInfo extractCredentialOfferEmailInfo(PreSubmittedCredentialDataRequest req) {
         String schema = req.schema();
         var payload = req.payload();
 
@@ -156,7 +153,7 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
     }
 
     @Override
-    public Mono<VerifiableCredentialResponse> generateVerifiableCredentialResponse(String processId,
+    public Mono<CredentialResponse> generateVerifiableCredentialResponse(String processId,
                                                                                    CredentialRequest credentialRequest,
                                                                                    String token) {
         try {
@@ -170,7 +167,7 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                             : Mono.error(new InvalidOrMissingProofException("Invalid proof")))
                     .flatMap(subjectDid -> deferredCredentialMetadataService.getOperationModeByAuthServerNonce(authServerNonce)
                             .flatMap(operationMode -> verifiableCredentialService.buildCredentialResponse(
-                                            processId, subjectDid, authServerNonce, credentialRequest.format(), token)
+                                            processId, subjectDid, authServerNonce, token)
                                     .flatMap(credentialResponse ->
                                             handleOperationMode(operationMode, processId, authServerNonce, credentialResponse)
                                     )
@@ -182,7 +179,7 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
         }
     }
 
-    private Mono<VerifiableCredentialResponse> handleOperationMode(String operationMode, String processId, String authServerNonce, VerifiableCredentialResponse credentialResponse) {
+    private Mono<CredentialResponse> handleOperationMode(String operationMode, String processId, String authServerNonce, CredentialResponse credentialResponse) {
         return switch (operationMode) {
             case ASYNC -> deferredCredentialMetadataService.getProcedureIdByAuthServerNonce(authServerNonce)
                     .flatMap(credentialProcedureService::getSignerEmailFromDecodedCredentialByProcedureId)
