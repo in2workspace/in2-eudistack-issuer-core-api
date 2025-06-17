@@ -20,11 +20,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
+import java.util.List;
+
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.BEARER_PREFIX;
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.JWT_VC;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -81,7 +82,7 @@ class VerifiableCredentialServiceImplTest {
 
         // Act and Assert
         RuntimeException exception = assertThrows(RuntimeException.class, () ->
-            verifiableCredentialServiceImpl.bindAccessTokenByPreAuthorizedCode(processId, invalidAccessToken, preAuthCode).block());
+                verifiableCredentialServiceImpl.bindAccessTokenByPreAuthorizedCode(processId, invalidAccessToken, preAuthCode).block());
         assertNull(exception.getMessage());
 
         // Verify that no interaction with deferredCredentialMetadataService happens
@@ -95,8 +96,9 @@ class VerifiableCredentialServiceImplTest {
         String token = "token";
         JsonNode credentialJsonNode = objectMapper.readTree("{\"credentialId\":\"cred-id-123\", \"organizationIdentifier\":\"org-id-123\", \"credentialDecoded\":\"decoded-credential\"}");
 
-        PreSubmittedCredentialRequest preSubmittedCredentialRequest = PreSubmittedCredentialRequest.builder()
+        PreSubmittedCredentialDataRequest preSubmittedCredentialDataRequest = PreSubmittedCredentialDataRequest.builder()
                 .payload(credentialJsonNode)
+                .format("jwt_vc_json")
                 .build();
 
         // Mock the behavior of credentialFactory
@@ -106,7 +108,7 @@ class VerifiableCredentialServiceImplTest {
                 .credentialDecoded("decoded-credential")
                 .build();
         String vcType = "vc-type-789";
-        when(credentialFactory.mapCredentialIntoACredentialProcedureRequest(processId, preSubmittedCredentialRequest))
+        when(credentialFactory.mapCredentialIntoACredentialProcedureRequest(processId, preSubmittedCredentialDataRequest, token))
                 .thenReturn(Mono.just(mockCreationRequest));
 
         // Mock the behavior of credentialProcedureService
@@ -119,8 +121,14 @@ class VerifiableCredentialServiceImplTest {
         when(deferredCredentialMetadataService.createDeferredCredentialMetadata(createdProcedureId, null, null))
                 .thenReturn(Mono.just(metadataId));
 
+        when(credentialProcedureService.updateFormatByProcedureId(anyString(), eq(preSubmittedCredentialDataRequest.format())))
+                .thenReturn(Mono.empty());
+
+        when(deferredCredentialMetadataService.updateFormatByProcedureId(anyString(), eq(preSubmittedCredentialDataRequest.format())))
+                .thenReturn(Mono.empty());
+
         // Act: Call the generateVc method
-        Mono<String> result = verifiableCredentialServiceImpl.generateVc(processId, vcType, preSubmittedCredentialRequest);
+        Mono<String> result = verifiableCredentialServiceImpl.generateVc(processId, vcType, preSubmittedCredentialDataRequest, token);
 
         // Assert: Verify the result
         StepVerifier.create(result)
@@ -129,7 +137,7 @@ class VerifiableCredentialServiceImplTest {
 
         // Verify that all the interactions occurred as expected
         verify(credentialFactory, times(1))
-                .mapCredentialIntoACredentialProcedureRequest(processId, preSubmittedCredentialRequest);
+                .mapCredentialIntoACredentialProcedureRequest(processId, preSubmittedCredentialDataRequest, token);
 
         verify(credentialProcedureService, times(1))
                 .createCredentialProcedure(mockCreationRequest);
@@ -161,12 +169,12 @@ class VerifiableCredentialServiceImplTest {
                 .thenReturn(Mono.empty());
 
         // Act: Call the method
-        Mono<VerifiableCredentialResponse> result = verifiableCredentialServiceImpl.generateDeferredCredentialResponse(processId, deferredCredentialRequest);
+        Mono<DeferredCredentialResponse> result = verifiableCredentialServiceImpl.generateDeferredCredentialResponse(processId, deferredCredentialRequest);
 
         // Assert: Verify the result
         StepVerifier.create(result)
                 .expectNextMatches(response ->
-                        response.credential().equals(vcValue) && response.transactionId() == null)
+                        response.credentials().equals(List.of(vcValue)))
                 .verifyComplete();
 
         // Verify the interactions
@@ -197,12 +205,12 @@ class VerifiableCredentialServiceImplTest {
                 .thenReturn(Mono.just(mockResponseWithoutVc));
 
         // Act: Call the method
-        Mono<VerifiableCredentialResponse> result = verifiableCredentialServiceImpl.generateDeferredCredentialResponse(processId, deferredCredentialRequest);
+        Mono<DeferredCredentialResponse> result = verifiableCredentialServiceImpl.generateDeferredCredentialResponse(processId, deferredCredentialRequest);
 
         // Assert: Verify the result
         StepVerifier.create(result)
                 .expectNextMatches(response ->
-                        response.transactionId().equals(transactionId) && response.credential() == null)
+                        response.credentials() == null)
                 .verifyComplete();
 
         // Verify the interactions
@@ -255,17 +263,20 @@ class VerifiableCredentialServiceImplTest {
                 .thenReturn(Mono.just(bindCredential));
 
         String format = "json";
-        when(credentialProcedureService.updateDecodedCredentialByProcedureId(procedureId, bindCredential, format))
+        when(credentialProcedureService.updateDecodedCredentialByProcedureId(procedureId, bindCredential))
                 .thenReturn(Mono.empty());
 
-        when(deferredCredentialMetadataService.updateDeferredCredentialMetadataByAuthServerNonce(authServerNonce, format))
+        when(deferredCredentialMetadataService.updateDeferredCredentialMetadataByAuthServerNonce(authServerNonce))
                 .thenReturn(Mono.just(transactionId));
 
         when(credentialFactory.mapCredentialBindIssuerAndUpdateDB(processId, procedureId, bindCredential, credentialType, format, authServerNonce)).thenReturn(Mono.empty());
 
         when(credentialProcedureService.getOperationModeByProcedureId(procedureId)).thenReturn(Mono.just("A"));
+
+        when(deferredCredentialMetadataService.getFormatByProcedureId(procedureId))
+                .thenReturn(Mono.just(format));
         // Act: Call the method
-        Mono<VerifiableCredentialResponse> result = verifiableCredentialServiceImpl.buildCredentialResponse(processId, subjectDid, authServerNonce, format, "token");
+        Mono<CredentialResponse> result = verifiableCredentialServiceImpl.buildCredentialResponse(processId, subjectDid, authServerNonce, "token");
 
         // Convert the bindCredential JSON string to LEARCredentialEmployee
         JsonNode vcNode = objectMapper.readTree(bindCredential);
@@ -285,7 +296,9 @@ class VerifiableCredentialServiceImplTest {
                 .expectNextMatches(response -> {
                     // Log the response for debugging
                     System.out.println("Response: " + response);
-                    return response.credential().equals(expectedCredentialJson) &&
+                    return response.credentials().equals(List.of(CredentialResponse.Credential.builder()
+                            .credential(expectedCredentialJson)
+                            .build())) &&
                             response.transactionId().equals(transactionId);
                 })
                 .verifyComplete();
@@ -304,10 +317,10 @@ class VerifiableCredentialServiceImplTest {
                 .mapCredentialAndBindMandateeId(processId, credentialType, decodedCredential, subjectDid);
 
         verify(credentialProcedureService, times(1))
-                .updateDecodedCredentialByProcedureId(procedureId, bindCredential, format);
+                .updateDecodedCredentialByProcedureId(procedureId, bindCredential);
 
         verify(deferredCredentialMetadataService, times(1))
-                .updateDeferredCredentialMetadataByAuthServerNonce(authServerNonce, format);
+                .updateDeferredCredentialMetadataByAuthServerNonce(authServerNonce);
     }
 
     @Test
@@ -351,11 +364,14 @@ class VerifiableCredentialServiceImplTest {
                 .thenReturn(Mono.just(bindCredential));
 
         String format = "json";
-        when(credentialProcedureService.updateDecodedCredentialByProcedureId(procedureId, bindCredential, format))
+        when(credentialProcedureService.updateDecodedCredentialByProcedureId(procedureId, bindCredential))
                 .thenReturn(Mono.empty());
 
-        when(deferredCredentialMetadataService.updateDeferredCredentialMetadataByAuthServerNonce(authServerNonce, format))
+        when(deferredCredentialMetadataService.updateDeferredCredentialMetadataByAuthServerNonce(authServerNonce))
                 .thenReturn(Mono.just(transactionId));
+
+        when(deferredCredentialMetadataService.getFormatByProcedureId(procedureId))
+                .thenReturn(Mono.just(format));
 
         when(deferredCredentialMetadataService.getProcedureIdByAuthServerNonce(authServerNonce)).thenReturn(Mono.just(procedureId));
 
@@ -363,7 +379,7 @@ class VerifiableCredentialServiceImplTest {
         when(credentialSignerWorkflow.signAndUpdateCredentialByProcedureId(BEARER_PREFIX + "token", procedureId, Constants.JWT_VC)).thenReturn(Mono.just("signedCredential"));
         when(credentialProcedureService.getOperationModeByProcedureId(procedureId)).thenReturn(Mono.just("S"));
         // Act: Call the method
-        Mono<VerifiableCredentialResponse> result = verifiableCredentialServiceImpl.buildCredentialResponse(processId, subjectDid, authServerNonce, format, "token");
+        Mono<CredentialResponse> result = verifiableCredentialServiceImpl.buildCredentialResponse(processId, subjectDid, authServerNonce, "token");
 
         // Convert the bindCredential JSON string to LEARCredentialEmployee
         JsonNode vcNode = objectMapper.readTree(bindCredential).get("vc");
@@ -383,7 +399,9 @@ class VerifiableCredentialServiceImplTest {
                 .expectNextMatches(response -> {
                     // Log the response for debugging
                     System.out.println("Response: " + response);
-                    return response.credential().equals("signedCredential");
+                    return response.credentials().equals(List.of(CredentialResponse.Credential.builder()
+                            .credential("signedCredential")
+                            .build()));
                 })
                 .verifyComplete();
 
@@ -398,10 +416,10 @@ class VerifiableCredentialServiceImplTest {
                 .mapCredentialAndBindMandateeId(processId, credentialType, decodedCredential, subjectDid);
 
         verify(credentialProcedureService, times(1))
-                .updateDecodedCredentialByProcedureId(procedureId, bindCredential, format);
+                .updateDecodedCredentialByProcedureId(procedureId, bindCredential);
 
         verify(deferredCredentialMetadataService, times(1))
-                .updateDeferredCredentialMetadataByAuthServerNonce(authServerNonce, format);
+                .updateDeferredCredentialMetadataByAuthServerNonce(authServerNonce);
     }
 
     @Test
@@ -427,10 +445,10 @@ class VerifiableCredentialServiceImplTest {
         when(credentialFactory.mapCredentialAndBindMandateeId(processId, credentialType, decodedCredential, subjectDid))
                 .thenReturn(Mono.just(bindCredential));
 
-        when(credentialProcedureService.updateDecodedCredentialByProcedureId(procedureId, bindCredential, format))
+        when(credentialProcedureService.updateDecodedCredentialByProcedureId(procedureId, bindCredential))
                 .thenReturn(Mono.empty());
 
-        when(deferredCredentialMetadataService.updateDeferredCredentialMetadataByAuthServerNonce(authServerNonce, format))
+        when(deferredCredentialMetadataService.updateDeferredCredentialMetadataByAuthServerNonce(authServerNonce))
                 .thenReturn(Mono.just(transactionId));
 
         when(credentialFactory.mapCredentialBindIssuerAndUpdateDB(processId, procedureId, bindCredential, credentialType, format, authServerNonce)).thenReturn(Mono.empty());
@@ -441,12 +459,17 @@ class VerifiableCredentialServiceImplTest {
         when(credentialSignerWorkflow.signAndUpdateCredentialByProcedureId(BEARER_PREFIX + token, procedureId, JWT_VC))
                 .thenReturn(Mono.error(new IllegalArgumentException("Simulated error")));
 
-        Mono<VerifiableCredentialResponse> result = verifiableCredentialServiceImpl.buildCredentialResponse(
-                processId, subjectDid, authServerNonce, format, token);
+        when(deferredCredentialMetadataService.getFormatByProcedureId(procedureId))
+                .thenReturn(Mono.just(format));
+
+        Mono<CredentialResponse> result = verifiableCredentialServiceImpl.buildCredentialResponse(
+                processId, subjectDid, authServerNonce, token);
 
         StepVerifier.create(result)
                 .expectNextMatches(response ->
-                        response.credential().equals(unsignedCredential) &&
+                        response.credentials().equals(List.of(CredentialResponse.Credential.builder()
+                                .credential(unsignedCredential)
+                                .build())) &&
                                 response.transactionId().equals(transactionId))
                 .verifyComplete();
 
@@ -608,7 +631,7 @@ class VerifiableCredentialServiceImplTest {
         String token = "id-token-123";
         JsonNode mockCredentialJsonNode = mock(JsonNode.class);
 
-        PreSubmittedCredentialRequest preSubmittedCredentialRequest = PreSubmittedCredentialRequest.builder()
+        PreSubmittedCredentialDataRequest preSubmittedCredentialDataRequest = PreSubmittedCredentialDataRequest.builder()
                 .payload(mockCredentialJsonNode)
                 .operationMode("SYNC")
                 .responseUri("https://example.com/response")
@@ -616,12 +639,12 @@ class VerifiableCredentialServiceImplTest {
 
         // Mock the credential factory to throw an error
         RuntimeException mockException = new RuntimeException("Error mapping credential");
-        when(credentialFactory.mapCredentialIntoACredentialProcedureRequest(processId, preSubmittedCredentialRequest))
+        when(credentialFactory.mapCredentialIntoACredentialProcedureRequest(processId, preSubmittedCredentialDataRequest, token))
                 .thenReturn(Mono.error(mockException));
 
         // Act & Assert
-        StepVerifier.create(verifiableCredentialServiceImpl.generateVc(
-                        processId, preSubmittedCredentialRequest.schema() ,preSubmittedCredentialRequest))
+        StepVerifier.create(verifiableCredentialServiceImpl.generateVerifiableCertification(
+                        processId, preSubmittedCredentialDataRequest, token))
                 .expectErrorMatches(error -> error instanceof RuntimeException &&
                         "Error mapping credential".equals(error.getMessage()))
                 .verify();

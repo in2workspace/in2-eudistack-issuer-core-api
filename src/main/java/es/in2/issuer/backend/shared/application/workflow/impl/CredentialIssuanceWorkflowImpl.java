@@ -46,19 +46,19 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
 //    private final CredentialDeliveryService credentialDeliveryService;
 
     @Override
-    public Mono<Void> execute(String processId, PreSubmittedCredentialRequest preSubmittedCredentialRequest, String token, String idToken) {
+    public Mono<Void> execute(String processId, PreSubmittedCredentialDataRequest preSubmittedCredentialDataRequest, String token, String idToken) {
 
         // Check if the format is not "json_vc_jwt"
-        if (!JWT_VC_JSON.equals(preSubmittedCredentialRequest.format())) {
-            return Mono.error(new FormatUnsupportedException("Format: " + preSubmittedCredentialRequest.format() + " is not supported"));
+        if (!JWT_VC_JSON.equals(preSubmittedCredentialDataRequest.format())) {
+            return Mono.error(new FormatUnsupportedException("Format: " + preSubmittedCredentialDataRequest.format() + " is not supported"));
         }
         // Check if operation_mode is different to sync
-        if (!preSubmittedCredentialRequest.operationMode().equals(SYNC)) {
-            return Mono.error(new OperationNotSupportedException("operation_mode: " + preSubmittedCredentialRequest.operationMode() + " with schema: " + preSubmittedCredentialRequest.schema()));
+        if (!preSubmittedCredentialDataRequest.operationMode().equals(SYNC)) {
+            return Mono.error(new OperationNotSupportedException("operation_mode: " + preSubmittedCredentialDataRequest.operationMode() + " with schema: " + preSubmittedCredentialDataRequest.schema()));
         }
 
         // Validate idToken header for VerifiableCertification schema
-        if (preSubmittedCredentialRequest.schema().equals(LABEL_CREDENTIAL) && idToken == null) {
+        if (preSubmittedCredentialDataRequest.schema().equals(VERIFIABLE_CERTIFICATION) && idToken == null) {
             return Mono.error(new MissingIdTokenHeaderException("Missing required ID Token header for VerifiableCertification issuance."));
         }
 
@@ -210,20 +210,7 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
     }
 
     @Override
-    public Mono<BatchCredentialResponse> generateVerifiableCredentialBatchResponse(
-            String username,
-            BatchCredentialRequest batchCredentialRequest,
-            String token
-    ) {
-        return Flux.fromIterable(batchCredentialRequest.credentialRequests())
-                .flatMap(credentialRequest -> generateVerifiableCredentialResponse(username, credentialRequest, token)
-                        .map(verifiableCredentialResponse -> new BatchCredentialResponse.CredentialResponse(verifiableCredentialResponse.credential())))
-                .collectList()
-                .map(BatchCredentialResponse::new);
-    }
-
-    @Override
-    public Mono<VerifiableCredentialResponse> generateVerifiableCredentialDeferredResponse(String processId, DeferredCredentialRequest deferredCredentialRequest) {
+    public Mono<DeferredCredentialResponse> generateVerifiableCredentialDeferredResponse(String processId, DeferredCredentialRequest deferredCredentialRequest) {
         return verifiableCredentialService.generateDeferredCredentialResponse(processId, deferredCredentialRequest)
                 .onErrorResume(e -> Mono.error(new RuntimeException("Failed to process the credential for the next processId: " + processId, e)));
     }

@@ -8,11 +8,11 @@ import java.util.Set;
 
 @Builder
 public record CredentialIssuerMetadata(
-        @JsonProperty("credential_issuer") String credentialIssuer,
-        @JsonProperty("issuance_endpoint") String issuanceEndpoint,
-        @JsonProperty("credential_endpoint") String credentialEndpoint,
+        @JsonProperty(value = "credential_issuer", required = true) String credentialIssuer,
+        @JsonProperty(value = "issuance_endpoint", required = true) String issuanceEndpoint,
+        @JsonProperty(value = "credential_endpoint", required = true) String credentialEndpoint,
         @JsonProperty("deferred_credential_endpoint") String deferredCredentialEndpoint,
-        @JsonProperty("credential_configurations_supported") Map<String, CredentialConfiguration> credentialConfigurationsSupported
+        @JsonProperty(value = "credential_configurations_supported", required = true) Map<String, CredentialConfiguration> credentialConfigurationsSupported
 ) {
 
     @Builder

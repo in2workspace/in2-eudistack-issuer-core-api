@@ -147,27 +147,6 @@ class CredentialSignerWorkflowImplTest {
     }
 
     @Test
-    void signCredentialWithVcAlreadyPresent_Success() {
-        String unsignedCredential = "{\"vc\":{\"id\":\"123\"}}"; // Contiene "vc"
-        String signedCredential = "signedJWTData";
-        String token = "dummyToken";
-        CredentialProcedure credentialProcedure = new CredentialProcedure();
-        credentialProcedure.setCredentialDecoded(unsignedCredential);
-        credentialProcedure.setCredentialType(LEAR_CREDENTIAL_EMPLOYEE_CREDENTIAL_TYPE);
-
-        when(remoteSignatureService.sign(any(SignatureRequest.class), eq(token), eq(procedureId)))
-                .thenReturn(Mono.just(new SignedData(SignatureType.JADES, signedCredential)));
-        when(deferredCredentialWorkflow.updateSignedCredentials(any(SignedCredentials.class))).thenReturn(Mono.empty());
-        when(credentialProcedureRepository.findByProcedureId(UUID.fromString(procedureId))).thenReturn(Mono.just(credentialProcedure));
-        StepVerifier.create(credentialSignerWorkflow.signAndUpdateCredentialByProcedureId(token, procedureId, JWT_VC))
-                .assertNext(result -> assertEquals(signedCredential, result))
-                .verifyComplete();
-
-        verify(remoteSignatureService).sign(any(SignatureRequest.class), eq(token), eq(procedureId));
-        verify(deferredCredentialWorkflow).updateSignedCredentials(any(SignedCredentials.class));
-    }
-
-    @Test
     void signVerifiableCertificationCredential_Success() {
         String decodedCredential = "{\"VerifiableCertification\":\"data\"}";
         String unsignedJwtPayload = "unsignedPayload";
