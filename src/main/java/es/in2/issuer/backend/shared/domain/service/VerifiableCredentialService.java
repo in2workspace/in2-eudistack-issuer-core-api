@@ -7,7 +7,7 @@ import es.in2.issuer.backend.shared.domain.model.dto.CredentialResponse;
 import reactor.core.publisher.Mono;
 
 public interface VerifiableCredentialService {
-    Mono<String> generateVc(String processId, String vcType, PreSubmittedCredentialDataRequest preSubmittedCredentialDataRequest);
+    Mono<String> generateVc(String processId, PreSubmittedCredentialDataRequest preSubmittedCredentialDataRequest, String email);
 //    Mono<String> generateVerifiableCertification(String processId, PreSubmittedCredentialDataRequest preSubmittedCredentialDataRequest, String idToken);
     Mono<CredentialResponse> buildCredentialResponse(String processId, String subjectDid, String authServerNonce, String token);
     Mono<Void> bindAccessTokenByPreAuthorizedCode(String processId, String accessToken, String preAuthCode);

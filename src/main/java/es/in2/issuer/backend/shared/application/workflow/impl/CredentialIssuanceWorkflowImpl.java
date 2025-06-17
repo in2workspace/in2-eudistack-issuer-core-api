@@ -58,10 +58,14 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
             return Mono.error(new MissingIdTokenHeaderException("Missing required ID Token header for VerifiableCertification issuance."));
         }
 
+        // We extract the email information from the PreSubmittedCredentialDataRequest
+        EmailCredentialOfferInfo emailInfo =
+                extractCredentialOfferEmailInfo(preSubmittedCredentialDataRequest);
+
         // Validate user policy before proceeding
         return verifiableCredentialPolicyAuthorizationService.authorize(token, preSubmittedCredentialDataRequest.schema(), preSubmittedCredentialDataRequest.payload(), idToken)
-                .then(verifiableCredentialService.generateVc(processId, preSubmittedCredentialDataRequest.schema(), preSubmittedCredentialDataRequest)
-                        .flatMap(transactionCode -> sendCredentialOfferEmail(transactionCode, preSubmittedCredentialDataRequest))
+                .then(verifiableCredentialService.generateVc(processId, preSubmittedCredentialDataRequest, emailInfo.email())
+                        .flatMap(transactionCode -> sendCredentialOfferEmail(transactionCode, emailInfo))
                 );
 //                    } else if (preSubmittedCredentialRequest.schema().equals(LABEL_CREDENTIAL)) {
 //                        // Check if responseUri is null, empty, or only contains whitespace
@@ -100,11 +104,9 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
 
     private Mono<Void> sendCredentialOfferEmail(
             String transactionCode,
-            PreSubmittedCredentialDataRequest request
+            EmailCredentialOfferInfo info
     ) {
         String credentialOfferUrl = buildCredentialOfferUrl(transactionCode);
-
-        EmailCredentialOfferInfo info = extractCredentialOfferEmailInfo(request);
 
         return emailService.sendCredentialActivationEmail(
                         info.email(),
@@ -140,10 +142,10 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                 yield new EmailCredentialOfferInfo(email, user, org);
             }
             case LABEL_CREDENTIAL -> {
-                    if(preSubmittedCredentialDataRequest.emailOwnerEmail() == null || preSubmittedCredentialDataRequest.emailOwnerEmail().isBlank()) {
+                    if(preSubmittedCredentialDataRequest.credentialOwnerEmail() == null || preSubmittedCredentialDataRequest.credentialOwnerEmail().isBlank()) {
                         throw new MissingEmailOwnerException("Email owner email is required for gx:LabelCredential schema");
                     }
-                    String email = preSubmittedCredentialDataRequest.emailOwnerEmail();
+                    String email = preSubmittedCredentialDataRequest.credentialOwnerEmail();
                 yield new EmailCredentialOfferInfo(email, DEFAULT_USER_NAME, DEFAULT_ORGANIZATION_NAME);
             }
             default -> throw new FormatUnsupportedException(

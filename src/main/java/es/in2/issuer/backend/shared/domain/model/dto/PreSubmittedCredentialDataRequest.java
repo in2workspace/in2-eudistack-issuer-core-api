@@ -12,6 +12,6 @@ public record PreSubmittedCredentialDataRequest(
         @JsonProperty("operation_mode") String operationMode,
         @JsonProperty("response_uri") String responseUri,
         @JsonProperty("issuance_notification_uri") String issuanceNotificationUri,
-        @JsonProperty("email_owner_email") String emailOwnerEmail
+        @JsonProperty("credential_owner_email") String credentialOwnerEmail
 ) {
 }
