@@ -6,7 +6,6 @@ import es.in2.issuer.backend.shared.domain.exception.*;
 import es.in2.issuer.backend.shared.domain.model.dto.*;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.employee.LEARCredentialEmployee;
 import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatus;
-import es.in2.issuer.backend.shared.domain.model.enums.CredentialType;
 import es.in2.issuer.backend.shared.domain.service.*;
 import es.in2.issuer.backend.shared.domain.util.factory.LEARCredentialEmployeeFactory;
 import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
@@ -55,7 +54,7 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
         }
 
         // Validate idToken header for VerifiableCertification schema
-        if (preSubmittedCredentialDataRequest.schema().equals(CredentialType.LABEL_CREDENTIAL) && idToken == null) {
+        if (preSubmittedCredentialDataRequest.schema().equals(LABEL_CREDENTIAL) && idToken == null) {
             return Mono.error(new MissingIdTokenHeaderException("Missing required ID Token header for VerifiableCertification issuance."));
         }
 
@@ -128,9 +127,9 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
     }
 
     // Get the necessary information to send the credential offer email
-    private EmailCredentialOfferInfo extractCredentialOfferEmailInfo(PreSubmittedCredentialDataRequest req) {
-        String schema = req.schema();
-        var payload = req.payload();
+    private EmailCredentialOfferInfo extractCredentialOfferEmailInfo(PreSubmittedCredentialDataRequest preSubmittedCredentialDataRequest) {
+        String schema = preSubmittedCredentialDataRequest.schema();
+        var payload = preSubmittedCredentialDataRequest.payload();
 
         return switch (schema) {
             case LEAR_CREDENTIAL_EMPLOYEE -> {
@@ -141,10 +140,11 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                 yield new EmailCredentialOfferInfo(email, user, org);
             }
             case LABEL_CREDENTIAL -> {
-                    // todo: need to know how Dekra is gonna send the email
-                    String user = DEFAULT_USER_NAME;
-                    String org = DEFAULT_ORGANIZATION_NAME;
-                    yield null;
+                    if(preSubmittedCredentialDataRequest.emailOwnerEmail() == null || preSubmittedCredentialDataRequest.emailOwnerEmail().isBlank()) {
+                        throw new MissingEmailOwnerException("Email owner email is required for gx:LabelCredential schema");
+                    }
+                    String email = preSubmittedCredentialDataRequest.emailOwnerEmail();
+                yield new EmailCredentialOfferInfo(email, DEFAULT_USER_NAME, DEFAULT_ORGANIZATION_NAME);
             }
             default -> throw new FormatUnsupportedException(
                     "Unknown schema: " + schema
