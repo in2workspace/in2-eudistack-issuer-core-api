@@ -59,7 +59,7 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
         }
 
         // We extract the email information from the PreSubmittedCredentialDataRequest
-        EmailCredentialOfferInfo emailInfo =
+        EmailNotificationInfo emailInfo =
                 extractCredentialOfferEmailInfo(preSubmittedCredentialDataRequest);
 
         // Validate user policy before proceeding
@@ -104,7 +104,7 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
 
     private Mono<Void> sendCredentialOfferEmail(
             String transactionCode,
-            EmailCredentialOfferInfo info
+            EmailNotificationInfo info
     ) {
         String credentialOfferUrl = buildCredentialOfferUrl(transactionCode);
 
@@ -129,7 +129,7 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
     }
 
     // Get the necessary information to send the credential offer email
-    private EmailCredentialOfferInfo extractCredentialOfferEmailInfo(PreSubmittedCredentialDataRequest preSubmittedCredentialDataRequest) {
+    private EmailNotificationInfo extractCredentialOfferEmailInfo(PreSubmittedCredentialDataRequest preSubmittedCredentialDataRequest) {
         String schema = preSubmittedCredentialDataRequest.schema();
         var payload = preSubmittedCredentialDataRequest.payload();
 
@@ -139,14 +139,14 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                 String user  = payload.get(MANDATEE).get(FIRST_NAME).asText()
                         + " " + payload.get(MANDATEE).get(LAST_NAME).asText();
                 String org   = payload.get(MANDATOR).get(ORGANIZATION).asText();
-                yield new EmailCredentialOfferInfo(email, user, org);
+                yield new EmailNotificationInfo(email, user, org);
             }
             case LABEL_CREDENTIAL -> {
                     if(preSubmittedCredentialDataRequest.credentialOwnerEmail() == null || preSubmittedCredentialDataRequest.credentialOwnerEmail().isBlank()) {
                         throw new MissingEmailOwnerException("Email owner email is required for gx:LabelCredential schema");
                     }
                     String email = preSubmittedCredentialDataRequest.credentialOwnerEmail();
-                yield new EmailCredentialOfferInfo(email, DEFAULT_USER_NAME, DEFAULT_ORGANIZATION_NAME);
+                yield new EmailNotificationInfo(email, DEFAULT_USER_NAME, DEFAULT_ORGANIZATION_NAME);
             }
             default -> throw new FormatUnsupportedException(
                     "Unknown schema: " + schema

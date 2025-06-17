@@ -48,19 +48,14 @@ public class ActivationCodeWorkflowImpl implements ActivationCodeWorkflow {
                                                                         transactionCode,
                                                                         preAuthorizedCodeResponse.grants().preAuthorizedCode()
                                                                 )
-                                                                .then(
-                                                                        credentialProcedureService.getMandateeEmailFromDecodedCredentialByProcedureId(procedureId)
-                                                                )
-                                                                .flatMap(email ->
-                                                                        credentialOfferService.buildCustomCredentialOffer(
-                                                                                        credentialProcedure.getCredentialType(),
-                                                                                        preAuthorizedCodeResponse.grants(),
-                                                                                        email,
-                                                                                        preAuthorizedCodeResponse.pin()
-                                                                                )
-                                                                                .flatMap(credentialOfferCacheRepository::saveCustomCredentialOffer)
-                                                                                .flatMap(credentialOfferService::createCredentialOfferUriResponse)
-                                                                )
+                                                                .then(Mono.defer(() -> credentialOfferService.buildCustomCredentialOffer(
+                                                                                credentialProcedure.getCredentialType(),
+                                                                                preAuthorizedCodeResponse.grants(),
+                                                                                credentialProcedure.getOwnerEmail(),
+                                                                                preAuthorizedCodeResponse.pin()
+                                                                        )
+                                                                        .flatMap(credentialOfferCacheRepository::saveCustomCredentialOffer)
+                                                                        .flatMap(credentialOfferService::createCredentialOfferUriResponse)))
                                                 )
                                                 .flatMap(credentialOfferUri ->
                                                         deferredCredentialMetadataService.updateCacheStoreForCTransactionCode(transactionCode)

@@ -60,7 +60,7 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
                     String credentialType = credentialProcedure.getCredentialType();
                     log.info("Building JWT payload for credential signing for credential with type: {}", credentialType);
                     return switch (credentialType) {
-                        case VERIFIABLE_CERTIFICATION_CREDENTIAL_TYPE -> {
+                        case LABEL_CREDENTIAL_TYPE -> {
                             LabelCredential labelCredential = labelCredentialFactory
                                     .mapStringToVerifiableCertification(credentialProcedure.getCredentialDecoded());
                             yield labelCredentialFactory.buildVerifiableCertificationJwtPayload(labelCredential)
@@ -181,7 +181,7 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
         return credentialProcedureRepository.findByProcedureId(UUID.fromString(procedureId))
                 .switchIfEmpty(Mono.error(new RuntimeException("Procedure not found")))
                 .flatMap(credentialProcedure -> switch (credentialProcedure.getCredentialType()) {
-                    case VERIFIABLE_CERTIFICATION_CREDENTIAL_TYPE ->
+                    case LABEL_CREDENTIAL_TYPE ->
                             issuerFactory.createSimpleIssuer(procedureId, LABEL_CREDENTIAL)
                                     .flatMap(issuer -> labelCredentialFactory.mapIssuerAndSigner(procedureId, issuer))
                                     .flatMap(bindCredential -> {
@@ -214,7 +214,7 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
                         })
                         .flatMap(updatedCredentialProcedure -> {
                             String credentialType = updatedCredentialProcedure.getCredentialType();
-                            if (!credentialType.equals(VERIFIABLE_CERTIFICATION_CREDENTIAL_TYPE)) {
+                            if (!credentialType.equals(LABEL_CREDENTIAL_TYPE)) {
                                 return Mono.empty(); //don't send message if it isn't VERIFIABLE_CERTIFICATION
                             }
 

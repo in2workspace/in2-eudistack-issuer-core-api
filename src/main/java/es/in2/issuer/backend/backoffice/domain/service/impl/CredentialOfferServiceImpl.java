@@ -28,7 +28,7 @@ public class CredentialOfferServiceImpl implements CredentialOfferService {
     private final AppConfig appConfig;
 
     @Override
-    public Mono<CredentialOfferData> buildCustomCredentialOffer(String credentialType, Grants grants, String employeeEmail, String pin) {
+    public Mono<CredentialOfferData> buildCustomCredentialOffer(String credentialType, Grants grants, String credentialOwnerEmail, String pin) {
         return Mono.just(
 
                 CredentialOfferData.builder()
@@ -38,7 +38,7 @@ public class CredentialOfferServiceImpl implements CredentialOfferService {
                                 .grants(Map.of(GRANT_TYPE, grants))
                                 .build()
                         )
-                        .employeeEmail(employeeEmail)
+                        .credentialOwnerEmail(credentialOwnerEmail)
                         .pin(pin)
                         .build());
     }

@@ -20,6 +20,7 @@ class CredentialProcedureCreationRequestTest {
         Timestamp expectedValidUntil = new Timestamp(System.currentTimeMillis());
         String expectedOperationMode = "S";
         String expectedSignatureMode = "remote";
+        String expectedOwnerEmail = "user@example.com";
 
         // Act
         CredentialProcedureCreationRequest request = new CredentialProcedureCreationRequest(
@@ -30,7 +31,8 @@ class CredentialProcedureCreationRequestTest {
                 expectedSubject,
                 expectedValidUntil,
                 expectedOperationMode,
-                expectedSignatureMode
+                expectedSignatureMode,
+                expectedOwnerEmail
         );
 
         // Assert
@@ -71,6 +73,8 @@ class CredentialProcedureCreationRequestTest {
         Timestamp expectedValidUntil = new Timestamp(System.currentTimeMillis());
         String expectedOperationMode = "S";
         String expectedSignatureMode = "remote";
+        String expectedOwnerEmail1 = "user@example.com";
+        String expectedOwnerEmail2 = "user@example2.com";
 
         CredentialProcedureCreationRequest request1 = new CredentialProcedureCreationRequest(
                 expectedCredentialId,
@@ -80,7 +84,8 @@ class CredentialProcedureCreationRequestTest {
                 expectedSubject,
                 expectedValidUntil,
                 expectedOperationMode,
-                expectedSignatureMode
+                expectedSignatureMode,
+                expectedOwnerEmail1
         );
         CredentialProcedureCreationRequest request2 = new CredentialProcedureCreationRequest(
                 expectedCredentialId,
@@ -90,7 +95,8 @@ class CredentialProcedureCreationRequestTest {
                 expectedSubject,
                 expectedValidUntil,
                 expectedOperationMode,
-                expectedSignatureMode
+                expectedSignatureMode,
+                expectedOwnerEmail2
         );
 
         // Assert

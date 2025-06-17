@@ -21,7 +21,7 @@ public class CredentialOfferWorkflowImpl implements CredentialOfferWorkflow {
     public Mono<CredentialOffer> getCredentialOfferById(String processId, String id) {
         return credentialOfferCacheRepository.findCredentialOfferById(id)
                 .flatMap(credentialOfferData ->
-                        emailService.sendTxCodeNotification(credentialOfferData.employeeEmail(), "Pin Code", credentialOfferData.pin())
+                        emailService.sendTxCodeNotification(credentialOfferData.credentialOwnerEmail(), "Pin Code", credentialOfferData.pin())
                         .then(Mono.just(credentialOfferData.credentialOffer()))
                 );
     }

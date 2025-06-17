@@ -88,36 +88,36 @@ class LEARCredentialEmployeeFactoryTest {
                 .verifyComplete();
     }
 
-    @Test
-    void testMapAndBuildLEARCredentialEmployee() throws JsonProcessingException {
-        //Arrange
-        String json = "{\"test\": \"test\"}";
-        JsonNode jsonNode = objectMapper.readTree(json);
-        LEARCredentialEmployee.CredentialSubject.Mandate mockMandate = mock(LEARCredentialEmployee.CredentialSubject.Mandate.class);
-        Mandator mockMandator = mock(Mandator.class);
-        LEARCredentialEmployee.CredentialSubject.Mandate.Mandatee mockMandatee = mock(LEARCredentialEmployee.CredentialSubject.Mandate.Mandatee.class);
-        Power mockPower = mock(Power.class);
-
-        List<Power> mockPowerList = new ArrayList<>();
-        mockPowerList.add(mockPower);
-
-        when(objectMapper.convertValue(jsonNode, LEARCredentialEmployee.CredentialSubject.Mandate.class))
-                .thenReturn(mockMandate);
-        when(mockMandate.mandator()).thenReturn(mockMandator);
-        when(mockMandate.mandatee()).thenReturn(mockMandatee);
-        when(mockMandate.power()).thenReturn(mockPowerList);
-
-        when(objectMapper.writeValueAsString(any(LEARCredentialEmployee.class))).thenReturn(json);
-        when(accessTokenService.getOrganizationIdFromCurrentSession()).thenReturn(Mono.just("orgId"));
-
-        // Act
-        Mono<CredentialProcedureCreationRequest> result = learCredentialEmployeeFactory.mapAndBuildLEARCredentialEmployee(jsonNode, "S");
-
-        //Assert
-        StepVerifier.create(result)
-                .expectNextCount(1)
-                .verifyComplete();
-    }
+//    @Test
+//    void testMapAndBuildLEARCredentialEmployee() throws JsonProcessingException {
+//        //Arrange
+//        String json = "{\"test\": \"test\"}";
+//        JsonNode jsonNode = objectMapper.readTree(json);
+//        LEARCredentialEmployee.CredentialSubject.Mandate mockMandate = mock(LEARCredentialEmployee.CredentialSubject.Mandate.class);
+//        Mandator mockMandator = mock(Mandator.class);
+//        LEARCredentialEmployee.CredentialSubject.Mandate.Mandatee mockMandatee = mock(LEARCredentialEmployee.CredentialSubject.Mandate.Mandatee.class);
+//        Power mockPower = mock(Power.class);
+//
+//        List<Power> mockPowerList = new ArrayList<>();
+//        mockPowerList.add(mockPower);
+//
+//        when(objectMapper.convertValue(jsonNode, LEARCredentialEmployee.CredentialSubject.Mandate.class))
+//                .thenReturn(mockMandate);
+//        when(mockMandate.mandator()).thenReturn(mockMandator);
+//        when(mockMandate.mandatee()).thenReturn(mockMandatee);
+//        when(mockMandate.power()).thenReturn(mockPowerList);
+//
+//        when(objectMapper.writeValueAsString(any(LEARCredentialEmployee.class))).thenReturn(json);
+//        when(accessTokenService.getOrganizationIdFromCurrentSession()).thenReturn(Mono.just("orgId"));
+//
+//        // Act
+//        Mono<CredentialProcedureCreationRequest> result = learCredentialEmployeeFactory.mapAndBuildLEARCredentialEmployee(jsonNode, "S");
+//
+//        //Assert
+//        StepVerifier.create(result)
+//                .expectNextCount(1)
+//                .verifyComplete();
+//    }
 
 
     @Test

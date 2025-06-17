@@ -34,14 +34,14 @@ public class LabelCredentialFactory {
     private final ObjectMapper objectMapper;
     private final CredentialProcedureService credentialProcedureService;
 
-    public Mono<CredentialProcedureCreationRequest> mapAndBuildLabelCredential(JsonNode credential, String operationMode) {
+    public Mono<CredentialProcedureCreationRequest> mapAndBuildLabelCredential(JsonNode credential, String operationMode, String email) {
         LabelCredential.CredentialSubject labelCredential = objectMapper.convertValue(credential, LabelCredential.CredentialSubject.class);
 
         return buildVerifiableCertification(labelCredential)
                 .flatMap(verifiableCertificationDecoded ->
                         convertVerifiableCertificationInToString(verifiableCertificationDecoded)
                                 .flatMap(decodedCredential ->
-                                        buildCredentialProcedureCreationRequest(decodedCredential, verifiableCertificationDecoded, operationMode)
+                                        buildCredentialProcedureCreationRequest(decodedCredential, verifiableCertificationDecoded, operationMode, email)
                                 )
                 );
     }
@@ -55,7 +55,7 @@ public class LabelCredentialFactory {
         return Mono.just(LabelCredential.builder()
                 .context(LABEL_CREDENTIAL_CONTEXT)
                 .id("urn:uuid:" + UUID.randomUUID())
-                .type(LABEL_CREDENTIAL_TYPE)
+                .type(LABEL_CREDENTIAL_TYPES)
                 .credentialSubject(credential)
                 .validFrom(validFrom)
                 .validUntil(validUntil)
@@ -139,7 +139,7 @@ public class LabelCredentialFactory {
     }
 
 
-    private Mono<CredentialProcedureCreationRequest> buildCredentialProcedureCreationRequest(String decodedCredential, LabelCredential labelCredentialDecoded, String operationMode) {
+    private Mono<CredentialProcedureCreationRequest> buildCredentialProcedureCreationRequest(String decodedCredential, LabelCredential labelCredentialDecoded, String operationMode, String email) {
         String organizationId = defaultSignerConfig.getOrganizationIdentifier();
         return Mono.just(CredentialProcedureCreationRequest.builder()
                 .credentialId(labelCredentialDecoded.id())
@@ -149,6 +149,7 @@ public class LabelCredentialFactory {
                 .subject(labelCredentialDecoded.credentialSubject().id())
                 .validUntil(parseEpochSecondIntoTimestamp(parseDateToUnixTime(labelCredentialDecoded.validUntil())))
                 .operationMode(operationMode)
+                .ownerEmail(email)
                 .build()
         );
     }

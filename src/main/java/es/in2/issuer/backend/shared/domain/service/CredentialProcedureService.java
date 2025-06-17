@@ -3,6 +3,7 @@ package es.in2.issuer.backend.shared.domain.service;
 import es.in2.issuer.backend.shared.domain.model.dto.CredentialDetails;
 import es.in2.issuer.backend.shared.domain.model.dto.CredentialProcedureCreationRequest;
 import es.in2.issuer.backend.shared.domain.model.dto.CredentialProcedures;
+import es.in2.issuer.backend.shared.domain.model.dto.EmailNotificationInfo;
 import es.in2.issuer.backend.shared.domain.model.entities.CredentialProcedure;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -22,11 +23,11 @@ public interface CredentialProcedureService {
 
     Mono<String> getOperationModeByProcedureId(String procedureId);
 
-    Mono<String> getMandateeEmailFromDecodedCredentialByProcedureId(String procedureId);
+//    Mono<String> getMandateeEmailFromDecodedCredentialByProcedureId(String procedureId);
 
-    Mono<String> getMandateeFirstNameFromDecodedCredentialByProcedureId(String procedureId);
+//    Mono<String> getMandateeFirstNameFromDecodedCredentialByProcedureId(String procedureId);
 
-    Mono<String> getMandateeCompleteNameFromDecodedCredentialByProcedureId(String procedureId);
+//    Mono<String> getMandateeCompleteNameFromDecodedCredentialByProcedureId(String procedureId);
 
     Mono<String> getSignerEmailFromDecodedCredentialByProcedureId(String procedureId);
 
@@ -40,9 +41,10 @@ public interface CredentialProcedureService {
 
     Mono<String> updatedEncodedCredentialByCredentialId(String encodedCredential, String credentialId);
 
-    Mono<String> getMandatorOrganizationFromDecodedCredentialByProcedureId(String procedureId);
+//    Mono<String> getMandatorOrganizationFromDecodedCredentialByProcedureId(String procedureId);
 
     Mono<CredentialProcedure> getCredentialProcedureById(String procedureId);
 
     Mono<Void> updateFormatByProcedureId(String procedureId, String format);
+    Mono<EmailNotificationInfo> getEmailCredentialOfferInfoByProcedureId(String procedureId);
 }

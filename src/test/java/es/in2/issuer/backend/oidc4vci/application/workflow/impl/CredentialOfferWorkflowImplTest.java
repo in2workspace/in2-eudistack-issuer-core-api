@@ -52,7 +52,7 @@ class CredentialOfferWorkflowImplTest {
                 .build();
         CredentialOfferData credentialOfferData = CredentialOfferData.builder()
                 .credentialOffer(credentialOffer)
-                .employeeEmail(credentialOwnerEmail)
+                .credentialOwnerEmail(credentialOwnerEmail)
                 .pin(txCode)
                 .build();
         // Mocking the behavior of the dependencies
@@ -62,7 +62,7 @@ class CredentialOfferWorkflowImplTest {
                 .thenReturn(Mono.empty());
         when(credentialOfferCacheRepository.findCredentialOfferById(credentialOfferId))
                 .thenReturn(Mono.just(credentialOfferData));
-        when(emailService.sendTxCodeNotification(credentialOfferData.employeeEmail(), "Pin Code", credentialOfferData.pin()))
+        when(emailService.sendTxCodeNotification(credentialOfferData.credentialOwnerEmail(), "Pin Code", credentialOfferData.pin()))
                 .thenReturn(Mono.empty());
         // Act
         Mono<CredentialOffer> result = credentialOfferWorkflow.getCredentialOfferById(processId, credentialOfferId);

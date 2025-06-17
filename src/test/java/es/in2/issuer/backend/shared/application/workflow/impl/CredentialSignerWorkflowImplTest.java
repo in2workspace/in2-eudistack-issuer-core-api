@@ -154,7 +154,7 @@ class CredentialSignerWorkflowImplTest {
         String token = "dummyToken";
         CredentialProcedure credentialProcedure = new CredentialProcedure();
         credentialProcedure.setCredentialDecoded(decodedCredential);
-        credentialProcedure.setCredentialType(VERIFIABLE_CERTIFICATION_CREDENTIAL_TYPE);
+        credentialProcedure.setCredentialType(LABEL_CREDENTIAL_TYPE);
         LabelCredential mockCertification = LabelCredential.builder().build();
         LabelCredentialJwtPayload mockVerifiablePayload = mock(LabelCredentialJwtPayload.class);
 
@@ -213,7 +213,7 @@ class CredentialSignerWorkflowImplTest {
         String token = "dummyToken";
         CredentialProcedure credentialProcedure = new CredentialProcedure();
         credentialProcedure.setCredentialDecoded(decodedCredential);
-        credentialProcedure.setCredentialType(VERIFIABLE_CERTIFICATION_CREDENTIAL_TYPE);
+        credentialProcedure.setCredentialType(LABEL_CREDENTIAL_TYPE);
 
         when(labelCredentialFactory.mapStringToVerifiableCertification(decodedCredential))
                 .thenThrow(new RuntimeException("Mapping error"));

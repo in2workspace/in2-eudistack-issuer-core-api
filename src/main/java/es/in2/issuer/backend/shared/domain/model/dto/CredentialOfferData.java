@@ -5,7 +5,7 @@ import lombok.Builder;
 @Builder
 public record CredentialOfferData(
         CredentialOffer credentialOffer,
-        String employeeEmail,
+        String credentialOwnerEmail,
         String pin
 ) {
 }
