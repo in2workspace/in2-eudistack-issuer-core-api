@@ -11,8 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
-import static es.in2.issuer.backend.shared.domain.util.Constants.LEAR_CREDENTIAL_EMPLOYEE;
-import static es.in2.issuer.backend.shared.domain.util.Constants.VERIFIABLE_CERTIFICATION;
+import static es.in2.issuer.backend.shared.domain.util.Constants.*;
 
 @Component
 @RequiredArgsConstructor
@@ -25,14 +24,18 @@ public class CredentialFactory {
     private final CredentialProcedureService credentialProcedureService;
     private final DeferredCredentialMetadataService deferredCredentialMetadataService;
 
-    public Mono<CredentialProcedureCreationRequest> mapCredentialIntoACredentialProcedureRequest(String processId, PreSubmittedCredentialDataRequest preSubmittedCredentialDataRequest, String token) {
+    public Mono<CredentialProcedureCreationRequest> mapCredentialIntoACredentialProcedureRequest(String processId, PreSubmittedCredentialDataRequest preSubmittedCredentialDataRequest) {
         JsonNode credential = preSubmittedCredentialDataRequest.payload();
         String operationMode = preSubmittedCredentialDataRequest.operationMode();
         if (preSubmittedCredentialDataRequest.schema().equals(LEAR_CREDENTIAL_EMPLOYEE)) {
             return learCredentialEmployeeFactory.mapAndBuildLEARCredentialEmployee(credential, operationMode)
                     .doOnSuccess(learCredentialEmployee -> log.info("ProcessID: {} - LEARCredentialEmployee mapped: {}", processId, credential));
+        } else if(preSubmittedCredentialDataRequest.schema().equals(LEAR_CREDENTIAL_MACHINE)) {
+            return learCredentialMachineFactory.mapAndBuildLEARCredentialMachine(credential, operationMode)
+                    .doOnSuccess(learCredentialEmployee -> log.info("ProcessID: {} - LEARCredentialEmployee mapped: {}", processId, credential));
         } else if (preSubmittedCredentialDataRequest.schema().equals(VERIFIABLE_CERTIFICATION)) {
-            return verifiableCertificationFactory.mapAndBuildVerifiableCertification(credential, token, operationMode)
+            // TODO update with Ruben changes
+            return verifiableCertificationFactory.mapAndBuildVerifiableCertification(credential, operationMode, null)
                     .doOnSuccess(verifiableCertification -> log.info("ProcessID: {} - VerifiableCertification mapped: {}", processId, credential));
         }
         return Mono.error(new CredentialTypeUnsupportedException(preSubmittedCredentialDataRequest.schema()));

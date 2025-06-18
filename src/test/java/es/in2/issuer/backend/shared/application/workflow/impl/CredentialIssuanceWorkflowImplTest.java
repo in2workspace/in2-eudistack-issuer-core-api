@@ -181,7 +181,7 @@ class CredentialIssuanceServiceImplTest {
         String transactionCode = "4321";
 
         when(verifiableCredentialPolicyAuthorizationService.authorize(token, type, jsonNode, idToken)).thenReturn(Mono.empty());
-        when(verifiableCredentialService.generateVc(processId, type, preSubmittedCredentialDataRequest, token)).thenReturn(Mono.just(transactionCode));
+        when(verifiableCredentialService.generateVc(processId, preSubmittedCredentialDataRequest, "example@in2.es")).thenReturn(Mono.just(transactionCode));
         when(appConfig.getIssuerFrontendUrl()).thenReturn(issuerUiExternalDomain);
         when(appConfig.getKnowledgebaseWalletUrl()).thenReturn(knowledgebaseWalletUrl);
         when(emailService.sendCredentialActivationEmail("example@in2.es", "Activate your new credential", issuerUiExternalDomain + "/credential-offer?transaction_code=" + transactionCode, knowledgebaseWalletUrl, "Jhon Doe", "IN2, Ingeniería de la Información, S.L.")).thenReturn(Mono.empty());
@@ -259,7 +259,7 @@ class CredentialIssuanceServiceImplTest {
         String transactionCode = "4321";
 
         when(verifiableCredentialPolicyAuthorizationService.authorize(token, type, jsonNode, null)).thenReturn(Mono.empty());
-        when(verifiableCredentialService.generateVc(processId, type, preSubmittedCredentialDataRequest, token)).thenReturn(Mono.just(transactionCode));
+        when(verifiableCredentialService.generateVc(processId, preSubmittedCredentialDataRequest, "example@in2.es")).thenReturn(Mono.just(transactionCode));
         when(appConfig.getIssuerFrontendUrl()).thenReturn(issuerUiExternalDomain);
         when(appConfig.getKnowledgebaseWalletUrl()).thenReturn(knowledgebaseWalletUrl);
 

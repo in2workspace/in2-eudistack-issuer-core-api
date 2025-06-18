@@ -501,7 +501,7 @@ class VerifiableCredentialPolicyAuthorizationServiceImplTest {
         when(learCredentialMachineFactory.mapStringToLEARCredentialMachine(vcClaim)).thenReturn(machineCredential);
 
         // Act
-        Mono<Void> result = policyAuthorizationService.authorize(token, LEAR_CREDENTIAL_EMPLOYEE, payload, "dummy-id-token");
+        Mono<Void> result = policyAuthorizationService.authorize(token, LEAR_CREDENTIAL_MACHINE, payload, "dummy-id-token");
 
         StepVerifier.create(result)
                 .verifyComplete();
@@ -740,8 +740,8 @@ class VerifiableCredentialPolicyAuthorizationServiceImplTest {
     }
 
     private LEARCredentialMachine getLEARCredentialMachineForCertification() {
-        Mandator mandator = Mandator.builder()
-                .organizationIdentifier("SomeOrganization")
+        LEARCredentialMachine.CredentialSubject.Mandate.Mandator mandator = LEARCredentialMachine.CredentialSubject.Mandate.Mandator.builder()
+                .organization("SomeOrganization")
                 .build();
         LEARCredentialMachine.CredentialSubject.Mandate.Mandatee mandatee = LEARCredentialMachine.CredentialSubject.Mandate.Mandatee.builder()
                 .id("did:key:1234")
@@ -793,8 +793,8 @@ class VerifiableCredentialPolicyAuthorizationServiceImplTest {
     }
 
     private LEARCredentialMachine getLEARCredentialMachine() {
-        Mandator mandator = Mandator.builder()
-                .organizationIdentifier(IN2_ORGANIZATION_IDENTIFIER)
+        LEARCredentialMachine.CredentialSubject.Mandate.Mandator mandator = LEARCredentialMachine.CredentialSubject.Mandate.Mandator.builder()
+                .organization(IN2_ORGANIZATION_IDENTIFIER)
                 .build();
         LEARCredentialMachine.CredentialSubject.Mandate.Mandatee mandatee = LEARCredentialMachine.CredentialSubject.Mandate.Mandatee.builder()
                 .id("did:key:1234")
@@ -818,8 +818,8 @@ class VerifiableCredentialPolicyAuthorizationServiceImplTest {
     }
 
     private LEARCredentialMachine getLEARCredentialMachineWithInvalidPolicy() {
-        Mandator mandator = Mandator.builder()
-                .organizationIdentifier(IN2_ORGANIZATION_IDENTIFIER)
+        LEARCredentialMachine.CredentialSubject.Mandate.Mandator mandator = LEARCredentialMachine.CredentialSubject.Mandate.Mandator.builder()
+                .organization(IN2_ORGANIZATION_IDENTIFIER)
                 .build();
         LEARCredentialMachine.CredentialSubject.Mandate.Mandatee mandatee =
                 LEARCredentialMachine.CredentialSubject.Mandate.Mandatee.builder()

@@ -110,7 +110,7 @@ class VerifiableCredentialServiceImplTest {
                 .credentialDecoded("decoded-credential")
                 .build();
         String vcType = "vc-type-789";
-        when(credentialFactory.mapCredentialIntoACredentialProcedureRequest(processId, preSubmittedCredentialDataRequest, token))
+        when(credentialFactory.mapCredentialIntoACredentialProcedureRequest(processId, preSubmittedCredentialDataRequest))
                 .thenReturn(Mono.just(mockCreationRequest));
 
         // Mock the behavior of credentialProcedureService
@@ -130,7 +130,7 @@ class VerifiableCredentialServiceImplTest {
                 .thenReturn(Mono.empty());
 
         // Act: Call the generateVc method
-        Mono<String> result = verifiableCredentialServiceImpl.generateVc(processId, vcType, preSubmittedCredentialDataRequest, token);
+        Mono<String> result = verifiableCredentialServiceImpl.generateVc(processId, preSubmittedCredentialDataRequest, "");
 
         // Assert: Verify the result
         StepVerifier.create(result)
@@ -139,7 +139,7 @@ class VerifiableCredentialServiceImplTest {
 
         // Verify that all the interactions occurred as expected
         verify(credentialFactory, times(1))
-                .mapCredentialIntoACredentialProcedureRequest(processId, preSubmittedCredentialDataRequest, token);
+                .mapCredentialIntoACredentialProcedureRequest(processId, preSubmittedCredentialDataRequest);
 
         verify(credentialProcedureService, times(1))
                 .createCredentialProcedure(mockCreationRequest);
@@ -500,7 +500,7 @@ class VerifiableCredentialServiceImplTest {
                 .build();
 
         when(credentialFactory
-                .mapCredentialIntoACredentialProcedureRequest(processId, preSubmittedCredentialDataRequest, token))
+                .mapCredentialIntoACredentialProcedureRequest(processId, preSubmittedCredentialDataRequest))
                 .thenReturn(Mono.just(mockCreationRequest));
 
         when(credentialProcedureService.createCredentialProcedure(mockCreationRequest))
@@ -539,7 +539,7 @@ class VerifiableCredentialServiceImplTest {
                 .verifyComplete();
 
         verify(credentialFactory, times(1))
-                .mapCredentialIntoACredentialProcedureRequest(processId, preSubmittedCredentialDataRequest, token);
+                .mapCredentialIntoACredentialProcedureRequest(processId, preSubmittedCredentialDataRequest);
         verify(credentialProcedureService, times(1))
                 .createCredentialProcedure(mockCreationRequest);
         verify(deferredCredentialMetadataService, times(1))
@@ -574,7 +574,7 @@ class VerifiableCredentialServiceImplTest {
                 .credentialDecoded("decoded-certification")
                 .build();
 
-        when(credentialFactory.mapCredentialIntoACredentialProcedureRequest(processId, preSubmittedCredentialDataRequest, token))
+        when(credentialFactory.mapCredentialIntoACredentialProcedureRequest(processId, preSubmittedCredentialDataRequest))
                 .thenReturn(Mono.just(mockCreationRequest));
 
         // Mock the credential procedure service
@@ -605,7 +605,7 @@ class VerifiableCredentialServiceImplTest {
 
         // Verify interactions
         verify(credentialFactory, times(1))
-                .mapCredentialIntoACredentialProcedureRequest(processId, preSubmittedCredentialDataRequest, token);
+                .mapCredentialIntoACredentialProcedureRequest(processId, preSubmittedCredentialDataRequest);
 
         verify(credentialProcedureService, times(1))
                 .createCredentialProcedure(mockCreationRequest);
@@ -641,7 +641,7 @@ class VerifiableCredentialServiceImplTest {
 
         // Mock the credential factory to throw an error
         RuntimeException mockException = new RuntimeException("Error mapping credential");
-        when(credentialFactory.mapCredentialIntoACredentialProcedureRequest(processId, preSubmittedCredentialDataRequest, token))
+        when(credentialFactory.mapCredentialIntoACredentialProcedureRequest(processId, preSubmittedCredentialDataRequest))
                 .thenReturn(Mono.error(mockException));
 
         // Act & Assert

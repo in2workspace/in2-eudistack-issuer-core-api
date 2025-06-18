@@ -23,6 +23,7 @@ import java.text.ParseException;
 
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.*;
 import static es.in2.issuer.backend.shared.domain.util.Constants.*;
+import static es.in2.issuer.backend.shared.domain.util.Constants.LEAR_CREDENTIAL_MACHINE;
 
 @Slf4j
 @Service
@@ -61,12 +62,16 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
             return Mono.error(new MissingIdTokenHeaderException("Missing required ID Token header for VerifiableCertification issuance."));
         }
 
+        EmailCredentialOfferInfo emailInfo =
+                extractCredentialOfferEmailInfo(preSubmittedCredentialDataRequest);
+
         // Validate user policy before proceeding
         return verifiableCredentialPolicyAuthorizationService.authorize(token, preSubmittedCredentialDataRequest.schema(), preSubmittedCredentialDataRequest.payload(), idToken)
                 .then(Mono.defer(() -> {
-                    if (preSubmittedCredentialDataRequest.schema().equals(LEAR_CREDENTIAL_EMPLOYEE)) {
-                        return verifiableCredentialService.generateVc(processId, preSubmittedCredentialDataRequest.schema(), preSubmittedCredentialDataRequest, token)
-                                .flatMap(transactionCode -> sendCredentialOfferEmail(transactionCode, preSubmittedCredentialDataRequest));
+                    if (preSubmittedCredentialDataRequest.schema().equals(LEAR_CREDENTIAL_EMPLOYEE) ||
+                            preSubmittedCredentialDataRequest.schema().equals(LEAR_CREDENTIAL_MACHINE)) {
+                        return verifiableCredentialService.generateVc(processId, preSubmittedCredentialDataRequest, emailInfo.email())
+                                .flatMap(transactionCode -> sendCredentialOfferEmail(transactionCode, emailInfo));
                     } else if (preSubmittedCredentialDataRequest.schema().equals(VERIFIABLE_CERTIFICATION)) {
                         // Check if responseUri is null, empty, or only contains whitespace
                         if (preSubmittedCredentialDataRequest.responseUri() == null || preSubmittedCredentialDataRequest.responseUri().isBlank()) {
@@ -102,21 +107,30 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                 }));
     }
 
-    private Mono<Void> sendCredentialOfferEmail(String transactionCode, PreSubmittedCredentialDataRequest preSubmittedCredentialDataRequest) {
-        String email = preSubmittedCredentialDataRequest.payload().get(MANDATEE).get(EMAIL).asText();
-        String user = preSubmittedCredentialDataRequest.payload().get(MANDATEE).get(FIRST_NAME).asText() + " " + preSubmittedCredentialDataRequest.payload().get(MANDATEE).get(LAST_NAME).asText();
-        String organization = preSubmittedCredentialDataRequest.payload().get(MANDATOR).get(ORGANIZATION).asText();
-        // TODO we are only validating that the url its well formed, we should return the proper object not a string
-        String credentialOfferUrl = UriComponentsBuilder
+    private Mono<Void> sendCredentialOfferEmail(
+            String transactionCode,
+            EmailCredentialOfferInfo info
+    ) {
+        String credentialOfferUrl = buildCredentialOfferUrl(transactionCode);
+
+        return emailService.sendCredentialActivationEmail(
+                        info.email(),
+                        CREDENTIAL_ACTIVATION_EMAIL_SUBJECT,
+                        credentialOfferUrl,
+                        appConfig.getKnowledgebaseWalletUrl(),
+                        info.user(),
+                        info.organization()
+                )
+                .onErrorMap(ex -> new EmailCommunicationException(MAIL_ERROR_COMMUNICATION_EXCEPTION_MESSAGE));
+    }
+
+    private String buildCredentialOfferUrl(String transactionCode) {
+        return UriComponentsBuilder
                 .fromHttpUrl(appConfig.getIssuerFrontendUrl())
                 .path("/credential-offer")
                 .queryParam("transaction_code", transactionCode)
                 .build()
                 .toUriString();
-
-        return emailService.sendCredentialActivationEmail(email, CREDENTIAL_ACTIVATION_EMAIL_SUBJECT, credentialOfferUrl, appConfig.getKnowledgebaseWalletUrl(), user, organization)
-                .onErrorMap(exception ->
-                        new EmailCommunicationException(MAIL_ERROR_COMMUNICATION_EXCEPTION_MESSAGE));
     }
 
     @Override
@@ -171,6 +185,31 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
     public Mono<Void> bindAccessTokenByPreAuthorizedCode(String processId, AuthServerNonceRequest authServerNonceRequest) {
         return verifiableCredentialService.bindAccessTokenByPreAuthorizedCode
                 (processId, authServerNonceRequest.accessToken(), authServerNonceRequest.preAuthorizedCode());
+    }
+
+    private EmailCredentialOfferInfo extractCredentialOfferEmailInfo(PreSubmittedCredentialDataRequest preSubmittedCredentialDataRequest) {
+        String schema = preSubmittedCredentialDataRequest.schema();
+        var payload = preSubmittedCredentialDataRequest.payload();
+
+        return switch (schema) {
+            case LEAR_CREDENTIAL_EMPLOYEE -> {
+                String email = payload.get(MANDATEE).get(EMAIL).asText();
+                String user = payload.get(MANDATEE).get(FIRST_NAME).asText()
+                        + " " + payload.get(MANDATEE).get(LAST_NAME).asText();
+                String org = payload.get(MANDATOR).get(ORGANIZATION).asText();
+                yield new EmailCredentialOfferInfo(email, user, org);
+            }
+
+            case LEAR_CREDENTIAL_MACHINE -> {
+                String email = payload.get(MANDATEE).get(EMAIL).asText();
+                String org = payload.get(MANDATOR).get(ORGANIZATION).asText();
+                yield new EmailCredentialOfferInfo(email, DEFAULT_USER_NAME, org);
+            }
+
+            default -> throw new FormatUnsupportedException(
+                    "Unknown schema: " + schema
+            );
+        };
     }
 
     @Override

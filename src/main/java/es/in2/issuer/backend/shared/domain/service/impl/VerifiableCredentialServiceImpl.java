@@ -39,11 +39,10 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
     private final IssuerFactory issuerFactory;
 
     @Override
-    public Mono<String> generateVc(String processId, String vcType, PreSubmittedCredentialDataRequest preSubmittedCredentialDataRequest, String token) {
-        return credentialFactory.mapCredentialIntoACredentialProcedureRequest(processId, preSubmittedCredentialDataRequest, token)
+    public Mono<String> generateVc(String processId, PreSubmittedCredentialDataRequest preSubmittedCredentialDataRequest, String email) {
+        return credentialFactory.mapCredentialIntoACredentialProcedureRequest(processId, preSubmittedCredentialDataRequest)
                 .flatMap(credentialProcedureService::createCredentialProcedure)
                 //TODO repensar esto cuando el flujo del Verification cumpla con el OIDC4VC
-                //Generate Issuer and Signer using LEARCredentialEmployee method
                 .flatMap(procedureId -> deferredCredentialMetadataService.createDeferredCredentialMetadata(
                                 procedureId,
                                 preSubmittedCredentialDataRequest.operationMode(),
@@ -56,7 +55,7 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
 
     @Override
     public Mono<String> generateVerifiableCertification(String processId, PreSubmittedCredentialDataRequest preSubmittedCredentialDataRequest, String idToken) {
-        return credentialFactory.mapCredentialIntoACredentialProcedureRequest(processId, preSubmittedCredentialDataRequest, idToken)
+        return credentialFactory.mapCredentialIntoACredentialProcedureRequest(processId, preSubmittedCredentialDataRequest)
                 .flatMap(credentialProcedureService::createCredentialProcedure)
                 .flatMap(procedureId ->
                         deferredCredentialMetadataService.createDeferredCredentialMetadata(

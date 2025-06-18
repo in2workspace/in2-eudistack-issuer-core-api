@@ -27,7 +27,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
 
-import static es.in2.issuer.backend.shared.domain.util.Constants.CREDENTIAL_CONTEXT;
+import static es.in2.issuer.backend.shared.domain.util.Constants.CREDENTIAL_CONTEXT_LEAR_CREDENTIAL_EMPLOYEE;
 import static es.in2.issuer.backend.shared.domain.util.Constants.VERIFIABLE_CERTIFICATION_TYPE;
 
 @Component
@@ -85,7 +85,7 @@ public class VerifiableCertificationFactory {
 
         // Build the VerifiableCertification object
         return Mono.just(VerifiableCertification.builder()
-                .context(CREDENTIAL_CONTEXT)
+                .context(CREDENTIAL_CONTEXT_LEAR_CREDENTIAL_EMPLOYEE)
                 .id(UUID.randomUUID().toString())
                 .type(VERIFIABLE_CERTIFICATION_TYPE)
                 .credentialSubject(VerifiableCertification.CredentialSubject.builder()
