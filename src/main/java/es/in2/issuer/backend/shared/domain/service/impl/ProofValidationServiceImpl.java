@@ -72,7 +72,7 @@ public class ProofValidationServiceImpl implements ProofValidationService {
     private void validatePayload(JWSObject jwsObject) {
         var payload = jwsObject.getPayload().toJSONObject();
         if (!payload.containsKey("aud") || !payload.containsKey("iat") ||
-                Instant.now().isAfter(Instant.ofEpochSecond(Long.parseLong(payload.get("exp").toString())))) {
+                (payload.containsKey("exp") && Instant.now().isAfter(Instant.ofEpochSecond(Long.parseLong(payload.get("exp").toString()))))) {
             throw new IllegalArgumentException("Invalid JWT payload");
         }
     }
