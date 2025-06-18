@@ -54,7 +54,7 @@ public class LabelCredentialFactory {
         // Build the VerifiableCertification object
         return Mono.just(LabelCredential.builder()
                 .context(LABEL_CREDENTIAL_CONTEXT)
-                .id("urn:uuid:" + UUID.randomUUID())
+                .id(UUID.randomUUID().toString())
                 .type(LABEL_CREDENTIAL_TYPES)
                 .credentialSubject(credential)
                 .validFrom(validFrom)
