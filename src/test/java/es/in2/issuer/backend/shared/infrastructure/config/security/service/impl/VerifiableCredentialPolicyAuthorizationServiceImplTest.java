@@ -533,12 +533,12 @@ class VerifiableCredentialPolicyAuthorizationServiceImplTest {
         when(learCredentialMachineFactory.mapStringToLEARCredentialMachine(vcClaim)).thenReturn(machineCredential);
 
         // Act
-        Mono<Void> result = policyAuthorizationService.authorize(token, LEAR_CREDENTIAL_EMPLOYEE, payload, "dummy-id-token");
+        Mono<Void> result = policyAuthorizationService.authorize(token, LEAR_CREDENTIAL_MACHINE, payload, "dummy-id-token");
 
         StepVerifier.create(result)
                 .expectErrorMatches(throwable ->
                         throwable instanceof InsufficientPermissionException &&
-                                throwable.getMessage().contains("Unauthorized: LEARCredentialEmployee does not meet any issuance policies."))
+                                throwable.getMessage().contains("Unauthorized: LEARCredentialMachine does not meet any issuance policies."))
                 .verify();
     }
 
