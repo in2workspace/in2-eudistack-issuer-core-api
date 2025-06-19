@@ -420,9 +420,9 @@ public class RemoteSignatureServiceImpl implements RemoteSignatureService {
     private Mono<String> sendSignatureRequest(SignatureRequest signatureRequest, String accessToken, String sad) {
         credentialID = remoteSignatureConfig.getRemoteSignatureCredentialId();
         String signatureRemoteServerEndpoint = remoteSignatureConfig.getRemoteSignatureDomain() + "/csc/v2/signatures/signDoc";
-        String signatureQualifier = "eu_eidas_qes";
+        String signatureQualifier = "eu_eidas_aesealqc";
         String signatureFormat = "J";
-        String conformanceLevel = "Ades-B-B";
+        String conformanceLevel = "Ades-B";
         String signAlgorithm = "OID_sign_algorithm";
 
         String base64Document = Base64.getEncoder().encodeToString(signatureRequest.data().getBytes(StandardCharsets.UTF_8));
