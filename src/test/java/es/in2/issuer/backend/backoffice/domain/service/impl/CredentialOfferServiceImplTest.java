@@ -42,7 +42,7 @@ class CredentialOfferServiceImplTest {
         StepVerifier.create(credentialOfferService.buildCustomCredentialOffer(credentialType, grants, email, pin))
                 .expectNextMatches(offer ->
                         offer.credentialOffer().credentialIssuer().equals("https://example.com") &&
-                                offer.credentialOffer().credentialConfigurationIds().equals(List.of(LEAR_CREDENTIAL_EMPLOYEE)) &&
+                                offer.credentialOffer().credentialConfigurationIds().equals(List.of(credentialType)) &&
                                 offer.credentialOffer().grants().containsKey(GRANT_TYPE) &&
                                 offer.credentialOffer().grants().get(GRANT_TYPE).preAuthorizedCode().equals(preAuthCode) &&
                                 offer.credentialOffer().grants().get(GRANT_TYPE).txCode().length() == 4

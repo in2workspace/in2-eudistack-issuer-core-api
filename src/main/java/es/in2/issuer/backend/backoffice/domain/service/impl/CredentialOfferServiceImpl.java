@@ -34,7 +34,7 @@ public class CredentialOfferServiceImpl implements CredentialOfferService {
                 CredentialOfferData.builder()
                         .credentialOffer(CredentialOffer.builder()
                                 .credentialIssuer(appConfig.getIssuerBackendUrl())
-                                .credentialConfigurationIds(List.of(LEAR_CREDENTIAL_EMPLOYEE))
+                                .credentialConfigurationIds(List.of(credentialType))
                                 .grants(Map.of(GRANT_TYPE, grants))
                                 .build()
                         )
