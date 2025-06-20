@@ -210,15 +210,18 @@ public class RemoteSignatureServiceImpl implements RemoteSignatureService {
         authEntry.put(AUTH_DATA_VALUE, authDataValue);
         requestBody.put(AUTH_DATA, List.of(authEntry));
 
-        String requestBodyString = requestBody.entrySet().stream()
-                .map(entry -> entry.getKey() + "=" + entry.getValue())
-                .reduce((p1, p2) -> p1 + "&" + p2)
-                .orElse("");
+        String jsonBody;
+        try {
+            jsonBody = objectMapper.writeValueAsString(requestBody);
+        } catch (JsonProcessingException e) {
+            return Mono.error(new SadException("Error serializing JSON request body"));
+        }
+
 
         headers.clear();
         headers.add(new AbstractMap.SimpleEntry<>(HttpHeaders.AUTHORIZATION, BEARER_PREFIX + accessToken));
-        headers.add(new AbstractMap.SimpleEntry<>(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE));
-        return httpUtils.postRequest(signatureGetSadEndpoint, headers, requestBodyString)
+        headers.add(new AbstractMap.SimpleEntry<>(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE));
+        return httpUtils.postRequest(signatureGetSadEndpoint, headers, jsonBody)
                 .flatMap(responseJson -> Mono.fromCallable(() -> {
                     try {
                         Map<String, Object> responseMap = objectMapper.readValue(responseJson, Map.class);
