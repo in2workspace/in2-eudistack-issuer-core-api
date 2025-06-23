@@ -14,6 +14,8 @@ public interface CredentialProcedureService {
 
     Mono<String> getCredentialStatusByProcedureId(String procedureId);
 
+    Mono<Void> updateDecodedCredentialByProcedureId(String procedureId, String credential);
+
     Mono<Void> updateDecodedCredentialByProcedureId(String procedureId, String credential, String format);
 
     Mono<String> getDecodedCredentialByProcedureId(String procedureId);
@@ -41,4 +43,6 @@ public interface CredentialProcedureService {
     Mono<String> getMandatorOrganizationFromDecodedCredentialByProcedureId(String procedureId);
 
     Mono<CredentialProcedure> getCredentialProcedureById(String procedureId);
+
+    Mono<Void> updateFormatByProcedureId(String procedureId, String format);
 }

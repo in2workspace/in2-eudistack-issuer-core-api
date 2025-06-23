@@ -1,14 +1,15 @@
 package es.in2.issuer.backend.shared.domain.service;
 
 import es.in2.issuer.backend.shared.domain.model.dto.DeferredCredentialRequest;
-import es.in2.issuer.backend.shared.domain.model.dto.PreSubmittedCredentialRequest;
-import es.in2.issuer.backend.shared.domain.model.dto.VerifiableCredentialResponse;
+import es.in2.issuer.backend.shared.domain.model.dto.DeferredCredentialResponse;
+import es.in2.issuer.backend.shared.domain.model.dto.PreSubmittedCredentialDataRequest;
+import es.in2.issuer.backend.shared.domain.model.dto.CredentialResponse;
 import reactor.core.publisher.Mono;
 
 public interface VerifiableCredentialService {
-    Mono<String> generateVc(String processId, String vcType, PreSubmittedCredentialRequest preSubmittedCredentialRequest, String token);
-    Mono<String> generateVerifiableCertification(String processId, PreSubmittedCredentialRequest preSubmittedCredentialRequest, String idToken);
-    Mono<VerifiableCredentialResponse> buildCredentialResponse(String processId, String subjectDid, String authServerNonce, String format, String token);
+    Mono<String> generateVc(String processId, String vcType, PreSubmittedCredentialDataRequest preSubmittedCredentialDataRequest, String token);
+    Mono<String> generateVerifiableCertification(String processId, PreSubmittedCredentialDataRequest preSubmittedCredentialDataRequest, String idToken);
+    Mono<CredentialResponse> buildCredentialResponse(String processId, String subjectDid, String authServerNonce, String token);
     Mono<Void> bindAccessTokenByPreAuthorizedCode(String processId, String accessToken, String preAuthCode);
-    Mono<VerifiableCredentialResponse> generateDeferredCredentialResponse(String processId, DeferredCredentialRequest deferredCredentialRequest);
+    Mono<DeferredCredentialResponse> generateDeferredCredentialResponse(String processId, DeferredCredentialRequest deferredCredentialRequest);
 }

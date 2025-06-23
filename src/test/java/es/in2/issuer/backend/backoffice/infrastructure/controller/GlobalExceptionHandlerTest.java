@@ -590,4 +590,20 @@ class GlobalExceptionHandlerTest {
                 })
                 .verifyComplete();
     }
+
+    @Test
+    void handleSadError() {
+        SadException exception = new SadException("Sad exception");
+
+        Mono<CredentialErrorResponse> resultMono = globalExceptionHandler.handleSadError(exception);
+
+        StepVerifier.create(resultMono)
+                .assertNext(result -> {
+                    assertEquals(CredentialResponseErrorCodes.SAD_ERROR, result.error());
+                    assertEquals(exception.getMessage(), result.description());
+                })
+                .verifyComplete();
+    }
+
+
 }

@@ -36,7 +36,7 @@ class CredentialIssuerMetadataControllerTest {
         // Arrange
         CredentialIssuerMetadata expectedCredentialIssuerMetadata = CredentialIssuerMetadata.builder()
                 .credentialIssuer("https://issuer.example.com")
-                .credentialIssuer("https://issuer.example.com/vci/v1/issuances")
+                .issuanceEndpoint("https://issuer.example.com/vci/v1/issuances")
                 .credentialEndpoint("https://issuer.example.com/oid4vci/v1/credential")
                 .deferredCredentialEndpoint("https://issuer.example.com/oid4vci/v1/deferred-credential")
                 .credentialConfigurationsSupported(Map.of(
