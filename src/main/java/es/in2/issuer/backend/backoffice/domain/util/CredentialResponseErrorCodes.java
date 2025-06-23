@@ -21,5 +21,6 @@ public class CredentialResponseErrorCodes {
     public static final String FORMAT_IS_NOT_SUPPORTED = "format_is_not_supported";
     public static final String INSUFFICIENT_PERMISSION = "insufficient_permission";
     public static final String MISSING_HEADER = "missing_header";
+    public static final String SAD_ERROR = "SAD_ERROR";
 
 }
