@@ -9,8 +9,8 @@ import java.util.Map;
 
 @Builder
 public record CredentialOffer(
-        @JsonProperty("credential_issuer") @NotBlank String credentialIssuer,
-        @JsonProperty("credential_configuration_ids") List<String> credentialConfigurationIds,
-        @JsonProperty("grants") Map<String, Grants> grants
+        @JsonProperty(value = "credential_issuer", required = true) @NotBlank String credentialIssuer,
+        @JsonProperty(value = "credential_configuration_ids", required = true) List<String> credentialConfigurationIds,
+        @JsonProperty(value = "grants", required = true) Map<String, Grants> grants
 ) {
 }

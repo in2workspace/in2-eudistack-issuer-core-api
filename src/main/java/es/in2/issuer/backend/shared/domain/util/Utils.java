@@ -33,11 +33,17 @@ public final class Utils {
         });
     }
 
-    public static Mandator extractMandator(LEARCredential credential) {
+    public static Mandator extractMandatorLearCredentialEmployee(LEARCredential credential) {
         List<String> types = credential.type();
         if (types.contains("LEARCredentialEmployee")) {
             return ((LEARCredentialEmployee) credential).credentialSubject().mandate().mandator();
-        } else if (types.contains("LEARCredentialMachine")) {
+        }
+        throw new InvalidCredentialFormatException("Unsupported credential type: " + types);
+    }
+
+    public static LEARCredentialMachine.CredentialSubject.Mandate.Mandator extractMandatorLearCredentialMachine(LEARCredential credential) {
+        List<String> types = credential.type();
+        if (types.contains("LEARCredentialMachine")) {
             return ((LEARCredentialMachine) credential).credentialSubject().mandate().mandator();
         }
         throw new InvalidCredentialFormatException("Unsupported credential type: " + types);

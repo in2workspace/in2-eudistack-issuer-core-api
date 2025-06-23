@@ -5,7 +5,9 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.Issuer;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.IssuerDeserializer;
-import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.*;
+import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.CredentialStatusObject;
+import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.LEARCredential;
+import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.Power;
 import lombok.Builder;
 
 import java.util.List;
@@ -16,11 +18,14 @@ public record LEARCredentialMachine(
         @JsonProperty("@context") List<String> context,
         @JsonProperty("id") String id,
         @JsonProperty("type") List<String> type,
+        @JsonProperty("name") String name,
         @JsonProperty("description") String description,
-        @JsonProperty("credentialSubject") CredentialSubject credentialSubject,
         @JsonProperty("issuer") @JsonDeserialize(using = IssuerDeserializer.class) Issuer issuer,
         @JsonProperty("validFrom") String validFrom,
-        @JsonProperty("validUntil") String validUntil
+        @JsonProperty("validUntil") String validUntil,
+        @JsonProperty("credentialSubject") CredentialSubject credentialSubject,
+        @JsonProperty("credentialStatus") CredentialStatusObject credentialStatus
+
 ) implements LEARCredential {
 
     @Builder
@@ -30,28 +35,26 @@ public record LEARCredentialMachine(
         @Builder
         public record Mandate(
                 @JsonProperty("id") String id,
-                @JsonProperty("life_span") LifeSpan lifeSpan,
-                @JsonProperty("mandatee") Mandatee mandatee,
                 @JsonProperty("mandator") Mandator mandator,
-                @JsonProperty("power") List<Power> power,
-                @JsonProperty("signer") Signer signer
-                ) {
+                @JsonProperty("mandatee") Mandatee mandatee,
+                @JsonProperty("power") List<Power> power
+        ) {
+            @Builder
+            public record Mandator(
+                    @JsonProperty("id") String id,
+                    @JsonProperty("organization") String organization,
+                    @JsonProperty("country") String country,
+                    @JsonProperty("commonName") String commonName,
+                    @JsonProperty("serialNumber") String serialNumber
+            ) {
+            }
+
             @Builder
             public record Mandatee(
                     @JsonProperty("id") String id,
-                    @JsonProperty("serviceName") String serviceName,
-                    @JsonProperty("serviceType") String serviceType,
-                    @JsonProperty("version") String version,
                     @JsonProperty("domain") String domain,
-                    @JsonProperty("ipAddress") String ipAddress,
-                    @JsonProperty("description") String description,
-                    @JsonProperty("contact") Contact contact
+                    @JsonProperty("ipAddress") String ipAddress
             ) {
-                @Builder
-                public record Contact(
-                        @JsonProperty("email") String email,
-                        @JsonProperty("phone") String mobilePhone
-                ) {}
             }
         }
     }

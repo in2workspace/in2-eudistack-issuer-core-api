@@ -104,7 +104,7 @@ public class LEARCredentialEmployeeFactory {
         LEARCredentialEmployee.CredentialSubject credentialSubject = createCredentialSubject(mandate);
 
         LEARCredentialEmployee credentialEmployee = LEARCredentialEmployee.builder()
-                .context(CREDENTIAL_CONTEXT)
+                .context(CREDENTIAL_CONTEXT_LEAR_CREDENTIAL_EMPLOYEE)
                 .id(UUID.randomUUID().toString())
                 .type(List.of(LEAR_CREDENTIAL_EMPLOYEE, VERIFIABLE_CREDENTIAL))
                 .description(LEAR_CREDENTIAL_EMPLOYEE_DESCRIPTION)

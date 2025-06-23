@@ -66,6 +66,7 @@ public class GlobalExceptionHandler {
 
         return Mono.just(ResponseEntity.badRequest().body(errorResponse));
     }
+
     @ExceptionHandler(ExpiredPreAuthorizedCodeException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public Mono<ResponseEntity<CredentialErrorResponse>> expiredPreAuthorizedCode(Exception ex) {
@@ -104,7 +105,7 @@ public class GlobalExceptionHandler {
         CredentialErrorResponse errorResponse = new CredentialErrorResponse(
                 CredentialResponseErrorCodes.INVALID_TOKEN,
                 description
-                );
+        );
 
         return Mono.just(ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse));
     }
@@ -172,31 +173,37 @@ public class GlobalExceptionHandler {
         log.error(ex.getMessage());
         return Mono.just(new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR));
     }
+
     @ExceptionHandler(ParseCredentialJsonException.class)
     public Mono<ResponseEntity<Void>> handleParseCredentialJsonException(ParseCredentialJsonException ex) {
         log.error(ex.getMessage());
         return Mono.just(new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR));
     }
+
     @ExceptionHandler(TemplateReadException.class)
     public Mono<ResponseEntity<Void>> handleTemplateReadException(TemplateReadException ex) {
         log.error(ex.getMessage());
         return Mono.just(new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR));
     }
+
     @ExceptionHandler(ProofValidationException.class)
     public Mono<ResponseEntity<Void>> handleProofValidationException(ProofValidationException ex) {
         log.error(ex.getMessage());
         return Mono.just(new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR));
     }
+
     @ExceptionHandler(NoCredentialFoundException.class)
     public Mono<ResponseEntity<Void>> handleNoCredentialFoundException(NoCredentialFoundException ex) {
         log.error(ex.getMessage());
         return Mono.just(new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
+
     @ExceptionHandler(PreAuthorizationCodeGetException.class)
     public Mono<ResponseEntity<Void>> handlePreAuthorizationCodeGetException(PreAuthorizationCodeGetException ex) {
         log.error(ex.getMessage());
         return Mono.just(new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR));
     }
+
     @ExceptionHandler(CredentialOfferNotFoundException.class)
     public Mono<ResponseEntity<Void>> handleCustomCredentialOfferNotFoundException(CredentialOfferNotFoundException ex) {
         log.error(ex.getMessage());
@@ -284,8 +291,13 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(UnauthorizedRoleException.class)
-    public ResponseEntity<String> handleUnauthorizedRoleException(UnauthorizedRoleException ex) {
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ex.getMessage());
+    public Mono<es.in2.issuer.backend.shared.domain.model.dto.GlobalErrorMessage> handleUnauthorizedRoleException(UnauthorizedRoleException ex) {
+        return Mono.just(
+                es.in2.issuer.backend.shared.domain.model.dto.GlobalErrorMessage.builder()
+                        .status(HttpStatus.UNAUTHORIZED.value())
+                        .message(ex.getMessage())
+                        .error("UnauthorizedRoleException")
+                        .build());
     }
 
     @ExceptionHandler(EmailCommunicationException.class)
@@ -406,5 +418,13 @@ public class GlobalExceptionHandler {
         );
 
         return Mono.just(ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response));
+    }
+
+    @ExceptionHandler(SadException.class)
+    @ResponseStatus(HttpStatus.BAD_GATEWAY)
+    public Mono<CredentialErrorResponse> handleSadError(Exception ex) {
+        return Mono.just(new CredentialErrorResponse(
+                CredentialResponseErrorCodes.SAD_ERROR,
+                ex.getMessage()));
     }
 }

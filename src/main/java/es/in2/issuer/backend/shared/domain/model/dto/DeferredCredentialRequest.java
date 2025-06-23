@@ -6,6 +6,6 @@ import lombok.Builder;
 
 @Builder
 public record DeferredCredentialRequest(
-        @Schema(example = "958e84cf-888b-488a-bf30-7f3b14f70699", description = "Transaction id for deferred emission") @JsonProperty("transaction_id") String transactionId
+        @Schema(example = "958e84cf-888b-488a-bf30-7f3b14f70699", description = "Transaction id for deferred emission") @JsonProperty(value = "transaction_id", required = true) String transactionId
 ) {
 }
