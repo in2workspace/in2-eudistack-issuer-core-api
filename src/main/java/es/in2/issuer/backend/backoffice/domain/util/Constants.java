@@ -65,6 +65,10 @@ public class Constants {
     public static final String SIGNATURE_REMOTE_SCOPE_SERVICE = "service";
     public static final String SIGNATURE_REMOTE_SCOPE_CREDENTIAL = "credential";
     public static final String CREDENTIAL_ID = "credentialID";
+    public static final String NUM_SIGNATURES = "numSignatures";
+    public static final String AUTH_DATA = "authData";
+    public static final String AUTH_DATA_ID = "id";
+    public static final String AUTH_DATA_VALUE = "value";
     public static final String CREDENTIAL_ACTIVATION_EMAIL_SUBJECT = "Activate your new credential";
     public static final String ERROR_LOG_FORMAT = "[Error Instance ID: {}] Path: {}, Status: {}, Title: {}, Message: {}";
     // ERROR MESSAGES
