@@ -1,7 +1,7 @@
 package es.in2.issuer.backend.backoffice.domain.scheduler;
 
 import es.in2.issuer.backend.shared.domain.model.entities.CredentialProcedure;
-import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatus;
+import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum;
 import es.in2.issuer.backend.shared.infrastructure.repository.CredentialProcedureRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -38,12 +38,12 @@ public class CredentialExpirationScheduler {
     }
 
     private Mono<CredentialProcedure> expireCredential(CredentialProcedure credentialProcedure) {
-        if (credentialProcedure.getCredentialStatus() != CredentialStatus.EXPIRED) {
-            credentialProcedure.setCredentialStatus(CredentialStatus.EXPIRED);
+        if (credentialProcedure.getCredentialStatusEnum() != CredentialStatusEnum.EXPIRED) {
+            credentialProcedure.setCredentialStatusEnum(CredentialStatusEnum.EXPIRED);
             credentialProcedure.setUpdatedAt(Timestamp.from(Instant.now()));
             log.info("Expiring credential with ID: {} - New state: {}",
                     credentialProcedure.getCredentialId(),
-                    credentialProcedure.getCredentialStatus());
+                    credentialProcedure.getCredentialStatusEnum());
             return credentialProcedureRepository.save(credentialProcedure);
         }
         return Mono.empty();

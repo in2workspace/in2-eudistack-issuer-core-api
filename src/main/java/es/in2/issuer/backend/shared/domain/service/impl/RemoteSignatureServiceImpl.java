@@ -7,7 +7,7 @@ import es.in2.issuer.backend.shared.domain.exception.*;
 import es.in2.issuer.backend.shared.domain.model.dto.SignatureRequest;
 import es.in2.issuer.backend.shared.domain.model.dto.SignedData;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.DetailedIssuer;
-import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatus;
+import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum;
 import es.in2.issuer.backend.shared.domain.service.*;
 import es.in2.issuer.backend.shared.domain.util.HttpUtils;
 import es.in2.issuer.backend.shared.domain.util.JwtUtils;
@@ -521,7 +521,7 @@ public class RemoteSignatureServiceImpl implements RemoteSignatureService {
         Mono<Void> updateOperationMode = credentialProcedureRepository.findByProcedureId(UUID.fromString(procedureId))
                 .flatMap(credentialProcedure -> {
                     credentialProcedure.setOperationMode(ASYNC);
-                    credentialProcedure.setCredentialStatus(CredentialStatus.PEND_SIGNATURE);
+                    credentialProcedure.setCredentialStatusEnum(CredentialStatusEnum.PEND_SIGNATURE);
                     return credentialProcedureRepository.save(credentialProcedure)
                             .doOnSuccess(result -> log.info("Updated operationMode to Async - Procedure"))
                             .then();
