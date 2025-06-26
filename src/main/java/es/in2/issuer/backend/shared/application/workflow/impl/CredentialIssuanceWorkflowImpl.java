@@ -172,14 +172,14 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                 .flatMap(nonce ->
                         retrieveProcedureAndMetadata(nonce, processId)
                                 .flatMap(tuple -> {
-                                    CredentialProcedure proc    = tuple.getT1();
-                                    CredentialIssuerMetadata md = tuple.getT2();
+                                    CredentialProcedure credentialProcedure    = tuple.getT1();
+                                    CredentialIssuerMetadata credentialIssuerMetadata = tuple.getT2();
 
-                                    Mono<String> maybeDid = determineSubjectDid(
-                                            proc, md, credentialRequest, token
+                                    Mono<String> credentialSubject = determineSubjectDid(
+                                            credentialProcedure, credentialIssuerMetadata, credentialRequest, token
                                     );
 
-                                    Mono<CredentialResponse> vcMono = maybeDid
+                                    Mono<CredentialResponse> vcMono = credentialSubject
                                             .flatMap(did ->
                                                     verifiableCredentialService.buildCredentialResponse(
                                                             processId, did, nonce, token
@@ -196,7 +196,7 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
 
                                     return vcMono.flatMap(credResp ->
                                             handleOperationMode(
-                                                    proc.getOperationMode(),
+                                                    credentialProcedure.getOperationMode(),
                                                     processId,
                                                     nonce,
                                                     credResp

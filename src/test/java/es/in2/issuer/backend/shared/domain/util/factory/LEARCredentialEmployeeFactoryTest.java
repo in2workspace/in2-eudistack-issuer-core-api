@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import es.in2.issuer.backend.shared.domain.exception.InvalidCredentialFormatException;
-import es.in2.issuer.backend.shared.domain.model.dto.CredentialProcedureCreationRequest;
 import es.in2.issuer.backend.shared.domain.model.dto.LEARCredentialEmployeeJwtPayload;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.DetailedIssuer;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.Mandator;
@@ -23,7 +22,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -56,7 +54,7 @@ class LEARCredentialEmployeeFactoryTest {
 
     
     @Test
-    void testMapCredentialAndBindMandateeIdInToTheCredential() throws JsonProcessingException, InvalidCredentialFormatException {
+    void testBindCryptographicCredentialSubjectId() throws JsonProcessingException, InvalidCredentialFormatException {
         //Arrange
         String learCredential = "validCredentialStringhttps://trust-framework.dome-marketplace.eu/credentials/learcredentialemployee/v1";
         String mandateeId = "mandateeId";
@@ -83,7 +81,7 @@ class LEARCredentialEmployeeFactoryTest {
         when(objectMapper.writeValueAsString(any(LEARCredentialEmployee.class))).thenReturn(expectedString);
 
         //Act & Assert
-        StepVerifier.create(learCredentialEmployeeFactory.mapCredentialAndBindMandateeIdInToTheCredential(learCredential, mandateeId))
+        StepVerifier.create(learCredentialEmployeeFactory.bindCryptographicCredentialSubjectId(learCredential, mandateeId))
                 .expectNext(expectedString)
                 .verifyComplete();
     }

@@ -36,7 +36,7 @@ public class LEARCredentialEmployeeFactory {
     private final AccessTokenService accessTokenService;
     private final IssuerFactory issuerFactory;
 
-    public Mono<String> mapCredentialAndBindMandateeIdInToTheCredential(String decodedCredentialString, String mandateeId){
+    public Mono<String> bindCryptographicCredentialSubjectId(String decodedCredentialString, String mandateeId){
         LEARCredentialEmployee decodedCredential = mapStringToLEARCredentialEmployee(decodedCredentialString);
         return bindMandateeIdToLearCredentialEmployee(decodedCredential, mandateeId)
                 .flatMap(this::convertLEARCredentialEmployeeInToString);
