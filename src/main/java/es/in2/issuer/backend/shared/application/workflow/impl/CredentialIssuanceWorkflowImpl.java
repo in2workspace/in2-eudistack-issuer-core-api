@@ -208,7 +208,6 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                 );
     }
 
-    // 3) Valida el proof SOLO si la credencial lo requiere
     private Mono<Void> validateProofIfRequired(
             CredentialProcedure proc,
             CredentialIssuerMetadata metadata,
@@ -229,8 +228,11 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                 )
                 .switchIfEmpty(Mono.error(new FormatUnsupportedException("No configuration for " + typeEnum.name())))
                 .flatMap(cfg -> {
+                    System.out.println("cfg: " + cfg.toString());
                     boolean needsProof = cfg.cryptographicBindingMethodsSupported() != null
                             && !cfg.cryptographicBindingMethodsSupported().isEmpty();
+
+                    System.out.println("proof neededed: " + needsProof);
 
                     if (!needsProof) {
                         return Mono.empty();
