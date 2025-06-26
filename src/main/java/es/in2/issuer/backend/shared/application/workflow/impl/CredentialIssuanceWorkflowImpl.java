@@ -171,17 +171,38 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
         return parseAuthServerNonce(token)
                 .flatMap(nonce ->
                         retrieveProcedureAndMetadata(nonce, processId)
-                                .flatMap(tuple ->
-                                        validateProofIfRequired(tuple.getT1(), tuple.getT2(), credentialRequest, token)
-                                                .then(Mono.defer(() -> buildCredentialAndHandle(
-                                                        processId,
-                                                        tuple.getT1(),
-                                                        tuple.getT2(),
-                                                        credentialRequest,
-                                                        token,
-                                                        nonce
-                                                )))
-                                )
+                                .flatMap(tuple -> {
+                                    CredentialProcedure proc    = tuple.getT1();
+                                    CredentialIssuerMetadata md = tuple.getT2();
+
+                                    Mono<String> maybeDid = determineSubjectDid(
+                                            proc, md, credentialRequest, token
+                                    );
+
+                                    Mono<CredentialResponse> vcMono = maybeDid
+                                            .flatMap(did ->
+                                                    verifiableCredentialService.buildCredentialResponse(
+                                                            processId, did, nonce, token
+                                                    )
+                                            )
+                                            .switchIfEmpty(
+                                                    verifiableCredentialService.buildCredentialResponse(
+                                                            processId,
+                                                            null,
+                                                            nonce,
+                                                            token
+                                                    )
+                                            );
+
+                                    return vcMono.flatMap(credResp ->
+                                            handleOperationMode(
+                                                    proc.getOperationMode(),
+                                                    processId,
+                                                    nonce,
+                                                    credResp
+                                            )
+                                    );
+                                })
                 );
     }
 
@@ -208,7 +229,9 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                 );
     }
 
-    private Mono<Void> validateProofIfRequired(
+    // This method determines the subject DID base on the credential type and proof provided in the request,
+    // if proof is not needed it returns null.
+    private Mono<String> determineSubjectDid(
             CredentialProcedure proc,
             CredentialIssuerMetadata metadata,
             CredentialRequest credentialRequest,
@@ -218,21 +241,22 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
         try {
             typeEnum = CredentialType.valueOf(proc.getCredentialType());
         } catch (IllegalArgumentException e) {
-            return Mono.error(new FormatUnsupportedException("Unknown credential type: " + proc.getCredentialType()));
+            return Mono.error(new FormatUnsupportedException(
+                    "Unknown credential type: " + proc.getCredentialType()));
         }
 
         return Mono.justOrEmpty(
                         metadata.credentialConfigurationsSupported().values().stream()
-                                .filter(cfg -> cfg.credentialDefinition().type().contains(typeEnum.getTypeId()))
+                                .filter(cfg ->
+                                        cfg.credentialDefinition().type().contains(typeEnum.getTypeId())
+                                )
                                 .findFirst()
                 )
-                .switchIfEmpty(Mono.error(new FormatUnsupportedException("No configuration for " + typeEnum.name())))
+                .switchIfEmpty(Mono.error(new FormatUnsupportedException(
+                        "No configuration for typeId: " + typeEnum.getTypeId())))
                 .flatMap(cfg -> {
-                    System.out.println("cfg: " + cfg.toString());
                     boolean needsProof = cfg.cryptographicBindingMethodsSupported() != null
                             && !cfg.cryptographicBindingMethodsSupported().isEmpty();
-
-                    System.out.println("proof neededed: " + needsProof);
 
                     if (!needsProof) {
                         return Mono.empty();
@@ -243,55 +267,20 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                             : Collections.emptyList();
 
                     if (jwtList.isEmpty()) {
-                        return Mono.error(new InvalidOrMissingProofException("Missing proof for type " + typeEnum.name()));
+                        return Mono.error(new InvalidOrMissingProofException(
+                                "Missing proof for type " + typeEnum.name()));
                     }
 
                     String jwtProof = jwtList.get(0);
                     return proofValidationService.isProofValid(jwtProof, token)
-                            .flatMap(valid -> valid
-                                    ? Mono.empty()
-                                    : Mono.error(new InvalidOrMissingProofException("Invalid proof"))
-                            );
+                            .flatMap(valid -> {
+                                if (!Boolean.TRUE.equals(valid)) {
+                                    return Mono.error(new InvalidOrMissingProofException("Invalid proof"));
+                                }
+                                return extractDidFromJwtProof(jwtProof);
+                            });
                 });
     }
-
-
-    private Mono<CredentialResponse> buildCredentialAndHandle(
-            String processId,
-            CredentialProcedure proc,
-            CredentialIssuerMetadata metadata,
-            CredentialRequest credentialRequest,
-            String token,
-            String authServerNonce) {
-
-        List<String> jwtList = credentialRequest.proofs() != null
-                ? credentialRequest.proofs().jwt()
-                : Collections.emptyList();
-
-        Mono<String> didMono = jwtList.isEmpty()
-                ? Mono.error(new InvalidOrMissingProofException("Cannot extract DID without proof"))
-                : extractDidFromJwtProof(jwtList.get(0));
-
-        return didMono
-                .flatMap(did ->
-                        verifiableCredentialService.buildCredentialResponse(
-                                processId, did, authServerNonce, token
-                        )
-                )
-                .flatMap(credResp ->
-                        handleOperationMode(
-                                proc.getOperationMode(),
-                                processId,
-                                authServerNonce,
-                                credResp
-                        )
-                );
-    }
-
-    private String determineOperationMode(CredentialProcedure credentialProcedure) {
-        return credentialProcedure.getOperationMode();
-    }
-
 
     private Mono<CredentialResponse> handleOperationMode(String operationMode, String processId, String authServerNonce, CredentialResponse credentialResponse) {
         return switch (operationMode) {
