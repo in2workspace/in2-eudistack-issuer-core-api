@@ -1,7 +1,7 @@
-package es.in2.issuer.backend.oidc4vci.domain.service.impl;
+package es.in2.issuer.backend.shared.domain.service.impl;
 
 import es.in2.issuer.backend.oidc4vci.domain.model.CredentialIssuerMetadata;
-import es.in2.issuer.backend.oidc4vci.domain.service.CredentialIssuerMetadataService;
+import es.in2.issuer.backend.shared.domain.service.CredentialIssuerMetadataService;
 import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,7 +24,7 @@ public class CredentialIssuerMetadataServiceImpl implements CredentialIssuerMeta
     private static final String ES256_SIGNING_ALG_VALUE = "ES256";
 
     @Override
-    public Mono<CredentialIssuerMetadata> buildCredentialIssuerMetadata(String processId) {
+    public Mono<CredentialIssuerMetadata> getCredentialIssuerMetadata(String processId) {
         String credentialIssuerUrl = ensureUrlHasProtocol(appConfig.getIssuerBackendUrl());
         CredentialIssuerMetadata credentialIssuerMetadata = CredentialIssuerMetadata.builder()
                 .credentialIssuer(credentialIssuerUrl)

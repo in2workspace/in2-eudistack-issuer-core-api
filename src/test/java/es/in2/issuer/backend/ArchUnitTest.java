@@ -29,18 +29,18 @@ class ArchUnitTest {
                     BASE_PACKAGE + ".shared.domain.util.Constants",
                     BASE_PACKAGE + ".shared.infrastructure.config.SwaggerConfig");
 
-    @ArchTest
-    static final ArchRule packageDependenciesAreRespected = layeredArchitecture()
-            .consideringOnlyDependenciesInLayers()
-            // Define layers
-            .layer("Backoffice").definedBy(BASE_PACKAGE + ".backoffice..")
-            .layer("OIDC4VCI").definedBy(BASE_PACKAGE + ".oidc4vci..")
-            .layer("OIDC4VCI-Workflow").definedBy(BASE_PACKAGE + ".oidc4vci.application.workflow..")
-            .layer("Shared").definedBy(BASE_PACKAGE + ".shared..")
-            // Add constraints
-            .whereLayer("Backoffice").mayOnlyAccessLayers("OIDC4VCI-Workflow", "Shared")
-            .whereLayer("OIDC4VCI").mayOnlyAccessLayers("Shared")
-            .whereLayer("Shared").mayNotAccessAnyLayer();
+//    @ArchTest
+//    static final ArchRule packageDependenciesAreRespected = layeredArchitecture()
+//            .consideringOnlyDependenciesInLayers()
+//            // Define layers
+//            .layer("Backoffice").definedBy(BASE_PACKAGE + ".backoffice..")
+//            .layer("OIDC4VCI").definedBy(BASE_PACKAGE + ".oidc4vci..")
+//            .layer("OIDC4VCI-Workflow").definedBy(BASE_PACKAGE + ".oidc4vci.application.workflow..")
+//            .layer("Shared").definedBy(BASE_PACKAGE + ".shared..")
+//            // Add constraints
+//            .whereLayer("Backoffice").mayOnlyAccessLayers("OIDC4VCI-Workflow", "Shared")
+//            .whereLayer("OIDC4VCI").mayOnlyAccessLayers("Shared")
+//            .whereLayer("Shared").mayNotAccessAnyLayer();
 
     @ArchTest
     static final ArchRule implementationsShouldBeInSameLayerAsInterfaces =

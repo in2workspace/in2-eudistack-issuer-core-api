@@ -1,7 +1,7 @@
 package es.in2.issuer.backend.oidc4vci.application.workflow.impl;
 
 import es.in2.issuer.backend.oidc4vci.domain.model.CredentialIssuerMetadata;
-import es.in2.issuer.backend.oidc4vci.domain.service.CredentialIssuerMetadataService;
+import es.in2.issuer.backend.shared.domain.service.CredentialIssuerMetadataService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;

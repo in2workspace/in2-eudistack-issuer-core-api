@@ -1,11 +1,15 @@
 package es.in2.issuer.backend.shared.application.workflow.impl;
 
 import com.nimbusds.jose.JWSObject;
+import es.in2.issuer.backend.oidc4vci.domain.model.CredentialIssuerMetadata;
+import es.in2.issuer.backend.shared.domain.service.CredentialIssuerMetadataService;
 import es.in2.issuer.backend.shared.application.workflow.CredentialIssuanceWorkflow;
 import es.in2.issuer.backend.shared.domain.exception.*;
 import es.in2.issuer.backend.shared.domain.model.dto.*;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.employee.LEARCredentialEmployee;
+import es.in2.issuer.backend.shared.domain.model.entities.CredentialProcedure;
 import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatus;
+import es.in2.issuer.backend.shared.domain.model.enums.CredentialType;
 import es.in2.issuer.backend.shared.domain.service.*;
 import es.in2.issuer.backend.shared.domain.util.factory.LEARCredentialEmployeeFactory;
 import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
@@ -15,6 +19,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Mono;
+import reactor.util.function.Tuple2;
 
 import javax.naming.OperationNotSupportedException;
 import java.text.ParseException;
@@ -37,6 +42,7 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
     private final VerifiableCredentialPolicyAuthorizationService verifiableCredentialPolicyAuthorizationService;
     private final TrustFrameworkService trustFrameworkService;
     private final LEARCredentialEmployeeFactory credentialEmployeeFactory;
+    private final CredentialIssuerMetadataService credentialIssuerMetadataService;
 //    private final IssuerApiClientTokenService issuerApiClientTokenService;
 //    private final M2MTokenService m2mTokenService;
 //    private final CredentialDeliveryService credentialDeliveryService;
@@ -155,31 +161,122 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
     }
 
     @Override
-    public Mono<CredentialResponse> generateVerifiableCredentialResponse(String processId,
-                                                                                   CredentialRequest credentialRequest,
-                                                                                   String token) {
-        try {
-            JWSObject jwsObject = JWSObject.parse(token);
-            String authServerNonce = jwsObject.getPayload().toJSONObject().get("jti").toString();
+    public Mono<CredentialResponse> generateVerifiableCredentialResponse(
+            String processId,
+            CredentialRequest credentialRequest,
+            String token) {
 
-            // TODO: rethink this logic instead of taking the first JWT proof
-            return proofValidationService.isProofValid(credentialRequest.proofs().jwt().get(0), token)
-                    .flatMap(isValid -> Boolean.TRUE.equals(isValid)
-                            ? extractDidFromJwtProof(credentialRequest.proofs().jwt().get(0))
-                            : Mono.error(new InvalidOrMissingProofException("Invalid proof")))
-                    .flatMap(subjectDid -> deferredCredentialMetadataService.getOperationModeByAuthServerNonce(authServerNonce)
-                            .flatMap(operationMode -> verifiableCredentialService.buildCredentialResponse(
-                                            processId, subjectDid, authServerNonce, token)
-                                    .flatMap(credentialResponse ->
-                                            handleOperationMode(operationMode, processId, authServerNonce, credentialResponse)
-                                    )
-                            )
-                    );
-        } catch (ParseException e) {
-            log.error("Error parsing the accessToken", e);
-            throw new ParseErrorException("Error parsing accessToken");
-        }
+        final String jwtProof = credentialRequest.proofs().jwt().get(0);
+
+        return parseAuthServerNonce(token)
+                .flatMap(nonce ->
+                        retrieveProcedureAndMetadata(nonce, processId)
+                                .flatMap(tuple ->
+                                        validateProofIfRequired(
+                                                tuple.getT1(),      // CredentialProcedure
+                                                tuple.getT2(),      // CredentialIssuerMetadata
+                                                jwtProof,
+                                                token
+                                        )
+                                                .flatMap(valid -> valid
+                                                                ? buildCredentialAndHandle(
+                                                                processId,
+                                                                tuple.getT1(),
+                                                                tuple.getT2(),
+                                                                jwtProof,
+                                                                token,
+                                                                nonce
+                                                        )
+                                                                : Mono.error(new InvalidOrMissingProofException("Invalid proof"))
+                                                )
+                                )
+                );
     }
+
+    private Mono<String> parseAuthServerNonce(String token) {
+        return Mono.fromCallable(() -> {
+                    JWSObject jws = JWSObject.parse(token);
+                    return jws.getPayload().toJSONObject().get("jti").toString();
+                })
+                .onErrorMap(ParseException.class, e ->
+                        new ParseErrorException("Error parsing accessToken")
+                );
+    }
+
+    private Mono<Tuple2<CredentialProcedure, CredentialIssuerMetadata>> retrieveProcedureAndMetadata(
+            String nonce, String processId) {
+
+        return deferredCredentialMetadataService
+                .getProcedureIdByAuthServerNonce(nonce)
+                .flatMap(procId ->
+                        credentialProcedureService.getCredentialProcedureById(procId)
+                                .zipWhen(proc ->
+                                        credentialIssuerMetadataService.getCredentialIssuerMetadata(processId)
+                                )
+                );
+    }
+
+    private Mono<Boolean> validateProofIfRequired(
+            CredentialProcedure proc,
+            CredentialIssuerMetadata metadata,
+            String jwtProof,
+            String token) {
+
+        final CredentialType typeEnum;
+        try {
+            typeEnum = CredentialType.valueOf(proc.getCredentialType());
+        } catch (IllegalArgumentException e) {
+            return Mono.error(new FormatUnsupportedException(
+                    "Unknown credential type: " + proc.getCredentialType()));
+        }
+
+        // Check if the proof validation is needed based on the credential type
+        return Mono.justOrEmpty(
+                        metadata.credentialConfigurationsSupported().values().stream()
+                                .filter(cfg -> cfg.credentialDefinition()
+                                        .type()
+                                        .contains(typeEnum.getTypeId()))
+                                .findFirst()
+                )
+                .switchIfEmpty(Mono.error(new FormatUnsupportedException(
+                        "No configuration found for credential type: " + typeEnum.name())))
+                .flatMap(cfg -> {
+                    boolean needsProof = cfg.cryptographicBindingMethodsSupported() != null
+                            && !cfg.cryptographicBindingMethodsSupported().isEmpty();
+                    return needsProof
+                            ? proofValidationService.isProofValid(jwtProof, token)
+                            : Mono.just(true);
+                });
+    }
+
+
+    // 4) Construye la VC y aplica SYNC/ASYNC
+    private Mono<CredentialResponse> buildCredentialAndHandle(
+            String processId,
+            CredentialProcedure credentialProcedure,
+            CredentialIssuerMetadata metadata,
+            String jwtProof,
+            String token,
+            String authServerNonce) {
+
+        return extractDidFromJwtProof(jwtProof)
+                .flatMap(did -> verifiableCredentialService
+                        .buildCredentialResponse(processId, did, authServerNonce, token)
+                )
+                .flatMap(credResp ->
+                        handleOperationMode(
+                                determineOperationMode(credentialProcedure),
+                                processId,
+                                authServerNonce,
+                                credResp
+                        )
+                );
+    }
+
+    private String determineOperationMode(CredentialProcedure credentialProcedure) {
+        return credentialProcedure.getOperationMode();
+    }
+
 
     private Mono<CredentialResponse> handleOperationMode(String operationMode, String processId, String authServerNonce, CredentialResponse credentialResponse) {
         return switch (operationMode) {
