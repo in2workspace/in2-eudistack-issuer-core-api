@@ -88,7 +88,7 @@ class CredentialProcedureTest {
                 ", credentialFormat=" + credentialProcedure.getCredentialFormat() +
                 ", credentialDecoded=" + credentialProcedure.getCredentialDecoded() +
                 ", credentialEncoded=" + credentialProcedure.getCredentialEncoded() +
-                ", credentialStatus=" + credentialProcedure.getCredentialStatusEnum() +
+                ", credentialStatusEnum=" + credentialProcedure.getCredentialStatusEnum() +
                 ", organizationIdentifier=" + credentialProcedure.getOrganizationIdentifier() +
                 ", updatedAt=" + credentialProcedure.getUpdatedAt() +
                 ", subject=" + credentialProcedure.getSubject() +
