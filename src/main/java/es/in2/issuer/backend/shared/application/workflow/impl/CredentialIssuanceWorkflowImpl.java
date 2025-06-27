@@ -199,7 +199,8 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                                                     credentialProcedure.getOperationMode(),
                                                     processId,
                                                     nonce,
-                                                    credResp
+                                                    credResp,
+                                                    credentialProcedure.getCredentialType()
                                             )
                                     );
                                 })
@@ -282,23 +283,35 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                 });
     }
 
-    private Mono<CredentialResponse> handleOperationMode(String operationMode, String processId, String authServerNonce, CredentialResponse credentialResponse) {
+    private Mono<CredentialResponse> handleOperationMode(
+            String operationMode,
+            String processId,
+            String nonce,
+            CredentialResponse cr,
+            String credentialType) {
         return switch (operationMode) {
-            case ASYNC -> deferredCredentialMetadataService.getProcedureIdByAuthServerNonce(authServerNonce)
+            case ASYNC -> deferredCredentialMetadataService.getProcedureIdByAuthServerNonce(nonce)
                     .flatMap(credentialProcedureService::getSignerEmailFromDecodedCredentialByProcedureId)
                     .flatMap(email -> emailService.sendPendingCredentialNotification(email, "Pending Credential")
-                            .thenReturn(credentialResponse));
-            case SYNC -> deferredCredentialMetadataService.getProcedureIdByAuthServerNonce(authServerNonce)
+                            .thenReturn(cr));
+            case SYNC -> deferredCredentialMetadataService.getProcedureIdByAuthServerNonce(nonce)
                     .flatMap(id -> credentialProcedureService.getCredentialStatusByProcedureId(id)
                             .flatMap(status -> {
-                                Mono<Void> updateMono = !CredentialStatus.PEND_SIGNATURE.toString().equals(status)
+                                Mono<Void> upd = !CredentialStatus.PEND_SIGNATURE.toString().equals(status)
                                         ? credentialProcedureService.updateCredentialProcedureCredentialStatusToValidByProcedureId(id)
                                         : Mono.empty();
-                                return updateMono.then(credentialProcedureService.getDecodedCredentialByProcedureId(id));
+                                return upd.then(credentialProcedureService.getDecodedCredentialByProcedureId(id));
                             })
-                            .flatMap(decodedCredential -> processDecodedCredential(processId, decodedCredential))
+                            .flatMap(decoded -> {
+                                CredentialType typeEnum = CredentialType.valueOf(credentialType);
+                                if (typeEnum == CredentialType.LEAR_CREDENTIAL_EMPLOYEE) {
+                                    return getMandatorOrganizationIdentifier(processId, decoded);
+                                }
+
+                                return Mono.empty();
+                            })
                     )
-                    .thenReturn(credentialResponse);
+                    .thenReturn(cr);
             default -> Mono.error(new IllegalArgumentException("Unknown operation mode: " + operationMode));
         };
     }
@@ -325,7 +338,7 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
         });
     }
 
-    private Mono<Void> processDecodedCredential(String processId, String decodedCredential) {
+    private Mono<Void> getMandatorOrganizationIdentifier(String processId, String decodedCredential) {
         log.info("ProcessID: {} Decoded Credential: {}", processId, decodedCredential);
 
         LEARCredentialEmployee learCredentialEmployee = credentialEmployeeFactory.mapStringToLEARCredentialEmployee(decodedCredential);
