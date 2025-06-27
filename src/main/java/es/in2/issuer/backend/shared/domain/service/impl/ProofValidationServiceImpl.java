@@ -49,9 +49,13 @@ public class ProofValidationServiceImpl implements ProofValidationService {
 
     private Mono<JWSObject> parseAndValidateJwt(String jwtProof) {
         return Mono.fromCallable(() -> {
+            System.out.println("Parse and validate JWT: " + jwtProof);
             JWSObject jwsObject = JWSObject.parse(jwtProof);
+            System.out.println("Parsed JWS Object: " + jwsObject);
             validateHeader(jwsObject);
+            System.out.println("Validated JWT header");
             validatePayload(jwsObject);
+            System.out.println("Validated JWT payload");
             return jwsObject;
         });
     }
@@ -68,7 +72,7 @@ public class ProofValidationServiceImpl implements ProofValidationService {
     private void validatePayload(JWSObject jwsObject) {
         var payload = jwsObject.getPayload().toJSONObject();
         if (!payload.containsKey("aud") || !payload.containsKey("iat") ||
-                Instant.now().isAfter(Instant.ofEpochSecond(Long.parseLong(payload.get("exp").toString())))) {
+                (payload.containsKey("exp") && Instant.now().isAfter(Instant.ofEpochSecond(Long.parseLong(payload.get("exp").toString()))))) {
             throw new IllegalArgumentException("Invalid JWT payload");
         }
     }
