@@ -23,8 +23,7 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.UUID;
 
-import static es.in2.issuer.backend.shared.domain.util.Constants.LABEL_CREDENTIAL_CONTEXT;
-import static es.in2.issuer.backend.shared.domain.util.Constants.LABEL_CREDENTIAL_TYPES;
+import static es.in2.issuer.backend.shared.domain.util.Constants.*;
 
 @Component
 @RequiredArgsConstructor
@@ -78,7 +77,7 @@ public class LabelCredentialFactory {
             String procedureId) {
         LabelCredential labelCredential = mapStringToVerifiableCertification(decodedCredentialString);
 
-        return issuerFactory.createSimpleIssuer(procedureId, CredentialType.LABEL_CREDENTIAL.getTypeId())
+        return issuerFactory.createSimpleIssuer(procedureId, LABEL_CREDENTIAL)
                 .flatMap(issuer -> bindIssuer(labelCredential, issuer))
                 .flatMap(this::convertVerifiableCertificationInToString);
     }
