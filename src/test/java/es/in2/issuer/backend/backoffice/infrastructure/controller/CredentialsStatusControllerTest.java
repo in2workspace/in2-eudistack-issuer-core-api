@@ -2,6 +2,7 @@ package es.in2.issuer.backend.backoffice.infrastructure.controller;
 
 import es.in2.issuer.backend.backoffice.application.workflow.CredentialStatusWorkflow;
 import es.in2.issuer.backend.backoffice.domain.model.dtos.CredentialStatusResponse;
+import es.in2.issuer.backend.backoffice.domain.model.dtos.RevokeCredentialRequest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
@@ -36,7 +37,8 @@ class CredentialsStatusControllerTest {
                 "1b59b5f8-a66b-4694-af47-cf38db7a3d73",
                 "c046b54b-aa8a-4c8d-af2b-a3d60a61b80b");
 
-        when(credentialStatusWorkflow.getCredentialsStatus(anyString()))
+        int listId = 1;
+        when(credentialStatusWorkflow.getCredentialsStatusByListId(anyString(), eq(listId)))
                 .thenReturn(Flux.fromIterable(mockStatusList));
 
         List<CredentialStatusResponse> expectedResponse = mockStatusList.stream()
@@ -44,7 +46,7 @@ class CredentialsStatusControllerTest {
                 .toList();
 
         webTestClient.get()
-                .uri("/backoffice/v1/credentials/status")
+                .uri("/backoffice/v1/credentials/status/{list-id}", listId)
                 .exchange()
                 .expectStatus().isOk()
                 .expectBodyList(CredentialStatusResponse.class)
@@ -53,14 +55,18 @@ class CredentialsStatusControllerTest {
 
     @Test
     void revokeCredential_Success() {
-        String id = "1b59b5f8-a66b-4694-af47-cf38db7a3d73";
+        RevokeCredentialRequest request = new RevokeCredentialRequest("1b59b5f8-a66b-4694-af47-cf38db7a3d73", 1);
 
-        when(credentialStatusWorkflow.revokeCredential(anyString(), eq(id)))
+        when(credentialStatusWorkflow.revokeCredential(
+                anyString(),
+                eq(request.credentialId()),
+                eq(request.listId())))
                 .thenReturn(Mono.empty());
 
         webTestClient.mutateWith(csrf())
                 .post()
-                .uri("/backoffice/v1/credentials/status/revoke/{id}", id)
+                .uri("/backoffice/v1/credentials/status/revoke")
+                .bodyValue(request)
                 .exchange()
                 .expectStatus().isCreated();
     }

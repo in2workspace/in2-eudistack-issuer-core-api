@@ -18,4 +18,7 @@ public class StatusListIndex {
     @Id
     @Column("nonce")
     private UUID nonce;
+
+    @Column("list_id")
+    private int listId;
 }

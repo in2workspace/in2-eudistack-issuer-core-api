@@ -16,8 +16,8 @@ public class CredentialStatusWorkflowImpl implements CredentialStatusWorkflow {
     private final CredentialStatusService credentialStatusService;
 
     @Override
-    public Flux<String> getCredentialsStatus(String processId) {
-        return credentialStatusService.getCredentialsStatus()
+    public Flux<String> getCredentialsStatusByListId(String processId, int listId) {
+        return credentialStatusService.getCredentialsStatusByListId(listId)
                 .doFirst(() -> log.debug("Process ID: {} - Getting Credentials Status...", processId))
                 .doOnComplete(() -> log.debug(
                         "Process ID: {} - All Credential Status retrieved successfully.",
@@ -25,8 +25,8 @@ public class CredentialStatusWorkflowImpl implements CredentialStatusWorkflow {
     }
 
     @Override
-    public Mono<Void> revokeCredential(String processId, String credentialId) {
-        return credentialStatusService.revokeCredential(credentialId)
+    public Mono<Void> revokeCredential(String processId, String credentialId, int listId) {
+        return credentialStatusService.revokeCredential(credentialId, listId)
                 .doFirst(() -> log.debug("Process ID: {} - Revoking Credential with ID: {}", processId, credentialId))
                 .doOnSuccess(aVoid -> log.debug(
                         "Process ID: {} - Credential with ID: {} revoked successfully.",

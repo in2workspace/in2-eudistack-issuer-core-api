@@ -30,15 +30,16 @@ class CredentialStatusServiceImplTest {
 
     @Test
     void getCredentialStatus_ReturnsList() {
+        int listId = 1;
         StatusListIndex statusListIndex1 =
-                new StatusListIndex(UUID.fromString("1b59b5f8-a66b-4694-af47-cf38db7a3d73"));
+                new StatusListIndex(UUID.fromString("1b59b5f8-a66b-4694-af47-cf38db7a3d73"), listId);
         StatusListIndex statusListIndex2 =
-                new StatusListIndex(UUID.fromString("c046b54b-aa8a-4c8d-af2b-a3d60a61b80b"));
+                new StatusListIndex(UUID.fromString("c046b54b-aa8a-4c8d-af2b-a3d60a61b80b"), listId);
 
-        when(credentialStatusRepository.findAll())
-                .thenReturn(Flux.just(statusListIndex1, statusListIndex2));
+        when(credentialStatusRepository.findNonceByListId(listId))
+                .thenReturn(Flux.just(statusListIndex1.getNonce(), statusListIndex2.getNonce()));
 
-        var result = credentialStatusService.getCredentialsStatus();
+        var result = credentialStatusService.getCredentialsStatusByListId(listId);
 
         StepVerifier
                 .create(result)
@@ -50,12 +51,13 @@ class CredentialStatusServiceImplTest {
     @Test
     void revokeCredential_ReturnsVoid() {
         StatusListIndex statusListIndex1 =
-                new StatusListIndex(UUID.fromString("1b59b5f8-a66b-4694-af47-cf38db7a3d73"));
+                new StatusListIndex(UUID.fromString("1b59b5f8-a66b-4694-af47-cf38db7a3d73"), 1);
 
         when(credentialStatusRepository.save(any(StatusListIndex.class)))
                 .thenReturn(Mono.just(statusListIndex1));
 
-        var result = credentialStatusService.revokeCredential(statusListIndex1.getNonce().toString());
+        int listId = 1;
+        var result = credentialStatusService.revokeCredential(statusListIndex1.getNonce().toString(), listId);
 
         StepVerifier
                 .create(result)

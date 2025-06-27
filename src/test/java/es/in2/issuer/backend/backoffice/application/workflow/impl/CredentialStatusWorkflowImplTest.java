@@ -27,10 +27,11 @@ class CredentialStatusWorkflowImplTest {
         String statusListIndex1 = "1b59b5f8-a66b-4694-af47-cf38db7a3d73";
         String statusListIndex2 = "c046b54b-aa8a-4c8d-af2b-a3d60a61b80b";
 
-        when(credentialStatusService.getCredentialsStatus())
+        int listId = 1;
+        when(credentialStatusService.getCredentialsStatusByListId(listId))
                 .thenReturn(Flux.just(statusListIndex1, statusListIndex2));
 
-        var result = credentialStatusWorkflow.getCredentialsStatus("processId");
+        var result = credentialStatusWorkflow.getCredentialsStatusByListId("processId", listId);
 
         StepVerifier
                 .create(result)
@@ -43,15 +44,16 @@ class CredentialStatusWorkflowImplTest {
     void revokeCredential_ReturnsVoid() {
         String credentialId = "1b59b5f8-a66b-4694-af47-cf38db7a3d73";
 
-        when(credentialStatusService.revokeCredential(credentialId))
+        int listId = 1;
+        when(credentialStatusService.revokeCredential(credentialId, listId))
                 .thenReturn(Mono.empty());
 
-        var result = credentialStatusWorkflow.revokeCredential("processId", credentialId);
+        var result = credentialStatusWorkflow.revokeCredential("processId", credentialId, listId);
 
         StepVerifier
                 .create(result)
                 .verifyComplete();
 
-        verify(credentialStatusService, times(1)).revokeCredential(credentialId);
+        verify(credentialStatusService, times(1)).revokeCredential(credentialId, listId);
     }
 }

@@ -19,14 +19,14 @@ public class CredentialStatusServiceImpl implements CredentialStatusService {
     private final CredentialStatusRepository credentialStatusRepository;
 
     @Override
-    public Flux<String> getCredentialsStatus() {
-        return credentialStatusRepository.findAll()
-                .map(statusListIndex -> statusListIndex.getNonce().toString());
+    public Flux<String> getCredentialsStatusByListId(int listId) {
+        return credentialStatusRepository.findNonceByListId(listId)
+                .map(UUID::toString);
     }
 
     @Override
-    public Mono<Void> revokeCredential(String credentialId) {
-        return credentialStatusRepository.save(new StatusListIndex(UUID.fromString(credentialId)))
+    public Mono<Void> revokeCredential(String credentialId, int listId) {
+        return credentialStatusRepository.save(new StatusListIndex(UUID.fromString(credentialId), listId))
                 .then();
     }
 }

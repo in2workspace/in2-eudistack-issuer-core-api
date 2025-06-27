@@ -2,6 +2,7 @@ package es.in2.issuer.backend.backoffice.infrastructure.controller;
 
 import es.in2.issuer.backend.backoffice.application.workflow.CredentialStatusWorkflow;
 import es.in2.issuer.backend.backoffice.domain.model.dtos.CredentialStatusResponse;
+import es.in2.issuer.backend.backoffice.domain.model.dtos.RevokeCredentialRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -19,23 +20,26 @@ public class CredentialStatusController {
 
     private final CredentialStatusWorkflow credentialStatusWorkflow;
 
-    @GetMapping
+    @GetMapping("/{listId}")
     @ResponseStatus(HttpStatus.OK)
-    public Flux<CredentialStatusResponse> getCredentialsStatus() {
+    public Flux<CredentialStatusResponse> getCredentialsStatus(@PathVariable int listId) {
         String processId = UUID.randomUUID().toString();
 
-        return credentialStatusWorkflow.getCredentialsStatus(processId)
+        return credentialStatusWorkflow.getCredentialsStatusByListId(processId, listId)
                 .doFirst(() -> log.info("Process ID: {} - Getting Credentials Status...", processId))
                 .map(CredentialStatusResponse::new)
                 .doOnComplete(() -> log.info("Process ID: {} - All Credential Status retrieved successfully.", processId));
     }
 
-    @PostMapping("/revoke/{credentialId}")
+    @PostMapping("/revoke")
     @ResponseStatus(HttpStatus.CREATED)
-    public Mono<Void> revokeCredential(@PathVariable String credentialId) {
+    public Mono<Void> revokeCredential(@RequestBody RevokeCredentialRequest revokeCredentialRequest) {
         String processId = UUID.randomUUID().toString();
 
-        return credentialStatusWorkflow.revokeCredential(processId, credentialId)
+        return credentialStatusWorkflow.revokeCredential(
+                        processId,
+                        revokeCredentialRequest.credentialId(),
+                        revokeCredentialRequest.listId())
                 .doFirst(() -> log.info("Process ID: {} - Revoking Credential...", processId))
                 .doOnSuccess(result -> log.info("Process ID: {} - Credential revoked successfully.", processId));
     }
