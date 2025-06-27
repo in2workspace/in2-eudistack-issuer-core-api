@@ -78,7 +78,7 @@ public class LabelCredentialFactory {
             String procedureId) {
         LabelCredential labelCredential = mapStringToVerifiableCertification(decodedCredentialString);
 
-        return issuerFactory.createSimpleIssuer(procedureId, CredentialType.LABEL_CREDENTIAL.name())
+        return issuerFactory.createSimpleIssuer(procedureId, CredentialType.LABEL_CREDENTIAL.getTypeId())
                 .flatMap(issuer -> bindIssuer(labelCredential, issuer))
                 .flatMap(this::convertVerifiableCertificationInToString);
     }
