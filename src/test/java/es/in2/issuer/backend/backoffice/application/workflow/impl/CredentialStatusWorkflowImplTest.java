@@ -7,10 +7,11 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class CredentialStatusWorkflowImplTest {
@@ -36,5 +37,21 @@ class CredentialStatusWorkflowImplTest {
                 .assertNext(x -> assertThat(x).isEqualTo(statusListIndex1))
                 .assertNext(x -> assertThat(x).isEqualTo(statusListIndex2))
                 .verifyComplete();
+    }
+
+    @Test
+    void revokeCredential_ReturnsVoid() {
+        String credentialId = "1b59b5f8-a66b-4694-af47-cf38db7a3d73";
+
+        when(credentialStatusService.revokeCredential(credentialId))
+                .thenReturn(Mono.empty());
+
+        var result = credentialStatusWorkflow.revokeCredential("processId", credentialId);
+
+        StepVerifier
+                .create(result)
+                .verifyComplete();
+
+        verify(credentialStatusService, times(1)).revokeCredential(credentialId);
     }
 }

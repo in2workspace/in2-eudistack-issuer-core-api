@@ -16,6 +16,6 @@ import java.util.UUID;
 public class StatusListIndex {
 
     @Id
-    @Column("id")
-    private UUID id;
+    @Column("nonce")
+    private UUID nonce;
 }

@@ -5,11 +5,9 @@ import es.in2.issuer.backend.backoffice.domain.model.dtos.CredentialStatusRespon
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.util.UUID;
 
@@ -30,5 +28,15 @@ public class CredentialStatusController {
                 .doFirst(() -> log.info("Process ID: {} - Getting Credentials Status...", processId))
                 .map(CredentialStatusResponse::new)
                 .doOnComplete(() -> log.info("Process ID: {} - All Credential Status retrieved successfully.", processId));
+    }
+
+    @PostMapping("/revoke/{credentialId}")
+    @ResponseStatus(HttpStatus.CREATED)
+    public Mono<Void> revokeCredential(@PathVariable String credentialId) {
+        String processId = UUID.randomUUID().toString();
+
+        return credentialStatusWorkflow.revokeCredential(processId, credentialId)
+                .doFirst(() -> log.info("Process ID: {} - Revoking Credential...", processId))
+                .doOnSuccess(result -> log.info("Process ID: {} - Credential revoked successfully.", processId));
     }
 }

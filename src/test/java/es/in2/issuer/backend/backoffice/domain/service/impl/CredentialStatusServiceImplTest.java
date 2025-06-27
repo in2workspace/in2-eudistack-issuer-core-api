@@ -38,8 +38,8 @@ class CredentialStatusServiceImplTest {
 
         StepVerifier
                 .create(result)
-                .assertNext(x -> assertThat(x).isEqualTo(statusListIndex1.getId().toString()))
-                .assertNext(x -> assertThat(x).isEqualTo(statusListIndex2.getId().toString()))
+                .assertNext(x -> assertThat(x).isEqualTo(statusListIndex1.getNonce().toString()))
+                .assertNext(x -> assertThat(x).isEqualTo(statusListIndex2.getNonce().toString()))
                 .verifyComplete();
     }
 }
