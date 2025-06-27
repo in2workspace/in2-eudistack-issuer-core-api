@@ -6,8 +6,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import es.in2.issuer.backend.shared.domain.exception.InvalidCredentialFormatException;
 import es.in2.issuer.backend.shared.domain.exception.ParseErrorException;
 import es.in2.issuer.backend.shared.domain.model.dto.CredentialProcedureCreationRequest;
-import es.in2.issuer.backend.shared.domain.model.dto.credential.LabelCredential;
 import es.in2.issuer.backend.shared.domain.model.dto.LabelCredentialJwtPayload;
+import es.in2.issuer.backend.shared.domain.model.dto.credential.LabelCredential;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.SimpleIssuer;
 import es.in2.issuer.backend.shared.domain.model.enums.CredentialType;
 import es.in2.issuer.backend.shared.domain.service.CredentialProcedureService;
@@ -21,10 +21,10 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
-import static es.in2.issuer.backend.shared.domain.util.Constants.*;
+import static es.in2.issuer.backend.shared.domain.util.Constants.LABEL_CREDENTIAL_CONTEXT;
+import static es.in2.issuer.backend.shared.domain.util.Constants.LABEL_CREDENTIAL_TYPES;
 
 @Component
 @RequiredArgsConstructor
@@ -36,7 +36,7 @@ public class LabelCredentialFactory {
     private final IssuerFactory issuerFactory;
 
     public Mono<CredentialProcedureCreationRequest> mapAndBuildLabelCredential(JsonNode credential, String operationMode, String email) {
-        LabelCredential.CredentialSubject labelCredential = objectMapper.convertValue(credential, LabelCredential.CredentialSubject.class);
+        LabelCredential labelCredential = objectMapper.convertValue(credential, LabelCredential.class);
 
         return buildVerifiableCertification(labelCredential)
                 .flatMap(verifiableCertificationDecoded ->
@@ -47,19 +47,16 @@ public class LabelCredentialFactory {
                 );
     }
 
-    private Mono<LabelCredential> buildVerifiableCertification(LabelCredential.CredentialSubject credential) {
-        Instant currentTime = Instant.now();
-        String validFrom = currentTime.toString();
-        String validUntil = currentTime.plus(365, ChronoUnit.DAYS).toString();
+    private Mono<LabelCredential> buildVerifiableCertification(LabelCredential credential) {
 
         // Build the VerifiableCertification object
         return Mono.just(LabelCredential.builder()
                 .context(LABEL_CREDENTIAL_CONTEXT)
                 .id(UUID.randomUUID().toString())
                 .type(LABEL_CREDENTIAL_TYPES)
-                .credentialSubject(credential)
-                .validFrom(validFrom)
-                .validUntil(validUntil)
+                .credentialSubject(credential.credentialSubject())
+                .validFrom(credential.validFrom())
+                .validUntil(credential.validUntil())
                 .build());
     }
 
