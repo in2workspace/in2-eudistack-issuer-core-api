@@ -111,11 +111,11 @@ class IssuerFactoryTest {
     void createDetailedIssuerRemote_VerifiableCertification_SuccessPath() {
         when(remoteSignatureConfig.getRemoteSignatureType()).thenReturn(SIGNATURE_REMOTE_TYPE_CLOUD);
         when(remoteSignatureServiceImpl.validateCredentials()).thenReturn(Mono.just(true));
-        when(remoteSignatureServiceImpl.getMailForVerifiableCertification(procedureId)).thenReturn(Mono.just("vc@mail"));
         when(remoteSignatureServiceImpl.requestAccessToken(any(), eq(SIGNATURE_REMOTE_SCOPE_SERVICE)))
                 .thenReturn(Mono.just("token2"));
         when(remoteSignatureServiceImpl.requestCertificateInfo("token2", "vc-cred"))
                 .thenReturn(Mono.just("vc-cert"));
+        when(defaultSignerConfig.getEmail()).thenReturn("vc@mail");
         DetailedIssuer expectedVC = DetailedIssuer.builder()
                 .id("id2").organizationIdentifier("org2").organization("o2")
                 .country("c2").commonName("cn2").emailAddress("e2").serialNumber("sn2")
