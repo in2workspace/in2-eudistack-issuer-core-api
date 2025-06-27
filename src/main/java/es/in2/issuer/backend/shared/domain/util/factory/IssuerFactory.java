@@ -29,15 +29,19 @@ public class IssuerFactory {
     private final RemoteSignatureServiceImpl remoteSignatureServiceImpl;
 
     public Mono<DetailedIssuer> createDetailedIssuer(String procedureId, String credentialType) {
+        log.debug("createDetailedIssuer called with procedureId={} credentialType={}", procedureId, credentialType);
         return isServerMode()
                 ? Mono.just(buildLocalDetailedIssuer())
-                : createRemoteDetailedIssuer(procedureId, credentialType);
+                : createRemoteDetailedIssuer(procedureId, credentialType)
+                .doOnNext(issuer -> log.info("Remote DetailedIssuer returned: {}", issuer));
     }
 
     public Mono<SimpleIssuer> createSimpleIssuer(String procedureId, String credentialType) {
+        log.debug("createSimpleIssuer called with procedureId={} credentialType={}", procedureId, credentialType);
         return isServerMode()
                 ? Mono.just(buildLocalSimpleIssuer())
                 : createRemoteDetailedIssuer(procedureId, credentialType)
+                .doOnNext(di -> log.info("Remote DetailedIssuer for Simple conversion: {}", di))
                 .map(detailed -> SimpleIssuer.builder()
                         .id(detailed.getId())
                         .build());
@@ -48,6 +52,7 @@ public class IssuerFactory {
     }
 
     private DetailedIssuer buildLocalDetailedIssuer() {
+        log.debug("Building local DetailedIssuer for organization {}", defaultSignerConfig.getOrganizationIdentifier());
         return DetailedIssuer.builder()
                 .id(DID_ELSI + defaultSignerConfig.getOrganizationIdentifier())
                 .organizationIdentifier(defaultSignerConfig.getOrganizationIdentifier())
@@ -60,12 +65,14 @@ public class IssuerFactory {
     }
 
     private SimpleIssuer buildLocalSimpleIssuer() {
+        log.debug("Building local SimpleIssuer for organization {}", defaultSignerConfig.getOrganizationIdentifier());
         return SimpleIssuer.builder()
                 .id(DID_ELSI + defaultSignerConfig.getOrganizationIdentifier())
                 .build();
     }
 
     private Mono<DetailedIssuer> createRemoteDetailedIssuer(String procedureId, String credentialType) {
+        log.debug("Creating remote DetailedIssuer, validating credentials...");
         return Mono.defer(() ->
                         remoteSignatureServiceImpl.validateCredentials()
                                 .flatMap(valid -> {
@@ -73,11 +80,24 @@ public class IssuerFactory {
                                         log.error("Credentials mismatch. Signature process aborted.");
                                         return Mono.error(new RemoteSignatureException("Credentials mismatch."));
                                     }
+                                    log.debug("Credentials valid, fetching mail for credentialType={}", credentialType);
                                     return getMail(procedureId, credentialType)
-                                            .flatMap(mail -> remoteSignatureServiceImpl.requestAccessToken(null, SIGNATURE_REMOTE_SCOPE_SERVICE)
-                                                    .flatMap(token -> remoteSignatureServiceImpl.requestCertificateInfo(token, remoteSignatureConfig.getRemoteSignatureCredentialId()))
-                                                    .flatMap(certInfo -> remoteSignatureServiceImpl.extractIssuerFromCertificateInfo(certInfo, mail))
-                                            );
+                                            .flatMap(mail -> {
+                                                log.debug("Obtained mail: {}. Requesting access token...", mail);
+                                                return remoteSignatureServiceImpl
+                                                        .requestAccessToken(null, SIGNATURE_REMOTE_SCOPE_SERVICE)
+                                                        .flatMap(token -> {
+                                                            log.debug("Access token obtained, requesting certificate info...");
+                                                            return remoteSignatureServiceImpl.requestCertificateInfo(
+                                                                    token,
+                                                                    remoteSignatureConfig.getRemoteSignatureCredentialId()
+                                                            );
+                                                        })
+                                                        .flatMap(certInfo -> {
+                                                            log.debug("Certificate info received, extracting issuer with mail={}...", mail);
+                                                            return remoteSignatureServiceImpl.extractIssuerFromCertificateInfo(certInfo, mail);
+                                                        });
+                                            });
                                 })
                 )
                 .retryWhen(Retry.backoff(3, Duration.ofSeconds(1))
@@ -95,10 +115,10 @@ public class IssuerFactory {
 
     private Mono<String> getMail(String procedureId, String credentialType) {
         return switch (credentialType) {
-            case LEAR_CREDENTIAL_EMPLOYEE ->
-                    remoteSignatureServiceImpl.getMandatorMail(procedureId);
-            case LABEL_CREDENTIAL ->
-                    remoteSignatureServiceImpl.getMailForVerifiableCertification(procedureId);
+            case LEAR_CREDENTIAL_EMPLOYEE -> remoteSignatureServiceImpl.getMandatorMail(procedureId)
+                    .doOnNext(mail -> log.debug("Mandator mail for LEAR_CREDENTIAL_EMPLOYEE: {}", mail));
+            case LABEL_CREDENTIAL -> remoteSignatureServiceImpl.getMailForVerifiableCertification(procedureId)
+                    .doOnNext(mail -> log.debug("Mail for LABEL_CREDENTIAL: {}", mail));
             default -> {
                 log.error("Unsupported credentialType: {}", credentialType);
                 yield Mono.error(new RemoteSignatureException("Unsupported credentialType: " + credentialType));
