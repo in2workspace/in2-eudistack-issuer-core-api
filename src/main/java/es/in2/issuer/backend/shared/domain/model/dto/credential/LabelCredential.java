@@ -1,6 +1,7 @@
 package es.in2.issuer.backend.shared.domain.model.dto.credential;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import lombok.Builder;
 import org.jetbrains.annotations.NotNull;
 
@@ -12,7 +13,7 @@ public record LabelCredential(
         @JsonProperty("id") String id,
         @NotNull
         @JsonProperty("type") List<String> type,
-        @JsonProperty("issuer") Issuer issuer,
+        @JsonProperty("issuer") @JsonDeserialize(using = IssuerDeserializer.class) Issuer issuer,
         @NotNull
         @JsonProperty("credentialSubject") CredentialSubject credentialSubject,
         @NotNull
