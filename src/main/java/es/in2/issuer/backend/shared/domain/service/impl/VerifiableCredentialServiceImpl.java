@@ -52,34 +52,6 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
                                         .thenReturn(transactionCode)));
     }
 
-//    @Override
-//    public Mono<String> generateVerifiableCertification(String processId, PreSubmittedCredentialRequest preSubmittedCredentialRequest, String idToken) {
-//        return credentialFactory.mapCredentialIntoACredentialProcedureRequest(processId, preSubmittedCredentialRequest, idToken)
-//                .flatMap(credentialProcedureService::createCredentialProcedure)
-//                .flatMap(procedureId ->
-//                        deferredCredentialMetadataService.createDeferredCredentialMetadata(
-//                                        procedureId,
-//                                        preSubmittedCredentialRequest.operationMode(),
-//                                        preSubmittedCredentialRequest.responseUri()
-//                                )
-//                                .thenReturn(procedureId)
-//                )
-//                .flatMap(procedureId ->
-//                        issuerFactory.createDetailedIssuer(procedureId, LABEL_CREDENTIAL)
-//                                .flatMap(issuer -> labelCredentialFactory.mapIssuerAndSigner(procedureId, issuer))
-//                                .flatMap(bindVerifiableCertification ->
-//                                        credentialProcedureService.updateDecodedCredentialByProcedureId(procedureId, bindVerifiableCertification, JWT_VC)
-//                                )
-//                                .onErrorResume(error -> {
-//                                    log.error("Error generating issuer/signer, continuing in ASYNC mode", error);
-//                                    return Mono.empty();
-//                                })
-//                                .thenReturn(procedureId)
-//                );
-//    }
-
-
-
     @Override
     public Mono<DeferredCredentialResponse> generateDeferredCredentialResponse(String processId, DeferredCredentialRequest deferredCredentialRequest) {
         return deferredCredentialMetadataService.getVcByTransactionId(deferredCredentialRequest.transactionId())

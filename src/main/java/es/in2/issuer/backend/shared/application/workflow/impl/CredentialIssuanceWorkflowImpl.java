@@ -2,12 +2,12 @@ package es.in2.issuer.backend.shared.application.workflow.impl;
 
 import com.nimbusds.jose.JWSObject;
 import es.in2.issuer.backend.oidc4vci.domain.model.CredentialIssuerMetadata;
-import es.in2.issuer.backend.shared.domain.service.CredentialIssuerMetadataService;
 import es.in2.issuer.backend.shared.application.workflow.CredentialIssuanceWorkflow;
 import es.in2.issuer.backend.shared.domain.exception.*;
 import es.in2.issuer.backend.shared.domain.model.dto.*;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.employee.LEARCredentialEmployee;
 import es.in2.issuer.backend.shared.domain.model.entities.CredentialProcedure;
+import es.in2.issuer.backend.shared.domain.model.entities.DeferredCredentialMetadata;
 import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatus;
 import es.in2.issuer.backend.shared.domain.model.enums.CredentialType;
 import es.in2.issuer.backend.shared.domain.service.*;
@@ -19,7 +19,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Mono;
-import reactor.util.function.Tuple2;
+import reactor.util.function.Tuples;
 
 import javax.naming.OperationNotSupportedException;
 import java.text.ParseException;
@@ -40,14 +40,12 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
     private final EmailService emailService;
     private final CredentialProcedureService credentialProcedureService;
     private final DeferredCredentialMetadataService deferredCredentialMetadataService;
-//    private final CredentialSignerWorkflow credentialSignerWorkflow;
     private final VerifiableCredentialPolicyAuthorizationService verifiableCredentialPolicyAuthorizationService;
     private final TrustFrameworkService trustFrameworkService;
     private final LEARCredentialEmployeeFactory credentialEmployeeFactory;
     private final CredentialIssuerMetadataService credentialIssuerMetadataService;
-//    private final IssuerApiClientTokenService issuerApiClientTokenService;
-//    private final M2MTokenService m2mTokenService;
-//    private final CredentialDeliveryService credentialDeliveryService;
+    private final M2MTokenService m2mTokenService;
+    private final CredentialDeliveryService credentialDeliveryService;
 
     @Override
     public Mono<Void> execute(String processId, PreSubmittedCredentialDataRequest preSubmittedCredentialDataRequest, String token, String idToken) {
@@ -66,8 +64,9 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
             return Mono.error(new MissingIdTokenHeaderException("Missing required ID Token header for VerifiableCertification issuance."));
         }
 
+        // TODO LabelCredential the email information extraction must be done after the policy validation
         // We extract the email information from the PreSubmittedCredentialDataRequest
-        EmailNotificationInfo emailInfo =
+        CredentialOfferEmailNotificationInfo emailInfo =
                 extractCredentialOfferEmailInfo(preSubmittedCredentialDataRequest);
 
         // Validate user policy before proceeding
@@ -112,7 +111,7 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
 
     private Mono<Void> sendCredentialOfferEmail(
             String transactionCode,
-            EmailNotificationInfo info
+            CredentialOfferEmailNotificationInfo info
     ) {
         String credentialOfferUrl = buildCredentialOfferUrl(transactionCode);
 
@@ -137,7 +136,7 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
     }
 
     // Get the necessary information to send the credential offer email
-    private EmailNotificationInfo extractCredentialOfferEmailInfo(PreSubmittedCredentialDataRequest preSubmittedCredentialDataRequest) {
+    private CredentialOfferEmailNotificationInfo extractCredentialOfferEmailInfo(PreSubmittedCredentialDataRequest preSubmittedCredentialDataRequest) {
         String schema = preSubmittedCredentialDataRequest.schema();
         var payload = preSubmittedCredentialDataRequest.payload();
 
@@ -147,14 +146,14 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                 String user  = payload.get(MANDATEE).get(FIRST_NAME).asText()
                         + " " + payload.get(MANDATEE).get(LAST_NAME).asText();
                 String org   = payload.get(MANDATOR).get(ORGANIZATION).asText();
-                yield new EmailNotificationInfo(email, user, org);
+                yield new CredentialOfferEmailNotificationInfo(email, user, org);
             }
             case LABEL_CREDENTIAL -> {
                     if(preSubmittedCredentialDataRequest.credentialOwnerEmail() == null || preSubmittedCredentialDataRequest.credentialOwnerEmail().isBlank()) {
                         throw new MissingEmailOwnerException("Email owner email is required for gx:LabelCredential schema");
                     }
                     String email = preSubmittedCredentialDataRequest.credentialOwnerEmail();
-                yield new EmailNotificationInfo(email, DEFAULT_USER_NAME, DEFAULT_ORGANIZATION_NAME);
+                yield new CredentialOfferEmailNotificationInfo(email, DEFAULT_USER_NAME, DEFAULT_ORGANIZATION_NAME);
             }
             default -> throw new FormatUnsupportedException(
                     "Unknown schema: " + schema
@@ -170,41 +169,44 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
 
         return parseAuthServerNonce(token)
                 .flatMap(nonce ->
-                        retrieveProcedureAndMetadata(nonce, processId)
-                                .flatMap(tuple -> {
-                                    CredentialProcedure credentialProcedure    = tuple.getT1();
-                                    CredentialIssuerMetadata credentialIssuerMetadata = tuple.getT2();
+                        deferredCredentialMetadataService.getDeferredCredentialMetadataByAuthServerNonce(nonce)
+                                .flatMap(deferred ->
+                                        credentialProcedureService.getCredentialProcedureById(deferred.getProcedureId().toString())
+                                                .zipWhen(proc -> credentialIssuerMetadataService.getCredentialIssuerMetadata(processId))
+                                                .map(tuple -> Tuples.of(nonce, deferred, tuple.getT1(), tuple.getT2()))
+                                )
+                )
+                .flatMap(tuple4 -> {
+                    String nonce = tuple4.getT1();
+                    DeferredCredentialMetadata deferred = tuple4.getT2();
+                    CredentialProcedure proc = tuple4.getT3();
+                    CredentialIssuerMetadata md = tuple4.getT4();
 
-                                    Mono<String> credentialSubject = determineSubjectDid(
-                                            credentialProcedure, credentialIssuerMetadata, credentialRequest, token
-                                    );
+                    Mono<String> subjectDidMono = determineSubjectDid(proc, md, credentialRequest, token);
 
-                                    Mono<CredentialResponse> vcMono = credentialSubject
-                                            .flatMap(did ->
-                                                    verifiableCredentialService.buildCredentialResponse(
-                                                            processId, did, nonce, token
-                                                    )
-                                            )
-                                            .switchIfEmpty(
-                                                    verifiableCredentialService.buildCredentialResponse(
-                                                            processId,
-                                                            null,
-                                                            nonce,
-                                                            token
-                                                    )
-                                            );
+                    Mono<CredentialResponse> vcMono = subjectDidMono
+                            .flatMap(did ->
+                                    verifiableCredentialService.buildCredentialResponse(
+                                            processId, did, nonce, token
+                                    )
+                            )
+                            .switchIfEmpty(
+                                    verifiableCredentialService.buildCredentialResponse(
+                                            processId, null, nonce, token
+                                    )
+                            );
 
-                                    return vcMono.flatMap(credResp ->
-                                            handleOperationMode(
-                                                    credentialProcedure.getOperationMode(),
-                                                    processId,
-                                                    nonce,
-                                                    credResp,
-                                                    credentialProcedure.getCredentialType()
-                                            )
-                                    );
-                                })
-                );
+                    return vcMono.flatMap(cr ->
+                            handleOperationMode(
+                                    proc.getOperationMode(),
+                                    processId,
+                                    nonce,
+                                    cr,
+                                    proc,
+                                    deferred
+                            )
+                    );
+                });
     }
 
     private Mono<String> parseAuthServerNonce(String token) {
@@ -214,19 +216,6 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                 })
                 .onErrorMap(ParseException.class, e ->
                         new ParseErrorException("Error parsing accessToken")
-                );
-    }
-
-    private Mono<Tuple2<CredentialProcedure, CredentialIssuerMetadata>> retrieveProcedureAndMetadata(
-            String nonce, String processId) {
-
-        return deferredCredentialMetadataService
-                .getProcedureIdByAuthServerNonce(nonce)
-                .flatMap(procId ->
-                        credentialProcedureService.getCredentialProcedureById(procId)
-                                .zipWhen(proc ->
-                                        credentialIssuerMetadataService.getCredentialIssuerMetadata(processId)
-                                )
                 );
     }
 
@@ -288,7 +277,9 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
             String processId,
             String nonce,
             CredentialResponse cr,
-            String credentialType) {
+            CredentialProcedure credentialProcedure,
+            DeferredCredentialMetadata deferred
+    ) {
         return switch (operationMode) {
             case ASYNC -> deferredCredentialMetadataService.getProcedureIdByAuthServerNonce(nonce)
                     .flatMap(credentialProcedureService::getSignerEmailFromDecodedCredentialByProcedureId)
@@ -303,9 +294,15 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                                 return upd.then(credentialProcedureService.getDecodedCredentialByProcedureId(id));
                             })
                             .flatMap(decoded -> {
-                                CredentialType typeEnum = CredentialType.valueOf(credentialType);
+                                CredentialType typeEnum = CredentialType.valueOf(credentialProcedure.getCredentialType());
                                 if (typeEnum == CredentialType.LEAR_CREDENTIAL_EMPLOYEE) {
                                     return getMandatorOrganizationIdentifier(processId, decoded);
+                                }
+
+                                if (deferred.getResponseUri() != null && !deferred.getResponseUri().isBlank()) {
+                                    log.info("Sending VC to response URI: {}", deferred.getResponseUri());
+                                    return m2mTokenService.getM2MToken()
+                                            .flatMap(tokenResponse -> credentialDeliveryService.sendVcToResponseUri(deferred.getResponseUri(), decoded, credentialProcedure.getCredentialId().toString(),credentialProcedure.getOwnerEmail(),tokenResponse.accessToken()));
                                 }
 
                                 return Mono.empty();

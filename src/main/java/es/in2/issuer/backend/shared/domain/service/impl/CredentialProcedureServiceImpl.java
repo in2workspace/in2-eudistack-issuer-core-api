@@ -323,7 +323,7 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
     }
 
     @Override
-    public Mono<EmailNotificationInfo> getEmailCredentialOfferInfoByProcedureId(String procedureId) {
+    public Mono<CredentialOfferEmailNotificationInfo> getEmailCredentialOfferInfoByProcedureId(String procedureId) {
         return credentialProcedureRepository
                 .findByProcedureId(UUID.fromString(procedureId))
                 .flatMap(credentialProcedure -> switch (credentialProcedure.getCredentialType()) {
@@ -337,7 +337,7 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
                                         .get(MANDATOR)
                                         .get(ORGANIZATION)
                                         .asText();
-                                return new EmailNotificationInfo(
+                                return new CredentialOfferEmailNotificationInfo(
                                         credentialProcedure.getOwnerEmail(),
                                         user,
                                         org
@@ -349,7 +349,7 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
                                     )
                             );
                     case LABEL_CREDENTIAL -> Mono.just(
-                            new EmailNotificationInfo(
+                            new CredentialOfferEmailNotificationInfo(
                                     credentialProcedure.getOwnerEmail(),
                                     DEFAULT_USER_NAME,
                                     DEFAULT_ORGANIZATION_NAME

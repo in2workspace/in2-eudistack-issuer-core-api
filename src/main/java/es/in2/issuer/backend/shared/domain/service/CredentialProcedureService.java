@@ -3,7 +3,7 @@ package es.in2.issuer.backend.shared.domain.service;
 import es.in2.issuer.backend.shared.domain.model.dto.CredentialDetails;
 import es.in2.issuer.backend.shared.domain.model.dto.CredentialProcedureCreationRequest;
 import es.in2.issuer.backend.shared.domain.model.dto.CredentialProcedures;
-import es.in2.issuer.backend.shared.domain.model.dto.EmailNotificationInfo;
+import es.in2.issuer.backend.shared.domain.model.dto.CredentialOfferEmailNotificationInfo;
 import es.in2.issuer.backend.shared.domain.model.entities.CredentialProcedure;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -46,5 +46,5 @@ public interface CredentialProcedureService {
     Mono<CredentialProcedure> getCredentialProcedureById(String procedureId);
 
     Mono<Void> updateFormatByProcedureId(String procedureId, String format);
-    Mono<EmailNotificationInfo> getEmailCredentialOfferInfoByProcedureId(String procedureId);
+    Mono<CredentialOfferEmailNotificationInfo> getEmailCredentialOfferInfoByProcedureId(String procedureId);
 }
