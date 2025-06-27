@@ -37,18 +37,18 @@ public class LabelCredentialFactory {
     public Mono<CredentialProcedureCreationRequest> mapAndBuildLabelCredential(JsonNode credential, String operationMode, String email) {
         LabelCredential labelCredential = objectMapper.convertValue(credential, LabelCredential.class);
 
-        return buildVerifiableCertification(labelCredential)
-                .flatMap(verifiableCertificationDecoded ->
-                        convertVerifiableCertificationInToString(verifiableCertificationDecoded)
+        return buildLabelCredential(labelCredential)
+                .flatMap(labelCredentialDecoded ->
+                        convertLabelCredentialInToString(labelCredentialDecoded)
                                 .flatMap(decodedCredential ->
-                                        buildCredentialProcedureCreationRequest(decodedCredential, verifiableCertificationDecoded, operationMode, email)
+                                        buildCredentialProcedureCreationRequest(decodedCredential, labelCredentialDecoded, operationMode, email)
                                 )
                 );
     }
 
-    private Mono<LabelCredential> buildVerifiableCertification(LabelCredential credential) {
+    private Mono<LabelCredential> buildLabelCredential(LabelCredential credential) {
 
-        // Build the VerifiableCertification object
+        // Build the LabelCredential object
         return Mono.just(LabelCredential.builder()
                 .context(LABEL_CREDENTIAL_CONTEXT)
                 .id(UUID.randomUUID().toString())
@@ -63,9 +63,9 @@ public class LabelCredentialFactory {
         return credentialProcedureService.getDecodedCredentialByProcedureId(procedureId)
                 .flatMap(credential -> {
                     try {
-                        LabelCredential labelCredential = mapStringToVerifiableCertification(credential);
+                        LabelCredential labelCredential = mapStringToLabelCredential(credential);
                         return bindIssuer(labelCredential, issuer)
-                                .flatMap(this::convertVerifiableCertificationInToString);
+                                .flatMap(this::convertLabelCredentialInToString);
                     } catch (InvalidCredentialFormatException e) {
                         return Mono.error(e);
                     }
@@ -75,11 +75,11 @@ public class LabelCredentialFactory {
     public Mono<String> mapCredentialAndBindIssuerInToTheCredential(
             String decodedCredentialString,
             String procedureId) {
-        LabelCredential labelCredential = mapStringToVerifiableCertification(decodedCredentialString);
+        LabelCredential labelCredential = mapStringToLabelCredential(decodedCredentialString);
 
         return issuerFactory.createSimpleIssuer(procedureId, LABEL_CREDENTIAL)
                 .flatMap(issuer -> bindIssuer(labelCredential, issuer))
-                .flatMap(this::convertVerifiableCertificationInToString);
+                .flatMap(this::convertLabelCredentialInToString);
     }
 
 
@@ -99,7 +99,7 @@ public class LabelCredentialFactory {
                 .build());
     }
 
-    public Mono<LabelCredentialJwtPayload> buildVerifiableCertificationJwtPayload(LabelCredential credential) {
+    public Mono<LabelCredentialJwtPayload> buildLabelCredentialJwtPayload(LabelCredential credential) {
         return Mono.just(
                 LabelCredentialJwtPayload.builder()
                         .JwtId(UUID.randomUUID().toString())
@@ -118,18 +118,19 @@ public class LabelCredentialFactory {
         return zonedDateTime.toInstant().getEpochSecond();
     }
 
-    public LabelCredential mapStringToVerifiableCertification(String learCredential)
+    public LabelCredential mapStringToLabelCredential(String labelCredential)
             throws InvalidCredentialFormatException {
         try {
-            log.info(objectMapper.readValue(learCredential, LabelCredential.class).toString());
-            return objectMapper.readValue(learCredential, LabelCredential.class);
+            System.out.println("Parsing LabelCredential: " + labelCredential);
+            log.info(objectMapper.readValue(labelCredential, LabelCredential.class).toString());
+            return objectMapper.readValue(labelCredential, LabelCredential.class);
         } catch (JsonProcessingException e) {
-            log.error("Error parsing VerifiableCertification", e);
-            throw new InvalidCredentialFormatException("Error parsing VerifiableCertification");
+            log.error("Error parsing LabelCredential", e);
+            throw new InvalidCredentialFormatException("Error parsing LabelCredential");
         }
     }
 
-    private Mono<String> convertVerifiableCertificationInToString(LabelCredential labelCredential) {
+    private Mono<String> convertLabelCredentialInToString(LabelCredential labelCredential) {
         try {
 
             return Mono.just(objectMapper.writeValueAsString(labelCredential));
@@ -138,7 +139,7 @@ public class LabelCredentialFactory {
         }
     }
 
-    public Mono<String> convertVerifiableCertificationJwtPayloadInToString(LabelCredentialJwtPayload labelCredentialJwtPayload) {
+    public Mono<String> convertLabelCredentialJwtPayloadInToString(LabelCredentialJwtPayload labelCredentialJwtPayload) {
         try {
             return Mono.just(objectMapper.writeValueAsString(labelCredentialJwtPayload));
         } catch (JsonProcessingException e) {

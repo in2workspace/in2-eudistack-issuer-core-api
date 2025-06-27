@@ -62,9 +62,9 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
                     return switch (credentialType) {
                         case LABEL_CREDENTIAL_TYPE -> {
                             LabelCredential labelCredential = labelCredentialFactory
-                                    .mapStringToVerifiableCertification(credentialProcedure.getCredentialDecoded());
-                            yield labelCredentialFactory.buildVerifiableCertificationJwtPayload(labelCredential)
-                                    .flatMap(labelCredentialFactory::convertVerifiableCertificationJwtPayloadInToString)
+                                    .mapStringToLabelCredential(credentialProcedure.getCredentialDecoded());
+                            yield labelCredentialFactory.buildLabelCredentialJwtPayload(labelCredential)
+                                    .flatMap(labelCredentialFactory::convertLabelCredentialJwtPayloadInToString)
                                     .flatMap(unsignedCredential -> signCredentialOnRequestedFormat(unsignedCredential, format, authorizationHeader, procedureId));
                         }
                         case LEAR_CREDENTIAL_EMPLOYEE_CREDENTIAL_TYPE -> {
