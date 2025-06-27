@@ -1,5 +1,6 @@
 package es.in2.issuer.backend.backoffice.domain.service.impl;
 
+import es.in2.issuer.backend.backoffice.domain.model.entities.StatusListIndex;
 import es.in2.issuer.backend.backoffice.domain.repository.CredentialStatusRepository;
 import es.in2.issuer.backend.backoffice.domain.service.CredentialStatusService;
 import lombok.RequiredArgsConstructor;
@@ -7,6 +8,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -23,6 +26,7 @@ public class CredentialStatusServiceImpl implements CredentialStatusService {
 
     @Override
     public Mono<Void> revokeCredential(String credentialId) {
-        return null;
+        return credentialStatusRepository.save(new StatusListIndex(UUID.fromString(credentialId)))
+                .then();
     }
 }
