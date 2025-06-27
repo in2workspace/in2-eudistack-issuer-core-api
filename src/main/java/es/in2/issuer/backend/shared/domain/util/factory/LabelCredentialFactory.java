@@ -121,7 +121,6 @@ public class LabelCredentialFactory {
     public LabelCredential mapStringToLabelCredential(String labelCredential)
             throws InvalidCredentialFormatException {
         try {
-            System.out.println("Parsing LabelCredential: " + labelCredential);
             log.info(objectMapper.readValue(labelCredential, LabelCredential.class).toString());
             return objectMapper.readValue(labelCredential, LabelCredential.class);
         } catch (JsonProcessingException e) {
