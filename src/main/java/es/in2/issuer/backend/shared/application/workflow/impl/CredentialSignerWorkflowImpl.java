@@ -183,7 +183,7 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
                 .flatMap(credentialProcedure -> switch (credentialProcedure.getCredentialType()) {
                     case LABEL_CREDENTIAL_TYPE ->
                             issuerFactory.createSimpleIssuer(procedureId, LABEL_CREDENTIAL)
-                                    .flatMap(issuer -> labelCredentialFactory.mapIssuerAndSigner(procedureId, issuer))
+                                    .flatMap(issuer -> labelCredentialFactory.mapIssuer(procedureId, issuer))
                                     .flatMap(bindCredential -> {
                                         log.info("ProcessID: {} - Credential mapped and bind to the issuer: {}", procedureId, bindCredential);
                                         return credentialProcedureService.updateDecodedCredentialByProcedureId(procedureId, bindCredential, JWT_VC);

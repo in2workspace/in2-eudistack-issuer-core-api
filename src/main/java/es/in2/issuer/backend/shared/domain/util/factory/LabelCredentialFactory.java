@@ -33,6 +33,7 @@ public class LabelCredentialFactory {
     private final DefaultSignerConfig defaultSignerConfig;
     private final ObjectMapper objectMapper;
     private final CredentialProcedureService credentialProcedureService;
+    private final IssuerFactory issuerFactory;
 
     public Mono<CredentialProcedureCreationRequest> mapAndBuildLabelCredential(JsonNode credential, String operationMode, String email) {
         LabelCredential.CredentialSubject labelCredential = objectMapper.convertValue(credential, LabelCredential.CredentialSubject.class);
@@ -62,12 +63,12 @@ public class LabelCredentialFactory {
                 .build());
     }
 
-    public Mono<String> mapIssuerAndSigner(String procedureId, SimpleIssuer issuer) {
+    public Mono<String> mapIssuer(String procedureId, SimpleIssuer issuer) {
         return credentialProcedureService.getDecodedCredentialByProcedureId(procedureId)
                 .flatMap(credential -> {
                     try {
                         LabelCredential labelCredential = mapStringToVerifiableCertification(credential);
-                        return bindIssuerAndSigner(labelCredential, issuer)
+                        return bindIssuer(labelCredential, issuer)
                                 .flatMap(this::convertVerifiableCertificationInToString);
                     } catch (InvalidCredentialFormatException e) {
                         return Mono.error(e);
@@ -75,7 +76,18 @@ public class LabelCredentialFactory {
                 });
     }
 
-    public Mono<LabelCredential> bindIssuerAndSigner(LabelCredential labelCredential, SimpleIssuer issuer) {
+    public Mono<String> mapCredentialAndBindIssuerInToTheCredential(
+            String decodedCredentialString,
+            String procedureId) {
+        LabelCredential labelCredential = mapStringToVerifiableCertification(decodedCredentialString);
+
+        return issuerFactory.createSimpleIssuer(procedureId, CredentialType.LABEL_CREDENTIAL.name())
+                .flatMap(issuer -> bindIssuer(labelCredential, issuer))
+                .flatMap(this::convertVerifiableCertificationInToString);
+    }
+
+
+    public Mono<LabelCredential> bindIssuer(LabelCredential labelCredential, SimpleIssuer issuer) {
         SimpleIssuer issuerCred = SimpleIssuer.builder()
                 .id(issuer.id())
                 .build();

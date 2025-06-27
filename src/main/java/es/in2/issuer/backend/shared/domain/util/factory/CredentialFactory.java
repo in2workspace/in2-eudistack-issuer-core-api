@@ -45,15 +45,41 @@ public class CredentialFactory {
         return Mono.error(new CredentialTypeUnsupportedException(credentialType));
     }
 
-    public Mono<Void> mapCredentialBindIssuerAndUpdateDB(String processId, String procedureId, String decodedCredential, String credentialType, String format, String authServerNonce) {
-        if (credentialType.equals(LEAR_CREDENTIAL_EMPLOYEE)) {
-            return learCredentialEmployeeFactory.mapCredentialAndBindIssuerInToTheCredential(decodedCredential, procedureId)
-                    .flatMap(bindCredential -> {
-                        log.info("ProcessID: {} - Credential mapped and bind to the issuer: {}", processId, bindCredential);
-                        return credentialProcedureService.updateDecodedCredentialByProcedureId(procedureId, bindCredential, format)
-                                .then(deferredCredentialMetadataService.updateDeferredCredentialByAuthServerNonce(authServerNonce, format));
-                    });
-        }
-        return Mono.error(new CredentialTypeUnsupportedException(credentialType));
+    public Mono<Void> mapCredentialBindIssuerAndUpdateDB(
+            String processId,
+            String procedureId,
+            String decodedCredential,
+            String credentialType,
+            String format,
+            String authServerNonce) {
+
+        Mono<String> bindMono = switch (credentialType) {
+            case LEAR_CREDENTIAL_EMPLOYEE ->
+                    learCredentialEmployeeFactory
+                            .mapCredentialAndBindIssuerInToTheCredential(decodedCredential, procedureId);
+            case LABEL_CREDENTIAL ->
+                    labelCredentialFactory
+                            .mapCredentialAndBindIssuerInToTheCredential(decodedCredential, procedureId);
+            default ->
+                    Mono.error(new CredentialTypeUnsupportedException(credentialType));
+        };
+
+        return bindMono
+                .flatMap(boundCredential -> {
+                    log.info("ProcessID: {} - Credential mapped and bind to the issuer: {}", processId, boundCredential);
+                    return updateDecodedAndDeferred(procedureId, boundCredential, format, authServerNonce);
+                });
+    }
+
+    private Mono<Void> updateDecodedAndDeferred(
+            String procedureId,
+            String boundCredential,
+            String format,
+            String authServerNonce) {
+
+        return credentialProcedureService
+                .updateDecodedCredentialByProcedureId(procedureId, boundCredential, format)
+                .then(deferredCredentialMetadataService.updateDeferredCredentialByAuthServerNonce(authServerNonce, format)
+                );
     }
 }
