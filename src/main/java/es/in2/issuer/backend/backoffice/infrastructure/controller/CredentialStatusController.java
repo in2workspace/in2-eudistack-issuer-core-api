@@ -28,7 +28,9 @@ public class CredentialStatusController {
         return credentialStatusWorkflow.getCredentialsStatusByListId(processId, listId)
                 .doFirst(() -> log.info("Process ID: {} - Getting Credentials Status...", processId))
                 .map(CredentialStatusResponse::new)
-                .doOnComplete(() -> log.info("Process ID: {} - All Credential Status retrieved successfully.", processId));
+                .doOnComplete(() -> log.info(
+                        "Process ID: {} - All Credential Status retrieved successfully.",
+                        processId));
     }
 
     @PostMapping("/revoke")

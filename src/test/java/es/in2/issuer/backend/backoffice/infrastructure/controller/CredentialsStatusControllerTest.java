@@ -25,6 +25,8 @@ import static org.springframework.security.test.web.reactive.server.SecurityMock
 @WebFluxTest(CredentialStatusController.class)
 class CredentialsStatusControllerTest {
 
+    private static final String BASE_URI = "/backoffice/v1/credentials/status";
+
     @Autowired
     private WebTestClient webTestClient;
 
@@ -46,7 +48,7 @@ class CredentialsStatusControllerTest {
                 .toList();
 
         webTestClient.get()
-                .uri("/backoffice/v1/credentials/status/{list-id}", listId)
+                .uri(BASE_URI + "/{list-id}", listId)
                 .exchange()
                 .expectStatus().isOk()
                 .expectBodyList(CredentialStatusResponse.class)
@@ -65,7 +67,7 @@ class CredentialsStatusControllerTest {
 
         webTestClient.mutateWith(csrf())
                 .post()
-                .uri("/backoffice/v1/credentials/status/revoke")
+                .uri(BASE_URI + "/revoke")
                 .bodyValue(request)
                 .exchange()
                 .expectStatus().isCreated();
