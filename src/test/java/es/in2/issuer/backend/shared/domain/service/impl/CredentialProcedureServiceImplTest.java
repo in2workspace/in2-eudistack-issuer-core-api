@@ -62,7 +62,7 @@ class CredentialProcedureServiceImplTest {
         CredentialProcedure savedCredentialProcedure = CredentialProcedure.builder()
                 .procedureId(UUID.fromString(expectedProcedureId))
                 .credentialId(UUID.fromString(credentialId))
-                .credentialStatusEnum(CredentialStatusEnum.DRAFT)
+                .credentialStatus(CredentialStatusEnum.DRAFT)
                 .credentialDecoded(credentialDecoded)
                 .organizationIdentifier(organizationIdentifier)
                 .credentialType(expectedCredentialType)
@@ -201,7 +201,7 @@ class CredentialProcedureServiceImplTest {
         CredentialProcedure existingCredentialProcedure = new CredentialProcedure();
         existingCredentialProcedure.setProcedureId(UUID.fromString(procedureId));
         existingCredentialProcedure.setCredentialDecoded("{\"vc\":{\"type\":[\"OldCredentialType\"]}}");
-        existingCredentialProcedure.setCredentialStatusEnum(CredentialStatusEnum.DRAFT);
+        existingCredentialProcedure.setCredentialStatus(CredentialStatusEnum.DRAFT);
         existingCredentialProcedure.setCredentialFormat("old_format");
         existingCredentialProcedure.setUpdatedAt(new Timestamp(Instant.now().toEpochMilli()));
 
@@ -223,7 +223,7 @@ class CredentialProcedureServiceImplTest {
 
         assert existingCredentialProcedure.getCredentialDecoded().equals(newCredential);
         assert existingCredentialProcedure.getCredentialFormat().equals(newFormat);
-        assert existingCredentialProcedure.getCredentialStatusEnum() == CredentialStatusEnum.ISSUED;
+        assert existingCredentialProcedure.getCredentialStatus() == CredentialStatusEnum.ISSUED;
         assert existingCredentialProcedure.getUpdatedAt().before(new Timestamp(Instant.now().toEpochMilli() + 1000)); // Ensures the updated timestamp is recent
     }
 
@@ -418,12 +418,12 @@ class CredentialProcedureServiceImplTest {
 
         CredentialProcedure credentialProcedure1 = new CredentialProcedure();
         credentialProcedure1.setCredentialDecoded(credential1Decoded);
-        credentialProcedure1.setCredentialStatusEnum(CredentialStatusEnum.ISSUED);
+        credentialProcedure1.setCredentialStatus(CredentialStatusEnum.ISSUED);
         credentialProcedure1.setOrganizationIdentifier(organizationIdentifier);
 
         CredentialProcedure credentialProcedure2 = new CredentialProcedure();
         credentialProcedure2.setCredentialDecoded(credential2Decoded);
-        credentialProcedure2.setCredentialStatusEnum(CredentialStatusEnum.ISSUED);
+        credentialProcedure2.setCredentialStatus(CredentialStatusEnum.ISSUED);
         credentialProcedure2.setOrganizationIdentifier(organizationIdentifier);
 
         List<CredentialProcedure> issuedCredentials = List.of(credentialProcedure1, credentialProcedure2);
@@ -474,7 +474,7 @@ class CredentialProcedureServiceImplTest {
         CredentialProcedure credentialProcedure = new CredentialProcedure();
         credentialProcedure.setProcedureId(expectedProcedureId);
         credentialProcedure.setCredentialDecoded(credentialDecoded);
-        credentialProcedure.setCredentialStatusEnum(status);
+        credentialProcedure.setCredentialStatus(status);
         credentialProcedure.setOrganizationIdentifier(organizationIdentifier);
 
         JsonNode credentialNode = new ObjectMapper().readTree(credentialDecoded);
@@ -535,7 +535,7 @@ class CredentialProcedureServiceImplTest {
         existingCredentialProcedure.setProcedureId(procedureId);
         existingCredentialProcedure.setCredentialId(UUID.fromString(credentialId));
         existingCredentialProcedure.setCredentialEncoded("oldEncodedCredential");
-        existingCredentialProcedure.setCredentialStatusEnum(CredentialStatusEnum.ISSUED);
+        existingCredentialProcedure.setCredentialStatus(CredentialStatusEnum.ISSUED);
 
         // When
         when(credentialProcedureRepository.findByCredentialId(any(UUID.class)))
@@ -593,7 +593,7 @@ class CredentialProcedureServiceImplTest {
 
         CredentialProcedure existingCredentialProcedure = new CredentialProcedure();
         existingCredentialProcedure.setProcedureId(uuidProcedureId);
-        existingCredentialProcedure.setCredentialStatusEnum(CredentialStatusEnum.ISSUED);
+        existingCredentialProcedure.setCredentialStatus(CredentialStatusEnum.ISSUED);
 
         // When
         when(credentialProcedureRepository.findByProcedureId(any(UUID.class)))
@@ -611,7 +611,7 @@ class CredentialProcedureServiceImplTest {
         verify(credentialProcedureRepository, times(1)).findByProcedureId(uuidProcedureId);
         verify(credentialProcedureRepository, times(1)).save(existingCredentialProcedure);
 
-        assert existingCredentialProcedure.getCredentialStatusEnum() == CredentialStatusEnum.VALID;
+        assert existingCredentialProcedure.getCredentialStatus() == CredentialStatusEnum.VALID;
     }
 
     @Test
@@ -629,7 +629,7 @@ class CredentialProcedureServiceImplTest {
         CredentialProcedure credentialProcedure1 = new CredentialProcedure();
         credentialProcedure1.setProcedureId(procedureId1);
         credentialProcedure1.setCredentialDecoded(credentialDecoded1);
-        credentialProcedure1.setCredentialStatusEnum(CredentialStatusEnum.ISSUED);
+        credentialProcedure1.setCredentialStatus(CredentialStatusEnum.ISSUED);
         credentialProcedure1.setOrganizationIdentifier(organizationIdentifier);
         credentialProcedure1.setUpdatedAt(updated1);
         credentialProcedure1.setCredentialType(CredentialType.LEAR_CREDENTIAL_EMPLOYEE.toString());
@@ -638,7 +638,7 @@ class CredentialProcedureServiceImplTest {
         CredentialProcedure credentialProcedure2 = new CredentialProcedure();
         credentialProcedure2.setProcedureId(procedureId2);
         credentialProcedure2.setCredentialDecoded(credentialDecoded2);
-        credentialProcedure2.setCredentialStatusEnum(CredentialStatusEnum.DRAFT);
+        credentialProcedure2.setCredentialStatus(CredentialStatusEnum.DRAFT);
         credentialProcedure2.setOrganizationIdentifier(organizationIdentifier);
         credentialProcedure2.setUpdatedAt(updated2);
         credentialProcedure2.setCredentialType(CredentialType.VERIFIABLE_CERTIFICATION.toString());

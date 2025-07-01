@@ -35,7 +35,7 @@ public class CredentialProcedure {
     private String credentialEncoded;
 
     @Column("credential_status")
-    private CredentialStatusEnum credentialStatusEnum;
+    private CredentialStatusEnum credentialStatus;
 
     @Column("organization_identifier")
     private String organizationIdentifier;

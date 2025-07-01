@@ -521,7 +521,7 @@ public class RemoteSignatureServiceImpl implements RemoteSignatureService {
         Mono<Void> updateOperationMode = credentialProcedureRepository.findByProcedureId(UUID.fromString(procedureId))
                 .flatMap(credentialProcedure -> {
                     credentialProcedure.setOperationMode(ASYNC);
-                    credentialProcedure.setCredentialStatusEnum(CredentialStatusEnum.PEND_SIGNATURE);
+                    credentialProcedure.setCredentialStatus(CredentialStatusEnum.PEND_SIGNATURE);
                     return credentialProcedureRepository.save(credentialProcedure)
                             .doOnSuccess(result -> log.info("Updated operationMode to Async - Procedure"))
                             .then();

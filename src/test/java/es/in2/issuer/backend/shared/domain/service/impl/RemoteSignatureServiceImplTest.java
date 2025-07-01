@@ -334,7 +334,7 @@ class RemoteSignatureServiceImplTest {
         verify(deferredCredentialMetadataRepository).save(deferredProcedure);
 
         verify(procedure).setOperationMode(ASYNC);
-        verify(procedure).setCredentialStatusEnum(CredentialStatusEnum.PEND_SIGNATURE);
+        verify(procedure).setCredentialStatus(CredentialStatusEnum.PEND_SIGNATURE);
         verify(deferredProcedure).setOperationMode(ASYNC);
     }
     
@@ -535,7 +535,7 @@ class RemoteSignatureServiceImplTest {
         verify(deferredCredentialMetadataService, never()).deleteDeferredCredentialMetadataById(anyString());
 
         Assertions.assertEquals(ASYNC, procedure.getOperationMode());
-        Assertions.assertEquals(CredentialStatusEnum.PEND_SIGNATURE, procedure.getCredentialStatusEnum());
+        Assertions.assertEquals(CredentialStatusEnum.PEND_SIGNATURE, procedure.getCredentialStatus());
         Assertions.assertEquals(ASYNC, deferredMetadata.getOperationMode());
 
     }

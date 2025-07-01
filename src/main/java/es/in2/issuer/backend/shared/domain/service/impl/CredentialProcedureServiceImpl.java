@@ -42,7 +42,7 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
     public Mono<String> createCredentialProcedure(CredentialProcedureCreationRequest credentialProcedureCreationRequest) {
         CredentialProcedure credentialProcedure = CredentialProcedure.builder()
                 .credentialId(UUID.fromString(credentialProcedureCreationRequest.credentialId()))
-                .credentialStatusEnum(CredentialStatusEnum.DRAFT)
+                .credentialStatus(CredentialStatusEnum.DRAFT)
                 .credentialDecoded(credentialProcedureCreationRequest.credentialDecoded())
                 .organizationIdentifier(credentialProcedureCreationRequest.organizationIdentifier())
                 .credentialType(credentialProcedureCreationRequest.credentialType().toString())
@@ -96,7 +96,7 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
         return credentialProcedureRepository.findById(UUID.fromString(procedureId))
                 .flatMap(credentialProcedure -> {
                     credentialProcedure.setCredentialDecoded(credential);
-                    credentialProcedure.setCredentialStatusEnum(CredentialStatusEnum.ISSUED);
+                    credentialProcedure.setCredentialStatus(CredentialStatusEnum.ISSUED);
                     credentialProcedure.setCredentialFormat(format);
                     credentialProcedure.setUpdatedAt(new Timestamp(Instant.now().toEpochMilli()));
 
@@ -111,7 +111,7 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
         return credentialProcedureRepository.findById(UUID.fromString(procedureId))
                 .flatMap(credentialProcedure -> {
                     credentialProcedure.setCredentialDecoded(credential);
-                    credentialProcedure.setCredentialStatusEnum(CredentialStatusEnum.ISSUED);
+                    credentialProcedure.setCredentialStatus(CredentialStatusEnum.ISSUED);
                     credentialProcedure.setUpdatedAt(new Timestamp(Instant.now().toEpochMilli()));
 
                     return credentialProcedureRepository.save(credentialProcedure)
@@ -240,7 +240,7 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
                     try {
                         return Mono.just(CredentialDetails.builder()
                                 .procedureId(credentialProcedure.getProcedureId())
-                                .credentialStatus(String.valueOf(credentialProcedure.getCredentialStatusEnum()))
+                                .credentialStatus(String.valueOf(credentialProcedure.getCredentialStatus()))
                                 .operationMode(credentialProcedure.getOperationMode())
                                 .signatureMode(credentialProcedure.getSignatureMode())
                                 .credential(objectMapper.readTree(credentialProcedure.getCredentialDecoded()))
@@ -285,7 +285,7 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
     public Mono<Void> updateCredentialProcedureCredentialStatusToValidByProcedureId(String procedureId) {
         return credentialProcedureRepository.findByProcedureId(UUID.fromString(procedureId))
                 .flatMap(credentialProcedure -> {
-                    credentialProcedure.setCredentialStatusEnum(CredentialStatusEnum.VALID);
+                    credentialProcedure.setCredentialStatus(CredentialStatusEnum.VALID);
                     return credentialProcedureRepository.save(credentialProcedure)
                             .doOnSuccess(result -> log.info(UPDATED_CREDENTIAL))
                             .then();
@@ -300,7 +300,7 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
                                 .procedureId(credentialProcedure.getProcedureId())
                                 .subject(credentialProcedure.getSubject())
                                 .credentialType(credentialProcedure.getCredentialType())
-                                .status(String.valueOf(credentialProcedure.getCredentialStatusEnum()))
+                                .status(String.valueOf(credentialProcedure.getCredentialStatus()))
                                 .updated(credentialProcedure.getUpdatedAt())
                                 .build())))
                 .map(procedureBasicInfo -> CredentialProcedures.CredentialProcedure.builder()

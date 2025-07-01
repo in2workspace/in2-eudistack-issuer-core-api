@@ -38,12 +38,12 @@ public class CredentialExpirationScheduler {
     }
 
     private Mono<CredentialProcedure> expireCredential(CredentialProcedure credentialProcedure) {
-        if (credentialProcedure.getCredentialStatusEnum() != CredentialStatusEnum.EXPIRED) {
-            credentialProcedure.setCredentialStatusEnum(CredentialStatusEnum.EXPIRED);
+        if (credentialProcedure.getCredentialStatus() != CredentialStatusEnum.EXPIRED) {
+            credentialProcedure.setCredentialStatus(CredentialStatusEnum.EXPIRED);
             credentialProcedure.setUpdatedAt(Timestamp.from(Instant.now()));
             log.info("Expiring credential with ID: {} - New state: {}",
                     credentialProcedure.getCredentialId(),
-                    credentialProcedure.getCredentialStatusEnum());
+                    credentialProcedure.getCredentialStatus());
             return credentialProcedureRepository.save(credentialProcedure);
         }
         return Mono.empty();

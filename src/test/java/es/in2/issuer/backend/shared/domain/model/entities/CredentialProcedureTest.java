@@ -28,7 +28,7 @@ class CredentialProcedureTest {
                 .credentialFormat(credentialFormat)
                 .credentialDecoded(credentialDecoded)
                 .credentialEncoded(credentialEncoded)
-                .credentialStatusEnum(credentialStatusEnum)
+                .credentialStatus(credentialStatusEnum)
                 .organizationIdentifier(organizationIdentifier)
                 .updatedAt(timestamp)
                 .validUntil(validUntil)
@@ -39,7 +39,7 @@ class CredentialProcedureTest {
         assertEquals(credentialFormat, credentialProcedure.getCredentialFormat());
         assertEquals(credentialDecoded, credentialProcedure.getCredentialDecoded());
         assertEquals(credentialEncoded, credentialProcedure.getCredentialEncoded());
-        assertEquals(credentialStatusEnum, credentialProcedure.getCredentialStatusEnum());
+        assertEquals(credentialStatusEnum, credentialProcedure.getCredentialStatus());
         assertEquals(organizationIdentifier, credentialProcedure.getOrganizationIdentifier());
         assertEquals(timestamp, credentialProcedure.getUpdatedAt());
         assertEquals(validUntil, credentialProcedure.getValidUntil());
@@ -63,7 +63,7 @@ class CredentialProcedureTest {
         credentialProcedure.setCredentialFormat(credentialFormat);
         credentialProcedure.setCredentialDecoded(credentialDecoded);
         credentialProcedure.setCredentialEncoded(credentialEncoded);
-        credentialProcedure.setCredentialStatusEnum(credentialStatusEnum);
+        credentialProcedure.setCredentialStatus(credentialStatusEnum);
         credentialProcedure.setOrganizationIdentifier(organizationIdentifier);
         credentialProcedure.setUpdatedAt(timestamp);
         credentialProcedure.setValidUntil(validUntil);
@@ -73,7 +73,7 @@ class CredentialProcedureTest {
         assertEquals(credentialFormat, credentialProcedure.getCredentialFormat());
         assertEquals(credentialDecoded, credentialProcedure.getCredentialDecoded());
         assertEquals(credentialEncoded, credentialProcedure.getCredentialEncoded());
-        assertEquals(credentialStatusEnum, credentialProcedure.getCredentialStatusEnum());
+        assertEquals(credentialStatusEnum, credentialProcedure.getCredentialStatus());
         assertEquals(organizationIdentifier, credentialProcedure.getOrganizationIdentifier());
         assertEquals(timestamp, credentialProcedure.getUpdatedAt());
         assertEquals(validUntil, credentialProcedure.getValidUntil());
@@ -88,7 +88,7 @@ class CredentialProcedureTest {
                 ", credentialFormat=" + credentialProcedure.getCredentialFormat() +
                 ", credentialDecoded=" + credentialProcedure.getCredentialDecoded() +
                 ", credentialEncoded=" + credentialProcedure.getCredentialEncoded() +
-                ", credentialStatusEnum=" + credentialProcedure.getCredentialStatusEnum() +
+                ", credentialStatus=" + credentialProcedure.getCredentialStatus() +
                 ", organizationIdentifier=" + credentialProcedure.getOrganizationIdentifier() +
                 ", updatedAt=" + credentialProcedure.getUpdatedAt() +
                 ", subject=" + credentialProcedure.getSubject() +
