@@ -28,6 +28,7 @@ import java.util.UUID;
 
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.LEAR_CREDENTIAL_EMPLOYEE_DESCRIPTION;
 import static es.in2.issuer.backend.shared.domain.util.Constants.*;
+import static es.in2.issuer.backend.shared.domain.util.Utils.generateCustomNonce;
 
 @Slf4j
 @Component
@@ -107,29 +108,30 @@ public class LEARCredentialEmployeeFactory {
         LEARCredentialEmployee.CredentialSubject credentialSubject = createCredentialSubject(mandate);
 
         String credentialId = UUID.randomUUID().toString();
-        LEARCredentialEmployee credentialEmployee = LEARCredentialEmployee.builder()
-                .context(CREDENTIAL_CONTEXT)
-                .id(credentialId)
-                .type(List.of(LEAR_CREDENTIAL_EMPLOYEE, VERIFIABLE_CREDENTIAL))
-                .description(LEAR_CREDENTIAL_EMPLOYEE_DESCRIPTION)
-                .credentialSubject(credentialSubject)
-                .validFrom(validFrom)
-                .validUntil(validUntil)
-                .credentialStatus(buildCredentialStatus(credentialId))
-                .build();
 
-        return Mono.just(credentialEmployee);
+        return buildCredentialStatus(credentialId)
+                .map(credentialStatus -> LEARCredentialEmployee.builder()
+                        .context(CREDENTIAL_CONTEXT)
+                        .id(credentialId)
+                        .type(List.of(LEAR_CREDENTIAL_EMPLOYEE, VERIFIABLE_CREDENTIAL))
+                        .description(LEAR_CREDENTIAL_EMPLOYEE_DESCRIPTION)
+                        .credentialSubject(credentialSubject)
+                        .validFrom(validFrom)
+                        .validUntil(validUntil)
+                        .credentialStatus(credentialStatus)
+                        .build());
     }
 
-    private CredentialStatus buildCredentialStatus(String credentialId) {
+    private Mono<CredentialStatus> buildCredentialStatus(String credentialId) {
         String statusListCredential = corsProperties.defaultAllowedOrigins().stream().findFirst() + "/credentials/status/1";
-        return CredentialStatus.builder()
-                .id(statusListCredential + "#" + credentialId)
-                .type("PlainListEntity")
-                .statusPurpose("revocation")
-                .statusListIndex(credentialId)
-                .statusListCredential(statusListCredential)
-                .build();
+        return generateCustomNonce()
+                .map(nonce -> CredentialStatus.builder()
+                        .id(statusListCredential + "#" + credentialId)
+                        .type("PlainListEntity")
+                        .statusPurpose("revocation")
+                        .statusListIndex(credentialId)
+                        .statusListCredential(statusListCredential)
+                        .build());
     }
 
     private List<Power> createPopulatedPowers(
