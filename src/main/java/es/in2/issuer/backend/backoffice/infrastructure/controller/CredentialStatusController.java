@@ -22,14 +22,14 @@ public class CredentialStatusController {
 
     @GetMapping("/{listId}")
     @ResponseStatus(HttpStatus.OK)
-    public Flux<CredentialStatusResponse> getCredentialsStatus(@PathVariable int listId) {
+    public Flux<CredentialStatusResponse> getCredentialsByListId(@PathVariable int listId) {
         String processId = UUID.randomUUID().toString();
 
-        return credentialStatusWorkflow.getCredentialsStatusByListId(processId, listId)
-                .doFirst(() -> log.info("Process ID: {} - Getting Credentials Status...", processId))
+        return credentialStatusWorkflow.getCredentialsByListId(processId, listId)
+                .doFirst(() -> log.info("Process ID: {} - Getting Credentials...", processId))
                 .map(CredentialStatusResponse::new)
                 .doOnComplete(() -> log.info(
-                        "Process ID: {} - All Credential Status retrieved successfully.",
+                        "Process ID: {} - All Credential retrieved successfully.",
                         processId));
     }
 

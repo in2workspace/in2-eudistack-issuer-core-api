@@ -1,4 +1,8 @@
 package es.in2.issuer.backend.backoffice.domain.model.dtos;
 
-public record RevokeCredentialRequest(String credentialId, int listId) {
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+public record RevokeCredentialRequest(
+        @JsonProperty("credentialId") String credentialId,
+        @JsonProperty("listId") int listId) {
 }

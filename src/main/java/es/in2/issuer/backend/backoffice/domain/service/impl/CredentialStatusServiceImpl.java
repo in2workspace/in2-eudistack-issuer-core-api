@@ -19,7 +19,7 @@ public class CredentialStatusServiceImpl implements CredentialStatusService {
     private final CredentialStatusRepository credentialStatusRepository;
 
     @Override
-    public Flux<String> getCredentialsStatusByListId(int listId) {
+    public Flux<String> getCredentialsByListId(int listId) {
         return credentialStatusRepository.findNonceByListId(listId)
                 .map(UUID::toString);
     }

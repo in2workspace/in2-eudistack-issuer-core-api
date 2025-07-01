@@ -40,7 +40,7 @@ class CredentialsStatusControllerTest {
                 "c046b54b-aa8a-4c8d-af2b-a3d60a61b80b");
 
         int listId = 1;
-        when(credentialStatusWorkflow.getCredentialsStatusByListId(anyString(), eq(listId)))
+        when(credentialStatusWorkflow.getCredentialsByListId(anyString(), eq(listId)))
                 .thenReturn(Flux.fromIterable(mockStatusList));
 
         List<CredentialStatusResponse> expectedResponse = mockStatusList.stream()

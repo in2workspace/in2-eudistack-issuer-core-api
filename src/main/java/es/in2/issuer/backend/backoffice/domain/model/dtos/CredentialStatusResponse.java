@@ -1,4 +1,7 @@
 package es.in2.issuer.backend.backoffice.domain.model.dtos;
 
-public record CredentialStatusResponse(String statusListIndex) {
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+public record CredentialStatusResponse(
+        @JsonProperty("nonce") String credentialNonce) {
 }

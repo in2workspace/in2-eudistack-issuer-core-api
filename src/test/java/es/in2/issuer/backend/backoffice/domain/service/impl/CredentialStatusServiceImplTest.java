@@ -39,7 +39,7 @@ class CredentialStatusServiceImplTest {
         when(credentialStatusRepository.findNonceByListId(listId))
                 .thenReturn(Flux.just(statusListIndex1.getNonce(), statusListIndex2.getNonce()));
 
-        var result = credentialStatusService.getCredentialsStatusByListId(listId);
+        var result = credentialStatusService.getCredentialsByListId(listId);
 
         StepVerifier
                 .create(result)

@@ -28,10 +28,10 @@ class CredentialStatusWorkflowImplTest {
         String statusListIndex2 = "c046b54b-aa8a-4c8d-af2b-a3d60a61b80b";
 
         int listId = 1;
-        when(credentialStatusService.getCredentialsStatusByListId(listId))
+        when(credentialStatusService.getCredentialsByListId(listId))
                 .thenReturn(Flux.just(statusListIndex1, statusListIndex2));
 
-        var result = credentialStatusWorkflow.getCredentialsStatusByListId("processId", listId);
+        var result = credentialStatusWorkflow.getCredentialsByListId("processId", listId);
 
         StepVerifier
                 .create(result)
