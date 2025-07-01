@@ -7,5 +7,5 @@ import reactor.core.publisher.Flux;
 import java.util.UUID;
 
 public interface CredentialStatusRepository extends ReactiveCrudRepository<StatusListIndex, UUID> {
-    Flux<UUID> findNonceByListId(int listId);
+    Flux<StatusListIndex> findByListId(int listId);
 }

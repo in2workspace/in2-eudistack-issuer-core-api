@@ -39,8 +39,8 @@ class CredentialStatusServiceImplTest {
         statusListIndex2.setNonce(UUID.fromString("c046b54b-aa8a-4c8d-af2b-a3d60a61b80b"));
         statusListIndex2.setListId(listId);
 
-        when(credentialStatusRepository.findNonceByListId(listId))
-                .thenReturn(Flux.just(statusListIndex1.getNonce(), statusListIndex2.getNonce()));
+        when(credentialStatusRepository.findByListId(listId))
+                .thenReturn(Flux.just(statusListIndex1, statusListIndex2));
 
         var result = credentialStatusService.getCredentialsByListId(listId);
 
