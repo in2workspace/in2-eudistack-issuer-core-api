@@ -26,7 +26,10 @@ public class CredentialStatusServiceImpl implements CredentialStatusService {
 
     @Override
     public Mono<Void> revokeCredential(String credentialId, int listId) {
-        return credentialStatusRepository.save(new StatusListIndex(UUID.fromString(credentialId), listId))
+        StatusListIndex statusListIndex = new StatusListIndex();
+        statusListIndex.setNonce(UUID.fromString(credentialId));
+        statusListIndex.setListId(listId);
+        return credentialStatusRepository.save(statusListIndex)
                 .then();
     }
 }
