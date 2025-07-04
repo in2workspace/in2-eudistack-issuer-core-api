@@ -59,8 +59,11 @@ class CredentialsStatusControllerTest {
     void revokeCredential_Success() {
         RevokeCredentialRequest request = new RevokeCredentialRequest("1b59b5f8-a66b-4694-af47-cf38db7a3d73", 1);
 
+        String bearerToken = "Bearer mock-token";
+
         when(credentialStatusWorkflow.revokeCredential(
                 anyString(),
+                eq(bearerToken),
                 eq(request.credentialId()),
                 eq(request.listId())))
                 .thenReturn(Mono.empty());
@@ -68,6 +71,7 @@ class CredentialsStatusControllerTest {
         webTestClient.mutateWith(csrf())
                 .post()
                 .uri(BASE_URI + "/revoke")
+                .header("Authorization", bearerToken)
                 .bodyValue(request)
                 .exchange()
                 .expectStatus().isCreated();

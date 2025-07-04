@@ -5,6 +5,7 @@ import es.in2.issuer.backend.backoffice.domain.model.dtos.CredentialStatusRespon
 import es.in2.issuer.backend.backoffice.domain.model.dtos.RevokeCredentialRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
@@ -35,11 +36,14 @@ public class CredentialStatusController {
 
     @PostMapping("/revoke")
     @ResponseStatus(HttpStatus.CREATED)
-    public Mono<Void> revokeCredential(@RequestBody RevokeCredentialRequest revokeCredentialRequest) {
+    public Mono<Void> revokeCredential(
+            @RequestHeader(HttpHeaders.AUTHORIZATION) String bearerToken,
+            @RequestBody RevokeCredentialRequest revokeCredentialRequest) {
         String processId = UUID.randomUUID().toString();
 
         return credentialStatusWorkflow.revokeCredential(
                         processId,
+                        bearerToken,
                         revokeCredentialRequest.credentialId(),
                         revokeCredentialRequest.listId())
                 .doFirst(() -> log.info("Process ID: {} - Revoking Credential...", processId))

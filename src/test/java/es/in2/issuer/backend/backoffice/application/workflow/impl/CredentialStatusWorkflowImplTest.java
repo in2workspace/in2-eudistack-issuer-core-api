@@ -1,6 +1,8 @@
 package es.in2.issuer.backend.backoffice.application.workflow.impl;
 
+import es.in2.issuer.backend.backoffice.domain.service.CredentialStatusAuthorizationService;
 import es.in2.issuer.backend.backoffice.domain.service.CredentialStatusService;
+import es.in2.issuer.backend.shared.domain.service.AccessTokenService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -17,7 +19,13 @@ import static org.mockito.Mockito.*;
 class CredentialStatusWorkflowImplTest {
 
     @Mock
+    private AccessTokenService accessTokenService;
+
+    @Mock
     private CredentialStatusService credentialStatusService;
+
+    @Mock
+    private CredentialStatusAuthorizationService credentialStatusAuthorizationService;
 
     @InjectMocks
     private CredentialStatusWorkflowImpl credentialStatusWorkflow;
@@ -43,12 +51,24 @@ class CredentialStatusWorkflowImplTest {
     @Test
     void revokeCredential_ReturnsVoid() {
         String credentialId = "1b59b5f8-a66b-4694-af47-cf38db7a3d73";
-
         int listId = 1;
+        String bearerToken = "bearerToken";
+
+        when(accessTokenService.getCleanBearerToken(bearerToken))
+                .thenReturn(Mono.just(bearerToken));
+
+        String processId = "processId";
+        when(credentialStatusAuthorizationService.authorize(processId, bearerToken, credentialId))
+                .thenReturn(Mono.empty());
+
         when(credentialStatusService.revokeCredential(credentialId, listId))
                 .thenReturn(Mono.empty());
 
-        var result = credentialStatusWorkflow.revokeCredential("processId", credentialId, listId);
+        var result = credentialStatusWorkflow.revokeCredential(
+                processId,
+                bearerToken,
+                credentialId,
+                listId);
 
         StepVerifier
                 .create(result)

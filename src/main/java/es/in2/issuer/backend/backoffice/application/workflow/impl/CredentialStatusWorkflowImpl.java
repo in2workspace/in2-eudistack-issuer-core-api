@@ -1,7 +1,9 @@
 package es.in2.issuer.backend.backoffice.application.workflow.impl;
 
 import es.in2.issuer.backend.backoffice.application.workflow.CredentialStatusWorkflow;
+import es.in2.issuer.backend.backoffice.domain.service.CredentialStatusAuthorizationService;
 import es.in2.issuer.backend.backoffice.domain.service.CredentialStatusService;
+import es.in2.issuer.backend.shared.domain.service.AccessTokenService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -14,6 +16,8 @@ import reactor.core.publisher.Mono;
 public class CredentialStatusWorkflowImpl implements CredentialStatusWorkflow {
 
     private final CredentialStatusService credentialStatusService;
+    private final AccessTokenService accessTokenService;
+    private final CredentialStatusAuthorizationService credentialStatusAuthorizationService;
 
     @Override
     public Flux<String> getCredentialsByListId(String processId, int listId) {
@@ -25,12 +29,18 @@ public class CredentialStatusWorkflowImpl implements CredentialStatusWorkflow {
     }
 
     @Override
-    public Mono<Void> revokeCredential(String processId, String credentialId, int listId) {
-        return credentialStatusService.revokeCredential(credentialId, listId)
-                .doFirst(() -> log.debug("Process ID: {} - Revoking Credential with ID: {}", processId, credentialId))
-                .doOnSuccess(aVoid -> log.debug(
-                        "Process ID: {} - Credential with ID: {} revoked successfully.",
-                        processId,
-                        credentialId));
+    public Mono<Void> revokeCredential(String processId, String bearerToken, String credentialId, int listId) {
+        return accessTokenService.getCleanBearerToken(bearerToken)
+                .flatMap(token -> credentialStatusAuthorizationService.authorize(processId, token, credentialId)
+                        .then(credentialStatusService.revokeCredential(credentialId, listId)
+                                .doFirst(() -> log.debug(
+                                        "Process ID: {} - Revoking Credential with ID: {}",
+                                        processId,
+                                        credentialId))
+                                .doOnSuccess(aVoid -> log.debug(
+                                        "Process ID: {} - Credential with ID: {} revoked successfully.",
+                                        processId,
+                                        credentialId))));
+
     }
 }
