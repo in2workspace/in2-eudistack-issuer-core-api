@@ -1,10 +1,8 @@
 package es.in2.issuer.backend.backoffice.domain.service.impl;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import es.in2.issuer.backend.backoffice.domain.service.CredentialStatusAuthorizationService;
 import es.in2.issuer.backend.shared.domain.exception.UnauthorizedRoleException;
 import es.in2.issuer.backend.shared.domain.service.JWTService;
-import es.in2.issuer.backend.shared.domain.service.VerifierService;
 import es.in2.issuer.backend.shared.domain.util.factory.CredentialFactory;
 import es.in2.issuer.backend.shared.infrastructure.repository.CredentialProcedureRepository;
 import lombok.RequiredArgsConstructor;
@@ -23,9 +21,7 @@ import static es.in2.issuer.backend.backoffice.domain.util.Constants.*;
 public class CredentialStatusAuthorizationServiceImpl implements CredentialStatusAuthorizationService {
 
     private final JWTService jwtService;
-    private final ObjectMapper objectMapper;
     private final CredentialFactory credentialFactory;
-    private final VerifierService verifierService;
     private final CredentialProcedureRepository credentialProcedureRepository;
 
     @Override
@@ -37,7 +33,7 @@ public class CredentialStatusAuthorizationServiceImpl implements CredentialStatu
                     if (error != null) return error;
 
                     String vcClaim = jwtService.getClaimFromPayload(signedJWT.getPayload(), VC);
-                    
+
                     String userOrganizationIdentifier =
                             credentialFactory
                                     .learCredentialEmployeeFactory
@@ -46,11 +42,12 @@ public class CredentialStatusAuthorizationServiceImpl implements CredentialStatu
                                     .mandate()
                                     .mandator()
                                     .organizationIdentifier();
-                    
+
                     return credentialProcedureRepository.findByCredentialId(UUID.fromString(credentialId))
                             .flatMap(credential -> {
                                 String credentialOrganizationIdentifier = credential.getOrganizationIdentifier();
-                                if (userOrganizationIdentifier.equals(credentialOrganizationIdentifier)) {
+                                if (userOrganizationIdentifier.equals(IN2_ORGANIZATION_IDENTIFIER) ||
+                                        userOrganizationIdentifier.equals(credentialOrganizationIdentifier)) {
                                     return Mono.empty();
                                 } else {
                                     return Mono.error(new UnauthorizedRoleException(
