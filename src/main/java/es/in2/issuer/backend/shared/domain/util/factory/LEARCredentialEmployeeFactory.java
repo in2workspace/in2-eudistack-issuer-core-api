@@ -109,7 +109,7 @@ public class LEARCredentialEmployeeFactory {
 
         String credentialId = UUID.randomUUID().toString();
 
-        return buildCredentialStatus(credentialId)
+        return buildCredentialStatus()
                 .map(credentialStatus -> LEARCredentialEmployee.builder()
                         .context(CREDENTIAL_CONTEXT)
                         .id(credentialId)
@@ -122,14 +122,14 @@ public class LEARCredentialEmployeeFactory {
                         .build());
     }
 
-    private Mono<CredentialStatus> buildCredentialStatus(String credentialId) {
+    private Mono<CredentialStatus> buildCredentialStatus() {
         String statusListCredential = corsProperties.defaultAllowedOrigins().stream().findFirst() + "/credentials/status/1";
         return generateCustomNonce()
                 .map(nonce -> CredentialStatus.builder()
-                        .id(statusListCredential + "#" + credentialId)
+                        .id(statusListCredential + "#" + nonce)
                         .type("PlainListEntity")
                         .statusPurpose("revocation")
-                        .statusListIndex(credentialId)
+                        .statusListIndex(nonce)
                         .statusListCredential(statusListCredential)
                         .build());
     }

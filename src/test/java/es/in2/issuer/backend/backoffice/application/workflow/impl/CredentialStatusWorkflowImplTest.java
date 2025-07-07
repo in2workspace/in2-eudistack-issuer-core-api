@@ -2,7 +2,11 @@ package es.in2.issuer.backend.backoffice.application.workflow.impl;
 
 import es.in2.issuer.backend.backoffice.domain.service.CredentialStatusAuthorizationService;
 import es.in2.issuer.backend.backoffice.domain.service.CredentialStatusService;
+import es.in2.issuer.backend.shared.domain.model.dto.credential.CredentialStatus;
+import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.employee.LEARCredentialEmployee;
 import es.in2.issuer.backend.shared.domain.service.AccessTokenService;
+import es.in2.issuer.backend.shared.domain.service.CredentialProcedureService;
+import es.in2.issuer.backend.shared.domain.util.factory.LEARCredentialEmployeeFactory;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -26,6 +30,12 @@ class CredentialStatusWorkflowImplTest {
 
     @Mock
     private CredentialStatusAuthorizationService credentialStatusAuthorizationService;
+
+    @Mock
+    private CredentialProcedureService credentialProcedureService;
+
+    @Mock
+    private LEARCredentialEmployeeFactory learCredentialEmployeeFactory;
 
     @InjectMocks
     private CredentialStatusWorkflowImpl credentialStatusWorkflow;
@@ -61,7 +71,17 @@ class CredentialStatusWorkflowImplTest {
         when(credentialStatusAuthorizationService.authorize(processId, bearerToken, credentialId))
                 .thenReturn(Mono.empty());
 
-        when(credentialStatusService.revokeCredential(credentialId, listId))
+        CredentialStatus credentialStatus = CredentialStatus.builder().build();
+        String decodedCredential = "decodedCredential";
+        when(credentialProcedureService.getDecodedCredentialByCredentialId(credentialId))
+                .thenReturn(Mono.just(decodedCredential));
+
+        when(learCredentialEmployeeFactory.mapStringToLEARCredentialEmployee(decodedCredential))
+                .thenReturn(LEARCredentialEmployee.builder()
+                        .credentialStatus(CredentialStatus.builder().build())
+                        .build());
+
+        when(credentialStatusService.revokeCredential(listId, credentialStatus))
                 .thenReturn(Mono.empty());
 
         var result = credentialStatusWorkflow.revokeCredential(
@@ -74,6 +94,6 @@ class CredentialStatusWorkflowImplTest {
                 .create(result)
                 .verifyComplete();
 
-        verify(credentialStatusService, times(1)).revokeCredential(credentialId, listId);
+        verify(credentialStatusService, times(1)).revokeCredential(listId, credentialStatus);
     }
 }

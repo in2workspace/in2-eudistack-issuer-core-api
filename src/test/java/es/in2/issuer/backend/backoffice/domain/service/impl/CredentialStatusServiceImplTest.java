@@ -2,6 +2,7 @@ package es.in2.issuer.backend.backoffice.domain.service.impl;
 
 import es.in2.issuer.backend.backoffice.domain.model.entities.StatusListIndex;
 import es.in2.issuer.backend.backoffice.domain.repository.CredentialStatusRepository;
+import es.in2.issuer.backend.shared.domain.model.dto.credential.CredentialStatus;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -54,14 +55,17 @@ class CredentialStatusServiceImplTest {
     @Test
     void revokeCredential_ReturnsVoid() {
         StatusListIndex statusListIndex1 = new StatusListIndex();
-        statusListIndex1.setNonce(UUID.fromString("1b59b5f8-a66b-4694-af47-cf38db7a3d73"));
+        String nonce = "1b59b5f8-a66b-4694-af47-cf38db7a3d73";
+        statusListIndex1.setNonce(UUID.fromString(nonce));
         statusListIndex1.setListId(1);
 
         when(credentialStatusRepository.save(any(StatusListIndex.class)))
                 .thenReturn(Mono.just(statusListIndex1));
 
         int listId = 1;
-        var result = credentialStatusService.revokeCredential(statusListIndex1.getNonce().toString(), listId);
+        CredentialStatus credentialStatus = CredentialStatus.builder()
+                .statusListIndex(nonce).build();
+        var result = credentialStatusService.revokeCredential(listId, credentialStatus);
 
         StepVerifier
                 .create(result)
