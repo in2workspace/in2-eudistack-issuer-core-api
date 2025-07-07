@@ -1,9 +1,10 @@
 package es.in2.issuer.backend.backoffice.domain.service.impl;
 
+import com.nimbusds.jose.Payload;
 import es.in2.issuer.backend.backoffice.domain.service.CredentialStatusAuthorizationService;
 import es.in2.issuer.backend.shared.domain.exception.UnauthorizedRoleException;
 import es.in2.issuer.backend.shared.domain.service.JWTService;
-import es.in2.issuer.backend.shared.domain.util.factory.CredentialFactory;
+import es.in2.issuer.backend.shared.domain.util.factory.LEARCredentialEmployeeFactory;
 import es.in2.issuer.backend.shared.infrastructure.repository.CredentialProcedureRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,22 +22,22 @@ import static es.in2.issuer.backend.backoffice.domain.util.Constants.*;
 public class CredentialStatusAuthorizationServiceImpl implements CredentialStatusAuthorizationService {
 
     private final JWTService jwtService;
-    private final CredentialFactory credentialFactory;
+    private final LEARCredentialEmployeeFactory learCredentialEmployeeFactory;
     private final CredentialProcedureRepository credentialProcedureRepository;
 
     @Override
     public Mono<Void> authorize(String processId, String token, String credentialId) {
         return Mono.fromCallable(() -> jwtService.parseJWT(token))
                 .flatMap(signedJWT -> {
-                    String role = jwtService.getClaimFromPayload(signedJWT.getPayload(), ROLE);
+                    Payload payload = signedJWT.getPayload();
+                    String role = jwtService.getClaimFromPayload(payload, ROLE);
                     Mono<Void> error = ensureRoleIsLear(role);
                     if (error != null) return error;
 
-                    String vcClaim = jwtService.getClaimFromPayload(signedJWT.getPayload(), VC);
+                    String vcClaim = jwtService.getClaimFromPayload(payload, VC);
 
                     String userOrganizationIdentifier =
-                            credentialFactory
-                                    .learCredentialEmployeeFactory
+                            learCredentialEmployeeFactory
                                     .mapStringToLEARCredentialEmployee(vcClaim)
                                     .credentialSubject()
                                     .mandate()
