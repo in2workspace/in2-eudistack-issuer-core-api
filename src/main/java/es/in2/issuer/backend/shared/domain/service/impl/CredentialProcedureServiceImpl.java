@@ -244,6 +244,7 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
                 .switchIfEmpty(Mono.error(new NoCredentialFoundException("No credential found for procedureId: " + procedureId)))
                 .flatMap(credentialProcedure -> {
                     try {
+                        log.info("Found credential: {}",credentialProcedure);
                         return Mono.just(CredentialDetails.builder()
                                 .procedureId(credentialProcedure.getProcedureId())
                                 .credentialStatus(String.valueOf(credentialProcedure.getCredentialStatus()))
@@ -291,9 +292,10 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
     public Mono<Void> updateCredentialProcedureCredentialStatusToValidByProcedureId(String procedureId) {
         return credentialProcedureRepository.findByProcedureId(UUID.fromString(procedureId))
                 .flatMap(credentialProcedure -> {
+                    log.debug("Updating credential {} status to valid for procedureId: {}", credentialProcedure, procedureId);
                     credentialProcedure.setCredentialStatus(CredentialStatusEnum.VALID);
                     return credentialProcedureRepository.save(credentialProcedure)
-                            .doOnSuccess(result -> log.info(UPDATED_CREDENTIAL))
+                            .doOnSuccess(result -> log.info(UPDATED_CREDENTIAL, "credentialProcedure: " + credentialProcedure))
                             .then();
                 });
     }
