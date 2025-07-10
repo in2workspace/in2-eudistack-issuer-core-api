@@ -186,6 +186,9 @@ public class JWTServiceImpl implements JWTService {
         if (claimValue == null) {
             throw new JWTClaimMissingException(String.format("The '%s' claim is missing or empty in the JWT payload.", claimName));
         }
+        if (claimValue instanceof String) {
+            return (String) claimValue;
+        }
         try {
             return objectMapper.writeValueAsString(claimValue);
         } catch (JsonProcessingException e) {
