@@ -40,6 +40,8 @@ public interface CredentialProcedureService {
 
     Mono<Void> updateCredentialProcedureCredentialStatusToValidByProcedureId(String procedureId);
 
+    Mono<Void> updateCredentialProcedureCredentialStatusToRevokeByCredentialId(String credentialId);
+
     Mono<String> updatedEncodedCredentialByCredentialId(String encodedCredential, String credentialId);
 
     Mono<String> getMandatorOrganizationFromDecodedCredentialByProcedureId(String procedureId);

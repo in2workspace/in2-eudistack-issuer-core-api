@@ -299,6 +299,18 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
     }
 
     @Override
+    public Mono<Void> updateCredentialProcedureCredentialStatusToRevokeByCredentialId(String credentialId) {
+        return credentialProcedureRepository.findByCredentialId(UUID.fromString(credentialId))
+                .flatMap(credentialProcedure -> {
+                    credentialProcedure.setCredentialStatus(CredentialStatusEnum.REVOKED);
+                    return credentialProcedureRepository.save(credentialProcedure)
+                            .doOnSuccess(result -> log.info(UPDATED_CREDENTIAL))
+                            .then();
+                });
+    }
+
+
+    @Override
     public Mono<CredentialProcedures> getAllProceduresBasicInfoByOrganizationId(String organizationIdentifier) {
         return credentialProcedureRepository.findAllByOrganizationIdentifier(organizationIdentifier)
                 .flatMap(credentialProcedure -> getCredentialTypeByProcedureId(String.valueOf(credentialProcedure.getProcedureId()))

@@ -44,18 +44,21 @@ public class CredentialStatusWorkflowImpl implements CredentialStatusWorkflow {
                                                     .mapStringToLEARCredentialEmployee(decodedCredential)
                                                     .credentialStatus();
 
-                                    return credentialStatusService.revokeCredential(
-                                                    listId,
-                                                    credentialStatus)
-                                            .doFirst(() -> log.debug(
-                                                    "Process ID: {} - Revoking Credential with ID: {}",
-                                                    processId,
-                                                    credentialId))
-                                            .doOnSuccess(aVoid -> log.debug(
-                                                    "Process ID: {} - Credential with ID: {} revoked successfully.",
-                                                    processId,
-                                                    credentialId));
+                                    return revokeAndUpdateCredentialStatus(processId, credentialId, listId, credentialStatus);
                                 })));
 
+    }
+
+    private Mono<Void> revokeAndUpdateCredentialStatus(String processId, String credentialId, int listId, CredentialStatus credentialStatus) {
+        return credentialStatusService.revokeCredential(listId, credentialStatus)
+                .then(credentialProcedureService.updateCredentialProcedureCredentialStatusToRevokeByCredentialId(credentialId))
+                .doFirst(() -> log.debug(
+                        "Process ID: {} - Revoking Credential with ID: {}",
+                        processId,
+                        credentialId))
+                .doOnSuccess(aVoid -> log.debug(
+                        "Process ID: {} - Credential with ID: {} revoked successfully.",
+                        processId,
+                        credentialId));
     }
 }

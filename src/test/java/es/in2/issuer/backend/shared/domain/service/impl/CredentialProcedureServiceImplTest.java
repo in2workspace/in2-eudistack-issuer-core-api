@@ -615,6 +615,35 @@ class CredentialProcedureServiceImplTest {
     }
 
     @Test
+    void updateCredentialProcedureCredentialStatusToRevokeByCredentialId_shouldUpdateStatusToRevoke() {
+        // Given
+        String credentialId = UUID.randomUUID().toString();
+        UUID uuidCredentialId = UUID.fromString(credentialId);
+
+        CredentialProcedure existingCredentialProcedure = new CredentialProcedure();
+        existingCredentialProcedure.setCredentialId(uuidCredentialId);
+        existingCredentialProcedure.setCredentialStatus(CredentialStatusEnum.ISSUED);
+
+        // When
+        when(credentialProcedureRepository.findByCredentialId(any(UUID.class)))
+                .thenReturn(Mono.just(existingCredentialProcedure));
+        when(credentialProcedureRepository.save(any(CredentialProcedure.class)))
+                .thenReturn(Mono.just(existingCredentialProcedure));
+
+        // Execute
+        Mono<Void> result = credentialProcedureService.updateCredentialProcedureCredentialStatusToRevokeByCredentialId(credentialId);
+
+        // Then
+        StepVerifier.create(result)
+                .verifyComplete();
+
+        verify(credentialProcedureRepository, times(1)).findByCredentialId(uuidCredentialId);
+        verify(credentialProcedureRepository, times(1)).save(existingCredentialProcedure);
+
+        assert existingCredentialProcedure.getCredentialStatus() == CredentialStatusEnum.REVOKED;
+    }
+
+    @Test
     void getAllProceduresBasicInfoByOrganizationId_shouldReturnBasicInfoForAllProcedures() throws Exception {
         // Given
         String organizationIdentifier = "org-123";

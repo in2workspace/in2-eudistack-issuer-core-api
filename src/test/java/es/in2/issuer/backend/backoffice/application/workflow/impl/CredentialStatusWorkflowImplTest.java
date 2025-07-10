@@ -84,6 +84,9 @@ class CredentialStatusWorkflowImplTest {
         when(credentialStatusService.revokeCredential(listId, credentialStatus))
                 .thenReturn(Mono.empty());
 
+        when(credentialProcedureService.updateCredentialProcedureCredentialStatusToRevokeByCredentialId(credentialId))
+                .thenReturn(Mono.empty());
+
         var result = credentialStatusWorkflow.revokeCredential(
                 processId,
                 bearerToken,
