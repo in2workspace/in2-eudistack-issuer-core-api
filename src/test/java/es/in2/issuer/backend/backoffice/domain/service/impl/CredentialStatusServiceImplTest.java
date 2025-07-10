@@ -13,8 +13,6 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-import java.util.UUID;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
@@ -33,11 +31,11 @@ class CredentialStatusServiceImplTest {
     void getCredentialStatus_ReturnsList() {
         int listId = 1;
         StatusListIndex statusListIndex1 = new StatusListIndex();
-        statusListIndex1.setNonce(UUID.fromString("1b59b5f8-a66b-4694-af47-cf38db7a3d73"));
+        statusListIndex1.setNonce("1b59b5f8-a66b-4694-af47-cf38db7a3d73");
         statusListIndex1.setListId(listId);
 
         StatusListIndex statusListIndex2 = new StatusListIndex();
-        statusListIndex2.setNonce(UUID.fromString("c046b54b-aa8a-4c8d-af2b-a3d60a61b80b"));
+        statusListIndex2.setNonce("c046b54b-aa8a-4c8d-af2b-a3d60a61b80b");
         statusListIndex2.setListId(listId);
 
         when(credentialStatusRepository.findByListId(listId))
@@ -47,8 +45,8 @@ class CredentialStatusServiceImplTest {
 
         StepVerifier
                 .create(result)
-                .assertNext(x -> assertThat(x).isEqualTo(statusListIndex1.getNonce().toString()))
-                .assertNext(x -> assertThat(x).isEqualTo(statusListIndex2.getNonce().toString()))
+                .assertNext(x -> assertThat(x).isEqualTo(statusListIndex1.getNonce()))
+                .assertNext(x -> assertThat(x).isEqualTo(statusListIndex2.getNonce()))
                 .verifyComplete();
     }
 
@@ -56,7 +54,7 @@ class CredentialStatusServiceImplTest {
     void revokeCredential_ReturnsVoid() {
         StatusListIndex statusListIndex1 = new StatusListIndex();
         String nonce = "1b59b5f8-a66b-4694-af47-cf38db7a3d73";
-        statusListIndex1.setNonce(UUID.fromString(nonce));
+        statusListIndex1.setNonce(nonce);
         statusListIndex1.setListId(1);
 
         when(credentialStatusRepository.save(any(StatusListIndex.class)))

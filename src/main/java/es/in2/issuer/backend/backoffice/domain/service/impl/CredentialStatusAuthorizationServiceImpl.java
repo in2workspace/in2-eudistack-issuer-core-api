@@ -2,6 +2,7 @@ package es.in2.issuer.backend.backoffice.domain.service.impl;
 
 import com.nimbusds.jose.Payload;
 import es.in2.issuer.backend.backoffice.domain.service.CredentialStatusAuthorizationService;
+import es.in2.issuer.backend.shared.domain.exception.JWTParsingException;
 import es.in2.issuer.backend.shared.domain.exception.UnauthorizedRoleException;
 import es.in2.issuer.backend.shared.domain.service.JWTService;
 import es.in2.issuer.backend.shared.domain.util.factory.LEARCredentialEmployeeFactory;
@@ -12,6 +13,7 @@ import org.jetbrains.annotations.Nullable;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
+import java.text.ParseException;
 import java.util.UUID;
 
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.*;
@@ -30,7 +32,12 @@ public class CredentialStatusAuthorizationServiceImpl implements CredentialStatu
         return Mono.fromCallable(() -> jwtService.parseJWT(token))
                 .flatMap(signedJWT -> {
                     Payload payload = signedJWT.getPayload();
-                    String role = jwtService.getClaimFromPayload(payload, ROLE);
+                    String role;
+                    try {
+                        role = (String) signedJWT.getJWTClaimsSet().getClaim(ROLE);
+                    } catch (ParseException e) {
+                        throw new JWTParsingException(e.getMessage());
+                    }
                     log.debug("Extracted role: {}", role);
                     Mono<Void> error = ensureRoleIsLear(role);
                     if (error != null) return error;
@@ -38,6 +45,7 @@ public class CredentialStatusAuthorizationServiceImpl implements CredentialStatu
                     String vcClaim = jwtService.getClaimFromPayload(payload, VC);
                     log.debug("claim: {}", vcClaim);
 
+                    //TODO: Adaptar a todo tipo de credenciales
                     String userOrganizationIdentifier =
                             learCredentialEmployeeFactory
                                     .mapStringToLEARCredentialEmployee(vcClaim)

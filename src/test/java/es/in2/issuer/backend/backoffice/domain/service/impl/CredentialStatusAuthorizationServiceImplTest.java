@@ -1,6 +1,7 @@
 package es.in2.issuer.backend.backoffice.domain.service.impl;
 
 import com.nimbusds.jose.Payload;
+import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import es.in2.issuer.backend.shared.domain.exception.UnauthorizedRoleException;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.Mandator;
@@ -17,11 +18,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
+import java.text.ParseException;
 import java.util.UUID;
 
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.*;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class CredentialStatusAuthorizationServiceImplTest {
@@ -50,7 +51,7 @@ class CredentialStatusAuthorizationServiceImplTest {
     private static final String VC_CLAIM = "test-vc-claim";
 
     @Test
-    void authorize_WithValidLearRoleAndMatchingOrganization_ShouldSucceed() {
+    void authorize_WithValidLearRoleAndMatchingOrganization_ShouldSucceed() throws ParseException {
         String organizationIdentifier = "organization-identifier";
         LEARCredentialEmployee learCredentialEmployee =
                 LEARCredentialEmployee.builder()
@@ -72,8 +73,10 @@ class CredentialStatusAuthorizationServiceImplTest {
                 .thenReturn(signedJWT);
         when(signedJWT.getPayload())
                 .thenReturn(payload);
-        when(jwtService.getClaimFromPayload(payload, ROLE))
-                .thenReturn(LEAR);
+        JWTClaimsSet jwtClaimsSet = mock(JWTClaimsSet.class);
+        when(signedJWT.getJWTClaimsSet()).thenReturn(jwtClaimsSet);
+        when(jwtClaimsSet.getClaim(ROLE)).thenReturn(LEAR);
+
         when(jwtService.getClaimFromPayload(payload, VC))
                 .thenReturn(VC_CLAIM);
         when(learCredentialEmployeeFactory.mapStringToLEARCredentialEmployee(VC_CLAIM))
@@ -86,13 +89,13 @@ class CredentialStatusAuthorizationServiceImplTest {
                 .verifyComplete();
 
         verify(jwtService).parseJWT(TOKEN);
-        verify(jwtService).getClaimFromPayload(payload, ROLE);
+        verify(jwtClaimsSet).getClaim(ROLE);
         verify(jwtService).getClaimFromPayload(payload, VC);
         verify(credentialProcedureRepository).findByCredentialId(UUID.fromString(CREDENTIAL_ID));
     }
 
     @Test
-    void authorize_WithValidLearRoleAndIn2OrganizationIdentifier_ShouldSucceed() {
+    void authorize_WithValidLearRoleAndIn2OrganizationIdentifier_ShouldSucceed() throws ParseException {
         LEARCredentialEmployee learCredentialEmployee =
                 LEARCredentialEmployee.builder()
                         .credentialSubject(
@@ -112,8 +115,10 @@ class CredentialStatusAuthorizationServiceImplTest {
                 .thenReturn(signedJWT);
         when(signedJWT.getPayload())
                 .thenReturn(payload);
-        when(jwtService.getClaimFromPayload(payload, ROLE))
-                .thenReturn(LEAR);
+        JWTClaimsSet jwtClaimsSet = mock(JWTClaimsSet.class);
+        when(signedJWT.getJWTClaimsSet()).thenReturn(jwtClaimsSet);
+        when(jwtClaimsSet.getClaim(ROLE)).thenReturn(LEAR);
+
         when(jwtService.getClaimFromPayload(payload, VC))
                 .thenReturn(VC_CLAIM);
         when(learCredentialEmployeeFactory.mapStringToLEARCredentialEmployee(VC_CLAIM))
@@ -126,13 +131,13 @@ class CredentialStatusAuthorizationServiceImplTest {
                 .verifyComplete();
 
         verify(jwtService).parseJWT(TOKEN);
-        verify(jwtService).getClaimFromPayload(payload, ROLE);
+        verify(jwtClaimsSet).getClaim(ROLE);
         verify(jwtService).getClaimFromPayload(payload, VC);
         verify(credentialProcedureRepository).findByCredentialId(UUID.fromString(CREDENTIAL_ID));
     }
 
     @Test
-    void authorize_WithInvalidRole_ShouldFailed() {
+    void authorize_WithInvalidRole_ShouldFailed() throws ParseException {
         String organizationIdentifier = "organization-identifier";
 
 
@@ -143,8 +148,9 @@ class CredentialStatusAuthorizationServiceImplTest {
                 .thenReturn(signedJWT);
         when(signedJWT.getPayload())
                 .thenReturn(payload);
-        when(jwtService.getClaimFromPayload(payload, ROLE))
-                .thenReturn("error");
+        JWTClaimsSet jwtClaimsSet = mock(JWTClaimsSet.class);
+        when(signedJWT.getJWTClaimsSet()).thenReturn(jwtClaimsSet);
+        when(jwtClaimsSet.getClaim(ROLE)).thenReturn("error");
 
         StepVerifier
                 .create(authorizationService.authorize(PROCESS_ID, TOKEN, CREDENTIAL_ID))
@@ -155,7 +161,7 @@ class CredentialStatusAuthorizationServiceImplTest {
     }
 
     @Test
-    void authorize_WithValidLearRoleAndInvalidOrganizationIdentifier_ShouldFailed() {
+    void authorize_WithValidLearRoleAndInvalidOrganizationIdentifier_ShouldFailed() throws ParseException {
         String organizationIdentifier = "organization-identifier";
         LEARCredentialEmployee learCredentialEmployee =
                 LEARCredentialEmployee.builder()
@@ -176,8 +182,10 @@ class CredentialStatusAuthorizationServiceImplTest {
                 .thenReturn(signedJWT);
         when(signedJWT.getPayload())
                 .thenReturn(payload);
-        when(jwtService.getClaimFromPayload(payload, ROLE))
-                .thenReturn(LEAR);
+        JWTClaimsSet jwtClaimsSet = mock(JWTClaimsSet.class);
+        when(signedJWT.getJWTClaimsSet()).thenReturn(jwtClaimsSet);
+        when(jwtClaimsSet.getClaim(ROLE)).thenReturn(LEAR);
+
         when(jwtService.getClaimFromPayload(payload, VC))
                 .thenReturn(VC_CLAIM);
         when(learCredentialEmployeeFactory.mapStringToLEARCredentialEmployee(VC_CLAIM))
@@ -191,7 +199,7 @@ class CredentialStatusAuthorizationServiceImplTest {
                 .verify();
 
         verify(jwtService).parseJWT(TOKEN);
-        verify(jwtService).getClaimFromPayload(payload, ROLE);
+        verify(jwtClaimsSet).getClaim(ROLE);
         verify(jwtService).getClaimFromPayload(payload, VC);
         verify(credentialProcedureRepository).findByCredentialId(UUID.fromString(CREDENTIAL_ID));
     }

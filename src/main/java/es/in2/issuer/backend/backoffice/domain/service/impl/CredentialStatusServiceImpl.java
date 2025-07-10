@@ -10,8 +10,6 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.util.UUID;
-
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -22,14 +20,14 @@ public class CredentialStatusServiceImpl implements CredentialStatusService {
     @Override
     public Flux<String> getCredentialsByListId(int listId) {
         return credentialStatusRepository.findByListId(listId)
-                .map(statusListIndex -> statusListIndex.getNonce().toString());
+                .map(StatusListIndex::getNonce);
     }
 
     @Override
     public Mono<Void> revokeCredential(int listId, CredentialStatus credentialStatus) {
         StatusListIndex statusListIndex = new StatusListIndex();
         String nonce = credentialStatus.statusListIndex();
-        statusListIndex.setNonce(UUID.fromString(nonce));
+        statusListIndex.setNonce(nonce);
         statusListIndex.setListId(listId);
         return credentialStatusRepository.save(statusListIndex)
                 .then();

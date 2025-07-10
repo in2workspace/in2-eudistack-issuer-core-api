@@ -20,7 +20,7 @@ public class StatusListIndex {
     private UUID id;
 
     @Column("nonce")
-    private UUID nonce;
+    private String nonce;
 
     @Column("list_id")
     private int listId;
