@@ -31,10 +31,12 @@ public class CredentialStatusAuthorizationServiceImpl implements CredentialStatu
                 .flatMap(signedJWT -> {
                     Payload payload = signedJWT.getPayload();
                     String role = jwtService.getClaimFromPayload(payload, ROLE);
+                    log.debug("Extracted role: {}", role);
                     Mono<Void> error = ensureRoleIsLear(role);
                     if (error != null) return error;
 
                     String vcClaim = jwtService.getClaimFromPayload(payload, VC);
+                    log.debug("claim: {}", vcClaim);
 
                     String userOrganizationIdentifier =
                             learCredentialEmployeeFactory
@@ -59,6 +61,8 @@ public class CredentialStatusAuthorizationServiceImpl implements CredentialStatu
     }
 
     private static @Nullable Mono<Void> ensureRoleIsLear(String role) {
+        log.debug("ensure Role is LEAR: ");
+        log.debug(role);
         if (!role.equals(LEAR)) {
             return Mono.error(new UnauthorizedRoleException(
                     "Access denied: Unauthorized role to revoke credential"));
