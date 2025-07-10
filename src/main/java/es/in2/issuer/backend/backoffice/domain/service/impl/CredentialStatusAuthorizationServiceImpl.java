@@ -69,8 +69,6 @@ public class CredentialStatusAuthorizationServiceImpl implements CredentialStatu
     }
 
     private static @Nullable Mono<Void> ensureRoleIsLear(String role) {
-        log.debug("ensure Role is LEAR: ");
-        log.debug(role);
         if (!role.equals(LEAR)) {
             return Mono.error(new UnauthorizedRoleException(
                     "Access denied: Unauthorized role to revoke credential"));
