@@ -43,7 +43,6 @@ public class LEARCredentialEmployeeFactory {
     public Mono<String> mapCredentialAndBindMandateeIdInToTheCredential(String decodedCredentialString, String mandateeId) {
         LEARCredentialEmployee decodedCredential = mapStringToLEARCredentialEmployee(decodedCredentialString);
         return bindMandateeIdToLearCredentialEmployee(decodedCredential, mandateeId)
-                .doOnNext(result -> log.debug("XIVATO 2: {}", result))
                 .flatMap(this::convertLEARCredentialEmployeeInToString);
     }
 
@@ -67,7 +66,6 @@ public class LEARCredentialEmployeeFactory {
     //TODO Fix if else cuando se tenga la estructura final de los credenciales en el marketplace
     public LEARCredentialEmployee mapStringToLEARCredentialEmployee(String learCredential) {
         try {
-                log.debug("XIVATO 1 {}", learCredential);
             LEARCredentialEmployee employee;
             if (learCredential.contains("https://trust-framework.dome-marketplace.eu/credentials/learcredentialemployee/v1")) {
                 employee = objectMapper.readValue(learCredential, LEARCredentialEmployee.class);

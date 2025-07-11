@@ -20,7 +20,7 @@ public interface CredentialProcedureService {
 
     Mono<String> getDecodedCredentialByProcedureId(String procedureId);
 
-    Mono<String> getDecodedCredentialByCredentialId(String credentialId);
+    Mono<CredentialProcedure> getCredentialByCredentialId(String credentialId);
 
     Mono<String> getOperationModeByProcedureId(String procedureId);
 
@@ -40,7 +40,7 @@ public interface CredentialProcedureService {
 
     Mono<Void> updateCredentialProcedureCredentialStatusToValidByProcedureId(String procedureId);
 
-    Mono<Void> updateCredentialProcedureCredentialStatusToRevokeByCredentialId(String credentialId);
+    Mono<Void> updateCredentialProcedureCredentialStatusToRevoke(CredentialProcedure credentialProcedure);
 
     Mono<String> updatedEncodedCredentialByCredentialId(String encodedCredential, String credentialId);
 

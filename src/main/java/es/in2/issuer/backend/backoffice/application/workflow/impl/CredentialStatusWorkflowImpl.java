@@ -3,7 +3,10 @@ package es.in2.issuer.backend.backoffice.application.workflow.impl;
 import es.in2.issuer.backend.backoffice.application.workflow.CredentialStatusWorkflow;
 import es.in2.issuer.backend.backoffice.domain.service.CredentialStatusAuthorizationService;
 import es.in2.issuer.backend.backoffice.domain.service.CredentialStatusService;
+import es.in2.issuer.backend.backoffice.domain.exception.InvalidStatusException;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.CredentialStatus;
+import es.in2.issuer.backend.shared.domain.model.entities.CredentialProcedure;
+import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum;
 import es.in2.issuer.backend.shared.domain.service.AccessTokenService;
 import es.in2.issuer.backend.shared.domain.service.CredentialProcedureService;
 import es.in2.issuer.backend.shared.domain.util.factory.LEARCredentialEmployeeFactory;
@@ -37,21 +40,24 @@ public class CredentialStatusWorkflowImpl implements CredentialStatusWorkflow {
     public Mono<Void> revokeCredential(String processId, String bearerToken, String credentialId, int listId) {
         return accessTokenService.getCleanBearerToken(bearerToken)
                 .flatMap(token -> credentialStatusAuthorizationService.authorize(processId, token, credentialId)
-                        .then(credentialProcedureService.getDecodedCredentialByCredentialId(credentialId)
-                                .flatMap(decodedCredential -> {
-                                    CredentialStatus credentialStatus =
-                                            learCredentialEmployeeFactory
-                                                    .mapStringToLEARCredentialEmployee(decodedCredential)
-                                                    .credentialStatus();
-
-                                    return revokeAndUpdateCredentialStatus(processId, credentialId, listId, credentialStatus);
-                                })));
+                        .then(credentialProcedureService.getCredentialByCredentialId(credentialId))
+                )
+                .flatMap(credential -> validateStatus(credential.getCredentialStatus())
+                        .thenReturn(credential)
+                )
+                .flatMap(credential -> Mono.just(credential.getCredentialDecoded())
+                .flatMap(decodedCredential -> {
+                    CredentialStatus credentialStatus = learCredentialEmployeeFactory
+                            .mapStringToLEARCredentialEmployee(decodedCredential)
+                            .credentialStatus();
+                    return revokeAndUpdateCredentialStatus(credential, processId, credentialId, listId, credentialStatus);
+                }));
 
     }
 
-    private Mono<Void> revokeAndUpdateCredentialStatus(String processId, String credentialId, int listId, CredentialStatus credentialStatus) {
+    private Mono<Void> revokeAndUpdateCredentialStatus(CredentialProcedure credentialProcedure, String processId, String credentialId, int listId, CredentialStatus credentialStatus) {
         return credentialStatusService.revokeCredential(listId, credentialStatus)
-                .then(credentialProcedureService.updateCredentialProcedureCredentialStatusToRevokeByCredentialId(credentialId))
+                .then(credentialProcedureService.updateCredentialProcedureCredentialStatusToRevoke(credentialProcedure))
                 .doFirst(() -> log.debug(
                         "Process ID: {} - Revoking Credential with ID: {}",
                         processId,
@@ -60,5 +66,14 @@ public class CredentialStatusWorkflowImpl implements CredentialStatusWorkflow {
                         "Process ID: {} - Credential with ID: {} revoked successfully.",
                         processId,
                         credentialId));
+    }
+
+    private Mono<Void> validateStatus(CredentialStatusEnum credentialStatus) {
+        if (credentialStatus.equals(CredentialStatusEnum.VALID)) {
+            return Mono.empty();
+        } else {
+            return Mono.error(new InvalidStatusException(
+                    "Invalid status: " + credentialStatus));
+        }
     }
 }

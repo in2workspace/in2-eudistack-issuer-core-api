@@ -127,9 +127,8 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
     }
 
     @Override
-    public Mono<String> getDecodedCredentialByCredentialId(String credentialId) {
-        return credentialProcedureRepository.findByCredentialId(UUID.fromString(credentialId))
-                .flatMap(credentialProcedure -> Mono.just(credentialProcedure.getCredentialDecoded()));
+    public Mono<CredentialProcedure> getCredentialByCredentialId(String credentialId) {
+        return credentialProcedureRepository.findByCredentialId(UUID.fromString(credentialId));
     }
 
     @Override
@@ -262,7 +261,7 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
 
     @Override
     public Mono<String> updatedEncodedCredentialByCredentialId(String encodedCredential, String credentialId) {
-        return credentialProcedureRepository.findByCredentialId(UUID.fromString(credentialId))
+        return getCredentialByCredentialId(credentialId)
                 .flatMap(credentialProcedure -> {
                     credentialProcedure.setCredentialEncoded(encodedCredential);
                     return credentialProcedureRepository.save(credentialProcedure)
@@ -301,16 +300,12 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
     }
 
     @Override
-    public Mono<Void> updateCredentialProcedureCredentialStatusToRevokeByCredentialId(String credentialId) {
-        return credentialProcedureRepository.findByCredentialId(UUID.fromString(credentialId))
-                .flatMap(credentialProcedure -> {
-                    credentialProcedure.setCredentialStatus(CredentialStatusEnum.REVOKED);
-                    return credentialProcedureRepository.save(credentialProcedure)
-                            .doOnSuccess(result -> log.info(UPDATED_CREDENTIAL))
-                            .then();
-                });
+    public Mono<Void> updateCredentialProcedureCredentialStatusToRevoke(CredentialProcedure credentialProcedure) {
+        credentialProcedure.setCredentialStatus(CredentialStatusEnum.REVOKED);
+        return credentialProcedureRepository.save(credentialProcedure)
+                .doOnSuccess(result -> log.info(UPDATED_CREDENTIAL))
+                .then();
     }
-
 
     @Override
     public Mono<CredentialProcedures> getAllProceduresBasicInfoByOrganizationId(String organizationIdentifier) {

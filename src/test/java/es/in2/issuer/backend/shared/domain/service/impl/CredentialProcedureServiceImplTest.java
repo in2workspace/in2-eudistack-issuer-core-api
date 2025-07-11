@@ -615,32 +615,31 @@ class CredentialProcedureServiceImplTest {
     }
 
     @Test
-    void updateCredentialProcedureCredentialStatusToRevokeByCredentialId_shouldUpdateStatusToRevoke() {
+    void updateCredentialProcedureCredentialStatusToRevoke_shouldUpdateStatusToRevoke() {
         // Given
         String credentialId = UUID.randomUUID().toString();
         UUID uuidCredentialId = UUID.fromString(credentialId);
 
-        CredentialProcedure existingCredentialProcedure = new CredentialProcedure();
-        existingCredentialProcedure.setCredentialId(uuidCredentialId);
-        existingCredentialProcedure.setCredentialStatus(CredentialStatusEnum.ISSUED);
+        CredentialProcedure credentialProcedure = new CredentialProcedure();
+        credentialProcedure.setCredentialId(uuidCredentialId);
+        credentialProcedure.setCredentialStatus(CredentialStatusEnum.VALID);
 
         // When
-        when(credentialProcedureRepository.findByCredentialId(any(UUID.class)))
-                .thenReturn(Mono.just(existingCredentialProcedure));
         when(credentialProcedureRepository.save(any(CredentialProcedure.class)))
-                .thenReturn(Mono.just(existingCredentialProcedure));
-
+                .thenAnswer(invocation -> {
+                    CredentialProcedure saved = invocation.getArgument(0);
+                    return Mono.just(saved);
+                });
         // Execute
-        Mono<Void> result = credentialProcedureService.updateCredentialProcedureCredentialStatusToRevokeByCredentialId(credentialId);
+        Mono<Void> result = credentialProcedureService.updateCredentialProcedureCredentialStatusToRevoke(credentialProcedure);
 
         // Then
         StepVerifier.create(result)
                 .verifyComplete();
 
-        verify(credentialProcedureRepository, times(1)).findByCredentialId(uuidCredentialId);
-        verify(credentialProcedureRepository, times(1)).save(existingCredentialProcedure);
+        verify(credentialProcedureRepository, times(1)).save(credentialProcedure);
 
-        assert existingCredentialProcedure.getCredentialStatus() == CredentialStatusEnum.REVOKED;
+        assert credentialProcedure.getCredentialStatus() == CredentialStatusEnum.REVOKED;
     }
 
     @Test

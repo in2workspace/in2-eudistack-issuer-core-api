@@ -4,6 +4,8 @@ import es.in2.issuer.backend.backoffice.domain.service.CredentialStatusAuthoriza
 import es.in2.issuer.backend.backoffice.domain.service.CredentialStatusService;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.CredentialStatus;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.employee.LEARCredentialEmployee;
+import es.in2.issuer.backend.shared.domain.model.entities.CredentialProcedure;
+import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum;
 import es.in2.issuer.backend.shared.domain.service.AccessTokenService;
 import es.in2.issuer.backend.shared.domain.service.CredentialProcedureService;
 import es.in2.issuer.backend.shared.domain.util.factory.LEARCredentialEmployeeFactory;
@@ -64,6 +66,14 @@ class CredentialStatusWorkflowImplTest {
         int listId = 1;
         String bearerToken = "bearerToken";
 
+        CredentialStatus credentialStatus = CredentialStatus.builder().build();
+        LEARCredentialEmployee learCredentialEmployee = LEARCredentialEmployee.builder()
+                .credentialStatus(credentialStatus)
+                .build();
+
+        CredentialProcedure credentialProcedure = new CredentialProcedure();
+        credentialProcedure.setCredentialStatus(CredentialStatusEnum.VALID);
+
         when(accessTokenService.getCleanBearerToken(bearerToken))
                 .thenReturn(Mono.just(bearerToken));
 
@@ -71,20 +81,19 @@ class CredentialStatusWorkflowImplTest {
         when(credentialStatusAuthorizationService.authorize(processId, bearerToken, credentialId))
                 .thenReturn(Mono.empty());
 
-        CredentialStatus credentialStatus = CredentialStatus.builder().build();
         String decodedCredential = "decodedCredential";
-        when(credentialProcedureService.getDecodedCredentialByCredentialId(credentialId))
-                .thenReturn(Mono.just(decodedCredential));
+        credentialProcedure.setCredentialDecoded(decodedCredential);
+
+        when(credentialProcedureService.getCredentialByCredentialId(credentialId))
+                .thenReturn(Mono.just(credentialProcedure));
 
         when(learCredentialEmployeeFactory.mapStringToLEARCredentialEmployee(decodedCredential))
-                .thenReturn(LEARCredentialEmployee.builder()
-                        .credentialStatus(CredentialStatus.builder().build())
-                        .build());
+                .thenReturn(learCredentialEmployee);
 
         when(credentialStatusService.revokeCredential(listId, credentialStatus))
                 .thenReturn(Mono.empty());
 
-        when(credentialProcedureService.updateCredentialProcedureCredentialStatusToRevokeByCredentialId(credentialId))
+        when(credentialProcedureService.updateCredentialProcedureCredentialStatusToRevoke(credentialProcedure))
                 .thenReturn(Mono.empty());
 
         var result = credentialStatusWorkflow.revokeCredential(
