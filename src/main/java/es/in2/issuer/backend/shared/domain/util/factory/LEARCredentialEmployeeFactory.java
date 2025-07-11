@@ -229,6 +229,7 @@ public class LEARCredentialEmployeeFactory {
                                 )
                                 .build()
                 )
+                .credentialStatus(decodedCredential.credentialStatus())
                 .build()
         );
     }
