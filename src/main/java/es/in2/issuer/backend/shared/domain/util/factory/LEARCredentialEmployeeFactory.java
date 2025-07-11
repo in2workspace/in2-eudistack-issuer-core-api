@@ -245,6 +245,7 @@ public class LEARCredentialEmployeeFactory {
                         .validFrom(decodedCredential.validFrom())
                         .validUntil(decodedCredential.validUntil())
                         .credentialSubject(decodedCredential.credentialSubject())
+                        .credentialStatus(decodedCredential.credentialStatus())
                         .build());
     }
 
