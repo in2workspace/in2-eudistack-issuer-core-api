@@ -492,7 +492,7 @@ class CredentialProcedureServiceImplTest {
         StepVerifier.create(result)
                 .expectNextMatches(details ->
                         details.procedureId().equals(expectedProcedureId) &&
-                                details.credentialStatus().equals(status.name()) &&
+                                details.lifeCycleStatus().equals(status.name()) &&
                                 details.credential().equals(credentialNode))
                 .verifyComplete();
     }

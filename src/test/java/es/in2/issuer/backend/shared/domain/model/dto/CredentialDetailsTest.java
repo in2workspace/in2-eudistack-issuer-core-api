@@ -33,7 +33,7 @@ class CredentialDetailsTest {
 
         // Assert
         assertEquals(uuid, credentialDetails.procedureId());
-        assertEquals(expectedCredentialStatus, credentialDetails.credentialStatus());
+        assertEquals(expectedCredentialStatus, credentialDetails.lifeCycleStatus());
         assertEquals(jsonNode, credentialDetails.credential());
         assertEquals(expectedOperationMode, credentialDetails.operationMode());
         assertEquals(expectedSignatureMode, credentialDetails.signatureMode());
@@ -49,13 +49,13 @@ class CredentialDetailsTest {
         // Act
         CredentialDetails credentialDetails = CredentialDetails.builder()
                 .procedureId(uuid)
-                .credentialStatus(newCredentialStatus)
+                .lifeCycleStatus(newCredentialStatus)
                 .credential(jsonNode)
                 .build();
 
         // Assert
         assertEquals(uuid, credentialDetails.procedureId());
-        assertEquals(newCredentialStatus, credentialDetails.credentialStatus());
+        assertEquals(newCredentialStatus, credentialDetails.lifeCycleStatus());
         assertEquals(jsonNode, credentialDetails.credential());
     }
 

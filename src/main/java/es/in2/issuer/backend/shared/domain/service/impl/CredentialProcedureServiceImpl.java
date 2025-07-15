@@ -246,7 +246,7 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
                         log.info("Found credential: {}",credentialProcedure);
                         return Mono.just(CredentialDetails.builder()
                                 .procedureId(credentialProcedure.getProcedureId())
-                                .credentialStatus(String.valueOf(credentialProcedure.getCredentialStatus()))
+                                .lifeCycleStatus(String.valueOf(credentialProcedure.getCredentialStatus()))
                                 .operationMode(credentialProcedure.getOperationMode())
                                 .signatureMode(credentialProcedure.getSignatureMode())
                                 .credential(objectMapper.readTree(credentialProcedure.getCredentialDecoded()))
