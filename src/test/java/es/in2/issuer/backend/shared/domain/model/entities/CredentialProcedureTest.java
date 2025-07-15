@@ -1,6 +1,6 @@
 package es.in2.issuer.backend.shared.domain.model.entities;
 
-import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatus;
+import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum;
 import org.junit.jupiter.api.Test;
 
 import java.sql.Timestamp;
@@ -17,7 +17,7 @@ class CredentialProcedureTest {
         String credentialFormat = "testFormat";
         String credentialDecoded = "testDecoded";
         String credentialEncoded = "testEncoded";
-        CredentialStatus credentialStatus = CredentialStatus.VALID;
+        CredentialStatusEnum credentialStatusEnum = CredentialStatusEnum.VALID;
         String organizationIdentifier = "testOrganizationIdentifier";
         Timestamp timestamp = new Timestamp(System.currentTimeMillis());
         Timestamp validUntil = new Timestamp(System.currentTimeMillis() + 1000);
@@ -28,7 +28,7 @@ class CredentialProcedureTest {
                 .credentialFormat(credentialFormat)
                 .credentialDecoded(credentialDecoded)
                 .credentialEncoded(credentialEncoded)
-                .credentialStatus(credentialStatus)
+                .credentialStatus(credentialStatusEnum)
                 .organizationIdentifier(organizationIdentifier)
                 .updatedAt(timestamp)
                 .validUntil(validUntil)
@@ -39,7 +39,7 @@ class CredentialProcedureTest {
         assertEquals(credentialFormat, credentialProcedure.getCredentialFormat());
         assertEquals(credentialDecoded, credentialProcedure.getCredentialDecoded());
         assertEquals(credentialEncoded, credentialProcedure.getCredentialEncoded());
-        assertEquals(credentialStatus, credentialProcedure.getCredentialStatus());
+        assertEquals(credentialStatusEnum, credentialProcedure.getCredentialStatus());
         assertEquals(organizationIdentifier, credentialProcedure.getOrganizationIdentifier());
         assertEquals(timestamp, credentialProcedure.getUpdatedAt());
         assertEquals(validUntil, credentialProcedure.getValidUntil());
@@ -53,7 +53,7 @@ class CredentialProcedureTest {
         String credentialFormat = "format";
         String credentialDecoded = "decoded";
         String credentialEncoded = "encoded";
-        CredentialStatus credentialStatus = CredentialStatus.VALID;
+        CredentialStatusEnum credentialStatusEnum = CredentialStatusEnum.VALID;
         String organizationIdentifier = "orgId";
         Timestamp timestamp = new Timestamp(System.currentTimeMillis());
         Timestamp validUntil = new Timestamp(System.currentTimeMillis() + 1000);
@@ -63,7 +63,7 @@ class CredentialProcedureTest {
         credentialProcedure.setCredentialFormat(credentialFormat);
         credentialProcedure.setCredentialDecoded(credentialDecoded);
         credentialProcedure.setCredentialEncoded(credentialEncoded);
-        credentialProcedure.setCredentialStatus(credentialStatus);
+        credentialProcedure.setCredentialStatus(credentialStatusEnum);
         credentialProcedure.setOrganizationIdentifier(organizationIdentifier);
         credentialProcedure.setUpdatedAt(timestamp);
         credentialProcedure.setValidUntil(validUntil);
@@ -73,7 +73,7 @@ class CredentialProcedureTest {
         assertEquals(credentialFormat, credentialProcedure.getCredentialFormat());
         assertEquals(credentialDecoded, credentialProcedure.getCredentialDecoded());
         assertEquals(credentialEncoded, credentialProcedure.getCredentialEncoded());
-        assertEquals(credentialStatus, credentialProcedure.getCredentialStatus());
+        assertEquals(credentialStatusEnum, credentialProcedure.getCredentialStatus());
         assertEquals(organizationIdentifier, credentialProcedure.getOrganizationIdentifier());
         assertEquals(timestamp, credentialProcedure.getUpdatedAt());
         assertEquals(validUntil, credentialProcedure.getValidUntil());

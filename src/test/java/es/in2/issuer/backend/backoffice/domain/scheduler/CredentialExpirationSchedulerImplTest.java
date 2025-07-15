@@ -2,7 +2,7 @@ package es.in2.issuer.backend.backoffice.domain.scheduler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import es.in2.issuer.backend.shared.domain.model.entities.CredentialProcedure;
-import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatus;
+import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum;
 import es.in2.issuer.backend.shared.infrastructure.repository.CredentialProcedureRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -40,7 +40,7 @@ class CredentialExpirationSchedulerImplTest {
     void shouldExpireCredentialsWhenValidUntilHasPassed() {
         CredentialProcedure credential = new CredentialProcedure();
         credential.setCredentialId(java.util.UUID.randomUUID());
-        credential.setCredentialStatus(CredentialStatus.VALID);
+        credential.setCredentialStatus(CredentialStatusEnum.VALID);
         credential.setValidUntil(Timestamp.from(Instant.now().minusSeconds(60)));
 
         when(credentialProcedureRepository.findAll()).thenReturn(Flux.just(credential));
@@ -52,7 +52,7 @@ class CredentialExpirationSchedulerImplTest {
                 .verifyComplete();
 
         verify(credentialProcedureRepository, atLeastOnce()).save(argThat(updatedCredential -> {
-            boolean statusCorrect = updatedCredential.getCredentialStatus() == CredentialStatus.EXPIRED;
+            boolean statusCorrect = updatedCredential.getCredentialStatus() == CredentialStatusEnum.EXPIRED;
             boolean updatedAtNotNull = updatedCredential.getUpdatedAt() != null;
             boolean updatedAtRecent = updatedCredential.getUpdatedAt().toInstant().isAfter(Instant.now().minusSeconds(10));
 
@@ -64,7 +64,7 @@ class CredentialExpirationSchedulerImplTest {
     void shouldNotExpireCredentialsIfValidUntilHasNotPassed() {
         CredentialProcedure credential = new CredentialProcedure();
         credential.setCredentialId(java.util.UUID.randomUUID());
-        credential.setCredentialStatus(CredentialStatus.VALID);
+        credential.setCredentialStatus(CredentialStatusEnum.VALID);
         credential.setValidUntil(Timestamp.from(Instant.now().plusSeconds(60)));
 
         when(credentialProcedureRepository.findAll()).thenReturn(Flux.just(credential));
@@ -77,7 +77,7 @@ class CredentialExpirationSchedulerImplTest {
 
         verify(credentialProcedureRepository, never()).save(any(CredentialProcedure.class));
 
-        assertEquals(CredentialStatus.VALID, credential.getCredentialStatus());
+        assertEquals(CredentialStatusEnum.VALID, credential.getCredentialStatus());
         assertNull(credential.getUpdatedAt());
     }
 }

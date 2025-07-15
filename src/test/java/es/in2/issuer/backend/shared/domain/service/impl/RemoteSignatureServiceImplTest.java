@@ -9,7 +9,7 @@ import es.in2.issuer.backend.shared.domain.model.dto.SignatureRequest;
 import es.in2.issuer.backend.shared.domain.model.dto.SignedData;
 import es.in2.issuer.backend.shared.domain.model.entities.CredentialProcedure;
 import es.in2.issuer.backend.shared.domain.model.entities.DeferredCredentialMetadata;
-import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatus;
+import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum;
 import es.in2.issuer.backend.shared.domain.model.enums.SignatureType;
 import es.in2.issuer.backend.shared.domain.service.CredentialProcedureService;
 import es.in2.issuer.backend.shared.domain.service.DeferredCredentialMetadataService;
@@ -334,7 +334,7 @@ class RemoteSignatureServiceImplTest {
         verify(deferredCredentialMetadataRepository).save(deferredProcedure);
 
         verify(procedure).setOperationMode(ASYNC);
-        verify(procedure).setCredentialStatus(CredentialStatus.PEND_SIGNATURE);
+        verify(procedure).setCredentialStatus(CredentialStatusEnum.PEND_SIGNATURE);
         verify(deferredProcedure).setOperationMode(ASYNC);
     }
     
@@ -535,7 +535,7 @@ class RemoteSignatureServiceImplTest {
         verify(deferredCredentialMetadataService, never()).deleteDeferredCredentialMetadataById(anyString());
 
         Assertions.assertEquals(ASYNC, procedure.getOperationMode());
-        Assertions.assertEquals(CredentialStatus.PEND_SIGNATURE, procedure.getCredentialStatus());
+        Assertions.assertEquals(CredentialStatusEnum.PEND_SIGNATURE, procedure.getCredentialStatus());
         Assertions.assertEquals(ASYNC, deferredMetadata.getOperationMode());
 
     }

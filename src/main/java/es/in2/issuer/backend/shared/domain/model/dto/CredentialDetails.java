@@ -8,7 +8,7 @@ import java.util.UUID;
 @Builder
 public record CredentialDetails(
         @JsonProperty("procedure_id") UUID procedureId,
-        @JsonProperty("credential_status") String credentialStatus,
+        @JsonProperty("lifeCycleStatus") String lifeCycleStatus,
         @JsonProperty("operation_mode") String operationMode,
         @JsonProperty("signature_mode") String signatureMode,
         @JsonProperty("credential") JsonNode credential

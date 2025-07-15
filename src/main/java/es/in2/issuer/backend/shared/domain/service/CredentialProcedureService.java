@@ -20,6 +20,8 @@ public interface CredentialProcedureService {
 
     Mono<String> getDecodedCredentialByProcedureId(String procedureId);
 
+    Mono<CredentialProcedure> getCredentialByCredentialId(String credentialId);
+
     Mono<String> getOperationModeByProcedureId(String procedureId);
 
     Mono<String> getMandateeEmailFromDecodedCredentialByProcedureId(String procedureId);
@@ -37,6 +39,8 @@ public interface CredentialProcedureService {
     Mono<CredentialDetails> getProcedureDetailByProcedureIdAndOrganizationId(String organizationIdentifier, String procedureId);
 
     Mono<Void> updateCredentialProcedureCredentialStatusToValidByProcedureId(String procedureId);
+
+    Mono<Void> updateCredentialProcedureCredentialStatusToRevoke(CredentialProcedure credentialProcedure);
 
     Mono<String> updatedEncodedCredentialByCredentialId(String encodedCredential, String credentialId);
 

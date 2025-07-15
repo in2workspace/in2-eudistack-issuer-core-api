@@ -7,10 +7,12 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import es.in2.issuer.backend.shared.domain.exception.InvalidCredentialFormatException;
 import es.in2.issuer.backend.shared.domain.model.dto.CredentialProcedureCreationRequest;
 import es.in2.issuer.backend.shared.domain.model.dto.LEARCredentialEmployeeJwtPayload;
+import es.in2.issuer.backend.shared.domain.model.dto.credential.CredentialStatus;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.Power;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.employee.LEARCredentialEmployee;
 import es.in2.issuer.backend.shared.domain.model.enums.CredentialType;
 import es.in2.issuer.backend.shared.domain.service.AccessTokenService;
+import es.in2.issuer.backend.shared.infrastructure.config.properties.CorsProperties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -26,6 +28,7 @@ import java.util.UUID;
 
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.LEAR_CREDENTIAL_EMPLOYEE_DESCRIPTION;
 import static es.in2.issuer.backend.shared.domain.util.Constants.*;
+import static es.in2.issuer.backend.shared.domain.util.Utils.generateCustomNonce;
 
 @Slf4j
 @Component
@@ -35,14 +38,15 @@ public class LEARCredentialEmployeeFactory {
     private final ObjectMapper objectMapper;
     private final AccessTokenService accessTokenService;
     private final IssuerFactory issuerFactory;
+    private final CorsProperties corsProperties;
 
-    public Mono<String> mapCredentialAndBindMandateeIdInToTheCredential(String decodedCredentialString, String mandateeId){
+    public Mono<String> mapCredentialAndBindMandateeIdInToTheCredential(String decodedCredentialString, String mandateeId) {
         LEARCredentialEmployee decodedCredential = mapStringToLEARCredentialEmployee(decodedCredentialString);
         return bindMandateeIdToLearCredentialEmployee(decodedCredential, mandateeId)
                 .flatMap(this::convertLEARCredentialEmployeeInToString);
     }
 
-    public Mono<String> mapCredentialAndBindIssuerInToTheCredential(String decodedCredentialString, String procedureId){
+    public Mono<String> mapCredentialAndBindIssuerInToTheCredential(String decodedCredentialString, String procedureId) {
         LEARCredentialEmployee decodedCredential = mapStringToLEARCredentialEmployee(decodedCredentialString);
         return bindIssuerToLearCredentialEmployee(decodedCredential, procedureId)
                 .flatMap(this::convertLEARCredentialEmployeeInToString);
@@ -60,12 +64,12 @@ public class LEARCredentialEmployeeFactory {
     }
 
     //TODO Fix if else cuando se tenga la estructura final de los credenciales en el marketplace
-    public LEARCredentialEmployee mapStringToLEARCredentialEmployee(String learCredential){
+    public LEARCredentialEmployee mapStringToLEARCredentialEmployee(String learCredential) {
         try {
             LEARCredentialEmployee employee;
-            if(learCredential.contains("https://trust-framework.dome-marketplace.eu/credentials/learcredentialemployee/v1")){
+            if (learCredential.contains("https://trust-framework.dome-marketplace.eu/credentials/learcredentialemployee/v1")) {
                 employee = objectMapper.readValue(learCredential, LEARCredentialEmployee.class);
-            } else if(learCredential.contains("https://www.dome-marketplace.eu/2025/credentials/learcredentialemployee/v2")){
+            } else if (learCredential.contains("https://www.dome-marketplace.eu/2025/credentials/learcredentialemployee/v2")) {
                 JsonNode learCredentialEmployee = objectMapper.readTree(learCredential);
                 learCredentialEmployee.get("credentialSubject").get("mandate").get("power").forEach(power -> {
                     ((ObjectNode) power).remove("tmf_function");
@@ -103,17 +107,31 @@ public class LEARCredentialEmployeeFactory {
         LEARCredentialEmployee.CredentialSubject.Mandate mandate = createMandate(baseCredentialSubject, mandatee, populatedPowers);
         LEARCredentialEmployee.CredentialSubject credentialSubject = createCredentialSubject(mandate);
 
-        LEARCredentialEmployee credentialEmployee = LEARCredentialEmployee.builder()
-                .context(CREDENTIAL_CONTEXT)
-                .id(UUID.randomUUID().toString())
-                .type(List.of(LEAR_CREDENTIAL_EMPLOYEE, VERIFIABLE_CREDENTIAL))
-                .description(LEAR_CREDENTIAL_EMPLOYEE_DESCRIPTION)
-                .credentialSubject(credentialSubject)
-                .validFrom(validFrom)
-                .validUntil(validUntil)
-                .build();
+        String credentialId = UUID.randomUUID().toString();
 
-        return Mono.just(credentialEmployee);
+        return buildCredentialStatus()
+                .map(credentialStatus -> LEARCredentialEmployee.builder()
+                        .context(CREDENTIAL_CONTEXT)
+                        .id(credentialId)
+                        .type(List.of(LEAR_CREDENTIAL_EMPLOYEE, VERIFIABLE_CREDENTIAL))
+                        .description(LEAR_CREDENTIAL_EMPLOYEE_DESCRIPTION)
+                        .credentialSubject(credentialSubject)
+                        .validFrom(validFrom)
+                        .validUntil(validUntil)
+                        .credentialStatus(credentialStatus)
+                        .build());
+    }
+
+    private Mono<CredentialStatus> buildCredentialStatus() {
+        String statusListCredential = corsProperties.defaultAllowedOrigins().stream().findFirst() + "/credentials/status/1";
+        return generateCustomNonce()
+                .map(nonce -> CredentialStatus.builder()
+                        .id(statusListCredential + "#" + nonce)
+                        .type("PlainListEntity")
+                        .statusPurpose("revocation")
+                        .statusListIndex(nonce)
+                        .statusListCredential(statusListCredential)
+                        .build());
     }
 
     private List<Power> createPopulatedPowers(
@@ -189,7 +207,7 @@ public class LEARCredentialEmployeeFactory {
                         .nationality(baseMandatee.nationality())
                         .build();
 
-        return Mono.just( LEARCredentialEmployee.builder()
+        return Mono.just(LEARCredentialEmployee.builder()
                 .context(decodedCredential.context())
                 .id(decodedCredential.id())
                 .type(decodedCredential.type())
@@ -209,6 +227,7 @@ public class LEARCredentialEmployeeFactory {
                                 )
                                 .build()
                 )
+                .credentialStatus(decodedCredential.credentialStatus())
                 .build()
         );
     }
@@ -216,15 +235,16 @@ public class LEARCredentialEmployeeFactory {
     private Mono<LEARCredentialEmployee> bindIssuerToLearCredentialEmployee(LEARCredentialEmployee decodedCredential, String procedureId) {
         return issuerFactory.createIssuer(procedureId, LEAR_CREDENTIAL_EMPLOYEE)
                 .map(issuer -> LEARCredentialEmployee.builder()
-                    .context(decodedCredential.context())
-                    .id(decodedCredential.id())
-                    .type(decodedCredential.type())
-                    .description(decodedCredential.description())
-                    .issuer(issuer)
-                    .validFrom(decodedCredential.validFrom())
-                    .validUntil(decodedCredential.validUntil())
-                    .credentialSubject(decodedCredential.credentialSubject())
-                    .build());
+                        .context(decodedCredential.context())
+                        .id(decodedCredential.id())
+                        .type(decodedCredential.type())
+                        .description(decodedCredential.description())
+                        .issuer(issuer)
+                        .validFrom(decodedCredential.validFrom())
+                        .validUntil(decodedCredential.validUntil())
+                        .credentialSubject(decodedCredential.credentialSubject())
+                        .credentialStatus(decodedCredential.credentialStatus())
+                        .build());
     }
 
     private Mono<String> convertLEARCredentialEmployeeInToString(LEARCredentialEmployee credentialDecoded) {

@@ -1,7 +1,7 @@
 package es.in2.issuer.backend.backoffice.domain.service.impl;
 
 import es.in2.issuer.backend.shared.domain.exception.EmailCommunicationException;
-import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatus;
+import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum;
 import es.in2.issuer.backend.shared.domain.service.CredentialProcedureService;
 import es.in2.issuer.backend.shared.domain.service.DeferredCredentialMetadataService;
 import es.in2.issuer.backend.shared.domain.service.EmailService;
@@ -51,7 +51,7 @@ class NotificationServiceImplTest {
     void testSendNotification_DraftStatus() {
         String transactionCode = "transactionCode";
         when(credentialProcedureService.getCredentialStatusByProcedureId(procedureId))
-                .thenReturn(Mono.just(CredentialStatus.DRAFT.toString()));
+                .thenReturn(Mono.just(CredentialStatusEnum.DRAFT.toString()));
         when(credentialProcedureService.getMandateeEmailFromDecodedCredentialByProcedureId(procedureId))
                 .thenReturn(Mono.just(email));
         when(credentialProcedureService.getMandateeCompleteNameFromDecodedCredentialByProcedureId(procedureId))
@@ -78,7 +78,7 @@ class NotificationServiceImplTest {
         String transactionCode = "transactionCode";
 
         when(credentialProcedureService.getCredentialStatusByProcedureId(procedureId))
-                .thenReturn(Mono.just(CredentialStatus.DRAFT.toString()));
+                .thenReturn(Mono.just(CredentialStatusEnum.DRAFT.toString()));
         when(credentialProcedureService.getMandateeEmailFromDecodedCredentialByProcedureId(procedureId))
                 .thenReturn(Mono.just(email));
         when(credentialProcedureService.getMandateeCompleteNameFromDecodedCredentialByProcedureId(procedureId))
@@ -110,7 +110,7 @@ class NotificationServiceImplTest {
     @Test
     void testSendNotification_WithPendDownloadStatus() {
         when(credentialProcedureService.getCredentialStatusByProcedureId(procedureId))
-                .thenReturn(Mono.just(CredentialStatus.PEND_DOWNLOAD.toString()));
+                .thenReturn(Mono.just(CredentialStatusEnum.PEND_DOWNLOAD.toString()));
         when(credentialProcedureService.getMandateeEmailFromDecodedCredentialByProcedureId(procedureId))
                 .thenReturn(Mono.just(email));
         when(credentialProcedureService.getMandateeCompleteNameFromDecodedCredentialByProcedureId(procedureId))
