@@ -1,7 +1,7 @@
 package es.in2.issuer.backend.shared.domain.model.entities;
 
 import brave.internal.Nullable;
-import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatus;
+import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum;
 import lombok.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Column;
@@ -35,7 +35,7 @@ public class CredentialProcedure {
     private String credentialEncoded;
 
     @Column("credential_status")
-    private CredentialStatus credentialStatus;
+    private CredentialStatusEnum credentialStatus;
 
     @Column("organization_identifier")
     private String organizationIdentifier;

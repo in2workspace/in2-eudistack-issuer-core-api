@@ -3,6 +3,7 @@ package es.in2.issuer.backend.shared.domain.model.dto.credential.lear.employee;
 import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import es.in2.issuer.backend.shared.domain.model.dto.credential.CredentialStatus;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.Issuer;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.IssuerDeserializer;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.*;
@@ -19,7 +20,8 @@ public record LEARCredentialEmployee(
         @JsonProperty("credentialSubject") CredentialSubject credentialSubject,
         @JsonProperty("issuer") @JsonDeserialize(using = IssuerDeserializer.class) Issuer issuer,
         @JsonProperty("validFrom") String validFrom,
-        @JsonProperty("validUntil") String validUntil
+        @JsonProperty("validUntil") String validUntil,
+        @JsonProperty("credentialStatus") CredentialStatus credentialStatus
 ) implements LEARCredential {
 
     @Builder

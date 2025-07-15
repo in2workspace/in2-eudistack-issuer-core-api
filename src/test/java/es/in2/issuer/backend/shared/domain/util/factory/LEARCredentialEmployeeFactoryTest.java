@@ -14,6 +14,7 @@ import es.in2.issuer.backend.shared.domain.service.impl.RemoteSignatureServiceIm
 import es.in2.issuer.backend.shared.domain.util.Constants;
 import es.in2.issuer.backend.shared.infrastructure.config.DefaultSignerConfig;
 import es.in2.issuer.backend.shared.infrastructure.config.RemoteSignatureConfig;
+import es.in2.issuer.backend.shared.infrastructure.config.properties.CorsProperties;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -52,7 +53,10 @@ class LEARCredentialEmployeeFactoryTest {
     @Mock
     private RemoteSignatureServiceImpl remoteSignatureServiceImpl;
 
-    
+    @Mock
+    private CorsProperties corsProperties;
+
+
     @Test
     void testBindCryptographicCredentialSubjectId() throws JsonProcessingException, InvalidCredentialFormatException {
         //Arrange

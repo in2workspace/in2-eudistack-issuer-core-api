@@ -13,7 +13,7 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.MAIL_ERROR_COMMUNICATION_EXCEPTION_MESSAGE;
-import static es.in2.issuer.backend.shared.domain.model.enums.CredentialStatus.*;
+import static es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum.*;
 
 @Slf4j
 @Service
