@@ -7,7 +7,7 @@ import es.in2.issuer.backend.shared.domain.model.dto.CredentialDetails;
 import es.in2.issuer.backend.shared.domain.model.dto.CredentialProcedureCreationRequest;
 import es.in2.issuer.backend.shared.domain.model.dto.CredentialProcedures;
 import es.in2.issuer.backend.shared.domain.model.entities.CredentialProcedure;
-import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatus;
+import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum;
 import es.in2.issuer.backend.shared.domain.model.enums.CredentialType;
 import es.in2.issuer.backend.shared.infrastructure.repository.CredentialProcedureRepository;
 import org.junit.jupiter.api.Test;
@@ -703,7 +703,7 @@ class CredentialProcedureServiceImplTest {
                             credentialProcedureList.get(1).credentialProcedure().procedureId().equals(procedureId2) &&
                             credentialProcedureList.get(1).credentialProcedure().subject().equals("ProductName") &&
                             credentialProcedureList.get(1).credentialProcedure().status().equals(CredentialStatusEnum.DRAFT.name()) &&
-                            credentialProcedureList.get(1).credentialProcedure().credentialType().equals(CredentialType.VERIFIABLE_CERTIFICATION.name()) &&
+                            credentialProcedureList.get(1).credentialProcedure().credentialType().equals(CredentialType.LABEL_CREDENTIAL.name()) &&
                             credentialProcedureList.get(1).credentialProcedure().updated().equals(updated2);
                 })
                 .verifyComplete();
