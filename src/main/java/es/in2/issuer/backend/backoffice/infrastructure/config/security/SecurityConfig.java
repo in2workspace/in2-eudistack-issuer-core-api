@@ -72,7 +72,8 @@ public class SecurityConfig {
                                         CORS_CREDENTIAL_OFFER_PATH,
                                         CREDENTIAL_ISSUER_METADATA_WELL_KNOWN_PATH,
                                         AUTHORIZATION_SERVER_METADATA_WELL_KNOWN_PATH,
-                                        PROMETHEUS_PATH
+                                        PROMETHEUS_PATH,
+                                        STATUS_CREDENTIALS
                                 ),
                                 ServerWebExchangeMatchers.pathMatchers(
                                         HttpMethod.POST,
@@ -94,7 +95,8 @@ public class SecurityConfig {
                                 CORS_CREDENTIAL_OFFER_PATH,
                                 CREDENTIAL_ISSUER_METADATA_WELL_KNOWN_PATH,
                                 AUTHORIZATION_SERVER_METADATA_WELL_KNOWN_PATH,
-                                PROMETHEUS_PATH
+                                PROMETHEUS_PATH,
+                                STATUS_CREDENTIALS
                         ).permitAll()
                         .pathMatchers(
                                 HttpMethod.POST,
