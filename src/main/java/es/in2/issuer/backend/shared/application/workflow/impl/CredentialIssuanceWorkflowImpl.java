@@ -135,18 +135,20 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
             String token) {
 
         return parseAuthServerNonce(token)
-                .flatMap(nonce ->
-                        deferredCredentialMetadataService.getDeferredCredentialMetadataByAuthServerNonce(nonce)
-                                .flatMap(deferred -> {
-                                    System.out.println("holaa 1: " + deferred);
-                                            return credentialProcedureService.getCredentialProcedureById(deferred.getProcedureId().toString())
-                                                    .zipWhen(proc -> {
-                                                        System.out.println("hola 2: " + proc);
-                                                        return credentialIssuerMetadataService.getCredentialIssuerMetadata(processId);
-                                                    })
-                                                    .map(tuple -> Tuples.of(nonce, deferred, tuple.getT1(), tuple.getT2()));
-                                        }
-                                )
+                .flatMap(nonce -> {
+                    System.out.println("hello");
+                            return deferredCredentialMetadataService.getDeferredCredentialMetadataByAuthServerNonce(nonce)
+                                    .flatMap(deferred -> {
+                                                System.out.println("holaa 1: " + deferred);
+                                                return credentialProcedureService.getCredentialProcedureById(deferred.getProcedureId().toString())
+                                                        .zipWhen(proc -> {
+                                                            System.out.println("hola 2: " + proc);
+                                                            return credentialIssuerMetadataService.getCredentialIssuerMetadata(processId);
+                                                        })
+                                                        .map(tuple -> Tuples.of(nonce, deferred, tuple.getT1(), tuple.getT2()));
+                                            }
+                                    );
+                        }
                 )
                 .flatMap(tuple4 -> {
                     String nonce = tuple4.getT1();

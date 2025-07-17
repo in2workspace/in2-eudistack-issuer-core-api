@@ -31,8 +31,10 @@ public class CredentialController {
             @RequestBody CredentialRequest credentialRequest) {
         String processId = UUID.randomUUID().toString();
         return accessTokenService.getCleanBearerToken(authorizationHeader)
-                .flatMap(token ->
-                        credentialIssuanceWorkflow.generateVerifiableCredentialResponse(processId, credentialRequest, token))
+                .flatMap(token -> {
+                    System.out.println("HOLLAAAAAAAAAAAA");
+                    return credentialIssuanceWorkflow.generateVerifiableCredentialResponse(processId, credentialRequest, token);
+                })
                 .map(verifiableCredentialResponse -> {
                     if (verifiableCredentialResponse.transactionId() != null) {
                         return ResponseEntity.status(HttpStatus.ACCEPTED).body(verifiableCredentialResponse);
