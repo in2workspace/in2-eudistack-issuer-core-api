@@ -6,7 +6,6 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.CredentialStatus;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.Issuer;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.IssuerDeserializer;
-import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.CredentialStatusObject;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.LEARCredential;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.Power;
 import lombok.Builder;

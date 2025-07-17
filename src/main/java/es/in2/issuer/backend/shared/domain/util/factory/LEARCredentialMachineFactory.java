@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import es.in2.issuer.backend.shared.domain.exception.InvalidCredentialFormatException;
 import es.in2.issuer.backend.shared.domain.model.dto.CredentialProcedureCreationRequest;
-import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.CredentialStatusObject;
+import es.in2.issuer.backend.shared.domain.model.dto.credential.CredentialStatus;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.machine.LEARCredentialMachine;
 import es.in2.issuer.backend.shared.domain.model.enums.CredentialType;
 import es.in2.issuer.backend.shared.domain.service.AccessTokenService;
@@ -83,9 +83,9 @@ public class LEARCredentialMachineFactory {
         return Mono.just(learCredentialMachine);
     }
 
-    private CredentialStatusObject buildCredentialStatus(String credentialId) {
+    private CredentialStatus buildCredentialStatus(String credentialId) {
         String statusListCredential = corsProperties.defaultAllowedOrigins().stream().findFirst() + "/credentials/status/1";
-        return CredentialStatusObject.builder()
+        return CredentialStatus.builder()
                 .id(statusListCredential + "#" + credentialId)
                 .type("PlainListEntity")
                 .statusPurpose("revocation")

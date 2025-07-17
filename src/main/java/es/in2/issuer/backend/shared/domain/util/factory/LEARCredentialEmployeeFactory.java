@@ -111,7 +111,7 @@ public class LEARCredentialEmployeeFactory {
 
         return buildCredentialStatus()
                 .map(credentialStatus -> LEARCredentialEmployee.builder()
-                        .context(CREDENTIAL_CONTEXT)
+                        .context(CREDENTIAL_CONTEXT_LEAR_CREDENTIAL_EMPLOYEE)
                         .id(credentialId)
                         .type(List.of(LEAR_CREDENTIAL_EMPLOYEE, VERIFIABLE_CREDENTIAL))
                         .description(LEAR_CREDENTIAL_EMPLOYEE_DESCRIPTION)
