@@ -123,7 +123,7 @@ public class LEARCredentialEmployeeFactory {
     }
 
     private Mono<CredentialStatus> buildCredentialStatus() {
-        String statusListCredential = appConfig.getIssuerBackendUrl() + "/credentials/status/1";
+        String statusListCredential = appConfig.getIssuerBackendUrl() + "/backoffice/v1/credentials/status/1";
         return generateCustomNonce()
                 .map(nonce -> CredentialStatus.builder()
                         .id(statusListCredential + "#" + nonce)
