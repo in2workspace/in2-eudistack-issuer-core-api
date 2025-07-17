@@ -12,7 +12,7 @@ import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.Power;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.employee.LEARCredentialEmployee;
 import es.in2.issuer.backend.shared.domain.model.enums.CredentialType;
 import es.in2.issuer.backend.shared.domain.service.AccessTokenService;
-import es.in2.issuer.backend.shared.infrastructure.config.properties.CorsProperties;
+import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -38,7 +38,7 @@ public class LEARCredentialEmployeeFactory {
     private final ObjectMapper objectMapper;
     private final AccessTokenService accessTokenService;
     private final IssuerFactory issuerFactory;
-    private final CorsProperties corsProperties;
+    private final AppConfig appConfig;
 
     public Mono<String> mapCredentialAndBindMandateeIdInToTheCredential(String decodedCredentialString, String mandateeId) {
         LEARCredentialEmployee decodedCredential = mapStringToLEARCredentialEmployee(decodedCredentialString);
@@ -123,7 +123,7 @@ public class LEARCredentialEmployeeFactory {
     }
 
     private Mono<CredentialStatus> buildCredentialStatus() {
-        String statusListCredential = corsProperties.defaultAllowedOrigins().stream().findFirst() + "/credentials/status/1";
+        String statusListCredential = appConfig.getIssuerBackendUrl() + "/credentials/status/1";
         return generateCustomNonce()
                 .map(nonce -> CredentialStatus.builder()
                         .id(statusListCredential + "#" + nonce)
