@@ -74,39 +74,6 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                 .then(verifiableCredentialService.generateVc(processId, preSubmittedCredentialDataRequest, emailInfo.email())
                         .flatMap(transactionCode -> sendCredentialOfferEmail(transactionCode, emailInfo))
                 );
-//                    } else if (preSubmittedCredentialRequest.schema().equals(LABEL_CREDENTIAL)) {
-//                        // Check if responseUri is null, empty, or only contains whitespace
-//                        if (preSubmittedCredentialRequest.responseUri() == null || preSubmittedCredentialRequest.responseUri().isBlank()) {
-//                            return Mono.error(new OperationNotSupportedException("For schema: " + preSubmittedCredentialRequest.schema() + " response_uri is required"));
-//                        }
-//                        // Extract values from payload
-//                        String productId = preSubmittedCredentialRequest.payload()
-//                                .get(CREDENTIAL_SUBJECT)
-//                                .get(PRODUCT)
-//                                .get(PRODUCT_ID)
-//                                .asText();
-//
-//                        String companyEmail = preSubmittedCredentialRequest.payload()
-//                                .get(CREDENTIAL_SUBJECT)
-//                                .get(COMPANY)
-//                                .get(EMAIL)
-//                                .asText();
-//                        return verifiableCredentialService.generateVerifiableCertification(processId, preSubmittedCredentialRequest, idToken)
-//                                .flatMap(procedureId -> issuerApiClientTokenService.getClientToken()
-//                                        .flatMap(internalToken -> credentialSignerWorkflow.signAndUpdateCredentialByProcedureId(BEARER_PREFIX + internalToken, procedureId, JWT_VC))
-//                                        // todo instead of updating the credential status to valid, we should update the credential status to pending download but we don't support the verifiable certification download yet
-//                                        .flatMap(encodedVc -> credentialProcedureService.updateCredentialProcedureCredentialStatusToValidByProcedureId(procedureId)
-//                                                .then(m2mTokenService.getM2MToken()
-//                                                        .flatMap(m2mAccessToken ->
-//                                                                credentialDeliveryService.sendVcToResponseUri(
-//                                                                        preSubmittedCredentialRequest.responseUri(),
-//                                                                        encodedVc,
-//                                                                        productId,
-//                                                                        companyEmail,
-//                                                                        m2mAccessToken.accessToken())))));
-//                    }
-//                    return Mono.error(new CredentialTypeUnsupportedException(preSubmittedCredentialRequest.schema()));
-//                }));
     }
 
     private Mono<Void> sendCredentialOfferEmail(
@@ -178,7 +145,7 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                 )
                 .flatMap(tuple4 -> {
                     String nonce = tuple4.getT1();
-                    DeferredCredentialMetadata deferred = tuple4.getT2();
+                    DeferredCredentialMetadata deferredCredentialMetadata = tuple4.getT2();
                     CredentialProcedure proc = tuple4.getT3();
                     CredentialIssuerMetadata md = tuple4.getT4();
 
@@ -203,7 +170,7 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                                     nonce,
                                     cr,
                                     proc,
-                                    deferred
+                                    deferredCredentialMetadata
                             )
                     );
                 });
@@ -222,17 +189,17 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
     // This method determines the subject DID base on the credential type and proof provided in the request,
     // if proof is not needed it returns null.
     private Mono<String> determineSubjectDid(
-            CredentialProcedure proc,
+            CredentialProcedure credentialProcedure,
             CredentialIssuerMetadata metadata,
             CredentialRequest credentialRequest,
             String token) {
 
         final CredentialType typeEnum;
         try {
-            typeEnum = CredentialType.valueOf(proc.getCredentialType());
+            typeEnum = CredentialType.valueOf(credentialProcedure.getCredentialType());
         } catch (IllegalArgumentException e) {
             return Mono.error(new FormatUnsupportedException(
-                    "Unknown credential type: " + proc.getCredentialType()));
+                    "Unknown credential type: " + credentialProcedure.getCredentialType()));
         }
 
         return Mono.justOrEmpty(

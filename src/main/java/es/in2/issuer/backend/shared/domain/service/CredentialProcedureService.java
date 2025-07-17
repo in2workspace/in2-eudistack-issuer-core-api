@@ -25,12 +25,6 @@ public interface CredentialProcedureService {
 
     Mono<String> getOperationModeByProcedureId(String procedureId);
 
-//    Mono<String> getMandateeEmailFromDecodedCredentialByProcedureId(String procedureId);
-
-//    Mono<String> getMandateeFirstNameFromDecodedCredentialByProcedureId(String procedureId);
-
-//    Mono<String> getMandateeCompleteNameFromDecodedCredentialByProcedureId(String procedureId);
-
     Mono<String> getSignerEmailFromDecodedCredentialByProcedureId(String procedureId);
 
     Flux<String> getAllIssuedCredentialByOrganizationIdentifier(String organizationIdentifier);
@@ -44,8 +38,6 @@ public interface CredentialProcedureService {
     Mono<Void> updateCredentialProcedureCredentialStatusToRevoke(CredentialProcedure credentialProcedure);
 
     Mono<String> updatedEncodedCredentialByCredentialId(String encodedCredential, String credentialId);
-
-//    Mono<String> getMandatorOrganizationFromDecodedCredentialByProcedureId(String procedureId);
 
     Mono<CredentialProcedure> getCredentialProcedureById(String procedureId);
 
