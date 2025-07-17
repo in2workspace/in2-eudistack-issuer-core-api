@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Label credential issuance.
 
+## [v2.1.2](https://github.com/in2workspace/in2-issuer-api/releases/tag/v2.1.2)
+### Fixed
+- Fixed url backend in Credential Status
+
+
 ## [v2.1.1](https://github.com/in2workspace/in2-issuer-api/releases/tag/v2.1.1)
 ### Fixed
 - No security for revocation GET endpoint.

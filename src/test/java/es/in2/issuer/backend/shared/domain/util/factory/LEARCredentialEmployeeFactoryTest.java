@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import es.in2.issuer.backend.shared.domain.exception.InvalidCredentialFormatException;
+import es.in2.issuer.backend.shared.domain.model.dto.CredentialProcedureCreationRequest;
 import es.in2.issuer.backend.shared.domain.model.dto.LEARCredentialEmployeeJwtPayload;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.DetailedIssuer;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.Mandator;
@@ -12,9 +13,9 @@ import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.employee.LE
 import es.in2.issuer.backend.shared.domain.service.AccessTokenService;
 import es.in2.issuer.backend.shared.domain.service.impl.RemoteSignatureServiceImpl;
 import es.in2.issuer.backend.shared.domain.util.Constants;
+import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
 import es.in2.issuer.backend.shared.infrastructure.config.DefaultSignerConfig;
 import es.in2.issuer.backend.shared.infrastructure.config.RemoteSignatureConfig;
-import es.in2.issuer.backend.shared.infrastructure.config.properties.CorsProperties;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -23,6 +24,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -54,11 +56,11 @@ class LEARCredentialEmployeeFactoryTest {
     private RemoteSignatureServiceImpl remoteSignatureServiceImpl;
 
     @Mock
-    private CorsProperties corsProperties;
+    private AppConfig appConfig;
 
 
     @Test
-    void testBindCryptographicCredentialSubjectId() throws JsonProcessingException, InvalidCredentialFormatException {
+    void testMapCredentialAndBindMandateeIdInToTheCredential() throws JsonProcessingException, InvalidCredentialFormatException {
         //Arrange
         String learCredential = "validCredentialStringhttps://trust-framework.dome-marketplace.eu/credentials/learcredentialemployee/v1";
         String mandateeId = "mandateeId";
@@ -112,6 +114,7 @@ class LEARCredentialEmployeeFactoryTest {
 //        when(objectMapper.writeValueAsString(any(LEARCredentialEmployee.class))).thenReturn(json);
 //        when(accessTokenService.getOrganizationIdFromCurrentSession()).thenReturn(Mono.just("orgId"));
 //
+//        when(appConfig.getIssuerBackendUrl()).thenReturn("https://example.org");
 //        // Act
 //        Mono<CredentialProcedureCreationRequest> result = learCredentialEmployeeFactory.mapAndBuildLEARCredentialEmployee(jsonNode, "S");
 //
