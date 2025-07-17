@@ -13,6 +13,7 @@ import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.employee.LE
 import es.in2.issuer.backend.shared.domain.service.AccessTokenService;
 import es.in2.issuer.backend.shared.domain.service.impl.RemoteSignatureServiceImpl;
 import es.in2.issuer.backend.shared.domain.util.Constants;
+import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
 import es.in2.issuer.backend.shared.infrastructure.config.DefaultSignerConfig;
 import es.in2.issuer.backend.shared.infrastructure.config.RemoteSignatureConfig;
 import org.junit.jupiter.api.Test;
@@ -53,6 +54,9 @@ class LEARCredentialEmployeeFactoryTest {
 
     @Mock
     private RemoteSignatureServiceImpl remoteSignatureServiceImpl;
+
+    @Mock
+    private AppConfig appConfig;
 
     
     @Test
@@ -110,6 +114,7 @@ class LEARCredentialEmployeeFactoryTest {
         when(objectMapper.writeValueAsString(any(LEARCredentialEmployee.class))).thenReturn(json);
         when(accessTokenService.getOrganizationIdFromCurrentSession()).thenReturn(Mono.just("orgId"));
 
+        when(appConfig.getIssuerBackendUrl()).thenReturn("https://example.org");
         // Act
         Mono<CredentialProcedureCreationRequest> result = learCredentialEmployeeFactory.mapAndBuildLEARCredentialEmployee(jsonNode, "S");
 

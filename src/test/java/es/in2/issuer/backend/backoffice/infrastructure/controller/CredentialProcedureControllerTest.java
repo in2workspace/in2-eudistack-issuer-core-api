@@ -64,7 +64,7 @@ class CredentialProcedureControllerTest {
         String procedureId = "testProcedureId";
         CredentialDetails credentialDetails = CredentialDetails.builder()
                 .procedureId(UUID.randomUUID())
-                .credentialStatus("testCredentialStatus")
+                .lifeCycleStatus("testCredentialStatus")
                 .credential(null)
                 .build();
         when(accessTokenService.getOrganizationId(anyString())).thenReturn(Mono.just(organizationId));

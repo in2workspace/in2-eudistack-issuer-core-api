@@ -9,7 +9,7 @@ import es.in2.issuer.backend.shared.domain.model.dto.SignatureRequest;
 import es.in2.issuer.backend.shared.domain.model.dto.SignedData;
 import es.in2.issuer.backend.shared.domain.model.entities.CredentialProcedure;
 import es.in2.issuer.backend.shared.domain.model.entities.DeferredCredentialMetadata;
-import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatus;
+import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum;
 import es.in2.issuer.backend.shared.domain.model.enums.SignatureType;
 import es.in2.issuer.backend.shared.domain.service.CredentialProcedureService;
 import es.in2.issuer.backend.shared.domain.service.DeferredCredentialMetadataService;
@@ -177,6 +177,10 @@ class RemoteSignatureServiceImplTest {
         when(objectMapper.readValue(accessTokenResponse, Map.class))
                 .thenReturn(Map.of("access_token", "mock-access-token"));
 
+        when(httpUtils.postRequest(eq("https://api.external.com/csc/v2/credentials/authorize"), any(), any()))
+                .thenReturn(Mono.just("{\"SAD\": \"1234\"}"));
+        when(objectMapper.readValue("{\"SAD\": \"1234\"}", Map.class)).thenReturn(Map.of("SAD", "1234"));
+
         when(hashGeneratorService.generateHash(signatureRequest.data(), hashAlgo)).thenReturn("mock-hash");
 
         when(objectMapper.readValue(signedDocumentResponse, Map.class))
@@ -330,7 +334,7 @@ class RemoteSignatureServiceImplTest {
         verify(deferredCredentialMetadataRepository).save(deferredProcedure);
 
         verify(procedure).setOperationMode(ASYNC);
-        verify(procedure).setCredentialStatus(CredentialStatus.PEND_SIGNATURE);
+        verify(procedure).setCredentialStatus(CredentialStatusEnum.PEND_SIGNATURE);
         verify(deferredProcedure).setOperationMode(ASYNC);
     }
     
@@ -365,6 +369,10 @@ class RemoteSignatureServiceImplTest {
         when(objectMapper.readValue("{DocumentWithSignature: [ZGF0YQo=]}", Map.class)).thenReturn(mockResponseMap2);
 
         when(jwtUtils.decodePayload(any())).thenReturn("\"vc\": {\"id\": \"fa7376e0-fcc1-44c0-a91e-001a1301c06e\"}");
+
+        when(httpUtils.postRequest(eq("http://remote-signature.com/csc/v2/credentials/authorize"), any(), any()))
+                .thenReturn(Mono.just("{\"SAD\": \"1234\"}"));
+        when(objectMapper.readValue("{\"SAD\": \"1234\"}", Map.class)).thenReturn(Map.of("SAD", "1234"));
 
         // Act
         Mono<SignedData> result = remoteSignatureService.sign(signatureRequest, token, procedureId);
@@ -412,6 +420,10 @@ class RemoteSignatureServiceImplTest {
         Map<String, Object> mockResponseMap = new HashMap<>();
         mockResponseMap.put("access_token", "mockAccessToken");
 
+        when(httpUtils.postRequest(eq("http://remote-signature.com/csc/v2/credentials/authorize"), any(), any()))
+                .thenReturn(Mono.just("{\"SAD\": \"1234\"}"));
+        when(objectMapper.readValue("{\"SAD\": \"1234\"}", Map.class)).thenReturn(Map.of("SAD", "1234"));
+
         when(objectMapper.readValue("{\"access_token\": \"mockAccessToken\"}", Map.class)).thenReturn(mockResponseMap);
 
         when(httpUtils.postRequest(eq("http://remote-signature.com/csc/v2/signatures/signDoc"), any(), any()))
@@ -438,7 +450,7 @@ class RemoteSignatureServiceImplTest {
                 .expectComplete()
                 .verify();
 
-        verify(httpUtils, times(4)).postRequest(any(), any(), any());
+        verify(httpUtils, times(7)).postRequest(any(), any(), any());
         // Verify deferredCredentialMetadataService was called to delete the metadata
         verify(deferredCredentialMetadataService).deleteDeferredCredentialMetadataById(procedureId);
 
@@ -523,7 +535,7 @@ class RemoteSignatureServiceImplTest {
         verify(deferredCredentialMetadataService, never()).deleteDeferredCredentialMetadataById(anyString());
 
         Assertions.assertEquals(ASYNC, procedure.getOperationMode());
-        Assertions.assertEquals(CredentialStatus.PEND_SIGNATURE, procedure.getCredentialStatus());
+        Assertions.assertEquals(CredentialStatusEnum.PEND_SIGNATURE, procedure.getCredentialStatus());
         Assertions.assertEquals(ASYNC, deferredMetadata.getOperationMode());
 
     }
