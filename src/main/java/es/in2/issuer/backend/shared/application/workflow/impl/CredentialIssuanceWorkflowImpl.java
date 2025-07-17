@@ -137,25 +137,35 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
         return parseAuthServerNonce(token)
                 .flatMap(nonce ->
                         deferredCredentialMetadataService.getDeferredCredentialMetadataByAuthServerNonce(nonce)
-                                .flatMap(deferred ->
-                                        credentialProcedureService.getCredentialProcedureById(deferred.getProcedureId().toString())
-                                                .zipWhen(proc -> credentialIssuerMetadataService.getCredentialIssuerMetadata(processId))
-                                                .map(tuple -> Tuples.of(nonce, deferred, tuple.getT1(), tuple.getT2()))
+                                .flatMap(deferred -> {
+                                    System.out.println("holaa 1: " + deferred);
+                                            return credentialProcedureService.getCredentialProcedureById(deferred.getProcedureId().toString())
+                                                    .zipWhen(proc -> {
+                                                        System.out.println("hola 2: " + proc);
+                                                        return credentialIssuerMetadataService.getCredentialIssuerMetadata(processId);
+                                                    })
+                                                    .map(tuple -> Tuples.of(nonce, deferred, tuple.getT1(), tuple.getT2()));
+                                        }
                                 )
                 )
                 .flatMap(tuple4 -> {
                     String nonce = tuple4.getT1();
                     DeferredCredentialMetadata deferredCredentialMetadata = tuple4.getT2();
+                    System.out.println("hola 3: " + deferredCredentialMetadata);
                     CredentialProcedure proc = tuple4.getT3();
+                    System.out.println("hola 4: " + proc);
                     CredentialIssuerMetadata md = tuple4.getT4();
+                    System.out.println("hola 5: " + md);
 
                     Mono<String> subjectDidMono = determineSubjectDid(proc, md, credentialRequest, token);
 
                     Mono<CredentialResponse> vcMono = subjectDidMono
-                            .flatMap(did ->
-                                    verifiableCredentialService.buildCredentialResponse(
-                                            processId, did, nonce, token
-                                    )
+                            .flatMap(did -> {
+                                System.out.println("hola 6: " + did);
+                                        return verifiableCredentialService.buildCredentialResponse(
+                                                processId, did, nonce, token
+                                        );
+                                    }
                             )
                             .switchIfEmpty(
                                     verifiableCredentialService.buildCredentialResponse(
