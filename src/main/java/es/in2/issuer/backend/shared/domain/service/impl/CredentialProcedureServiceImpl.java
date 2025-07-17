@@ -235,17 +235,26 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
     @Override
     public Mono<CredentialProcedures> getAllProceduresBasicInfoByOrganizationId(String organizationIdentifier) {
         return credentialProcedureRepository.findAllByOrganizationIdentifier(organizationIdentifier)
-                .flatMap(credentialProcedure -> getCredentialTypeByProcedureId(String.valueOf(credentialProcedure.getProcedureId()))
-                        .flatMap(credentialType -> Mono.just(ProcedureBasicInfo.builder()
-                                .procedureId(credentialProcedure.getProcedureId())
-                                .subject(credentialProcedure.getSubject())
-                                .credentialType(credentialProcedure.getCredentialType())
-                                .status(String.valueOf(credentialProcedure.getCredentialStatus()))
-                                .updated(credentialProcedure.getUpdatedAt())
-                                .build())))
-                .map(procedureBasicInfo -> CredentialProcedures.CredentialProcedure.builder()
-                        .credentialProcedure(procedureBasicInfo)
-                        .build())
+                .flatMap(credentialProcedure -> {
+                    System.out.println("hola 1: " + credentialProcedure);
+                    return getCredentialTypeByProcedureId(String.valueOf(credentialProcedure.getProcedureId()))
+                            .flatMap(credentialType -> {
+                                System.out.println("hola 2: " + credentialType);
+                                return Mono.just(ProcedureBasicInfo.builder()
+                                        .procedureId(credentialProcedure.getProcedureId())
+                                        .subject(credentialProcedure.getSubject())
+                                        .credentialType(credentialProcedure.getCredentialType())
+                                        .status(String.valueOf(credentialProcedure.getCredentialStatus()))
+                                        .updated(credentialProcedure.getUpdatedAt())
+                                        .build());
+                            });
+                })
+                .map(procedureBasicInfo -> {
+                    System.out.println("hola 3: " + procedureBasicInfo);
+                    return CredentialProcedures.CredentialProcedure.builder()
+                            .credentialProcedure(procedureBasicInfo)
+                            .build();
+                })
                 .collectList()
                 .map(CredentialProcedures::new);
     }
