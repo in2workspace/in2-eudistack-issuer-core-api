@@ -10,6 +10,7 @@ import es.in2.issuer.backend.shared.domain.model.dto.LabelCredentialJwtPayload;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.LabelCredential;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.SimpleIssuer;
 import es.in2.issuer.backend.shared.domain.model.enums.CredentialType;
+import es.in2.issuer.backend.shared.domain.service.AccessTokenService;
 import es.in2.issuer.backend.shared.domain.service.CredentialProcedureService;
 import es.in2.issuer.backend.shared.infrastructure.config.DefaultSignerConfig;
 import lombok.RequiredArgsConstructor;
@@ -33,6 +34,7 @@ public class LabelCredentialFactory {
     private final ObjectMapper objectMapper;
     private final CredentialProcedureService credentialProcedureService;
     private final IssuerFactory issuerFactory;
+    private final AccessTokenService accessTokenService;
 
     public Mono<CredentialProcedureCreationRequest> mapAndBuildLabelCredential(JsonNode credential, String operationMode, String email) {
         LabelCredential labelCredential = objectMapper.convertValue(credential, LabelCredential.class);
@@ -148,18 +150,20 @@ public class LabelCredentialFactory {
 
 
     private Mono<CredentialProcedureCreationRequest> buildCredentialProcedureCreationRequest(String decodedCredential, LabelCredential labelCredentialDecoded, String operationMode, String email) {
-        String organizationId = defaultSignerConfig.getOrganizationIdentifier();
-        return Mono.just(CredentialProcedureCreationRequest.builder()
-                .credentialId(labelCredentialDecoded.id())
-                .organizationIdentifier(organizationId)
-                .credentialDecoded(decodedCredential)
-                .credentialType(CredentialType.LABEL_CREDENTIAL)
-                .subject(labelCredentialDecoded.credentialSubject().id())
-                .validUntil(parseEpochSecondIntoTimestamp(parseDateToUnixTime(labelCredentialDecoded.validUntil())))
-                .operationMode(operationMode)
-                .ownerEmail(email)
-                .build()
-        );
+        return accessTokenService.getOrganizationIdFromCurrentSession()
+                .flatMap(organizationId ->
+                        Mono.just(CredentialProcedureCreationRequest.builder()
+                                .credentialId(labelCredentialDecoded.id())
+                                .organizationIdentifier(organizationId)
+                                .credentialDecoded(decodedCredential)
+                                .credentialType(CredentialType.LABEL_CREDENTIAL)
+                                .subject(labelCredentialDecoded.credentialSubject().id())
+                                .validUntil(parseEpochSecondIntoTimestamp(parseDateToUnixTime(labelCredentialDecoded.validUntil())))
+                                .operationMode(operationMode)
+                                .ownerEmail(email)
+                                .build()
+                        )
+                );
     }
 
     private Timestamp parseEpochSecondIntoTimestamp(Long unixEpochSeconds) {
