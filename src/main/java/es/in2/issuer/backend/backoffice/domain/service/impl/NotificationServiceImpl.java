@@ -27,34 +27,30 @@ public class NotificationServiceImpl implements NotificationService {
 
     @Override
     public Mono<Void> sendNotification(String processId, String procedureId) {
-        return credentialProcedureService.getCredentialStatusByProcedureId(procedureId)
-                .flatMap(status -> credentialProcedureService.getMandateeEmailFromDecodedCredentialByProcedureId(procedureId)
-                        .flatMap(email -> credentialProcedureService.getMandateeCompleteNameFromDecodedCredentialByProcedureId(procedureId)
-                                .zipWith(credentialProcedureService.getMandatorOrganizationFromDecodedCredentialByProcedureId(procedureId))
-                                .flatMap(tuple  -> {
-                                    String completeName = tuple.getT1();
-                                    String organization = tuple.getT2();
-                                    // TODO we need to remove the withdraw status from the condition since the v1.2.0 version is deprecated but in order to support retro compatibility issues we will keep it for now.
-                                    if (status.equals(DRAFT.toString()) || status.equals(WITHDRAWN.toString())) {
-                                        return deferredCredentialMetadataService.updateTransactionCodeInDeferredCredentialMetadata(procedureId)
-                                                .flatMap(newTransactionCode -> emailService.sendCredentialActivationEmail(
-                                                        email,
-                                                        "Activate your new credential",
-                                                        appConfig.getIssuerFrontendUrl() + "/credential-offer?transaction_code=" + newTransactionCode,
-                                                        appConfig.getKnowledgebaseWalletUrl(),
-                                                        completeName,
-                                                        organization
-                                                ))
-                                                .onErrorMap(exception ->
-                                                        new EmailCommunicationException(MAIL_ERROR_COMMUNICATION_EXCEPTION_MESSAGE));
-                                    } else if (status.equals(PEND_DOWNLOAD.toString())) {
-                                        return emailService.sendCredentialSignedNotification(email, "Credential Ready", completeName, "You can now use it with your wallet.");
-                                    } else {
-                                        return Mono.empty();
+        return credentialProcedureService.getCredentialProcedureById(procedureId)
+                        .flatMap(credentialProcedure -> credentialProcedureService.getEmailCredentialOfferInfoByProcedureId(procedureId)
+                                        .flatMap( emailCredentialOfferInfo -> {
+                                            // TODO we need to remove the withdraw status from the condition since the v1.2.0 version is deprecated but in order to support retro compatibility issues we will keep it for now.
+                                            if (credentialProcedure.getCredentialStatus().toString().equals(DRAFT.toString()) || credentialProcedure.getCredentialStatus().toString().equals(WITHDRAWN.toString())) {
+                                                return deferredCredentialMetadataService.updateTransactionCodeInDeferredCredentialMetadata(procedureId)
+                                                        .flatMap(newTransactionCode -> emailService.sendCredentialActivationEmail(
+                                                                emailCredentialOfferInfo.email(),
+                                                                "Activate your new credential",
+                                                                appConfig.getIssuerFrontendUrl() + "/credential-offer?transaction_code=" + newTransactionCode,
+                                                                appConfig.getKnowledgebaseWalletUrl(),
+                                                                emailCredentialOfferInfo.user(),
+                                                                emailCredentialOfferInfo.organization()
+                                                        ))
+                                                        .onErrorMap(exception ->
+                                                                new EmailCommunicationException(MAIL_ERROR_COMMUNICATION_EXCEPTION_MESSAGE));
+                                            } else if (credentialProcedure.getCredentialStatus().toString().equals(PEND_DOWNLOAD.toString())) {
+                                                return emailService.sendCredentialSignedNotification(credentialProcedure.getOwnerEmail(), "Credential Ready", emailCredentialOfferInfo.user(), "You can now use it with your wallet.");
+                                            } else {
+                                                return Mono.empty();
+                                            }
                                     }
-                                })
-                        )
-                );
+                                    )
+                        );
     }
 
 }

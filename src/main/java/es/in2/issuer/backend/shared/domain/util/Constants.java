@@ -8,13 +8,14 @@ public final class Constants {
     public static final String VERIFIABLE_CREDENTIAL = "VerifiableCredential";
     public static final String LEAR_CREDENTIAL_EMPLOYEE = "LEARCredentialEmployee";
     public static final String LEAR_CREDENTIAL_MACHINE = "LEARCredentialMachine";
-    public static final String VERIFIABLE_CERTIFICATION = "VerifiableCertification";
-    public static final List<String> VERIFIABLE_CERTIFICATION_TYPE = List.of(VERIFIABLE_CERTIFICATION, VERIFIABLE_CREDENTIAL);
-    public static final String VERIFIABLE_CERTIFICATION_CREDENTIAL_TYPE = "VERIFIABLE_CERTIFICATION";
+    public static final String LABEL_CREDENTIAL = "gx:LabelCredential";
+    public static final List<String> LABEL_CREDENTIAL_TYPES = List.of(LABEL_CREDENTIAL, VERIFIABLE_CREDENTIAL);
+    public static final String LABEL_CREDENTIAL_TYPE = "LABEL_CREDENTIAL";
     public static final String LEAR_CREDENTIAL_EMPLOYEE_CREDENTIAL_TYPE = "LEAR_CREDENTIAL_EMPLOYEE";
 
     public static final String GRANT_TYPE = "urn:ietf:params:oauth:grant-type:pre-authorized_code";
-    public static final List<String> CREDENTIAL_CONTEXT = List.of("https://www.w3.org/ns/credentials/v2", "https://www.dome-marketplace.eu/2025/credentials/learcredentialemployee/v2");
+    public static final List<String> LEAR_CREDENTIAL_EMPLOYEE_CONTEXT = List.of("https://www.w3.org/ns/credentials/v2", "https://www.dome-marketplace.eu/2025/credentials/learcredentialemployee/v2");
+    public static final List<String> LABEL_CREDENTIAL_CONTEXT = List.of("https://www.w3.org/ns/credentials/v2", "https://w3id.org/gaia-x/development#");
     // EXPIRATION TIMES
     public static final Integer CREDENTIAL_OFFER_CACHE_EXPIRATION_TIME = 10;
     public static final Integer VERIFIABLE_CREDENTIAL_JWT_CACHE_EXPIRATION_TIME = 10;
@@ -27,4 +28,6 @@ public final class Constants {
 
     public static final long PRE_AUTH_CODE_EXPIRY_DURATION_MINUTES = 5;
     public static final String ENGLISH = "en";
+    public static final String DEFAULT_USER_NAME = "Cloud Provider";
+    public static final String DEFAULT_ORGANIZATION_NAME = "DOME";
 }

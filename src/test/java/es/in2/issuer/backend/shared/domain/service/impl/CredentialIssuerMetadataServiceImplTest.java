@@ -1,4 +1,4 @@
-package es.in2.issuer.backend.oidc4vci.domain.service.impl;
+package es.in2.issuer.backend.shared.domain.service.impl;
 
 import es.in2.issuer.backend.oidc4vci.domain.model.CredentialIssuerMetadata;
 import es.in2.issuer.backend.shared.domain.util.Constants;
@@ -32,11 +32,11 @@ class CredentialIssuerMetadataServiceImplTest {
     private CredentialIssuerMetadataServiceImpl credentialIssuerMetadataService;
 
     @Test
-    void shouldBuildCredentialIssuerMetadataSuccessfully() {
+    void shouldGetCredentialIssuerMetadataSuccessfully() {
         // Arrange
         when(appConfig.getIssuerBackendUrl()).thenReturn(ISSUER_URL);
         // Act
-        var resultMono = credentialIssuerMetadataService.buildCredentialIssuerMetadata(PROCESS_ID);
+        var resultMono = credentialIssuerMetadataService.getCredentialIssuerMetadata(PROCESS_ID);
         // Assert
         StepVerifier.create(resultMono)
                 .assertNext(metadata -> {

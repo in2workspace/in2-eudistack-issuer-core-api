@@ -24,11 +24,11 @@ public class CredentialDeliveryServiceImpl implements CredentialDeliveryService 
     private final AppConfig appConfig;
 
     @Override
-    public Mono<Void> sendVcToResponseUri(String responseUri, String encodedVc, String productId, String companyEmail, String bearerToken) {
+    public Mono<Void> sendVcToResponseUri(String responseUri, String encodedVc, String credId, String email, String bearerToken) {
         ResponseUriRequest responseUriRequest = ResponseUriRequest.builder()
                 .encodedVc(encodedVc)
                 .build();
-        log.debug("Sending the VC: {} to response_uri: {} to email {}", encodedVc, responseUri, companyEmail);
+        log.debug("Sending the VC: {} to response_uri: {} to email {}", encodedVc, responseUri, email);
 
         return webClient.commonWebClient()
                 .patch()
@@ -42,19 +42,19 @@ public class CredentialDeliveryServiceImpl implements CredentialDeliveryService 
                             log.info("Received 202 from response_uri. Extracting HTML and sending specific mail for missing documents");
                             return response.bodyToMono(String.class)
                                     .flatMap(htmlResponseBody ->
-                                            emailService.sendResponseUriAcceptedWithHtml(companyEmail, productId, htmlResponseBody))
+                                            emailService.sendResponseUriAcceptedWithHtml(email, credId, htmlResponseBody))
                                     .then();
                         }
                         return Mono.empty();
                     } else {
                         log.error("Non-2xx status code received: {}. Sending failure email...", response.statusCode());
-                        return emailService.sendResponseUriFailed(companyEmail, productId, appConfig.getKnowledgeBaseUploadCertificationGuideUrl())
+                        return emailService.sendResponseUriFailed(email, credId, appConfig.getKnowledgeBaseUploadCertificationGuideUrl())
                                 .then();
                     }
                 })
                 .onErrorResume(WebClientRequestException.class, ex -> {
                     log.error("Network error while sending VC to response_uri", ex);
-                    return emailService.sendResponseUriFailed(companyEmail, productId, appConfig.getKnowledgeBaseUploadCertificationGuideUrl())
+                    return emailService.sendResponseUriFailed(email, credId, appConfig.getKnowledgeBaseUploadCertificationGuideUrl())
                             .then();
                 });
     }

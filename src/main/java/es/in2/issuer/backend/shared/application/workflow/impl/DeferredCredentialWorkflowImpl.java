@@ -60,53 +60,16 @@ public class DeferredCredentialWorkflowImpl implements DeferredCredentialWorkflo
                             deferredCredentialMetadataService.updateVcByProcedureId(jwt, procId)
                                     .then(deferredCredentialMetadataService.getOperationModeByProcedureId(procId))
                                     .filter(ASYNC::equals)
-                                    .flatMap(mode -> {
-                                        NotificationData data = buildNotificationData(credentialNode);
-                                        return emailService.sendCredentialSignedNotification(
-                                                data.email,
-                                                "Credential Ready",
-                                                data.firstName,
-                                                data.additionalInfo
-                                        );
-                                    })
+                                    .flatMap(mode -> credentialProcedureService.getEmailCredentialOfferInfoByProcedureId(procId)
+                                            .flatMap( emailInfo -> emailService.sendCredentialSignedNotification(
+                                            emailInfo.email(),
+                                            "Credential Ready",
+                                            emailInfo.user(),
+                                            emailInfo.organization()
+                                    )))
                     );
         } catch (Exception e) {
             return Mono.error(new RuntimeException("Failed to process signed credential", e));
         }
     }
-
-    private NotificationData buildNotificationData(JsonNode credentialNode) {
-        JsonNode vcNode = credentialNode.has(VC) ? credentialNode.get(VC) : credentialNode;
-        JsonNode subj = vcNode.path(CREDENTIAL_SUBJECT);
-
-        NotificationData d = new NotificationData();
-        if (subj.has(MANDATE) && subj.get(MANDATE).has(MANDATEE)) {
-            JsonNode m = subj.get(MANDATE).get(MANDATEE);
-            d.email     = m.path(EMAIL).asText(null);
-            d.firstName = m.path(FIRST_NAME).asText(null);
-            d.additionalInfo  = "You can now use it with your Wallet.";
-        } else if (subj.has("company")) {
-            JsonNode c = subj.get("company");
-            d.email     = c.path(EMAIL).asText(null);
-            d.firstName = c.path("commonName").asText(null);
-            d.additionalInfo  = "It is now ready to be applied to your product.";
-        }
-
-        if (d.email == null || d.firstName == null) {
-            log.error("Missing email or firstName in credential subject. Skipping email notification.");
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "Missing required credentialSubject properties: email and firstName"
-            );
-        }
-        return d;
-    }
-
-    private static class NotificationData {
-        String email;
-        String firstName;
-        String additionalInfo;
-    }
-
-
 }

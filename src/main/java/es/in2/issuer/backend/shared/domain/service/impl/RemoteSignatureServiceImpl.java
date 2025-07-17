@@ -407,18 +407,6 @@ public class RemoteSignatureServiceImpl implements RemoteSignatureService {
                 });
     }
 
-    public Mono<String> getMailForVerifiableCertification(String procedureId) {
-        return credentialProcedureRepository.findById(UUID.fromString(procedureId))
-                .flatMap(credentialProcedure -> {
-                    try {
-                        JsonNode credential = objectMapper.readTree(credentialProcedure.getCredentialDecoded());
-                        return Mono.just(credential.get(CREDENTIAL_SUBJECT).get(COMPANY).get(EMAIL).asText());
-                    } catch (JsonProcessingException e) {
-                        return Mono.error(new RuntimeException());
-                    }
-                });
-    }
-
 
     private Mono<String> sendSignatureRequest(SignatureRequest signatureRequest, String accessToken, String sad) {
         credentialID = remoteSignatureConfig.getRemoteSignatureCredentialId();

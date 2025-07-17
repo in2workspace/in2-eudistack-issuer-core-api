@@ -1,7 +1,7 @@
-package es.in2.issuer.backend.oidc4vci.domain.service.impl;
+package es.in2.issuer.backend.shared.domain.service.impl;
 
 import es.in2.issuer.backend.oidc4vci.domain.model.CredentialIssuerMetadata;
-import es.in2.issuer.backend.oidc4vci.domain.service.CredentialIssuerMetadataService;
+import es.in2.issuer.backend.shared.domain.service.CredentialIssuerMetadataService;
 import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,7 +24,7 @@ public class CredentialIssuerMetadataServiceImpl implements CredentialIssuerMeta
     private static final String ES256_SIGNING_ALG_VALUE = "ES256";
 
     @Override
-    public Mono<CredentialIssuerMetadata> buildCredentialIssuerMetadata(String processId) {
+    public Mono<CredentialIssuerMetadata> getCredentialIssuerMetadata(String processId) {
         String credentialIssuerUrl = ensureUrlHasProtocol(appConfig.getIssuerBackendUrl());
         CredentialIssuerMetadata credentialIssuerMetadata = CredentialIssuerMetadata.builder()
                 .credentialIssuer(credentialIssuerUrl)
@@ -34,7 +34,7 @@ public class CredentialIssuerMetadataServiceImpl implements CredentialIssuerMeta
                 .credentialConfigurationsSupported(Map.of(
                         LEAR_CREDENTIAL_EMPLOYEE, buildLearCredentialEmployeeCredentialConfiguration(),
                         LEAR_CREDENTIAL_MACHINE, buildLearCredentialMachineCredentialConfiguration(),
-                        VERIFIABLE_CERTIFICATION, buildVerifiableCertificationCredentialConfiguration()
+                        LABEL_CREDENTIAL, buildLabelCredentialConfiguration()
                 ))
                 .build();
         return Mono.just(credentialIssuerMetadata);
@@ -66,13 +66,13 @@ public class CredentialIssuerMetadataServiceImpl implements CredentialIssuerMeta
                 .build();
     }
 
-    private CredentialIssuerMetadata.CredentialConfiguration buildVerifiableCertificationCredentialConfiguration() {
+    private CredentialIssuerMetadata.CredentialConfiguration buildLabelCredentialConfiguration() {
         return CredentialIssuerMetadata.CredentialConfiguration.builder()
                 .format(JWT_VC_JSON)
-                .scope("verifiable_certification")
+                .scope("gx:LabelCredential")
                 .credentialSigningAlgValuesSupported(Set.of(ES256_SIGNING_ALG_VALUE))
                 .credentialDefinition(CredentialIssuerMetadata.CredentialConfiguration.CredentialDefinition.builder()
-                        .type(Set.of(VERIFIABLE_CREDENTIAL, VERIFIABLE_CERTIFICATION))
+                        .type(Set.of(VERIFIABLE_CREDENTIAL, LABEL_CREDENTIAL))
                         .build())
                 .build();
     }

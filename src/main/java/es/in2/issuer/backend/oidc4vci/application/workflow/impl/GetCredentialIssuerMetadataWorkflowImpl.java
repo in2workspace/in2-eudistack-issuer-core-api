@@ -2,7 +2,7 @@ package es.in2.issuer.backend.oidc4vci.application.workflow.impl;
 
 import es.in2.issuer.backend.oidc4vci.application.workflow.GetCredentialIssuerMetadataWorkflow;
 import es.in2.issuer.backend.oidc4vci.domain.model.CredentialIssuerMetadata;
-import es.in2.issuer.backend.oidc4vci.domain.service.CredentialIssuerMetadataService;
+import es.in2.issuer.backend.shared.domain.service.CredentialIssuerMetadataService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
@@ -15,7 +15,7 @@ public class GetCredentialIssuerMetadataWorkflowImpl implements GetCredentialIss
 
     @Override
     public Mono<CredentialIssuerMetadata> execute(String processId) {
-        return credentialIssuerMetadataService.buildCredentialIssuerMetadata(processId);
+        return credentialIssuerMetadataService.getCredentialIssuerMetadata(processId);
     }
 
 }
