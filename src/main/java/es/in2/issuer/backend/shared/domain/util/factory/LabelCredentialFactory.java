@@ -151,18 +151,20 @@ public class LabelCredentialFactory {
 
     private Mono<CredentialProcedureCreationRequest> buildCredentialProcedureCreationRequest(String decodedCredential, LabelCredential labelCredentialDecoded, String operationMode, String email) {
         return accessTokenService.getOrganizationIdFromCurrentSession()
-                .flatMap(organizationId ->
-                        Mono.just(CredentialProcedureCreationRequest.builder()
-                                .credentialId(labelCredentialDecoded.id())
-                                .organizationIdentifier(organizationId)
-                                .credentialDecoded(decodedCredential)
-                                .credentialType(CredentialType.LABEL_CREDENTIAL)
-                                .subject(labelCredentialDecoded.credentialSubject().id())
-                                .validUntil(parseEpochSecondIntoTimestamp(parseDateToUnixTime(labelCredentialDecoded.validUntil())))
-                                .operationMode(operationMode)
-                                .ownerEmail(email)
-                                .build()
-                        )
+                .flatMap(organizationId -> {
+                    System.out.println("holaa: label: " + organizationId);
+                            return Mono.just(CredentialProcedureCreationRequest.builder()
+                                    .credentialId(labelCredentialDecoded.id())
+                                    .organizationIdentifier(organizationId)
+                                    .credentialDecoded(decodedCredential)
+                                    .credentialType(CredentialType.LABEL_CREDENTIAL)
+                                    .subject(labelCredentialDecoded.credentialSubject().id())
+                                    .validUntil(parseEpochSecondIntoTimestamp(parseDateToUnixTime(labelCredentialDecoded.validUntil())))
+                                    .operationMode(operationMode)
+                                    .ownerEmail(email)
+                                    .build()
+                            );
+                        }
                 );
     }
 
