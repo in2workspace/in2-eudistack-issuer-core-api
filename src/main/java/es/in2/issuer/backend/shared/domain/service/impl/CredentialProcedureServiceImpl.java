@@ -297,7 +297,7 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
                                                 "Error parsing credential for procedureId: " + procedureId
                                         )
                                 );
-                        case LABEL_CREDENTIAL -> Mono.just(
+                        case LABEL_CREDENTIAL_TYPE -> Mono.just(
                                 new CredentialOfferEmailNotificationInfo(
                                         credentialProcedure.getOwnerEmail(),
                                         DEFAULT_USER_NAME,
