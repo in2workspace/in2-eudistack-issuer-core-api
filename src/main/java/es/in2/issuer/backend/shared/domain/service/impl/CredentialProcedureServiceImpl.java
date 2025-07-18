@@ -273,42 +273,40 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
     public Mono<CredentialOfferEmailNotificationInfo> getEmailCredentialOfferInfoByProcedureId(String procedureId) {
         return credentialProcedureRepository
                 .findByProcedureId(UUID.fromString(procedureId))
-                .flatMap(credentialProcedure -> {
-                    System.out.println("hola 1: " + credentialProcedure);
-                    return switch (credentialProcedure.getCredentialType()) {
-                        case LEAR_CREDENTIAL_EMPLOYEE -> Mono.fromCallable(() ->
-                                        objectMapper.readTree(credentialProcedure.getCredentialDecoded())
-                                )
-                                .map(credential -> {
-                                    String user = credentialProcedure.getSubject();
-                                    String org = credential
-                                            .get(CREDENTIAL_SUBJECT)
-                                            .get(MANDATOR)
-                                            .get(ORGANIZATION)
-                                            .asText();
-                                    return new CredentialOfferEmailNotificationInfo(
-                                            credentialProcedure.getOwnerEmail(),
-                                            user,
-                                            org
+                .flatMap(credentialProcedure ->
+                        switch (credentialProcedure.getCredentialType()) {
+                            case LEAR_CREDENTIAL_EMPLOYEE -> Mono.fromCallable(() ->
+                                            objectMapper.readTree(credentialProcedure.getCredentialDecoded())
+                                    )
+                                    .map(credential -> {
+                                        String user = credentialProcedure.getSubject();
+                                        String org = credential
+                                                .get(CREDENTIAL_SUBJECT)
+                                                .get(MANDATOR)
+                                                .get(ORGANIZATION)
+                                                .asText();
+                                        return new CredentialOfferEmailNotificationInfo(
+                                                credentialProcedure.getOwnerEmail(),
+                                                user,
+                                                org
+                                        );
+                                    })
+                                    .onErrorMap(JsonProcessingException.class, e ->
+                                            new ParseCredentialJsonException(
+                                                    "Error parsing credential for procedureId: " + procedureId
+                                            )
                                     );
-                                })
-                                .onErrorMap(JsonProcessingException.class, e ->
-                                        new ParseCredentialJsonException(
-                                                "Error parsing credential for procedureId: " + procedureId
-                                        )
-                                );
-                        case LABEL_CREDENTIAL_TYPE -> Mono.just(
-                                new CredentialOfferEmailNotificationInfo(
-                                        credentialProcedure.getOwnerEmail(),
-                                        DEFAULT_USER_NAME,
-                                        DEFAULT_ORGANIZATION_NAME
-                                )
-                        );
-                        default -> Mono.error(new FormatUnsupportedException(
-                                "Unknown credential type: " + credentialProcedure.getCredentialType()
-                        ));
-                    };
-                });
+                            case LABEL_CREDENTIAL_TYPE -> Mono.just(
+                                    new CredentialOfferEmailNotificationInfo(
+                                            credentialProcedure.getOwnerEmail(),
+                                            DEFAULT_USER_NAME,
+                                            DEFAULT_ORGANIZATION_NAME
+                                    )
+                            );
+                            default -> Mono.error(new FormatUnsupportedException(
+                                    "Unknown credential type: " + credentialProcedure.getCredentialType()
+                            ));
+                        });
     }
 
 }
