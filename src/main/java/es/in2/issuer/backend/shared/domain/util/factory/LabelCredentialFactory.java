@@ -42,8 +42,10 @@ public class LabelCredentialFactory {
         return buildLabelCredential(labelCredential)
                 .flatMap(labelCredentialDecoded ->
                         convertLabelCredentialInToString(labelCredentialDecoded)
-                                .flatMap(decodedCredential ->
-                                        buildCredentialProcedureCreationRequest(decodedCredential, labelCredentialDecoded, operationMode, email)
+                                .flatMap(decodedCredential -> {
+                                    System.out.println("Hola dec: " + decodedCredential);
+                                            return buildCredentialProcedureCreationRequest(decodedCredential, labelCredentialDecoded, operationMode, email);
+                                        }
                                 )
                 );
     }
