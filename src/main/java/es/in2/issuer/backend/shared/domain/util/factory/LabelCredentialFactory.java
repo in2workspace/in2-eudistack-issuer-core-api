@@ -37,6 +37,7 @@ public class LabelCredentialFactory {
     private final AccessTokenService accessTokenService;
 
     public Mono<CredentialProcedureCreationRequest> mapAndBuildLabelCredential(JsonNode credential, String operationMode, String email) {
+        System.out.println("Hello 3");
         LabelCredential labelCredential = objectMapper.convertValue(credential, LabelCredential.class);
 
         return buildLabelCredential(labelCredential)

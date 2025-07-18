@@ -26,12 +26,14 @@ public class CredentialFactory {
     private final DeferredCredentialMetadataService deferredCredentialMetadataService;
 
     public Mono<CredentialProcedureCreationRequest> mapCredentialIntoACredentialProcedureRequest(String processId, PreSubmittedCredentialDataRequest preSubmittedCredentialRequest, String email) {
+        System.out.println("Hello 1");
         JsonNode credential = preSubmittedCredentialRequest.payload();
         String operationMode = preSubmittedCredentialRequest.operationMode();
         if (preSubmittedCredentialRequest.schema().equals(LEAR_CREDENTIAL_EMPLOYEE)) {
             return learCredentialEmployeeFactory.mapAndBuildLEARCredentialEmployee(credential, operationMode, email)
                     .doOnSuccess(learCredentialEmployee -> log.info("ProcessID: {} - LEARCredentialEmployee mapped: {}", processId, credential));
         } else if (preSubmittedCredentialRequest.schema().equals(LABEL_CREDENTIAL)) {
+            System.out.println("Hello 2");
             return labelCredentialFactory.mapAndBuildLabelCredential(credential, operationMode, email)
                     .doOnSuccess(verifiableCertification -> log.info("ProcessID: {} - Label Credential mapped: {}", processId, credential));
         }
