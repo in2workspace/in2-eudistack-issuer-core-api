@@ -49,13 +49,9 @@ public class ProofValidationServiceImpl implements ProofValidationService {
 
     private Mono<JWSObject> parseAndValidateJwt(String jwtProof) {
         return Mono.fromCallable(() -> {
-            System.out.println("Parse and validate JWT: " + jwtProof);
             JWSObject jwsObject = JWSObject.parse(jwtProof);
-            System.out.println("Parsed JWS Object: " + jwsObject);
             validateHeader(jwsObject);
-            System.out.println("Validated JWT header");
             validatePayload(jwsObject);
-            System.out.println("Validated JWT payload");
             return jwsObject;
         });
     }

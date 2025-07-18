@@ -26,7 +26,7 @@ public record LabelCredential(
             @JsonProperty("gx:labelLevel") String gxLabelLevel,
             @JsonProperty("gx:engineVersion") String gxEngineVersion,
             @JsonProperty("gx:rulesVersion") String gxRulesVersion,
-            @JsonProperty("gx:CompliantCredentials") List<CompliantCredentials> gxCompliantCredentials,
+            @JsonProperty("gx:compliantCredentials") List<CompliantCredentials> gxCompliantCredentials,
             @JsonProperty("gx:validatedCriteria") List<String> gxValidatedCriteria
     ) {
         @Builder
