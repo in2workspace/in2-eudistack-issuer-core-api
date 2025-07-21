@@ -71,6 +71,8 @@ public class VerifierServiceImpl implements VerifierService {
 
                         // Validate the issuer
                         if (!appConfig.getVerifierUrl().equals(claims.getIssuer())) {
+                            System.out.println("Config Verifier URL: " + appConfig.getVerifierUrl());
+                            System.out.println("Claims Issuer: " + claims.getIssuer());
                             return Mono.error(new JWTVerificationException("Invalid issuer"));
                         }
 
