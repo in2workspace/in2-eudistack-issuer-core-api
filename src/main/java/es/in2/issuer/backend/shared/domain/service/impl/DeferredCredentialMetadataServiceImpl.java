@@ -132,6 +132,13 @@ public class DeferredCredentialMetadataServiceImpl implements DeferredCredential
     }
 
     @Override
+    public Mono<DeferredCredentialMetadata> getDeferredCredentialMetadataByAuthServerNonce(String authServerNonce) {
+        return deferredCredentialMetadataRepository.findByAuthServerNonce(authServerNonce)
+                .switchIfEmpty(Mono.error(new CredentialAlreadyIssuedException("The credential has already been issued")))
+                .doOnNext(deferredCredentialMetadata -> log.debug("Found DeferredCredentialMetadata for authServerNonce: {}", authServerNonce));
+    }
+
+    @Override
     public Mono<String> getOperationModeByAuthServerNonce(String authServerNonce) {
         return deferredCredentialMetadataRepository.findByAuthServerNonce(authServerNonce)
                 .flatMap(deferredCredentialMetadata -> Mono.just(deferredCredentialMetadata.getOperationMode()));

@@ -40,7 +40,7 @@ public class LEARCredentialEmployeeFactory {
     private final IssuerFactory issuerFactory;
     private final AppConfig appConfig;
 
-    public Mono<String> mapCredentialAndBindMandateeIdInToTheCredential(String decodedCredentialString, String mandateeId) {
+    public Mono<String> bindCryptographicCredentialSubjectId(String decodedCredentialString, String mandateeId){
         LEARCredentialEmployee decodedCredential = mapStringToLEARCredentialEmployee(decodedCredentialString);
         return bindMandateeIdToLearCredentialEmployee(decodedCredential, mandateeId)
                 .flatMap(this::convertLEARCredentialEmployeeInToString);
@@ -52,13 +52,13 @@ public class LEARCredentialEmployeeFactory {
                 .flatMap(this::convertLEARCredentialEmployeeInToString);
     }
 
-    public Mono<CredentialProcedureCreationRequest> mapAndBuildLEARCredentialEmployee(JsonNode learCredential, String operationMode) {
+    public Mono<CredentialProcedureCreationRequest> mapAndBuildLEARCredentialEmployee(JsonNode learCredential, String operationMode, String email) {
         LEARCredentialEmployee.CredentialSubject baseCredentialSubject = mapJsonNodeToCredentialSubject(learCredential);
         return buildFinalLearCredentialEmployee(baseCredentialSubject)
                 .flatMap(credentialDecoded ->
                         convertLEARCredentialEmployeeInToString(credentialDecoded)
                                 .flatMap(credentialDecodedString ->
-                                        buildCredentialProcedureCreationRequest(credentialDecodedString, credentialDecoded, operationMode)
+                                        buildCredentialProcedureCreationRequest(credentialDecodedString, credentialDecoded, operationMode, email)
                                 )
                 );
     }
@@ -111,7 +111,7 @@ public class LEARCredentialEmployeeFactory {
 
         return buildCredentialStatus()
                 .map(credentialStatus -> LEARCredentialEmployee.builder()
-                        .context(CREDENTIAL_CONTEXT_LEAR_CREDENTIAL_EMPLOYEE)
+                        .context(LEAR_CREDENTIAL_EMPLOYEE_CONTEXT)
                         .id(credentialId)
                         .type(List.of(LEAR_CREDENTIAL_EMPLOYEE, VERIFIABLE_CREDENTIAL))
                         .description(LEAR_CREDENTIAL_EMPLOYEE_DESCRIPTION)
@@ -123,7 +123,7 @@ public class LEARCredentialEmployeeFactory {
     }
 
     private Mono<CredentialStatus> buildCredentialStatus() {
-        String statusListCredential = appConfig.getIssuerBackendUrl() + "/credentials/status/1";
+        String statusListCredential = appConfig.getIssuerBackendUrl() + "/backoffice/v1/credentials/status/1";
         return generateCustomNonce()
                 .map(nonce -> CredentialStatus.builder()
                         .id(statusListCredential + "#" + nonce)
@@ -233,7 +233,7 @@ public class LEARCredentialEmployeeFactory {
     }
 
     private Mono<LEARCredentialEmployee> bindIssuerToLearCredentialEmployee(LEARCredentialEmployee decodedCredential, String procedureId) {
-        return issuerFactory.createIssuer(procedureId, LEAR_CREDENTIAL_EMPLOYEE)
+        return issuerFactory.createDetailedIssuer(procedureId, LEAR_CREDENTIAL_EMPLOYEE)
                 .map(issuer -> LEARCredentialEmployee.builder()
                         .context(decodedCredential.context())
                         .id(decodedCredential.id())
@@ -263,7 +263,7 @@ public class LEARCredentialEmployeeFactory {
         }
     }
 
-    private Mono<CredentialProcedureCreationRequest> buildCredentialProcedureCreationRequest(String decodedCredential, LEARCredentialEmployee credentialDecoded, String operationMode) {
+    private Mono<CredentialProcedureCreationRequest> buildCredentialProcedureCreationRequest(String decodedCredential, LEARCredentialEmployee credentialDecoded, String operationMode, String email) {
         return accessTokenService.getOrganizationIdFromCurrentSession()
                 .flatMap(organizationId ->
                         Mono.just(
@@ -277,6 +277,7 @@ public class LEARCredentialEmployeeFactory {
                                                 credentialDecoded.credentialSubject().mandate().mandatee().lastName())
                                         .validUntil(parseEpochSecondIntoTimestamp(parseDateToUnixTime(credentialDecoded.validUntil())))
                                         .operationMode(operationMode)
+                                        .ownerEmail(email)
                                         .build()
                         )
                 );
