@@ -19,6 +19,8 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import static es.in2.issuer.backend.shared.domain.util.Utils.generateCustomNonce;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -51,19 +53,25 @@ public class CredentialStatusWorkflowImpl implements CredentialStatusWorkflow {
                 )
                 .flatMap(credential -> Mono.just(credential.getCredentialDecoded())
                 .flatMap(decodedCredential -> {
+                    JsonNode credentialStatusNode;
                     try {
-                        JsonNode credentialStatus = objectMapper.readTree(decodedCredential).get("credentialStatus");
-                        System.out.println("XIVATO1 "+credentialStatus);
+                        credentialStatusNode = objectMapper.readTree(decodedCredential).get("credentialStatus");
                     } catch (JsonProcessingException e) {
-                        throw new RuntimeException(e);
+                        return Mono.error(new RuntimeException("Error processing credential status json", e));
                     }
-
-                    CredentialStatus credentialStatus = learCredentialEmployeeFactory
-                            .mapStringToLEARCredentialEmployee(decodedCredential)
-                            .credentialStatus();
+                    CredentialStatus credentialStatus = mapToCredentialStatus(credentialStatusNode);
                     return revokeAndUpdateCredentialStatus(credential, processId, credentialId, listId, credentialStatus);
                 }));
 
+    }
+    private CredentialStatus mapToCredentialStatus(JsonNode credentialStatusNode) {
+        return CredentialStatus.builder()
+                .id(credentialStatusNode.get("id").asText())
+                .type(credentialStatusNode.get("type").asText())
+                .statusPurpose(credentialStatusNode.get("statusPurpose").asText())
+                .statusListIndex(credentialStatusNode.get("statusListIndex").asText())
+                .statusListCredential(credentialStatusNode.get("statusListCredential").asText())
+                .build();
     }
 
     private Mono<Void> revokeAndUpdateCredentialStatus(CredentialProcedure credentialProcedure, String processId, String credentialId, int listId, CredentialStatus credentialStatus) {
