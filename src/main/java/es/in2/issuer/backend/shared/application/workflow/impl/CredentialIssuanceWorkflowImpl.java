@@ -119,7 +119,7 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
             case LEAR_CREDENTIAL_MACHINE -> {
                 String email = payload.get(MANDATEE).get(EMAIL).asText();
                 String org = payload.get(MANDATOR).get(ORGANIZATION).asText();
-                yield new EmailCredentialOfferInfo(email, DEFAULT_USER_NAME, org);
+                yield new CredentialOfferEmailNotificationInfo(email, DEFAULT_USER_NAME, org);
             }
             case LABEL_CREDENTIAL -> {
                     if(preSubmittedCredentialDataRequest.credentialOwnerEmail() == null || preSubmittedCredentialDataRequest.credentialOwnerEmail().isBlank()) {
