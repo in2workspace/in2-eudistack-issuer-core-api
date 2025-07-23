@@ -1,5 +1,8 @@
 package es.in2.issuer.backend.backoffice.application.workflow.impl;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import es.in2.issuer.backend.backoffice.application.workflow.CredentialStatusWorkflow;
 import es.in2.issuer.backend.backoffice.domain.service.CredentialStatusAuthorizationService;
 import es.in2.issuer.backend.backoffice.domain.service.CredentialStatusService;
@@ -26,6 +29,7 @@ public class CredentialStatusWorkflowImpl implements CredentialStatusWorkflow {
     private final CredentialStatusAuthorizationService credentialStatusAuthorizationService;
     private final CredentialProcedureService credentialProcedureService;
     private final LEARCredentialEmployeeFactory learCredentialEmployeeFactory;
+    private final ObjectMapper objectMapper;
 
     @Override
     public Flux<String> getCredentialsByListId(String processId, int listId) {
@@ -47,6 +51,13 @@ public class CredentialStatusWorkflowImpl implements CredentialStatusWorkflow {
                 )
                 .flatMap(credential -> Mono.just(credential.getCredentialDecoded())
                 .flatMap(decodedCredential -> {
+                    try {
+                        JsonNode credentialStatus = objectMapper.readTree(decodedCredential).get("credentialStatus");
+                        System.out.println("XIVATO1 "+credentialStatus);
+                    } catch (JsonProcessingException e) {
+                        throw new RuntimeException(e);
+                    }
+
                     CredentialStatus credentialStatus = learCredentialEmployeeFactory
                             .mapStringToLEARCredentialEmployee(decodedCredential)
                             .credentialStatus();
