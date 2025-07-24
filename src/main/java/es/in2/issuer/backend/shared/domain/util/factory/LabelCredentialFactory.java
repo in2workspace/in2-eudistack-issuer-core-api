@@ -139,6 +139,7 @@ public class LabelCredentialFactory {
 
     public LabelCredential mapStringToLabelCredential(String labelCredential)
             throws InvalidCredentialFormatException {
+        System.out.println("Xivato1 " + labelCredential);
         try {
             log.info(objectMapper.readValue(labelCredential, LabelCredential.class).toString());
             return objectMapper.readValue(labelCredential, LabelCredential.class);
