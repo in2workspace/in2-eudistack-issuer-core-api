@@ -71,6 +71,7 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
 
     private Mono<Void> checkPolicies(String token, String schema, JsonNode payload, String idToken) {
         System.out.println("Primer: " + payload);
+        System.out.println("Token: " + token);
         return Mono.fromCallable(() -> jwtService.parseJWT(token))
             .flatMap(signedJWT -> {
                 String vcClaim = jwtService.getClaimFromPayload(signedJWT.getPayload(), VC);
