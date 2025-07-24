@@ -187,6 +187,7 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
     }
 
     private boolean isSignerIssuancePolicyValidLEARCredentialMachine(LEARCredential learCredential) {
+        System.out.println("hola 1");
         return isLearCredentialEmployeeMandatorOrganizationIdentifierAllowedSignerLEARCredentialMachine(extractMandatorLearCredentialMachine(learCredential)) &&
                 hasLearCredentialOnboardingExecutePower(extractPowers(learCredential));
     }
@@ -206,6 +207,7 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
             return false;
         }
         LEARCredentialMachine.CredentialSubject.Mandate mandate = objectMapper.convertValue(payload, LEARCredentialMachine.CredentialSubject.Mandate.class);
+        System.out.println("hola 2");
         return mandate != null &&
                 mandate.mandator().equals(extractMandatorLearCredentialMachine(learCredential)) &&
                 payloadPowersOnlyIncludeProductOffering(mandate.power());
