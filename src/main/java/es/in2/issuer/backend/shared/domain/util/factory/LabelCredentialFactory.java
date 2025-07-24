@@ -115,6 +115,7 @@ public class LabelCredentialFactory {
                 .credentialSubject(labelCredential.credentialSubject())
                 .validFrom(labelCredential.validFrom())
                 .validUntil(labelCredential.validUntil())
+                .credentialStatus(labelCredential.credentialStatus())
                 .build());
     }
 
