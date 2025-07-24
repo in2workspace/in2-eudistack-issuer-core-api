@@ -1,5 +1,6 @@
 package es.in2.issuer.backend.backoffice.application.workflow.impl;
 
+import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -57,7 +58,7 @@ public class CredentialStatusWorkflowImpl implements CredentialStatusWorkflow {
                     try {
                         credentialStatusNode = objectMapper.readTree(decodedCredential).get("credentialStatus");
                     } catch (JsonProcessingException e) {
-                        return Mono.error(new RuntimeException("Error processing credential status json", e));
+                        return Mono.error(new JsonParseException("Error processing credential status json"));
                     }
                     CredentialStatus credentialStatus = mapToCredentialStatus(credentialStatusNode);
                     return revokeAndUpdateCredentialStatus(credential, processId, credentialId, listId, credentialStatus);
