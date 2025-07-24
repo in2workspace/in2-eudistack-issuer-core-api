@@ -42,7 +42,9 @@ public final class Utils {
     }
 
     public static LEARCredentialMachine.CredentialSubject.Mandate.Mandator extractMandatorLearCredentialMachine(LEARCredential credential) {
+        System.out.println("Credential: " + credential);
         List<String> types = credential.type();
+        System.out.println("Types: " + types);
         if (types.contains("LEARCredentialMachine")) {
             return ((LEARCredentialMachine) credential).credentialSubject().mandate().mandator();
         }
