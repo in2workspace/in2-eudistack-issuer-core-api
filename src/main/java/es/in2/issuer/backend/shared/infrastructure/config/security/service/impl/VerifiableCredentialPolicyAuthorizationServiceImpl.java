@@ -116,6 +116,7 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
     private Mono<LEARCredential> mapVcToLEARCredential(String vcClaim, String schema) {
         return checkIfCredentialTypeIsAllowedToIssue(vcClaim, schema)
                 .flatMap(credentialType -> {
+                    System.out.println("Schema: " + schema);
                     System.out.println("map: " + credentialType);
                     if (LEAR_CREDENTIAL_EMPLOYEE.equals(credentialType)) {
                         System.out.println("hola emp");
