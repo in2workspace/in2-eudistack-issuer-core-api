@@ -114,9 +114,12 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
     private Mono<LEARCredential> mapVcToLEARCredential(String vcClaim, String schema) {
         return checkIfCredentialTypeIsAllowedToIssue(vcClaim, schema)
                 .flatMap(credentialType -> {
+                    System.out.println("map: " + credentialType);
                     if (LEAR_CREDENTIAL_EMPLOYEE.equals(credentialType)) {
+                        System.out.println("hola emp");
                         return Mono.fromCallable(() -> credentialFactory.learCredentialEmployeeFactory.mapStringToLEARCredentialEmployee(vcClaim));
                     } else if (LEAR_CREDENTIAL_MACHINE.equals(credentialType)) {
+                        System.out.println("hola mach");
                         return Mono.fromCallable(() -> credentialFactory.learCredentialMachineFactory.mapStringToLEARCredentialMachine(vcClaim));
                     } else {
                         return Mono.error(new InsufficientPermissionException("Unsupported credential type: " + credentialType));
