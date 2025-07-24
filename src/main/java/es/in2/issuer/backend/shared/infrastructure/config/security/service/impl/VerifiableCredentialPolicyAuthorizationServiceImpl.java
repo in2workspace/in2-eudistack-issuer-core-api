@@ -132,6 +132,7 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
      * Returns a Mono emitting the allowed type if valid, or an error otherwise.
      */
     private Mono<String> checkIfCredentialTypeIsAllowedToIssue(String vcClaim, String schema) {
+        System.out.println("VC Claim: " + vcClaim);
         return Mono.fromCallable(() -> objectMapper.readTree(vcClaim))
                 .flatMap(vcJsonNode ->
                         extractCredentialTypes(vcJsonNode)
