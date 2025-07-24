@@ -117,6 +117,7 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                 yield new CredentialOfferEmailNotificationInfo(email, user, org);
             }
             case LEAR_CREDENTIAL_MACHINE -> {
+                System.out.println("Payload: " + payload);
                 String email = payload.get(MANDATEE).get(EMAIL).asText();
                 String org = payload.get(MANDATOR).get(ORGANIZATION).asText();
                 yield new CredentialOfferEmailNotificationInfo(email, DEFAULT_USER_NAME, org);
