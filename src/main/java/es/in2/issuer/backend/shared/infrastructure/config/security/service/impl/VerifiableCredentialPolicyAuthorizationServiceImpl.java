@@ -99,6 +99,13 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
                     throw new InsufficientPermissionException(
                             "Unauthorized: Credential type 'LEARCredentialMachine' is required for verifiable certification.");
                 }
+            } else if (LEAR_CREDENTIAL_MACHINE.equals(schema)) {
+                if (types.contains(LEAR_CREDENTIAL_EMPLOYEE)) {
+                    return LEAR_CREDENTIAL_MACHINE;
+                } else {
+                    throw new InsufficientPermissionException(
+                            "Unauthorized: Credential type 'LEARCredentialEmployee' is required for LEARCredentialMachine.");
+                }
             } else {
                 // For LEAR_CREDENTIAL_EMPLOYEE schema, allow either employee or machine.
                 if (types.contains(LEAR_CREDENTIAL_EMPLOYEE)) {
