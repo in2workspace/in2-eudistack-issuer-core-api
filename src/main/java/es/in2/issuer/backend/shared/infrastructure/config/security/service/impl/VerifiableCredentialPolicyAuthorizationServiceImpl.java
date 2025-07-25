@@ -75,14 +75,11 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
             .flatMap(signedJWT -> {
                 String vcClaim = jwtService.getClaimFromPayload(signedJWT.getPayload(), VC);
                 return mapVcToLEARCredential(vcClaim, schema)
-                    .flatMap(learCredential -> {
-                        System.out.println("LEarCredential: " + learCredential);
-                        return switch (schema) {
-                            case LEAR_CREDENTIAL_EMPLOYEE -> authorizeLearCredentialEmployee(learCredential, payload);
-                            case LEAR_CREDENTIAL_MACHINE -> authorizeLearCredentialMachine(learCredential, payload);
-                            case LABEL_CREDENTIAL -> authorizeLabelCredential(learCredential, idToken);
-                            default -> Mono.error(new InsufficientPermissionException("Unauthorized: Unsupported schema"));
-                        };
+                    .flatMap(learCredential -> switch (schema) {
+                        case LEAR_CREDENTIAL_EMPLOYEE -> authorizeLearCredentialEmployee(learCredential, payload);
+                        case LEAR_CREDENTIAL_MACHINE -> authorizeLearCredentialMachine(learCredential, payload);
+                        case LABEL_CREDENTIAL -> authorizeLabelCredential(learCredential, idToken);
+                        default -> Mono.error(new InsufficientPermissionException("Unauthorized: Unsupported schema"));
                     });
             });
     }
