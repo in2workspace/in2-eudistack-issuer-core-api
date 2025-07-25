@@ -41,6 +41,16 @@ public final class Utils {
         throw new InvalidCredentialFormatException("Unsupported credential type: " + types);
     }
 
+    public static LEARCredentialMachine.CredentialSubject.Mandate.Mandator extractMandatorLearCredentialMachine(LEARCredential credential) {
+        System.out.println("Credential: " + credential);
+        List<String> types = credential.type();
+        System.out.println("Types: " + types);
+        if (types.contains("LEARCredentialMachine")) {
+            return ((LEARCredentialMachine) credential).credentialSubject().mandate().mandator();
+        }
+        throw new InvalidCredentialFormatException("Unsupported credential type: " + types);
+    }
+
     public static List<Power> extractPowers(LEARCredential credential) {
         List<String> types = credential.type();
         if (types.contains("LEARCredentialEmployee")) {
