@@ -107,7 +107,7 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
                 }
             } else if (LEAR_CREDENTIAL_MACHINE.equals(schema)) {
                 if (types.contains(LEAR_CREDENTIAL_EMPLOYEE)) {
-                    return LEAR_CREDENTIAL_MACHINE;
+                    return LEAR_CREDENTIAL_EMPLOYEE;
                 } else {
                     throw new InsufficientPermissionException(
                             "Unauthorized: Credential type 'LEARCredentialEmployee' is required for LEARCredentialMachine.");
