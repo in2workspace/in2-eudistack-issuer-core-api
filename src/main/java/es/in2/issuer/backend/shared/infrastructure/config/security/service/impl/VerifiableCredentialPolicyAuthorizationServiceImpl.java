@@ -94,6 +94,8 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
      * Returns a Mono emitting the allowed type.
      */
     private Mono<String> determineAllowedCredentialType(List<String> types, String schema) {
+        System.out.println("AAATypes: " + types);
+        System.out.println("AAASchema: " + schema);
         return Mono.fromCallable(() -> {
             if (LABEL_CREDENTIAL.equals(schema)) {
                 // For verifiable certification, only LEARCredentialMachine into the access token is allowed.
