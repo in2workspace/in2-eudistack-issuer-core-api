@@ -209,7 +209,7 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
     private boolean isSignerIssuancePolicyValidLEARCredentialMachine(LEARCredential learCredential) {
         System.out.println("hola 1");
         System.out.println("1000 - LEAR: " + learCredential);
-        return isLearCredentialEmployeeMandatorOrganizationIdentifierAllowedSignerLEARCredentialMachine(extractMandatorLearCredentialMachine(learCredential)) &&
+        return isLearCredentialEmployeeMandatorOrganizationIdentifierAllowedSignerLEARCredentialMachine(extractMandatorLearCredentialEmployee(learCredential)) &&
                 hasLearCredentialOnboardingExecutePower(extractPowers(learCredential));
     }
 
@@ -300,7 +300,7 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
         return IN2_ORGANIZATION_IDENTIFIER.equals(mandator.organizationIdentifier());
     }
 
-    private boolean isLearCredentialEmployeeMandatorOrganizationIdentifierAllowedSignerLEARCredentialMachine(LEARCredentialMachine.CredentialSubject.Mandate.Mandator mandator) {
+    private boolean isLearCredentialEmployeeMandatorOrganizationIdentifierAllowedSignerLEARCredentialMachine(Mandator mandator) {
         return IN2_ORGANIZATION_IDENTIFIER.equals(mandator.organization());
     }
 
