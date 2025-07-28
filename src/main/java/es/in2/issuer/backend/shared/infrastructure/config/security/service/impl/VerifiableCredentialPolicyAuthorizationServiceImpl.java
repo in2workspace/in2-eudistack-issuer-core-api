@@ -231,7 +231,7 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
         System.out.println("hola 2");
         return mandate != null &&
                 mandate.mandator().organization().equals(extractMandatorLearCredentialEmployee(learCredential).organization()) &&
-                payloadPowersOnlyIncludeProductOffering(mandate.power());
+               payloadPowersOnlyIncludeOnboarding(mandate.power());
     }
 
     private Mono<Boolean> isVerifiableCertificationPolicyValid(LEARCredential learCredential, String idToken) {
@@ -307,5 +307,10 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
     private boolean payloadPowersOnlyIncludeProductOffering(List<Power> powers) {
         System.out.println("Powers: " + powers);
         return powers.stream().allMatch(power -> "ProductOffering".equals(power.function()));
+    }
+
+    private boolean payloadPowersOnlyIncludeOnboarding(List<Power> powers) {
+        System.out.println("Powers: " + powers);
+        return powers.stream().allMatch(power -> "Onboarding".equals(power.function()));
     }
 }
