@@ -35,8 +35,6 @@ public final class Utils {
 
     public static Mandator extractMandatorLearCredentialEmployee(LEARCredential credential) {
         List<String> types = credential.type();
-        System.out.println("100 La credential");
-        System.out.println("100 Inside types: " + types);
         if (types.contains("LEARCredentialEmployee")) {
             return ((LEARCredentialEmployee) credential).credentialSubject().mandate().mandator();
         }

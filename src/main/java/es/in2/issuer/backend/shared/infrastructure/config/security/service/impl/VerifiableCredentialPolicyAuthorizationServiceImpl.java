@@ -208,6 +208,7 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
 
     private boolean isSignerIssuancePolicyValidLEARCredentialMachine(LEARCredential learCredential) {
         System.out.println("hola 1");
+        System.out.println("1000 - LEAR: " + learCredential);
         return isLearCredentialEmployeeMandatorOrganizationIdentifierAllowedSignerLEARCredentialMachine(extractMandatorLearCredentialMachine(learCredential)) &&
                 hasLearCredentialOnboardingExecutePower(extractPowers(learCredential));
     }
