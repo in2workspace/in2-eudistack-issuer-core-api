@@ -1,5 +1,17 @@
 package es.in2.issuer.backend.shared.infrastructure.config.security.service.impl;
 
+import static es.in2.issuer.backend.backoffice.domain.util.Constants.IN2_ORGANIZATION_IDENTIFIER;
+import static es.in2.issuer.backend.backoffice.domain.util.Constants.LEAR;
+import static es.in2.issuer.backend.backoffice.domain.util.Constants.LEAR_CREDENTIAL_MACHINE;
+import static es.in2.issuer.backend.backoffice.domain.util.Constants.LER;
+import static es.in2.issuer.backend.backoffice.domain.util.Constants.ROLE;
+import static es.in2.issuer.backend.backoffice.domain.util.Constants.SYS_ADMIN;
+import static es.in2.issuer.backend.backoffice.domain.util.Constants.VC;
+import static es.in2.issuer.backend.shared.domain.util.Constants.LABEL_CREDENTIAL;
+import static es.in2.issuer.backend.shared.domain.util.Constants.LEAR_CREDENTIAL_EMPLOYEE;
+import static es.in2.issuer.backend.shared.domain.util.Utils.extractMandatorLearCredentialEmployee;
+import static es.in2.issuer.backend.shared.domain.util.Utils.extractPowers;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -11,23 +23,17 @@ import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.Mandator;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.Power;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.employee.LEARCredentialEmployee;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.machine.LEARCredentialMachine;
+import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.machine.LEARCredentialMachine.CredentialSubject.Mandate;
 import es.in2.issuer.backend.shared.domain.service.JWTService;
 import es.in2.issuer.backend.shared.domain.service.VerifierService;
 import es.in2.issuer.backend.shared.domain.util.factory.CredentialFactory;
 import es.in2.issuer.backend.shared.infrastructure.config.security.service.VerifiableCredentialPolicyAuthorizationService;
+import java.util.List;
+import java.util.stream.StreamSupport;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
-
-import java.util.List;
-import java.util.stream.StreamSupport;
-
-import static es.in2.issuer.backend.backoffice.domain.util.Constants.*;
-import static es.in2.issuer.backend.shared.domain.util.Constants.LEAR_CREDENTIAL_EMPLOYEE;
-import static es.in2.issuer.backend.shared.domain.util.Constants.LABEL_CREDENTIAL;
-import static es.in2.issuer.backend.shared.domain.util.Utils.*;
-import static es.in2.issuer.backend.shared.domain.util.Utils.extractMandatorLearCredentialMachine;
 
 @Service
 @Slf4j
@@ -229,8 +235,16 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
         }
         LEARCredentialMachine.CredentialSubject.Mandate mandate = objectMapper.convertValue(payload, LEARCredentialMachine.CredentialSubject.Mandate.class);
         System.out.println("hola 2");
-        return mandate != null &&
-                mandate.mandator().organization().equals(extractMandatorLearCredentialEmployee(learCredential).organization()) &&
+        if (mandate == null) {
+            return false;
+        }
+        final Mandator learCredentialMandator = extractMandatorLearCredentialEmployee(
+            learCredential);
+        final Mandate.Mandator payloadMandator = mandate.mandator();
+        return payloadMandator.organization().equals(learCredentialMandator.organization()) &&
+               payloadMandator.country().equals(learCredentialMandator.country()) &&
+               payloadMandator.commonName().equals(learCredentialMandator.commonName()) &&
+               payloadMandator.serialNumber().equals(learCredentialMandator.serialNumber()) &&
                payloadPowersOnlyIncludeOnboarding(mandate.power());
     }
 
