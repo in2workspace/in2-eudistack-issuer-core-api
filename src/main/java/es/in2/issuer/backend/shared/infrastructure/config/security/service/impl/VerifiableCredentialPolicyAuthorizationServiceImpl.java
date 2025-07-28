@@ -230,7 +230,7 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
         LEARCredentialMachine.CredentialSubject.Mandate mandate = objectMapper.convertValue(payload, LEARCredentialMachine.CredentialSubject.Mandate.class);
         System.out.println("hola 2");
         return mandate != null &&
-                mandate.mandator().equals(extractMandatorLearCredentialMachine(learCredential)) &&
+                mandate.mandator().organization().equals(extractMandatorLearCredentialEmployee(learCredential).organization()) &&
                 payloadPowersOnlyIncludeProductOffering(mandate.power());
     }
 
@@ -305,6 +305,7 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
     }
 
     private boolean payloadPowersOnlyIncludeProductOffering(List<Power> powers) {
+        System.out.println("Powers: " + powers);
         return powers.stream().allMatch(power -> "ProductOffering".equals(power.function()));
     }
 }
