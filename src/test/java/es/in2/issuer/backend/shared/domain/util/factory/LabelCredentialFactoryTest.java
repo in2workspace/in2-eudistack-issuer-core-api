@@ -16,7 +16,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.testcontainers.shaded.com.fasterxml.jackson.core.JsonProcessingException;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
@@ -26,7 +25,6 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -55,9 +53,6 @@ class LabelCredentialFactoryTest {
 
         String procedureId = "procedure-123";
         String credentialJson = "{\"id\":\"urn:uuid:123\"}";
-        LabelCredential.CredentialSubject subject = LabelCredential.CredentialSubject.builder()
-                .id("subject-1")
-                .build();
 
         LabelCredential labelCredential = LabelCredential.builder()
                 .id("label-1")

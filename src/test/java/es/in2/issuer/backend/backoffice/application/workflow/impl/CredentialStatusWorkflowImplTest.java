@@ -6,7 +6,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import es.in2.issuer.backend.backoffice.domain.service.CredentialStatusAuthorizationService;
 import es.in2.issuer.backend.backoffice.domain.service.CredentialStatusService;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.CredentialStatus;
-import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.employee.LEARCredentialEmployee;
 import es.in2.issuer.backend.shared.domain.model.entities.CredentialProcedure;
 import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum;
 import es.in2.issuer.backend.shared.domain.service.AccessTokenService;
@@ -126,7 +125,6 @@ class CredentialStatusWorkflowImplTest {
         ObjectMapper realMapper = new ObjectMapper();
 
         JsonNode credentialJsonNode = realMapper.readTree(decodedCredential);
-        JsonNode credentialStatusNode = credentialJsonNode.get("credentialStatus");
 
         CredentialProcedure credentialProcedure = new CredentialProcedure();
         credentialProcedure.setCredentialStatus(CredentialStatusEnum.VALID);
