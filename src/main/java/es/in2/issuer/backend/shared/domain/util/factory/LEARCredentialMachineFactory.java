@@ -45,13 +45,13 @@ public class LEARCredentialMachineFactory {
         }
     }
 
-    public Mono<CredentialProcedureCreationRequest> mapAndBuildLEARCredentialMachine(JsonNode learCredential, String operationMode) {
+    public Mono<CredentialProcedureCreationRequest> mapAndBuildLEARCredentialMachine(JsonNode learCredential, String operationMode, String email) {
         LEARCredentialMachine.CredentialSubject baseCredentialSubject = mapJsonNodeToCredentialSubject(learCredential);
         return buildFinalLearCredentialMachine(baseCredentialSubject)
                 .flatMap(credentialDecoded ->
                         convertLEARCredentialMachineInToString(credentialDecoded)
                                 .flatMap(credentialDecodedString ->
-                                        buildCredentialProcedureCreationRequest(credentialDecodedString, credentialDecoded, operationMode)
+                                        buildCredentialProcedureCreationRequest(credentialDecodedString, credentialDecoded, operationMode, email)
                                 )
                 );
     }
@@ -102,7 +102,7 @@ public class LEARCredentialMachineFactory {
         }
     }
 
-    private Mono<CredentialProcedureCreationRequest> buildCredentialProcedureCreationRequest(String decodedCredential, LEARCredentialMachine credentialDecoded, String operationMode) {
+    private Mono<CredentialProcedureCreationRequest> buildCredentialProcedureCreationRequest(String decodedCredential, LEARCredentialMachine credentialDecoded, String operationMode, String email) {
         return accessTokenService.getOrganizationIdFromCurrentSession()
                 .flatMap(organizationId ->
                         Mono.just(
@@ -114,6 +114,7 @@ public class LEARCredentialMachineFactory {
                                         .subject(credentialDecoded.credentialSubject().mandate().mandatee().domain())
                                         .validUntil(parseEpochSecondIntoTimestamp(parseDateToUnixTime(credentialDecoded.validUntil())))
                                         .operationMode(operationMode)
+                                        .ownerEmail(email)
                                         .build()
                         )
                 );
