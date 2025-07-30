@@ -170,10 +170,11 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                     System.out.println("Xivato 5");
 
                     Mono<CredentialResponse> vcMono = subjectDidMono
-                            .flatMap(did ->
-                                    verifiableCredentialService.buildCredentialResponse(
-                                            processId, did, nonce, token
-                                    )
+                            .flatMap(did -> {
+                                        return verifiableCredentialService.buildCredentialResponse(
+                                                processId, did, nonce, token
+                                        );
+                                    }
                             )
                             .switchIfEmpty(
                                     verifiableCredentialService.buildCredentialResponse(

@@ -88,31 +88,39 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
             String authServerNonce,
             String token) {
 
+        System.out.println("Xivato 100");
+
         return deferredCredentialMetadataService
                 .getProcedureIdByAuthServerNonce(authServerNonce)
-                .flatMap(procedureId ->
-                        credentialProcedureService
-                                .getCredentialTypeByProcedureId(procedureId)
-                                .zipWhen(credType -> credentialProcedureService.getDecodedCredentialByProcedureId(procedureId))
-                                .flatMap(tuple -> {
-                                    String credentialType = tuple.getT1();
-                                    String decoded        = tuple.getT2();
-                                    return bindAndSaveIfNeeded(
-                                            processId,
-                                            procedureId,
-                                            credentialType,
-                                            decoded,
-                                            subjectDid
-                                    )
-                                            .flatMap(boundCred -> updateDeferredAndMap(
-                                                    processId,
-                                                    procedureId,
-                                                    credentialType,
-                                                    boundCred,
-                                                    authServerNonce,
-                                                    token
-                                            ));
-                                })
+                .flatMap(procedureId -> {
+                    System.out.println("Xivato 101");
+                            return credentialProcedureService
+                                    .getCredentialTypeByProcedureId(procedureId)
+                                    .zipWhen(credType -> credentialProcedureService.getDecodedCredentialByProcedureId(procedureId))
+                                    .flatMap(tuple -> {
+                                        System.out.println("Xivato 102");
+                                        String credentialType = tuple.getT1();
+                                        String decoded = tuple.getT2();
+                                        return bindAndSaveIfNeeded(
+                                                processId,
+                                                procedureId,
+                                                credentialType,
+                                                decoded,
+                                                subjectDid
+                                        )
+                                                .flatMap(boundCred -> {
+                                                    System.out.println("Xivato 103");
+                                                    return updateDeferredAndMap(
+                                                            processId,
+                                                            procedureId,
+                                                            credentialType,
+                                                            boundCred,
+                                                            authServerNonce,
+                                                            token
+                                                    );
+                                                });
+                                    });
+                        }
                 );
     }
 
