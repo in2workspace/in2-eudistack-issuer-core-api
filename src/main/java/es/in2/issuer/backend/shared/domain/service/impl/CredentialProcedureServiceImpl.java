@@ -168,7 +168,7 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
                             }
                             case LABEL_CREDENTIAL_TYPE -> Mono.just("domesupport@in2.es");
 
-                            case LEAR_CREDENTIAL_MACHINE -> {
+                            case LEAR_CREDENTIAL_MACHINE_TYPE -> {
                                 System.out.println("98765 Credential: " + credential);
                                 yield Mono.just(credential
                                         .get(CREDENTIAL_SUBJECT)
