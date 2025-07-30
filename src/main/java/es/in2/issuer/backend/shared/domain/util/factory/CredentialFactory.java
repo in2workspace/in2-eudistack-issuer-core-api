@@ -65,6 +65,9 @@ public class CredentialFactory {
             case LABEL_CREDENTIAL ->
                     labelCredentialFactory
                             .mapCredentialAndBindIssuerInToTheCredential(decodedCredential, procedureId);
+            case LEAR_CREDENTIAL_MACHINE ->
+                learCredentialMachineFactory
+                        .mapCredentialAndBindIssuerInToTheCredential(decodedCredential, procedureId);
             default ->
                     Mono.error(new CredentialTypeUnsupportedException(credentialType));
         };
