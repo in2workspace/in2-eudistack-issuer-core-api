@@ -156,26 +156,31 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
 
         return deferredCredentialMetadataService
                 .updateDeferredCredentialMetadataByAuthServerNonce(authServerNonce)
-                .flatMap(transactionId ->
-                        deferredCredentialMetadataService.getFormatByProcedureId(procedureId)
-                                .flatMap(format -> credentialFactory
-                                        .mapCredentialBindIssuerAndUpdateDB(
-                                                processId,
-                                                procedureId,
-                                                boundCredential,
-                                                credentialType,
-                                                format,
-                                                authServerNonce
-                                        )
-                                        .then(credentialProcedureService.getOperationModeByProcedureId(procedureId))
-                                        .flatMap(mode -> buildCredentialResponseBasedOnOperationMode(
-                                                mode,
-                                                procedureId,
-                                                transactionId,
-                                                authServerNonce,
-                                                token
-                                        ))
-                                )
+                .flatMap(transactionId -> {
+                    System.out.println("Xivato 104");
+                            return deferredCredentialMetadataService.getFormatByProcedureId(procedureId)
+                                    .flatMap(format -> {
+                                        System.out.println("Xivato 105");
+                                                return credentialFactory
+                                                        .mapCredentialBindIssuerAndUpdateDB(
+                                                                processId,
+                                                                procedureId,
+                                                                boundCredential,
+                                                                credentialType,
+                                                                format,
+                                                                authServerNonce
+                                                        )
+                                                        .then(credentialProcedureService.getOperationModeByProcedureId(procedureId))
+                                                        .flatMap(mode -> buildCredentialResponseBasedOnOperationMode(
+                                                                mode,
+                                                                procedureId,
+                                                                transactionId,
+                                                                authServerNonce,
+                                                                token
+                                                        ));
+                                            }
+                                    );
+                        }
                 );
     }
 
@@ -185,6 +190,7 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
             String transactionId,
             String authServerNonce,
             String token) {
+        System.out.println("Xivato 107");
 
         if (ASYNC.equals(operationMode)) {
             return credentialProcedureService
