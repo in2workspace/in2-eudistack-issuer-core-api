@@ -274,6 +274,7 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
 
     @Override
     public Mono<CredentialProcedure> getCredentialProcedureById(String procedureId) {
+        System.out.println("Xiva --1");
         return credentialProcedureRepository.findByProcedureId(UUID.fromString(procedureId));
     }
 

@@ -29,6 +29,7 @@ public class NotificationServiceImpl implements NotificationService {
     public Mono<Void> sendNotification(String processId, String procedureId) {
         return credentialProcedureService.getCredentialProcedureById(procedureId)
                         .flatMap(credentialProcedure -> {
+                            System.out.println("Xiva 0");
                                     return credentialProcedureService.getEmailCredentialOfferInfoByProcedureId(procedureId)
                                             .flatMap(emailCredentialOfferInfo -> {
                                                 System.out.println("Xiva 1");
