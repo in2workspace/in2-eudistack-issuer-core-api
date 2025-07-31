@@ -9,7 +9,7 @@ import es.in2.issuer.backend.shared.domain.model.dto.credential.CredentialStatus
 import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.machine.LEARCredentialMachine;
 import es.in2.issuer.backend.shared.domain.model.enums.CredentialType;
 import es.in2.issuer.backend.shared.domain.service.AccessTokenService;
-import es.in2.issuer.backend.shared.infrastructure.config.properties.CorsProperties;
+import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static es.in2.issuer.backend.shared.domain.util.Constants.*;
+import static es.in2.issuer.backend.shared.domain.util.Utils.generateCustomNonce;
 
 @Slf4j
 @Component
@@ -32,7 +33,7 @@ public class LEARCredentialMachineFactory {
 
     private final ObjectMapper objectMapper;
     private final AccessTokenService accessTokenService;
-    private final CorsProperties corsProperties;
+    private final AppConfig appConfig;
 
     public LEARCredentialMachine mapStringToLEARCredentialMachine(String learCredential)
             throws InvalidCredentialFormatException {
@@ -70,28 +71,28 @@ public class LEARCredentialMachineFactory {
         String validUntil = currentTime.plus(365, ChronoUnit.DAYS).toString();
 
         String credentialId = UUID.randomUUID().toString();
-        LEARCredentialMachine learCredentialMachine = LEARCredentialMachine.builder()
+        return buildCredentialStatus()
+                .map(credentialStatus -> LEARCredentialMachine.builder()
                 .context(CREDENTIAL_CONTEXT_LEAR_CREDENTIAL_MACHINE)
                 .id(credentialId)
                 .type(List.of(LEAR_CREDENTIAL_MACHINE, VERIFIABLE_CREDENTIAL))
                 .credentialSubject(baseCredentialSubject)
                 .validFrom(validFrom)
                 .validUntil(validUntil)
-                .credentialStatus(buildCredentialStatus(credentialId))
-                .build();
-
-        return Mono.just(learCredentialMachine);
+                .credentialStatus(credentialStatus)
+                .build());
     }
 
-    private CredentialStatus buildCredentialStatus(String credentialId) {
-        String statusListCredential = corsProperties.defaultAllowedOrigins().stream().findFirst() + "/credentials/status/1";
-        return CredentialStatus.builder()
-                .id(statusListCredential + "#" + credentialId)
-                .type("PlainListEntity")
-                .statusPurpose("revocation")
-                .statusListIndex(credentialId)
-                .statusListCredential(statusListCredential)
-                .build();
+    private Mono<CredentialStatus> buildCredentialStatus() {
+        String statusListCredential = appConfig.getIssuerBackendUrl() + "/backoffice/v1/credentials/status/1";
+        return generateCustomNonce()
+                .map(nonce -> CredentialStatus.builder()
+                        .id(statusListCredential + "#" + nonce)
+                        .type("PlainListEntity")
+                        .statusPurpose("revocation")
+                        .statusListIndex(nonce)
+                        .statusListCredential(statusListCredential)
+                        .build());
     }
 
     private Mono<String> convertLEARCredentialMachineInToString(LEARCredentialMachine credentialDecoded) {
