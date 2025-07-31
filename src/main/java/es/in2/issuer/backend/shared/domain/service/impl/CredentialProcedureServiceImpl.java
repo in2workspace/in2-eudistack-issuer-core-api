@@ -175,7 +175,7 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
                                         .get(CREDENTIAL_SUBJECT)
                                         .get(MANDATE)
                                         .get(MANDATOR)
-                                        .get(EMAIL_ADDRESS)
+                                        .get(EMAIL)
                                         .asText());
                             }
 
