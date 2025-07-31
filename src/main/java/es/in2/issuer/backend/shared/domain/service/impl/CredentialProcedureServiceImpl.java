@@ -52,6 +52,7 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
                 .signatureMode("remote")
                 .ownerEmail(credentialProcedureCreationRequest.ownerEmail())
                 .build();
+        System.out.println("12345: " + credentialProcedure);
         return credentialProcedureRepository.save(credentialProcedure)
                 .map(savedCredentialProcedure -> savedCredentialProcedure.getProcedureId().toString())
                 .doOnError(e -> log.error("Error saving credential procedure", e));
