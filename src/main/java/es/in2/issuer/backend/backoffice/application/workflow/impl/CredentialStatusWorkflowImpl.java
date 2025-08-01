@@ -105,6 +105,6 @@ public class CredentialStatusWorkflowImpl implements CredentialStatusWorkflow {
                         }else {
                             return Mono.empty();
                         }
-            });
+            }).doOnError(error -> log.error("Error sending notification", error));
     }
 }
