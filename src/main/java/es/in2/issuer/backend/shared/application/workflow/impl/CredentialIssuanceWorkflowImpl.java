@@ -70,8 +70,6 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
         CredentialOfferEmailNotificationInfo emailInfo =
                 extractCredentialOfferEmailInfo(preSubmittedCredentialDataRequest);
 
-        System.out.println("Email info: " + emailInfo);
-
         // Validate user policy before proceeding
         return verifiableCredentialPolicyAuthorizationService.authorize(token, preSubmittedCredentialDataRequest.schema(), preSubmittedCredentialDataRequest.payload(), idToken)
                 .then(verifiableCredentialService.generateVc(processId, preSubmittedCredentialDataRequest, emailInfo.email())
@@ -143,31 +141,19 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
             String token) {
 
         return parseAuthServerNonce(token)
-                .flatMap(nonce -> {
-                    System.out.println("Xivato 1");
-                            return deferredCredentialMetadataService.getDeferredCredentialMetadataByAuthServerNonce(nonce)
-                                    .flatMap(deferred -> {
-                                        System.out.println("Xivato 2");
-                                                return credentialProcedureService.getCredentialProcedureById(deferred.getProcedureId().toString())
-                                                        .zipWhen(proc -> {
-                                                            System.out.println("Xivato 3");
-                                                            return credentialIssuerMetadataService.getCredentialIssuerMetadata(processId);
-                                                        })
-                                                        .map(tuple -> Tuples.of(nonce, deferred, tuple.getT1(), tuple.getT2()));
-                                            }
-                                    );
-                        }
+                .flatMap(nonce -> deferredCredentialMetadataService.getDeferredCredentialMetadataByAuthServerNonce(nonce)
+                        .flatMap(deferred -> credentialProcedureService.getCredentialProcedureById(deferred.getProcedureId().toString())
+                                .zipWhen(proc -> credentialIssuerMetadataService.getCredentialIssuerMetadata(processId))
+                                .map(tuple -> Tuples.of(nonce, deferred, tuple.getT1(), tuple.getT2()))
+                        )
                 )
                 .flatMap(tuple4 -> {
-                    System.out.println("Xivato 4");
                     String nonce = tuple4.getT1();
                     DeferredCredentialMetadata deferredCredentialMetadata = tuple4.getT2();
                     CredentialProcedure proc = tuple4.getT3();
                     CredentialIssuerMetadata md = tuple4.getT4();
 
                     Mono<String> subjectDidMono = determineSubjectDid(proc, md, credentialRequest, token);
-
-                    System.out.println("Xivato 5");
 
                     Mono<CredentialResponse> vcMono = subjectDidMono
                             .flatMap(did -> {
@@ -181,8 +167,6 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                                             processId, null, nonce, token
                                     )
                             );
-
-                    System.out.println("Xivato 6");
 
                     return vcMono.flatMap(cr ->
                             handleOperationMode(
@@ -268,7 +252,6 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
             CredentialProcedure credentialProcedure,
             DeferredCredentialMetadata deferred
     ) {
-        System.out.println("Xivato 7");
         return switch (operationMode) {
             case ASYNC -> deferredCredentialMetadataService.getProcedureIdByAuthServerNonce(nonce)
                     .flatMap(credentialProcedureService::getSignerEmailFromDecodedCredentialByProcedureId)

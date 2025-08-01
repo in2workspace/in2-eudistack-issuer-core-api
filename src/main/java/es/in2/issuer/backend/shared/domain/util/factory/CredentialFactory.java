@@ -56,7 +56,6 @@ public class CredentialFactory {
             String credentialType,
             String format,
             String authServerNonce) {
-        System.out.println("Xivato 106");
 
         Mono<String> bindMono = switch (credentialType) {
             case LEAR_CREDENTIAL_EMPLOYEE ->

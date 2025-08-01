@@ -52,7 +52,6 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
                 .signatureMode("remote")
                 .ownerEmail(credentialProcedureCreationRequest.ownerEmail())
                 .build();
-        System.out.println("12345: " + credentialProcedure);
         return credentialProcedureRepository.save(credentialProcedure)
                 .map(savedCredentialProcedure -> savedCredentialProcedure.getProcedureId().toString())
                 .doOnError(e -> log.error("Error saving credential procedure", e));
@@ -170,7 +169,6 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
                             case LABEL_CREDENTIAL_TYPE -> Mono.just("domesupport@in2.es");
 
                             case LEAR_CREDENTIAL_MACHINE_TYPE -> {
-                                System.out.println("98765 Credential: " + credential);
                                 yield Mono.just(credential
                                         .get(CREDENTIAL_SUBJECT)
                                         .get(MANDATE)
@@ -274,7 +272,6 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
 
     @Override
     public Mono<CredentialProcedure> getCredentialProcedureById(String procedureId) {
-        System.out.println("Xiva --1");
         return credentialProcedureRepository.findByProcedureId(UUID.fromString(procedureId));
     }
 
@@ -300,7 +297,6 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
                                             objectMapper.readTree(credentialProcedure.getCredentialDecoded())
                                     )
                                     .map(credential -> {
-                                        System.out.println("12345 Credential: " + credential);
                                         String user = credentialProcedure.getSubject();
                                         String org = credential
                                                 .get(CREDENTIAL_SUBJECT)

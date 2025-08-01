@@ -59,10 +59,8 @@ public class LEARCredentialMachineFactory {
     }
 
     private LEARCredentialMachine.CredentialSubject mapJsonNodeToCredentialSubject(JsonNode jsonNode) {
-        System.out.println("Le mandate: " + jsonNode.toString());
         LEARCredentialMachine.CredentialSubject.Mandate mandate =
                 objectMapper.convertValue(jsonNode, LEARCredentialMachine.CredentialSubject.Mandate.class);
-        System.out.println("Parse mandate: " + mandate);
         return LEARCredentialMachine.CredentialSubject.builder()
                 .mandate(mandate)
                 .build();
