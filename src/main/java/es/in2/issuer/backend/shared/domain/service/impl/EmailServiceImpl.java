@@ -178,4 +178,31 @@ public class EmailServiceImpl implements EmailService {
             return null;
         }).subscribeOn(Schedulers.boundedElastic()).then();
     }
+
+    @Override
+    public Mono<Void> sendCredentialRevokedNotificationEmail(String to, String subject, String link, String user, String organization, String credentialId, String type) {
+        return Mono.fromCallable(() -> {
+            MimeMessage mimeMessage = javaMailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, UTF_8);
+            helper.setFrom(mailProperties.getUsername());
+            helper.setTo(to);
+            helper.setSubject(subject);
+
+
+            Context context = new Context();
+            context.setVariable("title", "Your Credential Has Been Revoked");
+            context.setVariable("link", link + "/tabs/credentials");
+            context.setVariable("user", user);
+            context.setVariable("organization", organization);
+            context.setVariable("credentialId", credentialId);
+            context.setVariable("type", type);
+
+            String htmlContent = templateEngine.process("revoked-expired-credential-email", context);
+            helper.setText(htmlContent, true);
+
+            javaMailSender.send(mimeMessage);
+
+            return null;
+        }).subscribeOn(Schedulers.boundedElastic()).then();
+    }
 }

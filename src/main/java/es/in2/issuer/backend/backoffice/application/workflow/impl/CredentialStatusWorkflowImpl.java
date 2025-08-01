@@ -4,17 +4,23 @@ import es.in2.issuer.backend.backoffice.application.workflow.CredentialStatusWor
 import es.in2.issuer.backend.backoffice.domain.service.CredentialStatusAuthorizationService;
 import es.in2.issuer.backend.backoffice.domain.service.CredentialStatusService;
 import es.in2.issuer.backend.backoffice.domain.exception.InvalidStatusException;
+import es.in2.issuer.backend.shared.domain.exception.EmailCommunicationException;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.CredentialStatus;
 import es.in2.issuer.backend.shared.domain.model.entities.CredentialProcedure;
 import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum;
 import es.in2.issuer.backend.shared.domain.service.AccessTokenService;
 import es.in2.issuer.backend.shared.domain.service.CredentialProcedureService;
+import es.in2.issuer.backend.shared.domain.service.EmailService;
 import es.in2.issuer.backend.shared.domain.util.factory.LEARCredentialEmployeeFactory;
+import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import static es.in2.issuer.backend.backoffice.domain.util.Constants.MAIL_ERROR_COMMUNICATION_EXCEPTION_MESSAGE;
+import static es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum.*;
 
 @Slf4j
 @Service
@@ -26,6 +32,8 @@ public class CredentialStatusWorkflowImpl implements CredentialStatusWorkflow {
     private final CredentialStatusAuthorizationService credentialStatusAuthorizationService;
     private final CredentialProcedureService credentialProcedureService;
     private final LEARCredentialEmployeeFactory learCredentialEmployeeFactory;
+    private final EmailService emailService;
+    private final AppConfig appConfig;
 
     @Override
     public Flux<String> getCredentialsByListId(String processId, int listId) {
@@ -62,7 +70,9 @@ public class CredentialStatusWorkflowImpl implements CredentialStatusWorkflow {
                         "Process ID: {} - Revoking Credential with ID: {}",
                         processId,
                         credentialId))
-                .doOnSuccess(aVoid -> log.debug(
+                .then(sendNotification(credentialProcedure))
+                .doOnSuccess(
+                        aVoid -> log.debug(
                         "Process ID: {} - Credential with ID: {} revoked successfully.",
                         processId,
                         credentialId));
@@ -75,5 +85,26 @@ public class CredentialStatusWorkflowImpl implements CredentialStatusWorkflow {
             return Mono.error(new InvalidStatusException(
                     "Invalid status: " + credentialStatus));
         }
+    }
+
+    private Mono<Void> sendNotification(CredentialProcedure credentialProcedure) {
+        return credentialProcedureService.getEmailCredentialOfferInfoByProcedureId(credentialProcedure.getProcedureId().toString())
+            .flatMap(emailCredentialOfferInfo -> {
+                        if (credentialProcedure.getCredentialStatus().toString().equals(REVOKED.toString())) {
+                            return emailService.sendCredentialRevokedNotificationEmail(
+                                            emailCredentialOfferInfo.email(),
+                                            "Revoked Credential",
+                                            appConfig.getWalletUrl(),
+                                            emailCredentialOfferInfo.user(),
+                                            emailCredentialOfferInfo.organization(),
+                                            credentialProcedure.getCredentialId().toString(),
+                                            credentialProcedure.getCredentialType()
+                                    )
+                                    .onErrorMap(exception ->
+                                            new EmailCommunicationException(MAIL_ERROR_COMMUNICATION_EXCEPTION_MESSAGE));
+                        }else {
+                            return Mono.empty();
+                        }
+            });
     }
 }

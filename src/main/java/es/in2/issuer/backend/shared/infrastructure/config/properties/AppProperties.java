@@ -15,7 +15,8 @@ public record AppProperties(
         @NotBlank @URL String trustFrameworkUrl,
         @NotNull KnowledgeBase knowledgeBase,
         @NotBlank @URL String verifierUrl,
-        @NotBlank String configSource
+        @NotBlank String configSource,
+        @NotBlank @URL String walletUrl
 ) {
 
     @ConstructorBinding
@@ -25,7 +26,8 @@ public record AppProperties(
             String trustFrameworkUrl,
             KnowledgeBase knowledgeBase,
             String verifierUrl,
-            String configSource
+            String configSource,
+            String walletUrl
     ) {
         this.url = url;
         this.issuerFrontendUrl = issuerFrontendUrl;
@@ -33,6 +35,7 @@ public record AppProperties(
         this.knowledgeBase = knowledgeBase;
         this.verifierUrl = verifierUrl;
         this.configSource = configSource;
+        this.walletUrl = walletUrl;
     }
 
     @Validated
