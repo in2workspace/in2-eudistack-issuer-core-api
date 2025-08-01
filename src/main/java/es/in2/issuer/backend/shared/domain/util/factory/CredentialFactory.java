@@ -37,7 +37,7 @@ public class CredentialFactory {
                     .doOnSuccess(verifiableCertification -> log.info("ProcessID: {} - Label Credential mapped: {}", processId, credential));
         } else if(preSubmittedCredentialRequest.schema().equals(LEAR_CREDENTIAL_MACHINE)) {
             return learCredentialMachineFactory.mapAndBuildLEARCredentialMachine(credential, operationMode, email)
-                    .doOnSuccess(learCredentialEmployee -> log.info("ProcessID: {} - LEARCredentialEmployee mapped: {}", processId, credential));
+                    .doOnSuccess(learCredentialEmployee -> log.info("ProcessID: {} - LEARCredentialMachine mapped: {}", processId, credential));
         }
         return Mono.error(new CredentialTypeUnsupportedException(preSubmittedCredentialRequest.schema()));
     }
