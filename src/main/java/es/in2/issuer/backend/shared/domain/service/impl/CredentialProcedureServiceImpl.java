@@ -304,6 +304,7 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
                                         String user = credentialProcedure.getSubject();
                                         String org = credential
                                                 .get(CREDENTIAL_SUBJECT)
+                                                .get(MANDATE)
                                                 .get(MANDATOR)
                                                 .get(ORGANIZATION)
                                                 .asText();
