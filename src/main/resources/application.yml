@@ -128,7 +128,7 @@ app:
   # The configuration source for the application (OPTIONAL) by default is yaml
   config-source:  yaml
   # The URL of the wallet service (REQUIRED)
-  wallet-frontend-url:
+  wallet-url:
 
 azure:
   endpoint: "https://myappconfig.azconfig.io"

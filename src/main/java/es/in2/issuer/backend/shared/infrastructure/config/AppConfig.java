@@ -42,7 +42,7 @@ public class AppConfig {
     }
 
     public String getWalletFrontendUrl() {
-        return configAdapter.getConfiguration(appProperties.walletFrontendUrl());
+        return configAdapter.getConfiguration(appProperties.walletUrl());
     }
 
     public String getKnowledgeBaseUploadCertificationGuideUrl() {
