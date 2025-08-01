@@ -94,7 +94,7 @@ public class CredentialStatusWorkflowImpl implements CredentialStatusWorkflow {
                             return emailService.sendCredentialRevokedNotificationEmail(
                                             emailCredentialOfferInfo.email(),
                                             "Revoked Credential",
-                                            appConfig.getWalletUrl(),
+                                            appConfig.getWalletFrontendUrl(),
                                             emailCredentialOfferInfo.user(),
                                             emailCredentialOfferInfo.organization(),
                                             credentialProcedure.getCredentialId().toString(),
