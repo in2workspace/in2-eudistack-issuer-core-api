@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
+import static es.in2.issuer.backend.shared.domain.util.Constants.*;
 import static es.in2.issuer.backend.shared.domain.util.Constants.LABEL_CREDENTIAL;
 import static es.in2.issuer.backend.shared.domain.util.Constants.LEAR_CREDENTIAL_EMPLOYEE;
 
@@ -34,6 +35,9 @@ public class CredentialFactory {
         } else if (preSubmittedCredentialRequest.schema().equals(LABEL_CREDENTIAL)) {
             return labelCredentialFactory.mapAndBuildLabelCredential(credential, operationMode, email)
                     .doOnSuccess(verifiableCertification -> log.info("ProcessID: {} - Label Credential mapped: {}", processId, credential));
+        } else if(preSubmittedCredentialRequest.schema().equals(LEAR_CREDENTIAL_MACHINE)) {
+            return learCredentialMachineFactory.mapAndBuildLEARCredentialMachine(credential, operationMode, email)
+                    .doOnSuccess(learCredentialEmployee -> log.info("ProcessID: {} - LEARCredentialMachine mapped: {}", processId, credential));
         }
         return Mono.error(new CredentialTypeUnsupportedException(preSubmittedCredentialRequest.schema()));
     }
@@ -60,6 +64,9 @@ public class CredentialFactory {
             case LABEL_CREDENTIAL ->
                     labelCredentialFactory
                             .mapCredentialAndBindIssuerInToTheCredential(decodedCredential, procedureId);
+            case LEAR_CREDENTIAL_MACHINE ->
+                learCredentialMachineFactory
+                        .mapCredentialAndBindIssuerInToTheCredential(decodedCredential, procedureId);
             default ->
                     Mono.error(new CredentialTypeUnsupportedException(credentialType));
         };

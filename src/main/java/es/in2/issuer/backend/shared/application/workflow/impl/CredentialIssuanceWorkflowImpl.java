@@ -28,6 +28,7 @@ import java.util.List;
 
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.*;
 import static es.in2.issuer.backend.shared.domain.util.Constants.*;
+import static es.in2.issuer.backend.shared.domain.util.Constants.LEAR_CREDENTIAL_MACHINE;
 
 @Slf4j
 @Service
@@ -115,6 +116,11 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                 String org   = payload.get(MANDATOR).get(ORGANIZATION).asText();
                 yield new CredentialOfferEmailNotificationInfo(email, user, org);
             }
+            case LEAR_CREDENTIAL_MACHINE -> {
+                String email = payload.get(MANDATOR).get(EMAIL).asText();
+                String org = payload.get(MANDATOR).get(ORGANIZATION).asText();
+                yield new CredentialOfferEmailNotificationInfo(email, DEFAULT_USER_NAME, org);
+            }
             case LABEL_CREDENTIAL -> {
                     if(preSubmittedCredentialDataRequest.credentialOwnerEmail() == null || preSubmittedCredentialDataRequest.credentialOwnerEmail().isBlank()) {
                         throw new MissingEmailOwnerException("Email owner email is required for gx:LabelCredential schema");
@@ -135,13 +141,11 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
             String token) {
 
         return parseAuthServerNonce(token)
-                .flatMap(nonce ->
-                        deferredCredentialMetadataService.getDeferredCredentialMetadataByAuthServerNonce(nonce)
-                                .flatMap(deferred ->
-                                        credentialProcedureService.getCredentialProcedureById(deferred.getProcedureId().toString())
-                                                .zipWhen(proc -> credentialIssuerMetadataService.getCredentialIssuerMetadata(processId))
-                                                .map(tuple -> Tuples.of(nonce, deferred, tuple.getT1(), tuple.getT2()))
-                                )
+                .flatMap(nonce -> deferredCredentialMetadataService.getDeferredCredentialMetadataByAuthServerNonce(nonce)
+                        .flatMap(deferred -> credentialProcedureService.getCredentialProcedureById(deferred.getProcedureId().toString())
+                                .zipWhen(proc -> credentialIssuerMetadataService.getCredentialIssuerMetadata(processId))
+                                .map(tuple -> Tuples.of(nonce, deferred, tuple.getT1(), tuple.getT2()))
+                        )
                 )
                 .flatMap(tuple4 -> {
                     String nonce = tuple4.getT1();
@@ -152,10 +156,11 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                     Mono<String> subjectDidMono = determineSubjectDid(proc, md, credentialRequest, token);
 
                     Mono<CredentialResponse> vcMono = subjectDidMono
-                            .flatMap(did ->
-                                    verifiableCredentialService.buildCredentialResponse(
-                                            processId, did, nonce, token
-                                    )
+                            .flatMap(did -> {
+                                        return verifiableCredentialService.buildCredentialResponse(
+                                                processId, did, nonce, token
+                                        );
+                                    }
                             )
                             .switchIfEmpty(
                                     verifiableCredentialService.buildCredentialResponse(

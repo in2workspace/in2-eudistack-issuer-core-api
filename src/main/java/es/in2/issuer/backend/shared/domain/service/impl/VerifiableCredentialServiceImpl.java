@@ -87,32 +87,30 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
             String subjectDid,
             String authServerNonce,
             String token) {
-
         return deferredCredentialMetadataService
                 .getProcedureIdByAuthServerNonce(authServerNonce)
-                .flatMap(procedureId ->
-                        credentialProcedureService
-                                .getCredentialTypeByProcedureId(procedureId)
-                                .zipWhen(credType -> credentialProcedureService.getDecodedCredentialByProcedureId(procedureId))
-                                .flatMap(tuple -> {
-                                    String credentialType = tuple.getT1();
-                                    String decoded        = tuple.getT2();
-                                    return bindAndSaveIfNeeded(
+                .flatMap(procedureId -> credentialProcedureService
+                        .getCredentialTypeByProcedureId(procedureId)
+                        .zipWhen(credType -> credentialProcedureService.getDecodedCredentialByProcedureId(procedureId))
+                        .flatMap(tuple -> {
+                            String credentialType = tuple.getT1();
+                            String decoded = tuple.getT2();
+                            return bindAndSaveIfNeeded(
+                                    processId,
+                                    procedureId,
+                                    credentialType,
+                                    decoded,
+                                    subjectDid
+                            )
+                                    .flatMap(boundCred -> updateDeferredAndMap(
                                             processId,
                                             procedureId,
                                             credentialType,
-                                            decoded,
-                                            subjectDid
-                                    )
-                                            .flatMap(boundCred -> updateDeferredAndMap(
-                                                    processId,
-                                                    procedureId,
-                                                    credentialType,
-                                                    boundCred,
-                                                    authServerNonce,
-                                                    token
-                                            ));
-                                })
+                                            boundCred,
+                                            authServerNonce,
+                                            token
+                                    ));
+                        })
                 );
     }
 
@@ -148,26 +146,25 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
 
         return deferredCredentialMetadataService
                 .updateDeferredCredentialMetadataByAuthServerNonce(authServerNonce)
-                .flatMap(transactionId ->
-                        deferredCredentialMetadataService.getFormatByProcedureId(procedureId)
-                                .flatMap(format -> credentialFactory
-                                        .mapCredentialBindIssuerAndUpdateDB(
-                                                processId,
-                                                procedureId,
-                                                boundCredential,
-                                                credentialType,
-                                                format,
-                                                authServerNonce
-                                        )
-                                        .then(credentialProcedureService.getOperationModeByProcedureId(procedureId))
-                                        .flatMap(mode -> buildCredentialResponseBasedOnOperationMode(
-                                                mode,
-                                                procedureId,
-                                                transactionId,
-                                                authServerNonce,
-                                                token
-                                        ))
+                .flatMap(transactionId -> deferredCredentialMetadataService.getFormatByProcedureId(procedureId)
+                        .flatMap(format -> credentialFactory
+                                .mapCredentialBindIssuerAndUpdateDB(
+                                        processId,
+                                        procedureId,
+                                        boundCredential,
+                                        credentialType,
+                                        format,
+                                        authServerNonce
                                 )
+                                .then(credentialProcedureService.getOperationModeByProcedureId(procedureId))
+                                .flatMap(mode -> buildCredentialResponseBasedOnOperationMode(
+                                        mode,
+                                        procedureId,
+                                        transactionId,
+                                        authServerNonce,
+                                        token
+                                ))
+                        )
                 );
     }
 
@@ -177,7 +174,6 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
             String transactionId,
             String authServerNonce,
             String token) {
-
         if (ASYNC.equals(operationMode)) {
             return credentialProcedureService
                     .getDecodedCredentialByProcedureId(procedureId)

@@ -40,8 +40,10 @@ public class CredentialController {
                         return ResponseEntity.status(HttpStatus.OK).body(verifiableCredentialResponse);
                     }
                 })
-                .doOnSuccess(result ->
-                        log.info("VerifiableCredentialController - createVerifiableCredential(): {}", result.toString()));
+                .doFirst(() ->
+                        log.info("Process ID: {} - Creating Verifiable Credential...", processId))
+                .doOnSuccess(credentialOffer ->
+                        log.info("Process ID: {} - Authorization Server Metadata generated successfully.", processId));
     }
 
 }
