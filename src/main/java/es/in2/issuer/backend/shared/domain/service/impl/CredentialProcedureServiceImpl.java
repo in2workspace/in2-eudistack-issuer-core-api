@@ -300,6 +300,7 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
                                             objectMapper.readTree(credentialProcedure.getCredentialDecoded())
                                     )
                                     .map(credential -> {
+                                        System.out.println("12345 Credential: " + credential);
                                         String user = credentialProcedure.getSubject();
                                         String org = credential
                                                 .get(CREDENTIAL_SUBJECT)
