@@ -21,7 +21,7 @@ public class CredentialExpirationScheduler {
 
     private final CredentialProcedureRepository credentialProcedureRepository;
 
-    @Scheduled(cron = "0 0 1 * * ?") //Every day at 1:00 AM
+    //@Scheduled(cron = "0 0 1 * * ?") //Every day at 1:00 AM
     public Mono<Void> checkAndExpireCredentials() {
         log.info("Scheduled Task - Executing checkAndExpireCredentials at: {}", Instant.now());
         return credentialProcedureRepository.findAll()
@@ -38,7 +38,6 @@ public class CredentialExpirationScheduler {
     }
 
     private Mono<CredentialProcedure> expireCredential(CredentialProcedure credentialProcedure) {
-        //ENVIAR NOTIFICACION DE EXPIRACION
         if (credentialProcedure.getCredentialStatus() != CredentialStatusEnum.EXPIRED) {
             credentialProcedure.setCredentialStatus(CredentialStatusEnum.EXPIRED);
             credentialProcedure.setUpdatedAt(Timestamp.from(Instant.now()));
