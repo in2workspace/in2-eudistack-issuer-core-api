@@ -1,6 +1,7 @@
 package es.in2.issuer.backend.shared.domain.util.factory;
 
 import es.in2.issuer.backend.shared.domain.exception.CredentialTypeUnsupportedException;
+import es.in2.issuer.backend.shared.domain.model.dto.PreSubmittedCredentialDataRequest;
 import es.in2.issuer.backend.shared.domain.service.CredentialProcedureService;
 import es.in2.issuer.backend.shared.domain.service.DeferredCredentialMetadataService;
 import org.junit.jupiter.api.Test;
@@ -68,6 +69,22 @@ class CredentialFactoryTest {
 //
 //        verify(learCredentialEmployeeFactory, never()).mapAndBuildLEARCredentialEmployee(any(), any());
 //    }
+
+    @Test
+    void testMapCredentialIntoACredentialProcedureRequest_Failure() {
+        //Arrange
+        String processId = "processId";
+        PreSubmittedCredentialDataRequest preSubmittedCredentialDataRequest = PreSubmittedCredentialDataRequest.builder()
+                .schema("UNSUPPORTED_CREDENTIAL")
+                .build();
+
+        //Act & Assert
+        StepVerifier.create(credentialFactory.mapCredentialIntoACredentialProcedureRequest(processId, preSubmittedCredentialDataRequest, ""))
+                .expectError(CredentialTypeUnsupportedException.class)
+                .verify();
+
+        verify(learCredentialEmployeeFactory, never()).mapAndBuildLEARCredentialEmployee(any(), any(), any());
+    }
 
     @Test
     void testBindCryptographicCredentialSubjectId_Success() {

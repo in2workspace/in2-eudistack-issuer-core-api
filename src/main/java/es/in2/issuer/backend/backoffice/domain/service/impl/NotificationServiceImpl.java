@@ -29,7 +29,7 @@ public class NotificationServiceImpl implements NotificationService {
     public Mono<Void> sendNotification(String processId, String procedureId) {
         return credentialProcedureService.getCredentialProcedureById(procedureId)
                         .flatMap(credentialProcedure -> credentialProcedureService.getEmailCredentialOfferInfoByProcedureId(procedureId)
-                                        .flatMap( emailCredentialOfferInfo -> {
+                                .flatMap(emailCredentialOfferInfo -> {
                                             // TODO we need to remove the withdraw status from the condition since the v1.2.0 version is deprecated but in order to support retro compatibility issues we will keep it for now.
                                             if (credentialProcedure.getCredentialStatus().toString().equals(DRAFT.toString()) || credentialProcedure.getCredentialStatus().toString().equals(WITHDRAWN.toString())) {
                                                 return deferredCredentialMetadataService.updateTransactionCodeInDeferredCredentialMetadata(procedureId)
@@ -48,8 +48,8 @@ public class NotificationServiceImpl implements NotificationService {
                                             } else {
                                                 return Mono.empty();
                                             }
-                                    }
-                                    )
+                                        }
+                                )
                         );
     }
 

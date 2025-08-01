@@ -291,8 +291,13 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(UnauthorizedRoleException.class)
-    public ResponseEntity<String> handleUnauthorizedRoleException(UnauthorizedRoleException ex) {
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ex.getMessage());
+    public Mono<es.in2.issuer.backend.shared.domain.model.dto.GlobalErrorMessage> handleUnauthorizedRoleException(UnauthorizedRoleException ex) {
+        return Mono.just(
+                es.in2.issuer.backend.shared.domain.model.dto.GlobalErrorMessage.builder()
+                        .status(HttpStatus.UNAUTHORIZED.value())
+                        .message(ex.getMessage())
+                        .error("UnauthorizedRoleException")
+                        .build());
     }
 
     @ExceptionHandler(EmailCommunicationException.class)
