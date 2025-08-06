@@ -95,7 +95,7 @@ public class IssuerFactory {
 
     private Mono<String> getMail(String procedureId, String credentialType) {
         return switch (credentialType) {
-            case LEAR_CREDENTIAL_EMPLOYEE ->
+            case LEAR_CREDENTIAL_EMPLOYEE, LEAR_CREDENTIAL_MACHINE ->
                     remoteSignatureServiceImpl.getMandatorMail(procedureId);
             case LABEL_CREDENTIAL ->
                     Mono.just(defaultSignerConfig.getEmail());
