@@ -4,7 +4,10 @@ import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import es.in2.issuer.backend.shared.domain.exception.*;
+import es.in2.issuer.backend.shared.domain.exception.FormatUnsupportedException;
+import es.in2.issuer.backend.shared.domain.exception.MissingCredentialTypeException;
+import es.in2.issuer.backend.shared.domain.exception.NoCredentialFoundException;
+import es.in2.issuer.backend.shared.domain.exception.ParseCredentialJsonException;
 import es.in2.issuer.backend.shared.domain.model.dto.*;
 import es.in2.issuer.backend.shared.domain.model.entities.CredentialProcedure;
 import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum;
@@ -23,6 +26,7 @@ import java.util.UUID;
 
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.*;
 import static es.in2.issuer.backend.shared.domain.util.Constants.*;
+import static es.in2.issuer.backend.shared.domain.util.Constants.LEAR_CREDENTIAL_MACHINE;
 
 @Service
 @RequiredArgsConstructor
@@ -164,6 +168,15 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
                             }
                             case LABEL_CREDENTIAL_TYPE -> Mono.just("domesupport@in2.es");
 
+                            case LEAR_CREDENTIAL_MACHINE_TYPE ->
+                                Mono.just(credential
+                                        .get(CREDENTIAL_SUBJECT)
+                                        .get(MANDATE)
+                                        .get(MANDATOR)
+                                        .get(EMAIL)
+                                        .asText());
+
+
                             default ->
                                     Mono.error(new IllegalArgumentException("Unsupported credential type: " + credentialProcedure.getCredentialType()));
                         };
@@ -181,7 +194,8 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
     }
 
     @Override
-    public Mono<CredentialDetails> getProcedureDetailByProcedureIdAndOrganizationId(String organizationIdentifier, String procedureId) {
+    public Mono<CredentialDetails> getProcedureDetailByProcedureIdAndOrganizationId(String
+                                                                                            organizationIdentifier, String procedureId) {
         return credentialProcedureRepository.findByProcedureIdAndOrganizationIdentifier(UUID.fromString(procedureId), organizationIdentifier)
                 .switchIfEmpty(Mono.error(new NoCredentialFoundException("No credential found for procedureId: " + procedureId)))
                 .flatMap(credentialProcedure -> {
@@ -203,7 +217,8 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
     }
 
     @Override
-    public Mono<String> updatedEncodedCredentialByCredentialId(String encodedCredential, String credentialId) {
+    public Mono<String> updatedEncodedCredentialByCredentialId(String encodedCredential, String
+            credentialId) {
         return getCredentialByCredentialId(credentialId)
                 .flatMap(credentialProcedure -> {
                     credentialProcedure.setCredentialEncoded(encodedCredential);
@@ -225,7 +240,8 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
     }
 
     @Override
-    public Mono<Void> updateCredentialProcedureCredentialStatusToRevoke(CredentialProcedure credentialProcedure) {
+    public Mono<Void> updateCredentialProcedureCredentialStatusToRevoke(CredentialProcedure
+                                                                                credentialProcedure) {
         credentialProcedure.setCredentialStatus(CredentialStatusEnum.REVOKED);
         return credentialProcedureRepository.save(credentialProcedure)
                 .doOnSuccess(result -> log.info(UPDATED_CREDENTIAL))
@@ -233,7 +249,8 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
     }
 
     @Override
-    public Mono<CredentialProcedures> getAllProceduresBasicInfoByOrganizationId(String organizationIdentifier) {
+    public Mono<CredentialProcedures> getAllProceduresBasicInfoByOrganizationId(String
+                                                                                        organizationIdentifier) {
         return credentialProcedureRepository.findAllByOrganizationIdentifier(organizationIdentifier)
                 .flatMap(credentialProcedure ->
                         getCredentialTypeByProcedureId(String.valueOf(credentialProcedure.getProcedureId()))
@@ -270,18 +287,20 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
     }
 
     @Override
-    public Mono<CredentialOfferEmailNotificationInfo> getEmailCredentialOfferInfoByProcedureId(String procedureId) {
+    public Mono<CredentialOfferEmailNotificationInfo> getEmailCredentialOfferInfoByProcedureId(String
+                                                                                                       procedureId) {
         return credentialProcedureRepository
                 .findByProcedureId(UUID.fromString(procedureId))
                 .flatMap(credentialProcedure ->
                         switch (credentialProcedure.getCredentialType()) {
-                            case LEAR_CREDENTIAL_EMPLOYEE -> Mono.fromCallable(() ->
+                            case LEAR_CREDENTIAL_EMPLOYEE_CREDENTIAL_TYPE -> Mono.fromCallable(() ->
                                             objectMapper.readTree(credentialProcedure.getCredentialDecoded())
                                     )
                                     .map(credential -> {
                                         String user = credentialProcedure.getSubject();
                                         String org = credential
                                                 .get(CREDENTIAL_SUBJECT)
+                                                .get(MANDATE)
                                                 .get(MANDATOR)
                                                 .get(ORGANIZATION)
                                                 .asText();

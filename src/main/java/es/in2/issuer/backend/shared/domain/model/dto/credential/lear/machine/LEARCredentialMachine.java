@@ -45,7 +45,8 @@ public record LEARCredentialMachine(
                     @JsonProperty("organization") String organization,
                     @JsonProperty("country") String country,
                     @JsonProperty("commonName") String commonName,
-                    @JsonProperty("serialNumber") String serialNumber
+                    @JsonProperty("serialNumber") String serialNumber,
+                    @JsonProperty("email") String email
             ) {
             }
 

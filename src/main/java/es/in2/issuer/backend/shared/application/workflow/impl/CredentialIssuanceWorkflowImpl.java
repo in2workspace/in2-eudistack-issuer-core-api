@@ -70,8 +70,6 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
         CredentialOfferEmailNotificationInfo emailInfo =
                 extractCredentialOfferEmailInfo(preSubmittedCredentialDataRequest);
 
-        System.out.println("Email info: " + emailInfo);
-
         // Validate user policy before proceeding
         return verifiableCredentialPolicyAuthorizationService.authorize(token, preSubmittedCredentialDataRequest.schema(), preSubmittedCredentialDataRequest.payload(), idToken)
                 .then(verifiableCredentialService.generateVc(processId, preSubmittedCredentialDataRequest, emailInfo.email())
@@ -143,13 +141,11 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
             String token) {
 
         return parseAuthServerNonce(token)
-                .flatMap(nonce ->
-                        deferredCredentialMetadataService.getDeferredCredentialMetadataByAuthServerNonce(nonce)
-                                .flatMap(deferred ->
-                                        credentialProcedureService.getCredentialProcedureById(deferred.getProcedureId().toString())
-                                                .zipWhen(proc -> credentialIssuerMetadataService.getCredentialIssuerMetadata(processId))
-                                                .map(tuple -> Tuples.of(nonce, deferred, tuple.getT1(), tuple.getT2()))
-                                )
+                .flatMap(nonce -> deferredCredentialMetadataService.getDeferredCredentialMetadataByAuthServerNonce(nonce)
+                        .flatMap(deferred -> credentialProcedureService.getCredentialProcedureById(deferred.getProcedureId().toString())
+                                .zipWhen(proc -> credentialIssuerMetadataService.getCredentialIssuerMetadata(processId))
+                                .map(tuple -> Tuples.of(nonce, deferred, tuple.getT1(), tuple.getT2()))
+                        )
                 )
                 .flatMap(tuple4 -> {
                     String nonce = tuple4.getT1();
@@ -160,10 +156,11 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                     Mono<String> subjectDidMono = determineSubjectDid(proc, md, credentialRequest, token);
 
                     Mono<CredentialResponse> vcMono = subjectDidMono
-                            .flatMap(did ->
-                                    verifiableCredentialService.buildCredentialResponse(
-                                            processId, did, nonce, token
-                                    )
+                            .flatMap(did -> {
+                                        return verifiableCredentialService.buildCredentialResponse(
+                                                processId, did, nonce, token
+                                        );
+                                    }
                             )
                             .switchIfEmpty(
                                     verifiableCredentialService.buildCredentialResponse(

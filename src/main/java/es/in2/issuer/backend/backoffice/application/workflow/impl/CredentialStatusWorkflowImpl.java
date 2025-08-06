@@ -19,6 +19,8 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import static es.in2.issuer.backend.shared.domain.util.Utils.generateCustomNonce;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -29,6 +31,7 @@ public class CredentialStatusWorkflowImpl implements CredentialStatusWorkflow {
     private final CredentialStatusAuthorizationService credentialStatusAuthorizationService;
     private final CredentialProcedureService credentialProcedureService;
     private final ObjectMapper objectMapper;
+
     @Override
     public Flux<String> getCredentialsByListId(String processId, int listId) {
         return credentialStatusService.getCredentialsByListId(listId)
@@ -49,7 +52,6 @@ public class CredentialStatusWorkflowImpl implements CredentialStatusWorkflow {
                 )
                 .flatMap(credential -> Mono.just(credential.getCredentialDecoded())
                 .flatMap(decodedCredential -> {
-                    //Done in label
                     JsonNode credentialStatusNode;
                     try {
                         credentialStatusNode = objectMapper.readTree(decodedCredential).get("credentialStatus");

@@ -76,21 +76,15 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
     }
 
     private Mono<Void> checkPolicies(String token, String schema, JsonNode payload, String idToken) {
-        System.out.println("Primer: " + payload);
-        System.out.println("Token: " + token);
         return Mono.fromCallable(() -> jwtService.parseJWT(token))
             .flatMap(signedJWT -> {
                 String vcClaim = jwtService.getClaimFromPayload(signedJWT.getPayload(), VC);
-                System.out.println("vcclaim: " + vcClaim);
                 return mapVcToLEARCredential(vcClaim, schema)
-                    .flatMap(learCredential -> {
-                        System.out.println("learCredential: " + learCredential);
-                        return switch (schema) {
-                            case LEAR_CREDENTIAL_EMPLOYEE -> authorizeLearCredentialEmployee(learCredential, payload);
-                            case LEAR_CREDENTIAL_MACHINE -> authorizeLearCredentialMachine(learCredential, payload);
-                            case LABEL_CREDENTIAL -> authorizeLabelCredential(learCredential, idToken);
-                            default -> Mono.error(new InsufficientPermissionException("Unauthorized: Unsupported schema"));
-                        };
+                    .flatMap(learCredential -> switch (schema) {
+                        case LEAR_CREDENTIAL_EMPLOYEE -> authorizeLearCredentialEmployee(learCredential, payload);
+                        case LEAR_CREDENTIAL_MACHINE -> authorizeLearCredentialMachine(learCredential, payload);
+                        case LABEL_CREDENTIAL -> authorizeLabelCredential(learCredential, idToken);
+                        default -> Mono.error(new InsufficientPermissionException("Unauthorized: Unsupported schema"));
                     });
             });
     }
@@ -100,8 +94,6 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
      * Returns a Mono emitting the allowed type.
      */
     private Mono<String> determineAllowedCredentialType(List<String> types, String schema) {
-        System.out.println("AAATypes: " + types);
-        System.out.println("AAASchema: " + schema);
         return Mono.fromCallable(() -> {
             if (LABEL_CREDENTIAL.equals(schema)) {
                 // For verifiable certification, only LEARCredentialMachine into the access token is allowed.
@@ -135,13 +127,9 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
     private Mono<LEARCredential> mapVcToLEARCredential(String vcClaim, String schema) {
         return checkIfCredentialTypeIsAllowedToIssue(vcClaim, schema)
                 .flatMap(credentialType -> {
-                    System.out.println("Schema: " + schema);
-                    System.out.println("map: " + credentialType);
                     if (LEAR_CREDENTIAL_EMPLOYEE.equals(credentialType)) {
-                        System.out.println("hola emp");
                         return Mono.fromCallable(() -> credentialFactory.learCredentialEmployeeFactory.mapStringToLEARCredentialEmployee(vcClaim));
                     } else if (LEAR_CREDENTIAL_MACHINE.equals(credentialType)) {
-                        System.out.println("hola mach");
                         return Mono.fromCallable(() -> credentialFactory.learCredentialMachineFactory.mapStringToLEARCredentialMachine(vcClaim));
                     } else {
                         return Mono.error(new InsufficientPermissionException("Unsupported credential type: " + credentialType));
@@ -154,7 +142,6 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
      * Returns a Mono emitting the allowed type if valid, or an error otherwise.
      */
     private Mono<String> checkIfCredentialTypeIsAllowedToIssue(String vcClaim, String schema) {
-        System.out.println("VC Claim: " + vcClaim);
         return Mono.fromCallable(() -> objectMapper.readTree(vcClaim))
                 .flatMap(vcJsonNode ->
                         extractCredentialTypes(vcJsonNode)
@@ -213,8 +200,6 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
     }
 
     private boolean isSignerIssuancePolicyValidLEARCredentialMachine(LEARCredential learCredential) {
-        System.out.println("hola 1");
-        System.out.println("1000 - LEAR: " + learCredential);
         return isLearCredentialEmployeeMandatorOrganizationIdentifierAllowedSignerLEARCredentialMachine(extractMandatorLearCredentialEmployee(learCredential)) &&
                 hasLearCredentialOnboardingExecutePower(extractPowers(learCredential));
     }
@@ -234,7 +219,6 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
             return false;
         }
         LEARCredentialMachine.CredentialSubject.Mandate mandate = objectMapper.convertValue(payload, LEARCredentialMachine.CredentialSubject.Mandate.class);
-        System.out.println("hola 2");
         if (mandate == null) {
             return false;
         }
@@ -319,12 +303,10 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
     }
 
     private boolean payloadPowersOnlyIncludeProductOffering(List<Power> powers) {
-        System.out.println("Powers: " + powers);
         return powers.stream().allMatch(power -> "ProductOffering".equals(power.function()));
     }
 
     private boolean payloadPowersOnlyIncludeOnboarding(List<Power> powers) {
-        System.out.println("Powers: " + powers);
         return powers.stream().allMatch(power -> "Onboarding".equals(power.function()));
     }
 }

@@ -12,6 +12,7 @@ public final class Constants {
     public static final List<String> LABEL_CREDENTIAL_TYPES = List.of(LABEL_CREDENTIAL, VERIFIABLE_CREDENTIAL);
     public static final String LABEL_CREDENTIAL_TYPE = "LABEL_CREDENTIAL";
     public static final String LEAR_CREDENTIAL_EMPLOYEE_CREDENTIAL_TYPE = "LEAR_CREDENTIAL_EMPLOYEE";
+    public static final String LEAR_CREDENTIAL_MACHINE_TYPE = "LEAR_CREDENTIAL_MACHINE";
 
     public static final String GRANT_TYPE = "urn:ietf:params:oauth:grant-type:pre-authorized_code";
     public static final List<String> LEAR_CREDENTIAL_EMPLOYEE_CONTEXT = List.of("https://www.w3.org/ns/credentials/v2", "https://www.dome-marketplace.eu/2025/credentials/learcredentialemployee/v2");
