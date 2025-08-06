@@ -10,6 +10,7 @@ import es.in2.issuer.backend.shared.domain.model.dto.credential.SimpleIssuer;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.machine.LEARCredentialMachine;
 import es.in2.issuer.backend.shared.domain.model.enums.CredentialType;
 import es.in2.issuer.backend.shared.domain.service.AccessTokenService;
+import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
 import es.in2.issuer.backend.shared.infrastructure.config.properties.CorsProperties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -34,7 +35,6 @@ public class LEARCredentialMachineFactory {
 
     private final ObjectMapper objectMapper;
     private final AccessTokenService accessTokenService;
-    private final CorsProperties corsProperties;
     private final IssuerFactory issuerFactory;
     private final AppConfig appConfig;
 
