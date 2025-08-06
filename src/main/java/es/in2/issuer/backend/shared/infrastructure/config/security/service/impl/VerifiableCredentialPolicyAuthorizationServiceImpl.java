@@ -200,6 +200,7 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
     }
 
     private boolean isSignerIssuancePolicyValidLEARCredentialMachine(LEARCredential learCredential) {
+        System.out.println("XIVATO:" + learCredential.toString());
         return isLearCredentialEmployeeMandatorOrganizationIdentifierAllowedSignerLEARCredentialMachine(extractMandatorLearCredentialEmployee(learCredential)) &&
                 hasLearCredentialOnboardingExecutePower(extractPowers(learCredential));
     }
@@ -285,10 +286,12 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
     }
 
     private boolean isOnboardingFunction(Power power) {
+        System.out.println("XIVATO2:" + power.function());
         return "Onboarding".equals(power.function());
     }
 
     private boolean hasExecuteAction(Power power) {
+        System.out.println("XIVATO3:" + power.action());
         return power.action() instanceof List<?> actions ?
                 actions.stream().anyMatch(action -> "Execute".equals(action.toString())) :
                 "Execute".equals(power.action().toString());
@@ -299,6 +302,7 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
     }
 
     private boolean isLearCredentialEmployeeMandatorOrganizationIdentifierAllowedSignerLEARCredentialMachine(Mandator mandator) {
+        System.out.println("XIVATO1:" + mandator.organization());
         return IN2_ORGANIZATION_IDENTIFIER.equals(mandator.organization());
     }
 
