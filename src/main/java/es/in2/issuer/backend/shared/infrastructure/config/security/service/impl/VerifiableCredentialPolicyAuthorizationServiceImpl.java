@@ -200,7 +200,6 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
     }
 
     private boolean isSignerIssuancePolicyValidLEARCredentialMachine(LEARCredential learCredential) {
-        System.out.println("XIVATO:" + learCredential.toString());
         return isLearCredentialEmployeeMandatorOrganizationIdentifierAllowedSignerLEARCredentialMachine(extractMandatorLearCredentialEmployee(learCredential)) &&
                 hasLearCredentialOnboardingExecutePower(extractPowers(learCredential));
     }
@@ -216,16 +215,21 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
     }
 
     private boolean isMandatorIssuancePolicyValidLEARCredentialMachine(LEARCredential learCredential, JsonNode payload) {
+        System.out.println("XIVATO:" + learCredential.toString());
         if (!hasLearCredentialOnboardingExecutePower(extractPowers(learCredential))) {
+            System.out.println("fail");
             return false;
         }
         LEARCredentialMachine.CredentialSubject.Mandate mandate = objectMapper.convertValue(payload, LEARCredentialMachine.CredentialSubject.Mandate.class);
         if (mandate == null) {
+            System.out.println("fail2");
             return false;
         }
         final Mandator learCredentialMandator = extractMandatorLearCredentialEmployee(
             learCredential);
+        System.out.println(learCredentialMandator);
         final Mandate.Mandator payloadMandator = mandate.mandator();
+        System.out.println(payloadMandator);
         return payloadMandator.organization().equals(learCredentialMandator.organization()) &&
                payloadMandator.country().equals(learCredentialMandator.country()) &&
                payloadMandator.commonName().equals(learCredentialMandator.commonName()) &&
@@ -286,12 +290,10 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
     }
 
     private boolean isOnboardingFunction(Power power) {
-        System.out.println("XIVATO2:" + power.function());
         return "Onboarding".equals(power.function());
     }
 
     private boolean hasExecuteAction(Power power) {
-        System.out.println("XIVATO3:" + power.action());
         return power.action() instanceof List<?> actions ?
                 actions.stream().anyMatch(action -> "Execute".equals(action.toString())) :
                 "Execute".equals(power.action().toString());
@@ -302,7 +304,6 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
     }
 
     private boolean isLearCredentialEmployeeMandatorOrganizationIdentifierAllowedSignerLEARCredentialMachine(Mandator mandator) {
-        System.out.println("XIVATO1:" + mandator.organization());
         return IN2_ORGANIZATION_IDENTIFIER.equals(mandator.organization());
     }
 
