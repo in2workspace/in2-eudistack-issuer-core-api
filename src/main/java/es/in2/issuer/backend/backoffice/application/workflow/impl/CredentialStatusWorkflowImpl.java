@@ -1,5 +1,9 @@
 package es.in2.issuer.backend.backoffice.application.workflow.impl;
 
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import es.in2.issuer.backend.backoffice.application.workflow.CredentialStatusWorkflow;
 import es.in2.issuer.backend.backoffice.domain.service.CredentialStatusAuthorizationService;
 import es.in2.issuer.backend.backoffice.domain.service.CredentialStatusService;
@@ -16,6 +20,8 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import static es.in2.issuer.backend.shared.domain.util.Utils.generateCustomNonce;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -26,6 +32,7 @@ public class CredentialStatusWorkflowImpl implements CredentialStatusWorkflow {
     private final CredentialStatusAuthorizationService credentialStatusAuthorizationService;
     private final CredentialProcedureService credentialProcedureService;
     private final LEARCredentialEmployeeFactory learCredentialEmployeeFactory;
+    private final ObjectMapper objectMapper;
 
     @Override
     public Flux<String> getCredentialsByListId(String processId, int listId) {
@@ -47,12 +54,25 @@ public class CredentialStatusWorkflowImpl implements CredentialStatusWorkflow {
                 )
                 .flatMap(credential -> Mono.just(credential.getCredentialDecoded())
                 .flatMap(decodedCredential -> {
-                    CredentialStatus credentialStatus = learCredentialEmployeeFactory
-                            .mapStringToLEARCredentialEmployee(decodedCredential)
-                            .credentialStatus();
+                    JsonNode credentialStatusNode;
+                    try {
+                        credentialStatusNode = objectMapper.readTree(decodedCredential).get("credentialStatus");
+                    } catch (JsonProcessingException e) {
+                        return Mono.error(new JsonParseException("Error processing credential status json"));
+                    }
+                    CredentialStatus credentialStatus = mapToCredentialStatus(credentialStatusNode);
                     return revokeAndUpdateCredentialStatus(credential, processId, credentialId, listId, credentialStatus);
                 }));
 
+    }
+    private CredentialStatus mapToCredentialStatus(JsonNode credentialStatusNode) {
+        return CredentialStatus.builder()
+                .id(credentialStatusNode.get("id").asText())
+                .type(credentialStatusNode.get("type").asText())
+                .statusPurpose(credentialStatusNode.get("statusPurpose").asText())
+                .statusListIndex(credentialStatusNode.get("statusListIndex").asText())
+                .statusListCredential(credentialStatusNode.get("statusListCredential").asText())
+                .build();
     }
 
     private Mono<Void> revokeAndUpdateCredentialStatus(CredentialProcedure credentialProcedure, String processId, String credentialId, int listId, CredentialStatus credentialStatus) {
