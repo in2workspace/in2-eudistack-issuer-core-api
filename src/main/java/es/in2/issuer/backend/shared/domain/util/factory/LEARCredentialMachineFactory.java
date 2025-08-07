@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import es.in2.issuer.backend.shared.domain.exception.InvalidCredentialFormatException;
 import es.in2.issuer.backend.shared.domain.model.dto.CredentialProcedureCreationRequest;
+import es.in2.issuer.backend.shared.domain.model.dto.LEARCredentialMachineJwtPayload;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.CredentialStatus;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.SimpleIssuer;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.machine.LEARCredentialMachine;
@@ -161,5 +162,27 @@ public class LEARCredentialMachineFactory {
                 .credentialSubject(learCredentialMachine.credentialSubject())
                 .credentialStatus(learCredentialMachine.credentialStatus())
                 .build());
+    }
+
+    public Mono<LEARCredentialMachineJwtPayload> buildLEARCredentialMachineJwtPayload(LEARCredentialMachine learCredentialMachine) {
+        return Mono.just(
+                LEARCredentialMachineJwtPayload.builder()
+                        .JwtId(UUID.randomUUID().toString())
+                        .learCredentialMachine(learCredentialMachine)
+                        .expirationTime(parseDateToUnixTime(learCredentialMachine.validUntil()))
+                        .issuedAt(parseDateToUnixTime(learCredentialMachine.validFrom()))
+                        .notValidBefore(parseDateToUnixTime(learCredentialMachine.validFrom()))
+                        .issuer(learCredentialMachine.issuer().getId())
+                        .subject(learCredentialMachine.credentialSubject().mandate().mandatee().id())
+                        .build()
+        );
+    }
+
+    public Mono<String> convertLEARCredentialMachineJwtPayloadInToString(LEARCredentialMachineJwtPayload credential) {
+        try {
+            return Mono.just(objectMapper.writeValueAsString(credential));
+        } catch (JsonProcessingException e) {
+            return Mono.error(new RuntimeException());
+        }
     }
 }
