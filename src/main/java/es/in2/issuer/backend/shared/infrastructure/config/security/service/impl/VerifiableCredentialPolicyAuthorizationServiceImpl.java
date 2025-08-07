@@ -215,21 +215,16 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
     }
 
     private boolean isMandatorIssuancePolicyValidLEARCredentialMachine(LEARCredential learCredential, JsonNode payload) {
-        System.out.println("XIVATO:" + learCredential.toString());
         if (!hasLearCredentialOnboardingExecutePower(extractPowers(learCredential))) {
-            System.out.println("fail");
             return false;
         }
         LEARCredentialMachine.CredentialSubject.Mandate mandate = objectMapper.convertValue(payload, LEARCredentialMachine.CredentialSubject.Mandate.class);
         if (mandate == null) {
-            System.out.println("fail2");
             return false;
         }
         final Mandator learCredentialMandator = extractMandatorLearCredentialEmployee(
             learCredential);
-        System.out.println(learCredentialMandator);
         final Mandate.Mandator payloadMandator = mandate.mandator();
-        System.out.println(payloadMandator);
         return payloadMandator.organization().equals(learCredentialMandator.organization()) &&
                payloadMandator.country().equals(learCredentialMandator.country()) &&
                payloadMandator.commonName().equals(learCredentialMandator.commonName()) &&
