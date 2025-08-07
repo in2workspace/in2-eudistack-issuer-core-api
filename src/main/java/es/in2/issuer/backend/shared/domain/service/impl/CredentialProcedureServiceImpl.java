@@ -168,14 +168,14 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
                             }
                             case LABEL_CREDENTIAL_TYPE -> Mono.just("domesupport@in2.es");
 
-                            case LEAR_CREDENTIAL_MACHINE_TYPE -> {
-                                yield Mono.just(credential
+                            case LEAR_CREDENTIAL_MACHINE_TYPE ->
+                                Mono.just(credential
                                         .get(CREDENTIAL_SUBJECT)
                                         .get(MANDATE)
                                         .get(MANDATOR)
                                         .get(EMAIL)
                                         .asText());
-                            }
+
 
                             default ->
                                     Mono.error(new IllegalArgumentException("Unsupported credential type: " + credentialProcedure.getCredentialType()));

@@ -10,7 +10,6 @@ import es.in2.issuer.backend.shared.domain.model.entities.CredentialProcedure;
 import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum;
 import es.in2.issuer.backend.shared.domain.service.AccessTokenService;
 import es.in2.issuer.backend.shared.domain.service.CredentialProcedureService;
-import es.in2.issuer.backend.shared.domain.util.factory.LEARCredentialEmployeeFactory;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -39,9 +38,6 @@ class CredentialStatusWorkflowImplTest {
 
     @Mock
     private CredentialProcedureService credentialProcedureService;
-
-    @Mock
-    private LEARCredentialEmployeeFactory learCredentialEmployeeFactory;
 
     @InjectMocks
     private CredentialStatusWorkflowImpl credentialStatusWorkflow;

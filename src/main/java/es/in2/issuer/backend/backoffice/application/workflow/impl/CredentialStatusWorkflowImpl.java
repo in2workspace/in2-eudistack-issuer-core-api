@@ -13,7 +13,6 @@ import es.in2.issuer.backend.shared.domain.model.entities.CredentialProcedure;
 import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum;
 import es.in2.issuer.backend.shared.domain.service.AccessTokenService;
 import es.in2.issuer.backend.shared.domain.service.CredentialProcedureService;
-import es.in2.issuer.backend.shared.domain.util.factory.LEARCredentialEmployeeFactory;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -31,7 +30,6 @@ public class CredentialStatusWorkflowImpl implements CredentialStatusWorkflow {
     private final AccessTokenService accessTokenService;
     private final CredentialStatusAuthorizationService credentialStatusAuthorizationService;
     private final CredentialProcedureService credentialProcedureService;
-    private final LEARCredentialEmployeeFactory learCredentialEmployeeFactory;
     private final ObjectMapper objectMapper;
 
     @Override

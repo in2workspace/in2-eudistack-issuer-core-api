@@ -7,6 +7,7 @@ import es.in2.issuer.backend.shared.domain.model.dto.CredentialProcedureCreation
 import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.machine.LEARCredentialMachine;
 import es.in2.issuer.backend.shared.domain.service.AccessTokenService;
 import es.in2.issuer.backend.shared.infrastructure.config.properties.CorsProperties;
+import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -29,7 +30,7 @@ class LEARCredentialMachineFactoryTest {
     private ObjectMapper objectMapper;
 
     @Mock
-    private CorsProperties corsProperties;
+    private AppConfig appConfig;
 
     @Mock
     private AccessTokenService accessTokenService;
@@ -57,7 +58,8 @@ class LEARCredentialMachineFactoryTest {
         LEARCredentialMachine.CredentialSubject.Mandate mockMandate = mock(LEARCredentialMachine.CredentialSubject.Mandate.class);
         LEARCredentialMachine.CredentialSubject.Mandate.Mandatee mockMandatee = mock(LEARCredentialMachine.CredentialSubject.Mandate.Mandatee.class);
 
-        when(corsProperties.defaultAllowedOrigins()).thenReturn(List.of("https://example.com"));
+        when(appConfig.getIssuerBackendUrl())
+                .thenReturn("https://issuer-backend");
         when(objectMapper.convertValue(jsonNode, LEARCredentialMachine.CredentialSubject.Mandate.class))
                 .thenReturn(mockMandate);
         when(mockMandate.mandatee()).thenReturn(mockMandatee);
