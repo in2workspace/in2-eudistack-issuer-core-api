@@ -394,6 +394,23 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
+    void handleUnauthorizedRoleException() {
+        String errorMessage = "Error message for testing";
+        UnauthorizedRoleException unauthorizedRoleException = new UnauthorizedRoleException(errorMessage);
+
+        Mono<es.in2.issuer.backend.shared.domain.model.dto.GlobalErrorMessage> resultMono =
+                globalExceptionHandler.handleUnauthorizedRoleException(unauthorizedRoleException);
+
+        StepVerifier.create(resultMono)
+                .assertNext(result -> {
+                    assertEquals(HttpStatus.UNAUTHORIZED.value(), result.status());
+                    assertNotNull(result.message());
+                    assertEquals("UnauthorizedRoleException", result.error());
+                })
+                .verifyComplete();
+    }
+
+    @Test
     void handleCredentialAlreadyIssuedException() {
         CredentialAlreadyIssuedException exception = new CredentialAlreadyIssuedException(null);
 

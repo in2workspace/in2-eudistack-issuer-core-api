@@ -7,11 +7,13 @@ import es.in2.issuer.backend.shared.domain.exception.InvalidCredentialFormatExce
 import es.in2.issuer.backend.shared.domain.exception.ParseErrorException;
 import es.in2.issuer.backend.shared.domain.model.dto.CredentialProcedureCreationRequest;
 import es.in2.issuer.backend.shared.domain.model.dto.LabelCredentialJwtPayload;
+import es.in2.issuer.backend.shared.domain.model.dto.credential.CredentialStatus;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.LabelCredential;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.SimpleIssuer;
 import es.in2.issuer.backend.shared.domain.model.enums.CredentialType;
 import es.in2.issuer.backend.shared.domain.service.AccessTokenService;
 import es.in2.issuer.backend.shared.domain.service.CredentialProcedureService;
+import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
 import es.in2.issuer.backend.shared.infrastructure.config.DefaultSignerConfig;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,6 +27,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.UUID;
 
 import static es.in2.issuer.backend.shared.domain.util.Constants.*;
+import static es.in2.issuer.backend.shared.domain.util.Utils.generateCustomNonce;
 
 @Component
 @RequiredArgsConstructor
@@ -35,6 +38,7 @@ public class LabelCredentialFactory {
     private final CredentialProcedureService credentialProcedureService;
     private final IssuerFactory issuerFactory;
     private final AccessTokenService accessTokenService;
+    private final AppConfig appConfig;
 
     public Mono<CredentialProcedureCreationRequest> mapAndBuildLabelCredential(JsonNode credential, String operationMode, String email) {
         LabelCredential labelCredential = objectMapper.convertValue(credential, LabelCredential.class);
@@ -49,16 +53,29 @@ public class LabelCredentialFactory {
     }
 
     private Mono<LabelCredential> buildLabelCredential(LabelCredential credential) {
-
         // Build the LabelCredential object
-        return Mono.just(LabelCredential.builder()
+        return buildCredentialStatus()
+                .map(credentialStatus -> LabelCredential.builder()
                 .context(LABEL_CREDENTIAL_CONTEXT)
                 .id(UUID.randomUUID().toString())
                 .type(LABEL_CREDENTIAL_TYPES)
                 .credentialSubject(credential.credentialSubject())
                 .validFrom(credential.validFrom())
                 .validUntil(credential.validUntil())
+                .credentialStatus(credentialStatus)
                 .build());
+    }
+
+    private Mono<CredentialStatus> buildCredentialStatus() {
+        String statusListCredential = appConfig.getIssuerBackendUrl() + "/backoffice/v1/credentials/status/1";
+        return generateCustomNonce()
+                .map(nonce -> CredentialStatus.builder()
+                        .id(statusListCredential + "#" + nonce)
+                        .type("PlainListEntity")
+                        .statusPurpose("revocation")
+                        .statusListIndex(nonce)
+                        .statusListCredential(statusListCredential)
+                        .build());
     }
 
     public Mono<String> mapIssuer(String procedureId, SimpleIssuer issuer) {
@@ -98,6 +115,7 @@ public class LabelCredentialFactory {
                 .credentialSubject(labelCredential.credentialSubject())
                 .validFrom(labelCredential.validFrom())
                 .validUntil(labelCredential.validUntil())
+                .credentialStatus(labelCredential.credentialStatus())
                 .build());
     }
 

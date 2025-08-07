@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [v2.4.0](https://github.com/in2workspace/in2-issuer-api/releases/tag/v2.4.0)
 ### Added
 - Revoke and expired credential notification.
+- 
+## [v2.3.2](https://github.com/in2workspace/in2-issuer-api/releases/tag/v2.3.2)
+### Fixed
+- Add credential status LEARCredentialMachine issuance.
+
+## [v2.3.1](https://github.com/in2workspace/in2-issuer-api/releases/tag/v2.3.1)
+### Fixed
+- Fix LEARCredentialMachine signature.
+
+## [v2.3.0](https://github.com/in2workspace/in2-issuer-api/releases/tag/v2.3.0)
+### Added
+- Add LEARCredentialMachine issuance.
+- 
+## [v2.2.1](https://github.com/in2workspace/in2-issuer-api/releases/tag/v2.2.1)
+### Fixed
+- Revocation endpoint for label
 
 ## [v2.2.0](https://github.com/in2workspace/in2-issuer-api/releases/tag/v2.2.0)
 ### Added
@@ -15,7 +31,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [v2.1.2](https://github.com/in2workspace/in2-issuer-api/releases/tag/v2.1.2)
 ### Fixed
 - Fixed url backend in Credential Status
-
 
 ## [v2.1.1](https://github.com/in2workspace/in2-issuer-api/releases/tag/v2.1.1)
 ### Fixed
