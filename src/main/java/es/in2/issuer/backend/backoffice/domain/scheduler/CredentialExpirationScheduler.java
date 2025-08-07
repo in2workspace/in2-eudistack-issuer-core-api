@@ -64,13 +64,15 @@ public class CredentialExpirationScheduler {
         return credentialProcedureService.getEmailCredentialOfferInfoByProcedureId(credentialProcedure.getProcedureId().toString())
                 .flatMap(emailCredentialOfferInfo -> {
                     if (credentialProcedure.getCredentialStatus().toString().equals(REVOKED.toString())) {
-                        return emailService.sendCredentialRevokedNotificationEmail(
+                        return emailService.sendCredentialRevokedOrExpiredNotificationEmail(
                                         emailCredentialOfferInfo.email(),
                                         "Expired Credential",
                                         emailCredentialOfferInfo.user(),
                                         emailCredentialOfferInfo.organization(),
                                         credentialProcedure.getCredentialId().toString(),
-                                        credentialProcedure.getCredentialType()
+                                        credentialProcedure.getCredentialType(),
+                                        "Your Credential Has Expired",
+                                        "expired"
                                 )
                                 .onErrorMap(exception ->
                                         new EmailCommunicationException(MAIL_ERROR_COMMUNICATION_EXCEPTION_MESSAGE));

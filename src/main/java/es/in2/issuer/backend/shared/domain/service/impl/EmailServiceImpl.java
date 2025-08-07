@@ -180,7 +180,7 @@ public class EmailServiceImpl implements EmailService {
     }
 
     @Override
-    public Mono<Void> sendCredentialRevokedNotificationEmail(String to, String subject, String user, String organization, String credentialId, String type) {
+    public Mono<Void> sendCredentialRevokedOrExpiredNotificationEmail(String to, String subject, String user, String organization, String credentialId, String type, String title, String credentialStatus) {
         return Mono.fromCallable(() -> {
             MimeMessage mimeMessage = javaMailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, UTF_8);
@@ -190,10 +190,10 @@ public class EmailServiceImpl implements EmailService {
 
 
             Context context = new Context();
-            context.setVariable("title", "Your Credential Has Been Revoked");
+            context.setVariable("title", title );
             context.setVariable("user", user);
             context.setVariable("organization", organization);
-            context.setVariable("credentialStatus", "revoked");
+            context.setVariable("credentialStatus", credentialStatus);
             context.setVariable("credentialId", credentialId);
             context.setVariable("type", type);
 

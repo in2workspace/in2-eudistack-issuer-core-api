@@ -10,5 +10,5 @@ public interface EmailService {
     Mono<Void> sendResponseUriFailed(String to, String productId, String guideUrl);
     Mono<Void> sendResponseUriAcceptedWithHtml(String to, String productId, String htmlContent);
     Mono<Void> sendPendingSignatureCredentialNotification(String to, String subject, String id, String domain);
-    Mono<Void> sendCredentialRevokedNotificationEmail(String to, String subject, String user, String organization, String credentialId, String type);
+    Mono<Void> sendCredentialRevokedOrExpiredNotificationEmail(String to, String subject, String user, String organization, String credentialId, String type, String title, String credentialStatus);
 }

@@ -106,13 +106,15 @@ public class CredentialStatusWorkflowImpl implements CredentialStatusWorkflow {
         return credentialProcedureService.getEmailCredentialOfferInfoByProcedureId(credentialProcedure.getProcedureId().toString())
             .flatMap(emailCredentialOfferInfo -> {
                         if (credentialProcedure.getCredentialStatus().toString().equals(REVOKED.toString())) {
-                            return emailService.sendCredentialRevokedNotificationEmail(
+                            return emailService.sendCredentialRevokedOrExpiredNotificationEmail(
                                             emailCredentialOfferInfo.email(),
                                             "Revoked Credential",
                                             emailCredentialOfferInfo.user(),
                                             emailCredentialOfferInfo.organization(),
                                             credentialProcedure.getCredentialId().toString(),
-                                            credentialProcedure.getCredentialType()
+                                            credentialProcedure.getCredentialType(),
+                                            "Your Credential Has Been Revoked",
+                                            "revoked"
                                     )
                                     .onErrorMap(exception ->
                                             new EmailCommunicationException(MAIL_ERROR_COMMUNICATION_EXCEPTION_MESSAGE));
