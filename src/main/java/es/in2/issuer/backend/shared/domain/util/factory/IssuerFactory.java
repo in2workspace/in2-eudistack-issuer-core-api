@@ -99,6 +99,8 @@ public class IssuerFactory {
                     remoteSignatureServiceImpl.getMandatorMail(procedureId);
             case LABEL_CREDENTIAL ->
                     Mono.just(defaultSignerConfig.getEmail());
+            case LEAR_CREDENTIAL_MACHINE ->
+                    remoteSignatureServiceImpl.getMandatorMailLearCredentialMachine(procedureId);
             default -> {
                 log.error("Unsupported credentialType: {}", credentialType);
                 yield Mono.error(new RemoteSignatureException("Unsupported credentialType: " + credentialType));
