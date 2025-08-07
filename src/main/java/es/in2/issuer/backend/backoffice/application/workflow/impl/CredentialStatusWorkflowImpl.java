@@ -15,8 +15,6 @@ import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum;
 import es.in2.issuer.backend.shared.domain.service.AccessTokenService;
 import es.in2.issuer.backend.shared.domain.service.CredentialProcedureService;
 import es.in2.issuer.backend.shared.domain.service.EmailService;
-import es.in2.issuer.backend.shared.domain.util.factory.LEARCredentialEmployeeFactory;
-import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -26,7 +24,6 @@ import reactor.core.publisher.Mono;
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.MAIL_ERROR_COMMUNICATION_EXCEPTION_MESSAGE;
 import static es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum.*;
 
-import static es.in2.issuer.backend.shared.domain.util.Utils.generateCustomNonce;
 
 @Slf4j
 @Service
@@ -39,7 +36,6 @@ public class CredentialStatusWorkflowImpl implements CredentialStatusWorkflow {
     private final CredentialProcedureService credentialProcedureService;
     private final ObjectMapper objectMapper;
     private final EmailService emailService;
-    private final AppConfig appConfig;
 
     @Override
     public Flux<String> getCredentialsByListId(String processId, int listId) {
@@ -113,7 +109,6 @@ public class CredentialStatusWorkflowImpl implements CredentialStatusWorkflow {
                             return emailService.sendCredentialRevokedNotificationEmail(
                                             emailCredentialOfferInfo.email(),
                                             "Revoked Credential",
-                                            appConfig.getWalletFrontendUrl(),
                                             emailCredentialOfferInfo.user(),
                                             emailCredentialOfferInfo.organization(),
                                             credentialProcedure.getCredentialId().toString(),

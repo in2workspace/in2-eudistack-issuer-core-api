@@ -5,7 +5,6 @@ import es.in2.issuer.backend.shared.domain.model.entities.CredentialProcedure;
 import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum;
 import es.in2.issuer.backend.shared.domain.service.CredentialProcedureService;
 import es.in2.issuer.backend.shared.domain.service.EmailService;
-import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
 import es.in2.issuer.backend.shared.infrastructure.repository.CredentialProcedureRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,7 +28,6 @@ public class CredentialExpirationScheduler {
     private final CredentialProcedureRepository credentialProcedureRepository;
     private final CredentialProcedureService credentialProcedureService;
     private final EmailService emailService;
-    private final AppConfig appConfig;
 
     //@Scheduled(cron = "0 0 1 * * ?") //Every day at 1:00 AM
     @Scheduled(cron = "0 0/5 * * * ?") //Cada 5 minutos
@@ -69,7 +67,6 @@ public class CredentialExpirationScheduler {
                         return emailService.sendCredentialRevokedNotificationEmail(
                                         emailCredentialOfferInfo.email(),
                                         "Expired Credential",
-                                        appConfig.getWalletFrontendUrl(),
                                         emailCredentialOfferInfo.user(),
                                         emailCredentialOfferInfo.organization(),
                                         credentialProcedure.getCredentialId().toString(),
