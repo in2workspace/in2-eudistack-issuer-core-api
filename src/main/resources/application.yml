@@ -61,7 +61,7 @@ management:
         # Specifies the enabled management endpoints
         include: health, prometheus
       # Sets the base path for management endpoints
-      base-path: /
+      base-path: /actuator
       path-mapping:
         # Maps the health endpoint to /health
         health: health
@@ -80,10 +80,10 @@ management:
 springdoc:
   api-docs:
     # Configures the endpoint where the OpenAPI JSON documentation is available
-    path: /api-docs
+    path: /springdoc/api-docs
   swagger-ui:
     # Configures the path to access the Swagger UI web interface
-    path: /swagger-ui.html
+    path: /springdoc/swagger-ui.html
     # Specifies how tags are sorted in the UI
     tags-sorter: alpha
     # Specifies how operations are sorted within each tag in the UI

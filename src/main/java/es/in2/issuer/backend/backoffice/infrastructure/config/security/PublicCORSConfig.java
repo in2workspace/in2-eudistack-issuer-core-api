@@ -31,9 +31,7 @@ public class PublicCORSConfig {
         source.registerCorsConfiguration(CORS_CREDENTIAL_OFFER_PATH, configuration);
         source.registerCorsConfiguration(CREDENTIAL_ISSUER_METADATA_WELL_KNOWN_PATH, configuration);
         source.registerCorsConfiguration(AUTHORIZATION_SERVER_METADATA_WELL_KNOWN_PATH, configuration);
-        source.registerCorsConfiguration(DEFERRED_CREDENTIALS, configuration);
         source.registerCorsConfiguration(OAUTH_TOKEN_PATH, configuration);
-        source.registerCorsConfiguration(PROMETHEUS_PATH, configuration);
         return source;
     }
 }
