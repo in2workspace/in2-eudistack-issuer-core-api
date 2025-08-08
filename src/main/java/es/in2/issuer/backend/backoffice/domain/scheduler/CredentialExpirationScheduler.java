@@ -30,7 +30,7 @@ public class CredentialExpirationScheduler {
     private final EmailService emailService;
 
     //@Scheduled(cron = "0 0 1 * * ?") //Every day at 1:00 AM
-    @Scheduled(cron = "0 0/5 * * * ?") //Cada 5 minutos
+    @Scheduled(cron = "0 */2 * * * ?") //Cada 2 minutos
     public Mono<Void> checkAndExpireCredentials() {
         log.info("Scheduled Task - Executing checkAndExpireCredentials at: {}", Instant.now());
         return credentialProcedureRepository.findAll()
