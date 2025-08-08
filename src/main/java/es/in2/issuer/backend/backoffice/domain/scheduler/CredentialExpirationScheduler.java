@@ -35,7 +35,7 @@ public class CredentialExpirationScheduler {
     public Mono<Void> checkAndExpireCredentials() {
         log.info("Scheduled Task - Executing checkAndExpireCredentials at: {}", Instant.now());
         return credentialProcedureRepository.findAll()
-                .flatMap(credential -> isExpired(credential)
+                .flatMap(credential -> isExpiredAndNotAlreadyMarked(credential)
                         .filter(Boolean::booleanValue)
                         .flatMap(expired -> expireCredential(credential)
                                 .then(sendNotification(credential))))
@@ -43,9 +43,12 @@ public class CredentialExpirationScheduler {
     }
 
 
-    private Mono<Boolean> isExpired(CredentialProcedure credentialProcedure) {
+    private Mono<Boolean> isExpiredAndNotAlreadyMarked(CredentialProcedure credentialProcedure) {
         return Mono.justOrEmpty(credentialProcedure.getValidUntil())
-                .map(validUntil -> validUntil.toInstant().isBefore(Instant.now()))
+                .map(validUntil ->
+                        validUntil.toInstant().isBefore(Instant.now())
+                                && credentialProcedure.getCredentialStatus() != CredentialStatusEnum.EXPIRED
+                )
                 .defaultIfEmpty(false);
     }
 
