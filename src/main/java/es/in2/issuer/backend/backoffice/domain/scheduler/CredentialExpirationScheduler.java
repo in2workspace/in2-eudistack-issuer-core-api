@@ -61,6 +61,7 @@ public class CredentialExpirationScheduler {
     }
 
     private Mono<Void> sendNotification(CredentialProcedure credentialProcedure) {
+        log.info("Scheduled Task - Sending notification for credential with ID: {}", credentialProcedure.getCredentialId());
         return credentialProcedureService.getEmailCredentialOfferInfoByProcedureId(credentialProcedure.getProcedureId().toString())
                 .flatMap(emailCredentialOfferInfo -> {
                     if (credentialProcedure.getCredentialStatus().toString().equals(REVOKED.toString())) {
