@@ -17,6 +17,7 @@ import java.sql.Timestamp;
 import java.time.Instant;
 
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.MAIL_ERROR_COMMUNICATION_EXCEPTION_MESSAGE;
+import static es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum.EXPIRED;
 import static es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum.REVOKED;
 
 @Slf4j
@@ -64,7 +65,8 @@ public class CredentialExpirationScheduler {
         log.info("Scheduled Task - Sending notification for credential with ID: {}", credentialProcedure.getCredentialId());
         return credentialProcedureService.getEmailCredentialOfferInfoByProcedureId(credentialProcedure.getProcedureId().toString())
                 .flatMap(emailCredentialOfferInfo -> {
-                    if (credentialProcedure.getCredentialStatus().toString().equals(REVOKED.toString())) {
+                    log.info("Scheduled Task - Obtained email info: {}", emailCredentialOfferInfo);
+                    if (credentialProcedure.getCredentialStatus().toString().equals(EXPIRED.toString())) {
                         return emailService.sendCredentialRevokedOrExpiredNotificationEmail(
                                         emailCredentialOfferInfo.email(),
                                         "Expired Credential",
