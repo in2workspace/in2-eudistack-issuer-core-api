@@ -231,6 +231,8 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
         log.info("isMandatorIssuancePolicyValidLEARCredentialMachine");
         log.info("payloadMandator: {}", payloadMandator);
         log.info("learCredentialMandator: {}", learCredentialMandator);
+        log.info("Equal serial numbers?");
+        log.info("{}", payloadMandator.serialNumber().equals(learCredentialMandator.serialNumber()));
         return payloadMandator.organization().equals(learCredentialMandator.organization()) &&
                payloadMandator.country().equals(learCredentialMandator.country()) &&
                payloadMandator.commonName().equals(learCredentialMandator.commonName()) &&
@@ -311,7 +313,7 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
         log.info("{}", mandator); //todo remove
         log.info("IN2 org id:"); //todo remove
         log.info(IN2_ORGANIZATION_IDENTIFIER); //todo remove
-        return IN2_ORGANIZATION_IDENTIFIER.equals(mandator.organization());
+        return IN2_ORGANIZATION_IDENTIFIER.equals(mandator.organizationIdentifier());
     }
 
     private boolean payloadPowersOnlyIncludeProductOffering(List<Power> powers) {
