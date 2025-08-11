@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import es.in2.issuer.backend.backoffice.domain.service.CredentialStatusAuthorizationService;
 import es.in2.issuer.backend.backoffice.domain.service.CredentialStatusService;
+import es.in2.issuer.backend.shared.domain.model.dto.CredentialOfferEmailNotificationInfo;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.CredentialStatus;
 import es.in2.issuer.backend.shared.domain.model.entities.CredentialProcedure;
 import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum;
@@ -18,6 +19,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
+
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
@@ -131,6 +134,7 @@ class CredentialStatusWorkflowImplTest {
         String processId = "processId";
         when(credentialStatusAuthorizationService.authorize(processId, bearerToken, credentialId))
                 .thenReturn(Mono.empty());
+        credentialProcedure.setProcedureId(UUID.fromString("11111111-1111-1111-1111-111111111111"));
 
 
         credentialProcedure.setCredentialDecoded(decodedCredential);
@@ -146,6 +150,15 @@ class CredentialStatusWorkflowImplTest {
 
         when(credentialProcedureService.updateCredentialProcedureCredentialStatusToRevoke(credentialProcedure))
                 .thenReturn(Mono.empty());
+
+        CredentialOfferEmailNotificationInfo credentialOfferEmailNotificationInfo = new CredentialOfferEmailNotificationInfo(
+                "email",
+                "user",
+                "organization"
+        );
+
+        when(credentialProcedureService.getEmailCredentialOfferInfoByProcedureId(credentialProcedure.getProcedureId().toString()))
+                .thenReturn(Mono.just(credentialOfferEmailNotificationInfo));
 
         var result = credentialStatusWorkflow.revokeCredential(
                 processId,
