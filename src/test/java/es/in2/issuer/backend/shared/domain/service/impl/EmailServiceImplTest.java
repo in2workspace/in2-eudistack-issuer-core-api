@@ -3,6 +3,7 @@ package es.in2.issuer.backend.shared.domain.service.impl;
 import jakarta.mail.internet.MimeMessage;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -13,6 +14,7 @@ import org.thymeleaf.context.Context;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
+import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -152,6 +154,57 @@ class EmailServiceImplTest {
         when(javaMailSender.createMimeMessage()).thenThrow(new RuntimeException("Mail server error"));
 
         Mono<Void> result = emailService.sendResponseUriAcceptedWithHtml("to@example.com", "productId", "htmlContent");
+
+        StepVerifier.create(result)
+                .expectError(RuntimeException.class)
+                .verify();
+    }
+
+    @Test
+    void sendCredentialRevokedOrExpiredNotificationEmail_sendsEmailSuccessfully_andSetsTemplateVariables() {
+
+        MimeMessage mimeMessage = mock(MimeMessage.class);
+        when(javaMailSender.createMimeMessage()).thenReturn(mimeMessage);
+        when(mailProperties.getUsername()).thenReturn("sender@example.com");
+        when(templateEngine.process(eq("revoked-expired-credential-email"), any(Context.class)))
+                .thenReturn("htmlContent");
+
+        String to = "to@example.com";
+        String subject = "Expired Credential";
+        String user = "John Doe";
+        String organization = "ACME Corp";
+        String credentialId = "cred-123";
+        String type = "LEARCredentialEmployee";
+        String title = "Your Credential Has Expired";
+        String credentialStatus = "expired";
+
+        Mono<Void> result = emailService.sendCredentialRevokedOrExpiredNotificationEmail(
+                to, subject, user, organization, credentialId, type, title, credentialStatus
+        );
+
+        StepVerifier.create(result).verifyComplete();
+
+        verify(javaMailSender).send(mimeMessage);
+
+        ArgumentCaptor<Context> contextCaptor = ArgumentCaptor.forClass(Context.class);
+        verify(templateEngine).process(eq("revoked-expired-credential-email"), contextCaptor.capture());
+        Context ctx = contextCaptor.getValue();
+
+        assertEquals(title, ctx.getVariable("title"));
+        assertEquals(user, ctx.getVariable("user"));
+        assertEquals(organization, ctx.getVariable("organization"));
+        assertEquals(credentialStatus, ctx.getVariable("credentialStatus"));
+        assertEquals(credentialId, ctx.getVariable("credentialId"));
+        assertEquals(type, ctx.getVariable("type"));
+    }
+
+    @Test
+    void sendCredentialRevokedOrExpiredNotificationEmail_handlesException() {
+        when(javaMailSender.createMimeMessage()).thenThrow(new RuntimeException("Mail server error"));
+
+        Mono<Void> result = emailService.sendCredentialRevokedOrExpiredNotificationEmail(
+                "to@example.com", "subject", "user", "org", "cred-1", "type", "title", "expired"
+        );
 
         StepVerifier.create(result)
                 .expectError(RuntimeException.class)
