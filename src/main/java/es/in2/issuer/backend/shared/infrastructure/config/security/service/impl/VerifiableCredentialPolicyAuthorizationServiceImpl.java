@@ -198,6 +198,7 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
         return isLearCredentialEmployeeMandatorOrganizationIdentifierAllowedSigner(extractMandatorLearCredentialEmployee(learCredential)) &&
                 hasLearCredentialOnboardingExecutePower(extractPowers(learCredential));
     }
+
     private boolean isSignerIssuancePolicyValidLEARCredentialMachine(LEARCredential learCredential) {
         return isLearCredentialEmployeeMandatorOrganizationIdentifierAllowedSignerLEARCredentialMachine(extractMandatorLearCredentialEmployee(learCredential)) &&
                 hasLearCredentialOnboardingExecutePower(extractPowers(learCredential));
@@ -212,6 +213,7 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
                 mandate.mandator().equals(extractMandatorLearCredentialEmployee(learCredential)) &&
                 payloadPowersOnlyIncludeProductOffering(mandate.power());
     }
+
     private boolean isMandatorIssuancePolicyValidLEARCredentialMachine(LEARCredential learCredential, JsonNode payload) {
         if (!hasLearCredentialOnboardingExecutePower(extractPowers(learCredential))) {
             return false;
@@ -223,7 +225,6 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
         final Mandator learCredentialMandator = extractMandatorLearCredentialEmployee(
             learCredential);
         final Mandate.Mandator payloadMandator = mandate.mandator();
-
         return payloadMandator.organization().equals(learCredentialMandator.organization()) &&
                payloadMandator.country().equals(learCredentialMandator.country()) &&
                payloadMandator.commonName().equals(learCredentialMandator.commonName()) &&
