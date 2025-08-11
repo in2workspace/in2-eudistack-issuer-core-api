@@ -204,8 +204,10 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
     private boolean isSignerIssuancePolicyValidLEARCredentialMachine(LEARCredential learCredential) {
         log.info("isSignerIssuancePolicyValidLEARCredentialMachine"); //todo remove
         log.info("{}", learCredential); //todo remove
-        return isLearCredentialEmployeeMandatorOrganizationIdentifierAllowedSignerLEARCredentialMachine(extractMandatorLearCredentialEmployee(learCredential)) &&
-                hasLearCredentialOnboardingExecutePower(extractPowers(learCredential));
+        return false;
+//        todo restore
+//        return isLearCredentialEmployeeMandatorOrganizationIdentifierAllowedSignerLEARCredentialMachine(extractMandatorLearCredentialEmployee(learCredential)) &&
+//                hasLearCredentialOnboardingExecutePower(extractPowers(learCredential));
     }
 
     private boolean isMandatorIssuancePolicyValid(LEARCredential learCredential, JsonNode payload) {
