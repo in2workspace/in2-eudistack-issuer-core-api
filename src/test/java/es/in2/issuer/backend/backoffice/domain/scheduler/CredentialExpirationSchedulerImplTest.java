@@ -96,14 +96,14 @@ class CredentialExpirationSchedulerImplTest {
                 .verifyComplete();
 
         verify(emailService, times(1)).sendCredentialRevokedOrExpiredNotificationEmail(
-                eq("to@mail"),
-                eq("Expired Credential"),
-                eq("userX"),
-                eq("orgY"),
-                eq(credential.getCredentialId().toString()),
-                eq("LEARCredentialEmployee"),
-                eq("Your Credential Has Expired"),
-                eq("expired")
+                "to@mail",
+                "Expired Credential",
+                "userX",
+                "orgY",
+                credential.getCredentialId().toString(),
+                "LEARCredentialEmployee",
+                "Your Credential Has Expired",
+                "expired"
         );
     }
 

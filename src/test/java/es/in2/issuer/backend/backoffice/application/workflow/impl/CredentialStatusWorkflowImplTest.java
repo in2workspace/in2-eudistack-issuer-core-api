@@ -76,6 +76,7 @@ class CredentialStatusWorkflowImplTest {
                 "statusListIndex": "urn:uuid:8c7a6213",
                 "statusListCredential": "https://issuer/credentials/status/1"
               }
+              }
             }
             """;
 
@@ -157,14 +158,14 @@ class CredentialStatusWorkflowImplTest {
         StepVerifier.create(result).verifyComplete();
 
         verify(emailService).sendCredentialRevokedOrExpiredNotificationEmail(
-                eq("to@mail"),
-                eq("Revoked Credential"),
-                eq("userX"),
-                eq("orgY"),
-                eq(cp.getCredentialId().toString()),
-                eq("LEARCredentialEmployee"),
-                eq("Your Credential Has Been Revoked"),
-                eq("revoked")
+                "to@mail",
+                "Revoked Credential",
+                "userX",
+                "orgY",
+                cp.getCredentialId().toString(),
+                "LEARCredentialEmployee",
+                "Your Credential Has Been Revoked",
+                "revoked"
         );
     }
 
