@@ -188,9 +188,6 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
     }
 
     private Mono<Void> authorizeLearCredentialMachine(LEARCredential learCredential, JsonNode payload) {
-        log.info("authorizeLearCredentialMachine");
-        log.info("credential: {}", learCredential);
-        log.info("payload: {}", payload);
         if (isSignerIssuancePolicyValidLEARCredentialMachine(learCredential) || isMandatorIssuancePolicyValidLEARCredentialMachine(learCredential, payload)) {
             return Mono.empty();
         }
@@ -202,12 +199,8 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
                 hasLearCredentialOnboardingExecutePower(extractPowers(learCredential));
     }
     private boolean isSignerIssuancePolicyValidLEARCredentialMachine(LEARCredential learCredential) {
-        log.info("isSignerIssuancePolicyValidLEARCredentialMachine"); //todo remove
-        log.info("{}", learCredential); //todo remove
-        return false;
-//        todo restore
-//        return isLearCredentialEmployeeMandatorOrganizationIdentifierAllowedSignerLEARCredentialMachine(extractMandatorLearCredentialEmployee(learCredential)) &&
-//                hasLearCredentialOnboardingExecutePower(extractPowers(learCredential));
+        return isLearCredentialEmployeeMandatorOrganizationIdentifierAllowedSignerLEARCredentialMachine(extractMandatorLearCredentialEmployee(learCredential)) &&
+                hasLearCredentialOnboardingExecutePower(extractPowers(learCredential));
     }
 
     private boolean isMandatorIssuancePolicyValid(LEARCredential learCredential, JsonNode payload) {
@@ -230,11 +223,7 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
         final Mandator learCredentialMandator = extractMandatorLearCredentialEmployee(
             learCredential);
         final Mandate.Mandator payloadMandator = mandate.mandator();
-        log.info("isMandatorIssuancePolicyValidLEARCredentialMachine");
-        log.info("payloadMandator: {}", payloadMandator);
-        log.info("learCredentialMandator: {}", learCredentialMandator);
-        log.info("Equal serial numbers?");
-        log.info("{}", payloadMandator.serialNumber().equals(learCredentialMandator.serialNumber()));
+
         return payloadMandator.organization().equals(learCredentialMandator.organization()) &&
                payloadMandator.country().equals(learCredentialMandator.country()) &&
                payloadMandator.commonName().equals(learCredentialMandator.commonName()) &&
@@ -290,8 +279,6 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
     }
 
     private boolean hasLearCredentialOnboardingExecutePower(List<Power> powers) {
-        log.info("hasLearCredentialOnboardingExecutePower");
-        log.info("powers: {}", powers);
         return powers.stream().anyMatch(this::isOnboardingFunction) &&
                 powers.stream().anyMatch(this::hasExecuteAction);
     }
@@ -311,10 +298,6 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
     }
 
     private boolean isLearCredentialEmployeeMandatorOrganizationIdentifierAllowedSignerLEARCredentialMachine(Mandator mandator) {
-        log.info("isLearCredentialEmployeeMandatorOrganizationIdentifierAllowedSignerLEARCredentialMachine"); //todo remove
-        log.info("{}", mandator); //todo remove
-        log.info("IN2 org id:"); //todo remove
-        log.info(IN2_ORGANIZATION_IDENTIFIER); //todo remove
         return IN2_ORGANIZATION_IDENTIFIER.equals(mandator.organizationIdentifier());
     }
 
