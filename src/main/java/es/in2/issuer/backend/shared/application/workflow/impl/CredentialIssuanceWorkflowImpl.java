@@ -108,6 +108,11 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
         String schema = preSubmittedCredentialDataRequest.schema();
         var payload = preSubmittedCredentialDataRequest.payload();
 
+        //                    todo remove
+        log.info("preSubmittedCredentialDataRequest");
+        log.info("preSubmittedCredentialDataRequest");
+        log.info("{}", preSubmittedCredentialDataRequest);
+
         return switch (schema) {
             case LEAR_CREDENTIAL_EMPLOYEE -> {
                 String email = payload.get(MANDATEE).get(EMAIL).asText();
