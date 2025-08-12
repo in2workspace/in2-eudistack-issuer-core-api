@@ -249,6 +249,8 @@ public class LEARCredentialEmployeeFactory {
     }
 
     private Mono<String> convertLEARCredentialEmployeeInToString(LEARCredentialEmployee credentialDecoded) {
+        //todo remove
+        log.info("convertLEARCredentialEmployeeInToString");
         try {
             return Mono.just(objectMapper.writeValueAsString(credentialDecoded));
         } catch (JsonProcessingException e) {
@@ -257,6 +259,8 @@ public class LEARCredentialEmployeeFactory {
     }
 
     public Mono<String> convertLEARCredentialEmployeeJwtPayloadInToString(LEARCredentialEmployeeJwtPayload credential) {
+        //todo remove
+        log.info("convertLEARCredentialEmployeeJwtPayloadInToString");
         try {
             return Mono.just(objectMapper.writeValueAsString(credential));
         } catch (JsonProcessingException e) {
