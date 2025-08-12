@@ -6,6 +6,7 @@ import es.in2.issuer.backend.backoffice.domain.model.dtos.GlobalErrorMessage;
 import es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes;
 import es.in2.issuer.backend.shared.domain.exception.*;
 import es.in2.issuer.backend.shared.domain.model.dto.CredentialErrorResponse;
+import es.in2.issuer.backend.shared.domain.model.dto.CredentialSerializationError;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -426,5 +427,20 @@ public class GlobalExceptionHandler {
         return Mono.just(new CredentialErrorResponse(
                 CredentialResponseErrorCodes.SAD_ERROR,
                 ex.getMessage()));
+    }
+
+    @ExceptionHandler(CredentialSerializationException.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public Mono<ResponseEntity<CredentialSerializationError>> handleCredentialSerializationException(
+            CredentialSerializationException ex
+    ) {
+        log.error("Credential serialization failed", ex);
+
+        CredentialSerializationError errorResponse = new CredentialSerializationError(
+                CredentialResponseErrorCodes.SERIALIZATION_ERROR,
+                "Error serializing credential to JSON."
+        );
+
+        return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse));
     }
 }

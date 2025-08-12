@@ -22,5 +22,6 @@ public class CredentialResponseErrorCodes {
     public static final String INSUFFICIENT_PERMISSION = "insufficient_permission";
     public static final String MISSING_HEADER = "missing_header";
     public static final String SAD_ERROR = "SAD_ERROR";
+    public static final String SERIALIZATION_ERROR = "serialization_error";
 
 }
