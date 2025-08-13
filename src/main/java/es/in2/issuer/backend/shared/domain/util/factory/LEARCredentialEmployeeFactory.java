@@ -90,7 +90,7 @@ public class LEARCredentialEmployeeFactory {
         }
     }
 
-    // todo
+    // todo handle error when deserializing jsonNode
     private LEARCredentialEmployee.CredentialSubject mapJsonNodeToCredentialSubject(JsonNode jsonNode) {
         LEARCredentialEmployee.CredentialSubject.Mandate mandate =
                 objectMapper.convertValue(jsonNode, LEARCredentialEmployee.CredentialSubject.Mandate.class);

@@ -319,7 +319,7 @@ class LEARCredentialEmployeeFactoryTest {
     void convertLEARCredentialEmployeeInToString_whenWriteFails_emitsCredentialSerializationException() throws Exception {
         LEARCredentialEmployee credential = mock(LEARCredentialEmployee.class);
         when(objectMapper.writeValueAsString(any(LEARCredentialEmployee.class)))
-                .thenThrow(new JsonProcessingException("boom") {});
+                .thenThrow(new JsonProcessingException("error") {});
 
         Method m = LEARCredentialEmployeeFactory.class
                 .getDeclaredMethod("convertLEARCredentialEmployeeInToString", LEARCredentialEmployee.class);
@@ -336,8 +336,6 @@ class LEARCredentialEmployeeFactoryTest {
                 })
                 .verify();
     }
-
-
 
     @Test
     void convertLEARCredentialEmployeeJwtPayloadInToString_whenWriteFails_emitsCredentialSerializationException() throws Exception {
