@@ -108,7 +108,7 @@ class CredentialStatusWorkflowImplTest {
 
         verify(credentialStatusService, times(1)).revokeCredential(eq(listId), any(CredentialStatus.class));
 
-        verify(emailService, never()).sendCredentialRevokedOrExpiredNotificationEmail(any(), any(), any(), any(), any(), any(), any(), any());
+        verify(emailService, never()).notifyIfCredentialStatusChanges(any(), any());
     }
 
     @Test
@@ -148,24 +148,17 @@ class CredentialStatusWorkflowImplTest {
 
         when(credentialProcedureService.getEmailCredentialOfferInfoByProcedureId(cp.getProcedureId().toString()))
                 .thenReturn(Mono.just(new CredentialOfferEmailNotificationInfo("to@mail", "userX", "orgY")));
-        when(emailService.sendCredentialRevokedOrExpiredNotificationEmail(
-                anyString(), anyString(), anyString(), anyString(),
-                anyString(), anyString(), anyString(), anyString()
+        when(emailService.notifyIfCredentialStatusChanges(
+                any(), anyString()
         )).thenReturn(Mono.empty());
 
         Mono<Void> result = credentialStatusWorkflow.revokeCredential(processId, bearerToken, credentialId, listId);
 
         StepVerifier.create(result).verifyComplete();
 
-        verify(emailService).sendCredentialRevokedOrExpiredNotificationEmail(
-                "to@mail",
-                "Revoked Credential",
-                "userX",
-                "orgY",
-                cp.getCredentialId().toString(),
-                "LEARCredentialEmployee",
-                "Your Credential Has Been Revoked",
-                "revoked"
+        verify(emailService).notifyIfCredentialStatusChanges(
+                cp,
+                "REVOKED"
         );
     }
 
@@ -204,9 +197,8 @@ class CredentialStatusWorkflowImplTest {
         when(credentialProcedureService.getEmailCredentialOfferInfoByProcedureId(cp.getProcedureId().toString()))
                 .thenReturn(Mono.just(new CredentialOfferEmailNotificationInfo("to@mail", "userX", "orgY")));
 
-        when(emailService.sendCredentialRevokedOrExpiredNotificationEmail(
-                anyString(), anyString(), anyString(), anyString(),
-                anyString(), anyString(), anyString(), anyString()
+        when(emailService.notifyIfCredentialStatusChanges(
+                any(), anyString()
         )).thenReturn(Mono.error(new RuntimeException("smtp down")));
 
         Mono<Void> result = credentialStatusWorkflow.revokeCredential(processId, bearerToken, credentialId, listId);

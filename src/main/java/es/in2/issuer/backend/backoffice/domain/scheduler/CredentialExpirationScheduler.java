@@ -1,9 +1,8 @@
 package es.in2.issuer.backend.backoffice.domain.scheduler;
 
-import es.in2.issuer.backend.shared.domain.exception.EmailCommunicationException;
+
 import es.in2.issuer.backend.shared.domain.model.entities.CredentialProcedure;
 import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum;
-import es.in2.issuer.backend.shared.domain.service.CredentialProcedureService;
 import es.in2.issuer.backend.shared.domain.service.EmailService;
 import es.in2.issuer.backend.shared.infrastructure.repository.CredentialProcedureRepository;
 import lombok.RequiredArgsConstructor;
@@ -15,10 +14,7 @@ import reactor.core.publisher.Mono;
 
 import java.sql.Timestamp;
 import java.time.Instant;
-
-import static es.in2.issuer.backend.backoffice.domain.util.Constants.MAIL_ERROR_COMMUNICATION_EXCEPTION_MESSAGE;
 import static es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum.EXPIRED;
-import static es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum.REVOKED;
 
 @Slf4j
 @Component
@@ -27,17 +23,17 @@ import static es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEn
 public class CredentialExpirationScheduler {
 
     private final CredentialProcedureRepository credentialProcedureRepository;
-    private final CredentialProcedureService credentialProcedureService;
     private final EmailService emailService;
 
-    @Scheduled(cron = "0 0 1 * * ?") //Every day at 1:00 AM
+    //@Scheduled(cron = "0 0 1 * * ?") //Every day at 1:00 AM
+    @Scheduled(cron = "0 */2 * * * ?") //Every 2 minutes
     public Mono<Void> checkAndExpireCredentials() {
         log.info("Scheduled Task - Executing checkAndExpireCredentials at: {}", Instant.now());
         return credentialProcedureRepository.findAll()
                 .flatMap(credential -> isExpiredAndNotAlreadyMarked(credential)
                         .filter(Boolean::booleanValue)
                         .flatMap(expired -> expireCredential(credential)
-                                .then(sendNotification(credential))))
+                                .then(emailService.notifyIfCredentialStatusChanges(credential, EXPIRED.toString()))))
                 .then();
     }
 
@@ -61,30 +57,6 @@ public class CredentialExpirationScheduler {
             return credentialProcedureRepository.save(credentialProcedure);
         }
         return Mono.empty();
-    }
-
-    private Mono<Void> sendNotification(CredentialProcedure credentialProcedure) {
-        log.info("Scheduled Task - Sending notification for credential with ID: {}", credentialProcedure.getCredentialId());
-        return credentialProcedureService.getEmailCredentialOfferInfoByProcedureId(credentialProcedure.getProcedureId().toString())
-                .flatMap(emailCredentialOfferInfo -> {
-                    log.info("Scheduled Task - Obtained email info: {}", emailCredentialOfferInfo);
-                    if (credentialProcedure.getCredentialStatus().toString().equals(EXPIRED.toString())) {
-                        return emailService.sendCredentialRevokedOrExpiredNotificationEmail(
-                                        emailCredentialOfferInfo.email(),
-                                        "Expired Credential",
-                                        emailCredentialOfferInfo.user(),
-                                        emailCredentialOfferInfo.organization(),
-                                        credentialProcedure.getCredentialId().toString(),
-                                        credentialProcedure.getCredentialType(),
-                                        "Your Credential Has Expired",
-                                        "expired"
-                                )
-                                .onErrorMap(exception ->
-                                        new EmailCommunicationException(MAIL_ERROR_COMMUNICATION_EXCEPTION_MESSAGE));
-                    }else {
-                        return Mono.empty();
-                    }
-                });
     }
 
 }

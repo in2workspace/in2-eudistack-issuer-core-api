@@ -66,8 +66,8 @@ class CredentialExpirationSchedulerImplTest {
             return statusCorrect && updatedAtNotNull && updatedAtRecent;
         }));
 
-        verify(emailService, never()).sendCredentialRevokedOrExpiredNotificationEmail(
-                any(), any(), any(), any(), any(), any(), any(), any());
+        verify(emailService, never()).notifyIfCredentialStatusChanges(
+                any(), any());
     }
 
     @Test
@@ -87,23 +87,16 @@ class CredentialExpirationSchedulerImplTest {
                 .thenReturn(Mono.just(new CredentialOfferEmailNotificationInfo(
                         "to@mail", "userX", "orgY")));
 
-        when(emailService.sendCredentialRevokedOrExpiredNotificationEmail(
-                anyString(), anyString(), anyString(), anyString(),
-                anyString(), anyString(), anyString(), anyString()
+        when(emailService.notifyIfCredentialStatusChanges(
+                any(), anyString()
         )).thenReturn(Mono.empty());
 
         StepVerifier.create(credentialExpirationScheduler.checkAndExpireCredentials())
                 .verifyComplete();
 
-        verify(emailService, times(1)).sendCredentialRevokedOrExpiredNotificationEmail(
-                "to@mail",
-                "Expired Credential",
-                "userX",
-                "orgY",
-                credential.getCredentialId().toString(),
-                "LEARCredentialEmployee",
-                "Your Credential Has Expired",
-                "expired"
+        verify(emailService, times(1)).notifyIfCredentialStatusChanges(
+                credential,
+                "EXPIRED"
         );
     }
 
@@ -124,18 +117,16 @@ class CredentialExpirationSchedulerImplTest {
                 .thenReturn(Mono.just(new CredentialOfferEmailNotificationInfo(
                         "to@mail", "userX", "orgY")));
 
-        when(emailService.sendCredentialRevokedOrExpiredNotificationEmail(
-                anyString(), anyString(), anyString(), anyString(),
-                anyString(), anyString(), anyString(), anyString()
+        when(emailService.notifyIfCredentialStatusChanges(
+                any(), anyString()
         )).thenReturn(Mono.error(new RuntimeException("smtp down")));
 
         StepVerifier.create(credentialExpirationScheduler.checkAndExpireCredentials())
                 .expectError(EmailCommunicationException.class)
                 .verify();
 
-        verify(emailService, times(1)).sendCredentialRevokedOrExpiredNotificationEmail(
-                anyString(), anyString(), anyString(), anyString(),
-                anyString(), anyString(), anyString(), anyString());
+        verify(emailService, times(1)).notifyIfCredentialStatusChanges(
+                any(), anyString());
     }
 
     @Test
@@ -154,8 +145,8 @@ class CredentialExpirationSchedulerImplTest {
                 .verifyComplete();
 
         verify(credentialProcedureRepository, never()).save(any(CredentialProcedure.class));
-        verify(emailService, never()).sendCredentialRevokedOrExpiredNotificationEmail(
-                any(), any(), any(), any(), any(), any(), any(), any());
+        verify(emailService, never()).notifyIfCredentialStatusChanges(
+                any(), any());
 
         assertEquals(CredentialStatusEnum.VALID, credential.getCredentialStatus());
         assertNull(credential.getUpdatedAt());

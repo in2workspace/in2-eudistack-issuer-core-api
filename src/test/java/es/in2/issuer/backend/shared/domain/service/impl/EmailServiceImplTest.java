@@ -1,5 +1,6 @@
 package es.in2.issuer.backend.shared.domain.service.impl;
 
+import es.in2.issuer.backend.shared.domain.model.entities.CredentialProcedure;
 import jakarta.mail.internet.MimeMessage;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -161,7 +162,7 @@ class EmailServiceImplTest {
     }
 
     @Test
-    void sendCredentialRevokedOrExpiredNotificationEmail_sendsEmailSuccessfully_andSetsTemplateVariables() {
+    void notifyIfCredentialStatusChanges_sendsEmailSuccessfully_andSetsTemplateVariables() {
 
         MimeMessage mimeMessage = mock(MimeMessage.class);
         when(javaMailSender.createMimeMessage()).thenReturn(mimeMessage);
@@ -169,6 +170,7 @@ class EmailServiceImplTest {
         when(templateEngine.process(eq("revoked-expired-credential-email"), any(Context.class)))
                 .thenReturn("htmlContent");
 
+        CredentialProcedure credential = mock(CredentialProcedure.class);
         String to = "to@example.com";
         String subject = "Expired Credential";
         String user = "John Doe";
@@ -176,10 +178,10 @@ class EmailServiceImplTest {
         String credentialId = "cred-123";
         String type = "LEARCredentialEmployee";
         String title = "Your Credential Has Expired";
-        String credentialStatus = "expired";
+        String credentialStatus = "EXPIRED";
 
-        Mono<Void> result = emailService.sendCredentialRevokedOrExpiredNotificationEmail(
-                to, subject, user, organization, credentialId, type, title, credentialStatus
+        Mono<Void> result = emailService.notifyIfCredentialStatusChanges(
+                credential, credentialStatus
         );
 
         StepVerifier.create(result).verifyComplete();
@@ -201,9 +203,9 @@ class EmailServiceImplTest {
     @Test
     void sendCredentialRevokedOrExpiredNotificationEmail_handlesException() {
         when(javaMailSender.createMimeMessage()).thenThrow(new RuntimeException("Mail server error"));
-
-        Mono<Void> result = emailService.sendCredentialRevokedOrExpiredNotificationEmail(
-                "to@example.com", "subject", "user", "org", "cred-1", "type", "title", "expired"
+        CredentialProcedure credential = mock(CredentialProcedure.class);
+        Mono<Void> result = emailService.notifyIfCredentialStatusChanges(
+                credential,"EXPIRED"
         );
 
         StepVerifier.create(result)

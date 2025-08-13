@@ -8,7 +8,6 @@ import es.in2.issuer.backend.backoffice.application.workflow.CredentialStatusWor
 import es.in2.issuer.backend.backoffice.domain.service.CredentialStatusAuthorizationService;
 import es.in2.issuer.backend.backoffice.domain.service.CredentialStatusService;
 import es.in2.issuer.backend.backoffice.domain.exception.InvalidStatusException;
-import es.in2.issuer.backend.shared.domain.exception.EmailCommunicationException;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.CredentialStatus;
 import es.in2.issuer.backend.shared.domain.model.entities.CredentialProcedure;
 import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum;
@@ -21,7 +20,6 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import static es.in2.issuer.backend.backoffice.domain.util.Constants.MAIL_ERROR_COMMUNICATION_EXCEPTION_MESSAGE;
 import static es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum.*;
 
 
@@ -85,7 +83,7 @@ public class CredentialStatusWorkflowImpl implements CredentialStatusWorkflow {
                         "Process ID: {} - Revoking Credential with ID: {}",
                         processId,
                         credentialId))
-                .then(sendNotification(credentialProcedure))
+                .then(emailService.notifyIfCredentialStatusChanges(credentialProcedure, REVOKED.toString()))
                 .doOnSuccess(
                         aVoid -> log.debug(
                         "Process ID: {} - Credential with ID: {} revoked successfully.",
@@ -100,27 +98,5 @@ public class CredentialStatusWorkflowImpl implements CredentialStatusWorkflow {
             return Mono.error(new InvalidStatusException(
                     "Invalid status: " + credentialStatus));
         }
-    }
-
-    private Mono<Void> sendNotification(CredentialProcedure credentialProcedure) {
-        return credentialProcedureService.getEmailCredentialOfferInfoByProcedureId(credentialProcedure.getProcedureId().toString())
-            .flatMap(emailCredentialOfferInfo -> {
-                        if (credentialProcedure.getCredentialStatus().toString().equals(REVOKED.toString())) {
-                            return emailService.sendCredentialRevokedOrExpiredNotificationEmail(
-                                            emailCredentialOfferInfo.email(),
-                                            "Revoked Credential",
-                                            emailCredentialOfferInfo.user(),
-                                            emailCredentialOfferInfo.organization(),
-                                            credentialProcedure.getCredentialId().toString(),
-                                            credentialProcedure.getCredentialType(),
-                                            "Your Credential Has Been Revoked",
-                                            "revoked"
-                                    )
-                                    .onErrorMap(exception ->
-                                            new EmailCommunicationException(MAIL_ERROR_COMMUNICATION_EXCEPTION_MESSAGE));
-                        }else {
-                            return Mono.empty();
-                        }
-            }).doOnError(error -> log.error("Error sending notification", error));
     }
 }
