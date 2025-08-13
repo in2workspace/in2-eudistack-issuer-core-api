@@ -186,15 +186,10 @@ public class EmailServiceImpl implements EmailService {
     }
 
     @Override
-    public Mono<Void> notifyIfCredentialStatusChanges(
-            CredentialProcedure credential,
-            String expectedStatus
-    ) {
-        System.out.println("XIVATO1"+expectedStatus);
+    public Mono<Void> notifyIfCredentialStatusChanges(CredentialProcedure credential, String expectedStatus) {
         if (!credential.getCredentialStatus().toString().equalsIgnoreCase(expectedStatus)) {
             return Mono.empty();
         }
-
         return credentialProcedureService
                 .getEmailCredentialOfferInfoByProcedureId(credential.getProcedureId().toString())
                 .flatMap(info ->
@@ -214,7 +209,6 @@ public class EmailServiceImpl implements EmailService {
     private Mono<Void> sendCredentialRevokedOrExpiredNotificationEmail(String to,String user,String organization,String credentialId,String type,String credentialStatus){
         return Mono.fromCallable(() -> {
             try {
-                System.out.println("XIVATO2"+credentialStatus);
                 MimeMessage mimeMessage = javaMailSender.createMimeMessage();
                 MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, UTF_8);
 
@@ -235,8 +229,6 @@ public class EmailServiceImpl implements EmailService {
                     default -> helper.setSubject("Credential Notification");
 
                 }
-                System.out.println("XIVATO3"+helper);
-
                 String htmlContent = templateEngine.process("revoked-expired-credential-email", context);
                 helper.setText(htmlContent, true);
 

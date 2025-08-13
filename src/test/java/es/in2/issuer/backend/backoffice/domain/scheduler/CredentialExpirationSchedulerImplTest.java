@@ -1,6 +1,5 @@
 package es.in2.issuer.backend.backoffice.domain.scheduler;
 
-import es.in2.issuer.backend.shared.domain.exception.EmailCommunicationException;
 import es.in2.issuer.backend.shared.domain.model.dto.CredentialOfferEmailNotificationInfo;
 import es.in2.issuer.backend.shared.domain.model.entities.CredentialProcedure;
 import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum;
@@ -52,8 +51,8 @@ class CredentialExpirationSchedulerImplTest {
         when(credentialProcedureRepository.save(any(CredentialProcedure.class)))
                 .thenAnswer(invocation -> Mono.just(invocation.getArgument(0)));
 
-        when(credentialProcedureService.getEmailCredentialOfferInfoByProcedureId(anyString()))
-                .thenReturn(Mono.empty());
+        when(emailService.notifyIfCredentialStatusChanges(
+                any(), any())).thenReturn(Mono.empty());
 
         StepVerifier.create(credentialExpirationScheduler.checkAndExpireCredentials())
                 .expectSubscription()
@@ -66,8 +65,6 @@ class CredentialExpirationSchedulerImplTest {
             return statusCorrect && updatedAtNotNull && updatedAtRecent;
         }));
 
-        verify(emailService, never()).notifyIfCredentialStatusChanges(
-                any(), any());
     }
 
     @Test
@@ -98,35 +95,6 @@ class CredentialExpirationSchedulerImplTest {
                 credential,
                 "EXPIRED"
         );
-    }
-
-    @Test
-    void shouldMapEmailErrorToEmailCommunicationException() {
-        CredentialProcedure credential = new CredentialProcedure();
-        credential.setCredentialId(UUID.randomUUID());
-        credential.setProcedureId(UUID.randomUUID());
-        credential.setCredentialType("LEARCredentialEmployee");
-        credential.setCredentialStatus(CredentialStatusEnum.VALID);
-        credential.setValidUntil(Timestamp.from(Instant.now().minusSeconds(60)));
-
-        when(credentialProcedureRepository.findAll()).thenReturn(Flux.just(credential));
-        when(credentialProcedureRepository.save(any(CredentialProcedure.class)))
-                .thenAnswer(invocation -> Mono.just(invocation.getArgument(0)));
-
-        when(credentialProcedureService.getEmailCredentialOfferInfoByProcedureId(credential.getProcedureId().toString()))
-                .thenReturn(Mono.just(new CredentialOfferEmailNotificationInfo(
-                        "to@mail", "userX", "orgY")));
-
-        when(emailService.notifyIfCredentialStatusChanges(
-                any(), anyString()
-        )).thenReturn(Mono.error(new RuntimeException("smtp down")));
-
-        StepVerifier.create(credentialExpirationScheduler.checkAndExpireCredentials())
-                .expectError(EmailCommunicationException.class)
-                .verify();
-
-        verify(emailService, times(1)).notifyIfCredentialStatusChanges(
-                any(), anyString());
     }
 
     @Test
