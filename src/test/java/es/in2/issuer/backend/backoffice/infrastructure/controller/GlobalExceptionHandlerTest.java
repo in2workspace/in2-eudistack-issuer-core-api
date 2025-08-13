@@ -6,6 +6,7 @@ import es.in2.issuer.backend.backoffice.domain.model.dtos.GlobalErrorMessage;
 import es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes;
 import es.in2.issuer.backend.shared.domain.exception.*;
 import es.in2.issuer.backend.shared.domain.model.dto.CredentialErrorResponse;
+import es.in2.issuer.backend.shared.domain.model.dto.CredentialSerializationError;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
@@ -618,6 +619,24 @@ class GlobalExceptionHandlerTest {
                 .assertNext(result -> {
                     assertEquals(CredentialResponseErrorCodes.SAD_ERROR, result.error());
                     assertEquals(exception.getMessage(), result.description());
+                })
+                .verifyComplete();
+    }
+
+    @Test
+    void handleCredentialSerializationException_returnsInternalServerErrorWithCorrectBody() {
+        CredentialSerializationException ex = new CredentialSerializationException("boom");
+
+        Mono<ResponseEntity<CredentialSerializationError>> result =
+                globalExceptionHandler.handleCredentialSerializationException(ex);
+
+        StepVerifier.create(result)
+                .assertNext(resp -> {
+                    assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, resp.getStatusCode());
+                    CredentialSerializationError body = resp.getBody();
+                    assertNotNull(body);
+                    assertEquals(CredentialResponseErrorCodes.SERIALIZATION_ERROR, body.error());
+                    assertEquals("Error serializing credential to JSON.", body.description());
                 })
                 .verifyComplete();
     }
