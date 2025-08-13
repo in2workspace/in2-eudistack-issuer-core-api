@@ -625,7 +625,7 @@ class GlobalExceptionHandlerTest {
 
     @Test
     void handleCredentialSerializationException_returnsInternalServerErrorWithCorrectBody() {
-        CredentialSerializationException ex = new CredentialSerializationException("boom");
+        CredentialSerializationException ex = new CredentialSerializationException("error");
 
         Mono<ResponseEntity<CredentialSerializationError>> result =
                 globalExceptionHandler.handleCredentialSerializationException(ex);

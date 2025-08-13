@@ -434,7 +434,7 @@ public class GlobalExceptionHandler {
     public Mono<ResponseEntity<CredentialSerializationError>> handleCredentialSerializationException(
             CredentialSerializationException ex
     ) {
-        log.error("Credential serialization failed", ex);
+        log.error(ex.getMessage());
 
         CredentialSerializationError errorResponse = new CredentialSerializationError(
                 CredentialResponseErrorCodes.SERIALIZATION_ERROR,
