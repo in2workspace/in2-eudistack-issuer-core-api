@@ -5,9 +5,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [v2.4.1](https://github.com/in2workspace/in2-issuer-api/releases/tag/v2.3.3)
+### Changed
+- In the email sent upon LEARCredentialMachine issuance, use mandator name instead of default.
+
 ### Fixed
 - LEARCredentialMachine mandator validation.
-- In the email sent upon LEARCredentialMachine issuance, use mandator name instead of default.
 
 ## [v2.4.0](https://github.com/in2workspace/in2-issuer-api/releases/tag/v2.4.0)
 ### Added
