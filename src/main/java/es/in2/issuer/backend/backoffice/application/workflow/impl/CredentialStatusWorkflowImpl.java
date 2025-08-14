@@ -13,13 +13,15 @@ import es.in2.issuer.backend.shared.domain.model.entities.CredentialProcedure;
 import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum;
 import es.in2.issuer.backend.shared.domain.service.AccessTokenService;
 import es.in2.issuer.backend.shared.domain.service.CredentialProcedureService;
+import es.in2.issuer.backend.shared.domain.service.EmailService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import static es.in2.issuer.backend.shared.domain.util.Utils.generateCustomNonce;
+import static es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum.*;
+
 
 @Slf4j
 @Service
@@ -31,6 +33,7 @@ public class CredentialStatusWorkflowImpl implements CredentialStatusWorkflow {
     private final CredentialStatusAuthorizationService credentialStatusAuthorizationService;
     private final CredentialProcedureService credentialProcedureService;
     private final ObjectMapper objectMapper;
+    private final EmailService emailService;
 
     @Override
     public Flux<String> getCredentialsByListId(String processId, int listId) {
@@ -80,7 +83,9 @@ public class CredentialStatusWorkflowImpl implements CredentialStatusWorkflow {
                         "Process ID: {} - Revoking Credential with ID: {}",
                         processId,
                         credentialId))
-                .doOnSuccess(aVoid -> log.debug(
+                .then(emailService.notifyIfCredentialStatusChanges(credentialProcedure, REVOKED.toString()))
+                .doOnSuccess(
+                        aVoid -> log.debug(
                         "Process ID: {} - Credential with ID: {} revoked successfully.",
                         processId,
                         credentialId));

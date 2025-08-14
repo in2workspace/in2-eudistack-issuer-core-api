@@ -41,6 +41,10 @@ public class AppConfig {
         return configAdapter.getConfiguration(appProperties.knowledgeBase().walletGuideUrl());
     }
 
+    public String getWalletFrontendUrl() {
+        return configAdapter.getConfiguration(appProperties.walletUrl());
+    }
+
     public String getKnowledgeBaseUploadCertificationGuideUrl() {
         return configAdapter.getConfiguration(appProperties.knowledgeBase().uploadCertificationGuideUrl());
     }
