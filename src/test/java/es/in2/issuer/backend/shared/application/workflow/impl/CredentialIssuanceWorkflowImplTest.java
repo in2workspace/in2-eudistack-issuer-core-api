@@ -541,4 +541,65 @@ class CredentialIssuanceServiceImplTest {
                 .verifyComplete();
     }
 
+    @Test
+    void completeWithdrawLEARMachineProcessSyncSuccess() throws Exception {
+        String processId = "1234";
+        String type = "LEARCredentialMachine";
+        String knowledgebaseWalletUrl = "https://knowledgebase.com";
+        String issuerUiExternalDomain = "https://example.com";
+        String token = "token";
+        String idToken = null;
+        String expectedEmail = "machine.owner@in2.es";
+        String expectedName  = "Robot 3000";
+        String expectedOrg   = "IN2 Machines";
+
+        String json = """
+        {
+          "mandator": {
+            "email": "machine.owner@in2.es",
+            "commonName": "Robot 3000",
+            "organization": "IN2 Machines"
+          }
+        }
+        """;
+
+        ObjectMapper objectMapper = new ObjectMapper();
+        JsonNode jsonNode = objectMapper.readTree(json);
+
+        PreSubmittedCredentialDataRequest preSubmittedCredentialDataRequest =
+                PreSubmittedCredentialDataRequest.builder()
+                        .payload(jsonNode)
+                        .schema("LEARCredentialMachine")
+                        .format(JWT_VC_JSON)
+                        .operationMode("S")
+                        .build();
+
+        String transactionCode = "tx-9876";
+
+        // arrange
+        when(verifiableCredentialPolicyAuthorizationService.authorize(token, type, jsonNode, idToken))
+                .thenReturn(Mono.empty());
+
+        when(verifiableCredentialService.generateVc(processId, preSubmittedCredentialDataRequest, expectedEmail))
+                .thenReturn(Mono.just(transactionCode));
+
+        when(appConfig.getIssuerFrontendUrl()).thenReturn(issuerUiExternalDomain);
+        when(appConfig.getKnowledgebaseWalletUrl()).thenReturn(knowledgebaseWalletUrl);
+
+
+        when(emailService.sendCredentialActivationEmail(
+                expectedEmail,
+                "Activate your new credential",
+                issuerUiExternalDomain + "/credential-offer?transaction_code=" + transactionCode,
+                knowledgebaseWalletUrl,
+                expectedName,
+                expectedOrg
+        )).thenReturn(Mono.empty());
+
+        StepVerifier.create(
+                verifiableCredentialIssuanceWorkflow.execute(processId, preSubmittedCredentialDataRequest, token, idToken)
+        ).verifyComplete();
+    }
+
+
 }
