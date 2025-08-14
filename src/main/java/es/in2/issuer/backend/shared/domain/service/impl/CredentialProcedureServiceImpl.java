@@ -243,6 +243,7 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
     public Mono<Void> updateCredentialProcedureCredentialStatusToRevoke(CredentialProcedure
                                                                                 credentialProcedure) {
         credentialProcedure.setCredentialStatus(CredentialStatusEnum.REVOKED);
+        credentialProcedure.setUpdatedAt(Timestamp.from(Instant.now()));
         return credentialProcedureRepository.save(credentialProcedure)
                 .doOnSuccess(result -> log.info(UPDATED_CREDENTIAL))
                 .then();

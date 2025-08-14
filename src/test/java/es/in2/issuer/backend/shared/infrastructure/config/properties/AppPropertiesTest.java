@@ -15,7 +15,8 @@ class AppPropertiesTest {
                 "https://trust-framework-url.com",
                 knowledgeBase,
                 "https://verifier-url.com",
-                "configSource"
+                "configSource",
+                "https://wallet-frontend-url.com"
         );
 
         assertEquals("https://app-url.com", appProperties.url());
@@ -24,6 +25,7 @@ class AppPropertiesTest {
         assertEquals(knowledgeBase, appProperties.knowledgeBase());
         assertEquals("https://verifier-url.com", appProperties.verifierUrl());
         assertEquals("configSource", appProperties.configSource());
+        assertEquals("https://wallet-frontend-url.com", appProperties.walletUrl());
     }
 
     @Test

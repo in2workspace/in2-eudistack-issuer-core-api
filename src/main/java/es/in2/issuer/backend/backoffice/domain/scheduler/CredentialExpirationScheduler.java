@@ -1,7 +1,9 @@
 package es.in2.issuer.backend.backoffice.domain.scheduler;
 
+
 import es.in2.issuer.backend.shared.domain.model.entities.CredentialProcedure;
 import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum;
+import es.in2.issuer.backend.shared.domain.service.EmailService;
 import es.in2.issuer.backend.shared.infrastructure.repository.CredentialProcedureRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -12,6 +14,7 @@ import reactor.core.publisher.Mono;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import static es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum.EXPIRED;
 
 @Slf4j
 @Component
@@ -20,20 +23,26 @@ import java.time.Instant;
 public class CredentialExpirationScheduler {
 
     private final CredentialProcedureRepository credentialProcedureRepository;
+    private final EmailService emailService;
 
     @Scheduled(cron = "0 0 1 * * ?") //Every day at 1:00 AM
     public Mono<Void> checkAndExpireCredentials() {
         log.info("Scheduled Task - Executing checkAndExpireCredentials at: {}", Instant.now());
         return credentialProcedureRepository.findAll()
-                .flatMap(credential -> isExpired(credential)
+                .flatMap(credential -> isExpiredAndNotAlreadyMarked(credential)
                         .filter(Boolean::booleanValue)
-                        .flatMap(expired -> expireCredential(credential)))
+                        .flatMap(expired -> expireCredential(credential)
+                                .then(emailService.notifyIfCredentialStatusChanges(credential, EXPIRED.toString()))))
                 .then();
     }
 
-    private Mono<Boolean> isExpired(CredentialProcedure credentialProcedure) {
+
+    private Mono<Boolean> isExpiredAndNotAlreadyMarked(CredentialProcedure credentialProcedure) {
         return Mono.justOrEmpty(credentialProcedure.getValidUntil())
-                .map(validUntil -> validUntil.toInstant().isBefore(Instant.now()))
+                .map(validUntil ->
+                        validUntil.toInstant().isBefore(Instant.now())
+                                && credentialProcedure.getCredentialStatus() != CredentialStatusEnum.EXPIRED
+                )
                 .defaultIfEmpty(false);
     }
 
