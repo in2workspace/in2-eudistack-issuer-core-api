@@ -320,14 +320,10 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
                                             objectMapper.readTree(credentialProcedure.getCredentialDecoded())
                                     )
                                     .map(credential -> {
-                                        log.info("Credential test: {}", credential);
                                         JsonNode mandator = credential
                                                 .get(CREDENTIAL_SUBJECT)
                                                 .get(MANDATE)
                                                 .get(MANDATOR);
-//                                        todo remove
-                                        log.info("Mandator test: ");
-                                        log.info("{}", mandator);
                                         String user = mandator
                                                 .get(COMMON_NAME)
                                                 .asText();
