@@ -316,6 +316,34 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
                                                     "Error parsing credential for procedureId: " + procedureId
                                             )
                                     );
+                            case LEAR_CREDENTIAL_MACHINE_TYPE -> Mono.fromCallable(() ->
+                                            objectMapper.readTree(credentialProcedure.getCredentialDecoded())
+                                    )
+                                    .map(credential -> {
+                                        JsonNode mandator = credential
+                                                .get(CREDENTIAL_SUBJECT)
+                                                .get(MANDATE)
+                                                .get(MANDATOR);
+                                        String user = mandator
+                                                .get(COMMON_NAME)
+                                                .asText();
+                                        String org = mandator
+                                                .get(ORGANIZATION)
+                                                .asText();
+                                        String email = mandator
+                                                .get(EMAIL)
+                                                .asText();
+                                        return new CredentialOfferEmailNotificationInfo(
+                                                email,
+                                                user,
+                                                org
+                                        );
+                                    })
+                                    .onErrorMap(JsonProcessingException.class, e ->
+                                            new ParseCredentialJsonException(
+                                                    "Error parsing credential for procedureId: " + procedureId
+                                            )
+                                    );
                             case LABEL_CREDENTIAL_TYPE -> Mono.just(
                                     new CredentialOfferEmailNotificationInfo(
                                             credentialProcedure.getOwnerEmail(),
