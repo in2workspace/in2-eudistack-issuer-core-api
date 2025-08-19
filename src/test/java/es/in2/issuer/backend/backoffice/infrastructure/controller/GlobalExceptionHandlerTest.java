@@ -2,7 +2,7 @@ package es.in2.issuer.backend.backoffice.infrastructure.controller;
 
 import es.in2.issuer.backend.backoffice.domain.exception.*;
 import es.in2.issuer.backend.shared.domain.exception.*;
-import es.in2.issuer.backend.shared.domain.model.dto.GlobalErrorMessage;
+import es.in2.issuer.backend.backoffice.domain.model.dtos.GlobalErrorMessage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
@@ -11,6 +11,7 @@ import org.springframework.http.server.reactive.ServerHttpRequest;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
+import javax.naming.OperationNotSupportedException;
 import java.text.ParseException;
 import java.lang.reflect.Method;
 import java.util.NoSuchElementException;
@@ -788,5 +789,375 @@ class GlobalExceptionHandlerTest {
                 ))
                 .verifyComplete();
     }
+
+    // ===================== handleParseCredentialJsonException =====================
+
+    @Test
+    void handleParseCredentialJsonException_usesExceptionMessage_whenPresent() {
+        ParseCredentialJsonException ex = new ParseCredentialJsonException("bad json");
+        Mono<GlobalErrorMessage> mono = handler.handleParseCredentialJsonException(ex, mockRequest);
+
+        reactor.test.StepVerifier.create(mono)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        "parse_credential_json_error",
+                        "Credential JSON parsing error",
+                        HttpStatus.INTERNAL_SERVER_ERROR,
+                        "bad json"
+                ))
+                .verifyComplete();
+    }
+
+    @Test
+    void handleParseCredentialJsonException_usesFallback_whenMessageNullOrBlank() {
+        ParseCredentialJsonException exNull = new ParseCredentialJsonException((String) null);
+        ParseCredentialJsonException exBlank = new ParseCredentialJsonException("  ");
+        Mono<GlobalErrorMessage> mNull = handler.handleParseCredentialJsonException(exNull, mockRequest);
+        Mono<GlobalErrorMessage> mBlank = handler.handleParseCredentialJsonException(exBlank, mockRequest);
+
+        reactor.test.StepVerifier.create(mNull)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        "parse_credential_json_error",
+                        "Credential JSON parsing error",
+                        HttpStatus.INTERNAL_SERVER_ERROR,
+                        "An internal credential JSON parsing error occurred."
+                ))
+                .verifyComplete();
+
+        reactor.test.StepVerifier.create(mBlank)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        "parse_credential_json_error",
+                        "Credential JSON parsing error",
+                        HttpStatus.INTERNAL_SERVER_ERROR,
+                        "An internal credential JSON parsing error occurred."
+                ))
+                .verifyComplete();
+    }
+
+// ===================== handleTemplateReadException =====================
+
+    @Test
+    void handleTemplateReadException_usesExceptionMessage_whenPresent() {
+        TemplateReadException ex = new TemplateReadException("cannot read template");
+        Mono<GlobalErrorMessage> mono = handler.handleTemplateReadException(ex, mockRequest);
+
+        reactor.test.StepVerifier.create(mono)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        "template_read_error",
+                        "Template read error",
+                        HttpStatus.INTERNAL_SERVER_ERROR,
+                        "cannot read template"
+                ))
+                .verifyComplete();
+    }
+
+    @Test
+    void handleTemplateReadException_usesFallback_whenMessageNullOrBlank() {
+        TemplateReadException exNull = new TemplateReadException((String) null);
+        TemplateReadException exBlank = new TemplateReadException("");
+        Mono<GlobalErrorMessage> mNull = handler.handleTemplateReadException(exNull, mockRequest);
+        Mono<GlobalErrorMessage> mBlank = handler.handleTemplateReadException(exBlank, mockRequest);
+
+        reactor.test.StepVerifier.create(mNull)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        "template_read_error",
+                        "Template read error",
+                        HttpStatus.INTERNAL_SERVER_ERROR,
+                        "An internal template read error occurred."
+                ))
+                .verifyComplete();
+
+        reactor.test.StepVerifier.create(mBlank)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        "template_read_error",
+                        "Template read error",
+                        HttpStatus.INTERNAL_SERVER_ERROR,
+                        "An internal template read error occurred."
+                ))
+                .verifyComplete();
+    }
+
+// ===================== handleProofValidationException =====================
+
+    @Test
+    void handleProofValidationException_usesExceptionMessage_whenPresent() {
+        ProofValidationException ex = new ProofValidationException("proof invalid");
+        Mono<GlobalErrorMessage> mono = handler.handleProofValidationException(ex, mockRequest);
+
+        reactor.test.StepVerifier.create(mono)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        "proof_validation_error",
+                        "Proof validation error",
+                        HttpStatus.INTERNAL_SERVER_ERROR,
+                        "proof invalid"
+                ))
+                .verifyComplete();
+    }
+
+    @Test
+    void handleProofValidationException_usesFallback_whenMessageNullOrBlank() {
+        ProofValidationException exNull = new ProofValidationException((String) null);
+        ProofValidationException exBlank = new ProofValidationException("   ");
+        Mono<GlobalErrorMessage> mNull = handler.handleProofValidationException(exNull, mockRequest);
+        Mono<GlobalErrorMessage> mBlank = handler.handleProofValidationException(exBlank, mockRequest);
+
+        reactor.test.StepVerifier.create(mNull)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        "proof_validation_error",
+                        "Proof validation error",
+                        HttpStatus.INTERNAL_SERVER_ERROR,
+                        "An internal proof validation error occurred."
+                ))
+                .verifyComplete();
+
+        reactor.test.StepVerifier.create(mBlank)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        "proof_validation_error",
+                        "Proof validation error",
+                        HttpStatus.INTERNAL_SERVER_ERROR,
+                        "An internal proof validation error occurred."
+                ))
+                .verifyComplete();
+    }
+
+// ===================== handleNoCredentialFoundException =====================
+
+    @Test
+    void handleNoCredentialFoundException_usesExceptionMessage_whenPresent() {
+        NoCredentialFoundException ex = new NoCredentialFoundException("nothing here");
+        Mono<GlobalErrorMessage> mono = handler.handleNoCredentialFoundException(ex, mockRequest);
+
+        reactor.test.StepVerifier.create(mono)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        "no_credential_found",
+                        "Credential not found",
+                        HttpStatus.NOT_FOUND,
+                        "nothing here"
+                ))
+                .verifyComplete();
+    }
+
+    @Test
+    void handleNoCredentialFoundException_usesFallback_whenMessageNullOrBlank() {
+        NoCredentialFoundException exNull = new NoCredentialFoundException((String) null);
+        NoCredentialFoundException exBlank = new NoCredentialFoundException("");
+        Mono<GlobalErrorMessage> mNull = handler.handleNoCredentialFoundException(exNull, mockRequest);
+        Mono<GlobalErrorMessage> mBlank = handler.handleNoCredentialFoundException(exBlank, mockRequest);
+
+        reactor.test.StepVerifier.create(mNull)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        "no_credential_found",
+                        "Credential not found",
+                        HttpStatus.NOT_FOUND,
+                        "No credential found."
+                ))
+                .verifyComplete();
+
+        reactor.test.StepVerifier.create(mBlank)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        "no_credential_found",
+                        "Credential not found",
+                        HttpStatus.NOT_FOUND,
+                        "No credential found."
+                ))
+                .verifyComplete();
+    }
+
+// ===================== handlePreAuthorizationCodeGetException =====================
+
+    @Test
+    void handlePreAuthorizationCodeGetException_usesExceptionMessage_whenPresent() {
+        PreAuthorizationCodeGetException ex = new PreAuthorizationCodeGetException("service down");
+        Mono<GlobalErrorMessage> mono = handler.handlePreAuthorizationCodeGetException(ex, mockRequest);
+
+        reactor.test.StepVerifier.create(mono)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        "pre_authorization_code_get_exception",
+                        "Pre-authorization code retrieval error",
+                        HttpStatus.INTERNAL_SERVER_ERROR,
+                        "service down"
+                ))
+                .verifyComplete();
+    }
+
+    @Test
+    void handlePreAuthorizationCodeGetException_usesFallback_whenMessageNullOrBlank() {
+        PreAuthorizationCodeGetException exNull = new PreAuthorizationCodeGetException((String) null);
+        PreAuthorizationCodeGetException exBlank = new PreAuthorizationCodeGetException(" ");
+        Mono<GlobalErrorMessage> mNull = handler.handlePreAuthorizationCodeGetException(exNull, mockRequest);
+        Mono<GlobalErrorMessage> mBlank = handler.handlePreAuthorizationCodeGetException(exBlank, mockRequest);
+
+        reactor.test.StepVerifier.create(mNull)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        "pre_authorization_code_get_exception",
+                        "Pre-authorization code retrieval error",
+                        HttpStatus.INTERNAL_SERVER_ERROR,
+                        "Failed to retrieve pre-authorization code."
+                ))
+                .verifyComplete();
+
+        reactor.test.StepVerifier.create(mBlank)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        "pre_authorization_code_get_exception",
+                        "Pre-authorization code retrieval error",
+                        HttpStatus.INTERNAL_SERVER_ERROR,
+                        "Failed to retrieve pre-authorization code."
+                ))
+                .verifyComplete();
+    }
+
+// ===================== handleCredentialOfferNotFoundException =====================
+
+    @Test
+    void handleCredentialOfferNotFoundException_usesExceptionMessage_whenPresent() {
+        CredentialOfferNotFoundException ex = new CredentialOfferNotFoundException("offer not found");
+        Mono<GlobalErrorMessage> mono = handler.handleCredentialOfferNotFoundException(ex, mockRequest);
+
+        reactor.test.StepVerifier.create(mono)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        "credential_offer_not_found",
+                        "Credential offer not found",
+                        HttpStatus.NOT_FOUND,
+                        "offer not found"
+                ))
+                .verifyComplete();
+    }
+
+    @Test
+    void handleCredentialOfferNotFoundException_usesFallback_whenMessageNullOrBlank() {
+        CredentialOfferNotFoundException exNull = new CredentialOfferNotFoundException((String) null);
+        CredentialOfferNotFoundException exBlank = new CredentialOfferNotFoundException("");
+        Mono<GlobalErrorMessage> mNull = handler.handleCredentialOfferNotFoundException(exNull, mockRequest);
+        Mono<GlobalErrorMessage> mBlank = handler.handleCredentialOfferNotFoundException(exBlank, mockRequest);
+
+        reactor.test.StepVerifier.create(mNull)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        "credential_offer_not_found",
+                        "Credential offer not found",
+                        HttpStatus.NOT_FOUND,
+                        "Credential offer not found."
+                ))
+                .verifyComplete();
+
+        reactor.test.StepVerifier.create(mBlank)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        "credential_offer_not_found",
+                        "Credential offer not found",
+                        HttpStatus.NOT_FOUND,
+                        "Credential offer not found."
+                ))
+                .verifyComplete();
+    }
+
+// ===================== handleCredentialAlreadyIssuedException =====================
+
+    @Test
+    void handleCredentialAlreadyIssuedException_usesExceptionMessage_whenPresent() {
+        CredentialAlreadyIssuedException ex = new CredentialAlreadyIssuedException("already issued");
+        Mono<GlobalErrorMessage> mono = handler.handleCredentialAlreadyIssuedException(ex, mockRequest);
+
+        reactor.test.StepVerifier.create(mono)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        "credential_already_issued",
+                        "Credential already issued",
+                        HttpStatus.CONFLICT,
+                        "already issued"
+                ))
+                .verifyComplete();
+    }
+
+    @Test
+    void handleCredentialAlreadyIssuedException_usesFallback_whenMessageNullOrBlank() {
+        CredentialAlreadyIssuedException exNull = new CredentialAlreadyIssuedException((String) null);
+        CredentialAlreadyIssuedException exBlank = new CredentialAlreadyIssuedException(" ");
+        Mono<GlobalErrorMessage> mNull = handler.handleCredentialAlreadyIssuedException(exNull, mockRequest);
+        Mono<GlobalErrorMessage> mBlank = handler.handleCredentialAlreadyIssuedException(exBlank, mockRequest);
+
+        reactor.test.StepVerifier.create(mNull)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        "credential_already_issued",
+                        "Credential already issued",
+                        HttpStatus.CONFLICT,
+                        "The credential has already been issued."
+                ))
+                .verifyComplete();
+
+        reactor.test.StepVerifier.create(mBlank)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        "credential_already_issued",
+                        "Credential already issued",
+                        HttpStatus.CONFLICT,
+                        "The credential has already been issued."
+                ))
+                .verifyComplete();
+    }
+
+// ===================== handleOperationNotSupportedException =====================
+
+    @Test
+    void handleOperationNotSupportedException_usesExceptionMessage_whenPresent() throws Exception {
+        OperationNotSupportedException ex = new OperationNotSupportedException("not allowed");
+        Mono<GlobalErrorMessage> mono = handler.handleOperationNotSupportedException(ex, mockRequest);
+
+        reactor.test.StepVerifier.create(mono)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        // aquí és una constant, no un literal
+                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.OPERATION_NOT_SUPPORTED,
+                        "Operation not supported",
+                        HttpStatus.BAD_REQUEST,
+                        "not allowed"
+                ))
+                .verifyComplete();
+    }
+
+    @Test
+    void handleOperationNotSupportedException_usesFallback_whenMessageNullOrBlank() throws Exception {
+        OperationNotSupportedException exNull = new OperationNotSupportedException(null);
+        OperationNotSupportedException exBlank = new OperationNotSupportedException("   ");
+        Mono<GlobalErrorMessage> mNull = handler.handleOperationNotSupportedException(exNull, mockRequest);
+        Mono<GlobalErrorMessage> mBlank = handler.handleOperationNotSupportedException(exBlank, mockRequest);
+
+        reactor.test.StepVerifier.create(mNull)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.OPERATION_NOT_SUPPORTED,
+                        "Operation not supported",
+                        HttpStatus.BAD_REQUEST,
+                        "The given operation is not supported"
+                ))
+                .verifyComplete();
+
+        reactor.test.StepVerifier.create(mBlank)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.OPERATION_NOT_SUPPORTED,
+                        "Operation not supported",
+                        HttpStatus.BAD_REQUEST,
+                        "The given operation is not supported"
+                ))
+                .verifyComplete();
+    }
+
 
 }
