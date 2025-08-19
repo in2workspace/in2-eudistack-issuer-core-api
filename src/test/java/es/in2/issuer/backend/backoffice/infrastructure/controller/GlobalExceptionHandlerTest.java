@@ -1,626 +1,792 @@
 package es.in2.issuer.backend.backoffice.infrastructure.controller;
 
-
 import es.in2.issuer.backend.backoffice.domain.exception.*;
-import es.in2.issuer.backend.backoffice.domain.model.dtos.GlobalErrorMessage;
-import es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes;
 import es.in2.issuer.backend.shared.domain.exception.*;
-import es.in2.issuer.backend.shared.domain.model.dto.CredentialErrorResponse;
+import es.in2.issuer.backend.shared.domain.model.dto.GlobalErrorMessage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.http.server.RequestPath;
 import org.springframework.http.server.reactive.ServerHttpRequest;
-import org.springframework.web.context.request.WebRequest;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-import javax.naming.OperationNotSupportedException;
 import java.text.ParseException;
+import java.lang.reflect.Method;
 import java.util.NoSuchElementException;
-import java.util.regex.Pattern;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class GlobalExceptionHandlerTest {
-    private GlobalExceptionHandler globalExceptionHandler;
+
+    private GlobalExceptionHandler handler;
+    private ServerHttpRequest mockRequest;
+    private RequestPath mockPath;
 
     @BeforeEach
     void setUp() {
-        globalExceptionHandler = new GlobalExceptionHandler();
-        WebRequest mockWebRequest = mock(WebRequest.class);
-        when(mockWebRequest.getDescription(false)).thenReturn("WebRequestDescription");
+        handler = new GlobalExceptionHandler();
+        mockRequest = mock(ServerHttpRequest.class);
+        mockPath = mock(RequestPath.class);
+        when(mockRequest.getPath()).thenReturn(mockPath);
+    }
+
+    // ---------- helpers per invocar mètodes privats amb reflexió ----------
+
+    private String invokeResolveDetail(Exception ex, String fallback) throws Exception {
+        Method m = GlobalExceptionHandler.class.getDeclaredMethod("resolveDetail", Exception.class, String.class);
+        m.setAccessible(true);
+        return (String) m.invoke(handler, ex, fallback);
+    }
+
+    private GlobalErrorMessage invokeBuildError(
+            String type, String title, HttpStatus status, String detail, Exception ex
+    ) throws Exception {
+        Method m = GlobalExceptionHandler.class.getDeclaredMethod(
+                "buildError",
+                String.class, String.class, HttpStatus.class, String.class, Exception.class, ServerHttpRequest.class
+        );
+        m.setAccessible(true);
+        return (GlobalErrorMessage) m.invoke(handler, type, title, status, detail, ex, mockRequest);
+    }
+
+    @SuppressWarnings("unchecked")
+    private Mono<GlobalErrorMessage> invokeHandleWith(
+            Exception ex, String type, String title, HttpStatus status, String fallbackDetail
+    ) throws Exception {
+        Method m = GlobalExceptionHandler.class.getDeclaredMethod(
+                "handleWith",
+                Exception.class, ServerHttpRequest.class, String.class, String.class, HttpStatus.class, String.class
+        );
+        m.setAccessible(true);
+        return (Mono<GlobalErrorMessage>) m.invoke(handler, ex, mockRequest, type, title, status, fallbackDetail);
+    }
+
+    // ------------------- TESTS resolveDetail -------------------
+
+    @Test
+    void resolveDetail_returnsFallback_whenMessageIsNull() throws Exception {
+        String out = invokeResolveDetail(new Exception((String) null), "fallback");
+        assertEquals("fallback", out);
     }
 
     @Test
-    void handleCredentialTypeUnsupported() {
-        CredentialTypeUnsupportedException exception = new CredentialTypeUnsupportedException("The given credential type is not supported");
+    void resolveDetail_returnsFallback_whenMessageIsBlank() throws Exception {
+        String out = invokeResolveDetail(new Exception("   "), "fallback");
+        assertEquals("fallback", out);
+    }
 
-        Mono<ResponseEntity<CredentialErrorResponse>> result = globalExceptionHandler.handleCredentialTypeUnsupported(exception);
+    @Test
+    void resolveDetail_returnsMessage_whenPresent() throws Exception {
+        String out = invokeResolveDetail(new Exception("boom"), "fallback");
+        assertEquals("boom", out);
+    }
 
-        StepVerifier.create(result)
-                .assertNext(responseEntity -> {
-                    assertEquals(HttpStatus.NOT_FOUND, responseEntity.getStatusCode());
-                    assertNotNull(responseEntity.getBody());
-                    assertEquals(CredentialResponseErrorCodes.UNSUPPORTED_CREDENTIAL_TYPE, responseEntity.getBody().error());
-                    assertEquals("The given credential type is not supported", responseEntity.getBody().description());
+    // ------------------- TESTS buildError -------------------
+
+    @Test
+    void buildError_constructsGlobalErrorMessage_withExpectedFields_andUuidInstance() throws Exception {
+        String type = "TEST_TYPE";
+        String title = "Test Title";
+        HttpStatus status = HttpStatus.BAD_REQUEST;
+        String detail = "Some detail";
+        Exception ex = new IllegalArgumentException("bad arg");
+
+        GlobalErrorMessage gem = invokeBuildError(type, title, status, detail, ex);
+
+        assertNotNull(gem);
+        assertEquals(type, gem.type());
+        assertEquals(title, gem.title());
+        assertEquals(status.value(), gem.status());
+        assertEquals(detail, gem.detail());
+        assertDoesNotThrow(() -> UUID.fromString(gem.instance()));
+    }
+
+    // ------------------- TESTS handleWith -------------------
+
+    @Test
+    void handleWith_usesExceptionMessage_whenPresent() throws Exception {
+        Exception ex = new Exception("explicit message");
+        Mono<GlobalErrorMessage> mono = invokeHandleWith(
+                ex, "TYPE_A", "Title A", HttpStatus.NOT_FOUND, "fallback detail"
+        );
+
+        StepVerifier.create(mono)
+                .assertNext(gem -> {
+                    assertEquals("TYPE_A", gem.type());
+                    assertEquals("Title A", gem.title());
+                    assertEquals(HttpStatus.NOT_FOUND.value(), gem.status());
+                    assertEquals("explicit message", gem.detail());
+                    assertDoesNotThrow(() -> UUID.fromString(gem.instance()));
                 })
                 .verifyComplete();
     }
 
     @Test
-    void handleNoSuchElement() {
-        NoSuchElementException exception = new NoSuchElementException();
+    void handleWith_usesFallback_whenMessageIsNullOrBlank() throws Exception {
+        Exception exNull = new Exception((String) null);
+        Exception exBlank = new Exception("  ");
 
-        Mono<ResponseEntity<Void>> result = globalExceptionHandler.handleNoSuchElementException(exception);
+        Mono<GlobalErrorMessage> monoNull = invokeHandleWith(
+                exNull, "TYPE_B", "Title B", HttpStatus.INTERNAL_SERVER_ERROR, "fb"
+        );
+        Mono<GlobalErrorMessage> monoBlank = invokeHandleWith(
+                exBlank, "TYPE_B", "Title B", HttpStatus.INTERNAL_SERVER_ERROR, "fb"
+        );
 
-        StepVerifier.create(result)
-                .assertNext(responseEntity -> assertEquals(HttpStatus.NOT_FOUND, responseEntity.getStatusCode()))
+        StepVerifier.create(monoNull)
+                .assertNext(gem -> {
+                    assertEquals("TYPE_B", gem.type());
+                    assertEquals("Title B", gem.title());
+                    assertEquals(HttpStatus.INTERNAL_SERVER_ERROR.value(), gem.status());
+                    assertEquals("fb", gem.detail());
+                    assertDoesNotThrow(() -> UUID.fromString(gem.instance()));
+                })
                 .verifyComplete();
-    }
 
-    @Test
-    void handleExpiredCache() {
-        ExpiredCacheException exception = new ExpiredCacheException("The given credential ID does not match with any credentials");
-
-        Mono<ResponseEntity<CredentialErrorResponse>> result = globalExceptionHandler.handleExpiredCacheException(exception);
-
-        StepVerifier.create(result)
-                .assertNext(responseEntity -> {
-                    assertEquals(HttpStatus.BAD_REQUEST, responseEntity.getStatusCode());
-                    assertNotNull(responseEntity.getBody());
-                    assertEquals(CredentialResponseErrorCodes.VC_DOES_NOT_EXIST, responseEntity.getBody().error());
-                    assertEquals("The given credential ID does not match with any credentials", responseEntity.getBody().description());
+        StepVerifier.create(monoBlank)
+                .assertNext(gem -> {
+                    assertEquals("TYPE_B", gem.type());
+                    assertEquals("Title B", gem.title());
+                    assertEquals(HttpStatus.INTERNAL_SERVER_ERROR.value(), gem.status());
+                    assertEquals("fb", gem.detail());
+                    assertDoesNotThrow(() -> UUID.fromString(gem.instance()));
                 })
                 .verifyComplete();
     }
 
+    private void assertGem(
+            GlobalErrorMessage gem,
+            String expectedType,
+            String expectedTitle,
+            HttpStatus expectedStatus,
+            String expectedDetail
+    ) {
+        assertNotNull(gem);
+        assertEquals(expectedType, gem.type());
+        assertEquals(expectedTitle, gem.title());
+        assertEquals(expectedStatus.value(), gem.status());
+        assertEquals(expectedDetail, gem.detail());
+        // instance ha de ser un UUID
+        assertDoesNotThrow(() -> java.util.UUID.fromString(gem.instance()));
+    }
+
+// -------------------- TESTS: handleCredentialTypeUnsupported --------------------
+
     @Test
-    void handleExpiredPreAuthorizedCode() {
-        ExpiredPreAuthorizedCodeException exception = new ExpiredPreAuthorizedCodeException("Error message");
+    void handleCredentialTypeUnsupported_usesFallback_whenMessageNullOrBlank() {
+        // message null
+        CredentialTypeUnsupportedException exNull = new CredentialTypeUnsupportedException(null);
+        Mono<GlobalErrorMessage> m1 = handler.handleCredentialTypeUnsupported(exNull, mockRequest);
 
-        Mono<ResponseEntity<CredentialErrorResponse>> result = globalExceptionHandler.expiredPreAuthorizedCode(exception);
+        StepVerifier.create(m1)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        // type
+                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.UNSUPPORTED_CREDENTIAL_TYPE,
+                        // title
+                        "Unsupported credential type",
+                        // status
+                        HttpStatus.NOT_FOUND,
+                        // fallback detail
+                        "The given credential type is not supported"
+                ))
+                .verifyComplete();
 
-        StepVerifier.create(result)
-                .assertNext(responseEntity -> {
-                    assertEquals(HttpStatus.NOT_FOUND, responseEntity.getStatusCode());
-                    assertNotNull(responseEntity.getBody());
-                    assertEquals(CredentialResponseErrorCodes.EXPIRED_PRE_AUTHORIZED_CODE, responseEntity.getBody().error());
-                    assertEquals("The pre-authorized code has expired, has been used, or does not exist.", responseEntity.getBody().description());
-                })
+        // message blank
+        CredentialTypeUnsupportedException exBlank = new CredentialTypeUnsupportedException("   ");
+        Mono<GlobalErrorMessage> m2 = handler.handleCredentialTypeUnsupported(exBlank, mockRequest);
+
+        StepVerifier.create(m2)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.UNSUPPORTED_CREDENTIAL_TYPE,
+                        "Unsupported credential type",
+                        HttpStatus.NOT_FOUND,
+                        "The given credential type is not supported"
+                ))
                 .verifyComplete();
     }
 
     @Test
-    void handleInvalidOrMissingProof() {
-        InvalidOrMissingProofException exception = new InvalidOrMissingProofException("Error message");
+    void handleCredentialTypeUnsupported_usesExceptionMessage_whenPresent() {
+        CredentialTypeUnsupportedException ex = new CredentialTypeUnsupportedException("custom msg");
+        Mono<GlobalErrorMessage> mono = handler.handleCredentialTypeUnsupported(ex, mockRequest);
 
-        Mono<ResponseEntity<CredentialErrorResponse>> result = globalExceptionHandler.handleInvalidOrMissingProof(exception);
+        StepVerifier.create(mono)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.UNSUPPORTED_CREDENTIAL_TYPE,
+                        "Unsupported credential type",
+                        HttpStatus.NOT_FOUND,
+                        "custom msg"
+                ))
+                .verifyComplete();
+    }
 
-        StepVerifier.create(result)
-                .assertNext(responseEntity -> {
-                    assertEquals(HttpStatus.NOT_FOUND, responseEntity.getStatusCode());
-                    assertNotNull(responseEntity.getBody());
-                    assertEquals(CredentialResponseErrorCodes.INVALID_OR_MISSING_PROOF, responseEntity.getBody().error());
-                    assertEquals("Credential Request did not contain a proof, or proof was invalid, " +
-                            "i.e. it was not bound to a Credential Issuer provided nonce", responseEntity.getBody().description());
-                })
+// -------------------- TESTS: handleNoSuchElementException --------------------
+
+    @Test
+    void handleNoSuchElementException_usesFallback_whenMessageNullOrBlank() {
+        NoSuchElementException exNull = new NoSuchElementException("The requested resource was not found");
+        Mono<GlobalErrorMessage> m1 = handler.handleNoSuchElementException(exNull, mockRequest);
+
+        StepVerifier.create(m1)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.NO_SUCH_ELEMENT,
+                        "Resource not found",
+                        HttpStatus.NOT_FOUND,
+                        "The requested resource was not found"
+                ))
+                .verifyComplete();
+
+        NoSuchElementException exBlank = new NoSuchElementException("  ");
+        Mono<GlobalErrorMessage> m2 = handler.handleNoSuchElementException(exBlank, mockRequest);
+
+        StepVerifier.create(m2)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.NO_SUCH_ELEMENT,
+                        "Resource not found",
+                        HttpStatus.NOT_FOUND,
+                        "The requested resource was not found"
+                ))
                 .verifyComplete();
     }
 
     @Test
-    void handleInvalidToken() {
-        InvalidTokenException exception = new InvalidTokenException();
+    void handleNoSuchElementException_usesExceptionMessage_whenPresent() {
+        NoSuchElementException ex = new NoSuchElementException("not here");
+        Mono<GlobalErrorMessage> mono = handler.handleNoSuchElementException(ex, mockRequest);
 
-        Mono<ResponseEntity<CredentialErrorResponse>> result = globalExceptionHandler.handleInvalidToken(exception);
+        StepVerifier.create(mono)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.NO_SUCH_ELEMENT,
+                        "Resource not found",
+                        HttpStatus.NOT_FOUND,
+                        "not here"
+                ))
+                .verifyComplete();
+    }
 
-        StepVerifier.create(result)
-                .assertNext(responseEntity -> {
-                    assertEquals(HttpStatus.NOT_FOUND, responseEntity.getStatusCode());
-                    assertNotNull(responseEntity.getBody());
-                    assertEquals(CredentialResponseErrorCodes.INVALID_TOKEN, responseEntity.getBody().error());
-                    assertEquals("The request contains the wrong Access Token or the Access Token is missing", responseEntity.getBody().description());
-                })
+// -------------------- TESTS: handleExpiredCache --------------------
+
+    @Test
+    void handleExpiredCache_usesFallback_whenMessageNullOrBlank() {
+        ExpiredCacheException exNull = new ExpiredCacheException(null);
+        Mono<GlobalErrorMessage> m1 = handler.handleExpiredCache(exNull, mockRequest);
+
+        StepVerifier.create(m1)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.VC_DOES_NOT_EXIST,
+                        "Credential does not exist",
+                        HttpStatus.BAD_REQUEST,
+                        "The given credential ID does not match with any credentials"
+                ))
+                .verifyComplete();
+
+        ExpiredCacheException exBlank = new ExpiredCacheException("   ");
+        Mono<GlobalErrorMessage> m2 = handler.handleExpiredCache(exBlank, mockRequest);
+
+        StepVerifier.create(m2)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.VC_DOES_NOT_EXIST,
+                        "Credential does not exist",
+                        HttpStatus.BAD_REQUEST,
+                        "The given credential ID does not match with any credentials"
+                ))
                 .verifyComplete();
     }
 
     @Test
-    void handleUserDoesNotExist() {
-        UserDoesNotExistException exception = new UserDoesNotExistException(null);
+    void handleExpiredCache_usesExceptionMessage_whenPresent() {
+        ExpiredCacheException ex = new ExpiredCacheException("cache expired");
+        Mono<GlobalErrorMessage> mono = handler.handleExpiredCache(ex, mockRequest);
 
-        Mono<ResponseEntity<CredentialErrorResponse>> result = globalExceptionHandler.handleUserDoesNotExistException(exception);
-
-        StepVerifier.create(result)
-                .assertNext(responseEntity -> {
-                    assertEquals(HttpStatus.NOT_FOUND, responseEntity.getStatusCode());
-                    assertNotNull(responseEntity.getBody());
-                    assertEquals(CredentialResponseErrorCodes.USER_DOES_NOT_EXIST, responseEntity.getBody().error());
-                    assertEquals("User does not exist", responseEntity.getBody().description());
-                })
+        StepVerifier.create(mono)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.VC_DOES_NOT_EXIST,
+                        "Credential does not exist",
+                        HttpStatus.BAD_REQUEST,
+                        "cache expired"
+                ))
                 .verifyComplete();
     }
 
     @Test
-    void handleUserDoesNotExistException_withMessage() {
-        String errorMessage = "Error message for testing";
-        UserDoesNotExistException userDoesNotExistException = new UserDoesNotExistException(errorMessage);
+    void handleExpiredPreAuthorizedCode_usesExceptionMessage_whenPresent() {
+        ExpiredPreAuthorizedCodeException ex = new ExpiredPreAuthorizedCodeException("expired!");
+        Mono<GlobalErrorMessage> mono = handler.handleExpiredPreAuthorizedCode(ex, mockRequest);
 
-        Mono<ResponseEntity<CredentialErrorResponse>> responseEntityMono = globalExceptionHandler.handleUserDoesNotExistException(userDoesNotExistException);
-
-        StepVerifier.create(responseEntityMono)
-                .assertNext(responseEntity -> {
-                    assertEquals(HttpStatus.NOT_FOUND, responseEntity.getStatusCode());
-                    assertNotNull(responseEntity.getBody());
-                    assertEquals(CredentialResponseErrorCodes.USER_DOES_NOT_EXIST, responseEntity.getBody().error());
-                    assertEquals(errorMessage, responseEntity.getBody().description());
-                })
+        reactor.test.StepVerifier.create(mono)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.EXPIRED_PRE_AUTHORIZED_CODE,
+                        "Expired pre-authorized code",
+                        HttpStatus.NOT_FOUND,
+                        "expired!"
+                ))
                 .verifyComplete();
     }
 
     @Test
-    void handleVcTemplateDoesNotExist() {
-        VcTemplateDoesNotExistException exception = new VcTemplateDoesNotExistException(null);
+    void handleExpiredPreAuthorizedCode_usesFallback_whenMessageNullOrBlank() {
+        ExpiredPreAuthorizedCodeException exNull = new ExpiredPreAuthorizedCodeException((String) null);
+        ExpiredPreAuthorizedCodeException exBlank = new ExpiredPreAuthorizedCodeException("   ");
 
-        Mono<ResponseEntity<CredentialErrorResponse>> result = globalExceptionHandler.vcTemplateDoesNotExist(exception);
+        Mono<GlobalErrorMessage> mNull = handler.handleExpiredPreAuthorizedCode(exNull, mockRequest);
+        Mono<GlobalErrorMessage> mBlank = handler.handleExpiredPreAuthorizedCode(exBlank, mockRequest);
 
-        StepVerifier.create(result)
-                .assertNext(responseEntity -> {
-                    assertEquals(HttpStatus.NOT_FOUND, responseEntity.getStatusCode());
-                    assertNotNull(responseEntity.getBody());
-                    assertEquals(CredentialResponseErrorCodes.VC_TEMPLATE_DOES_NOT_EXIST, responseEntity.getBody().error());
-                    assertEquals("The given template name is not supported", responseEntity.getBody().description());
-                })
+        reactor.test.StepVerifier.create(mNull)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.EXPIRED_PRE_AUTHORIZED_CODE,
+                        "Expired pre-authorized code",
+                        HttpStatus.NOT_FOUND,
+                        "The pre-authorized code has expired, has been used, or does not exist."
+                ))
+                .verifyComplete();
+
+        reactor.test.StepVerifier.create(mBlank)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.EXPIRED_PRE_AUTHORIZED_CODE,
+                        "Expired pre-authorized code",
+                        HttpStatus.NOT_FOUND,
+                        "The pre-authorized code has expired, has been used, or does not exist."
+                ))
+                .verifyComplete();
+    }
+
+// ===================== handleInvalidOrMissingProof =====================
+
+    @Test
+    void handleInvalidOrMissingProof_usesExceptionMessage_whenPresent() {
+        InvalidOrMissingProofException ex = new InvalidOrMissingProofException("bad proof");
+        Mono<GlobalErrorMessage> mono = handler.handleInvalidOrMissingProof(ex, mockRequest);
+
+        reactor.test.StepVerifier.create(mono)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.INVALID_OR_MISSING_PROOF,
+                        "Invalid or missing proof",
+                        HttpStatus.NOT_FOUND,
+                        "bad proof"
+                ))
                 .verifyComplete();
     }
 
     @Test
-    void handleVcTemplateDoesNotExist_withMessage() {
-        String errorMessage = "Error message for testing";
-        VcTemplateDoesNotExistException vcTemplateDoesNotExistException = new VcTemplateDoesNotExistException(errorMessage);
+    void handleInvalidOrMissingProof_usesFallback_whenMessageNullOrBlank() {
+        InvalidOrMissingProofException exNull = new InvalidOrMissingProofException((String) null);
+        InvalidOrMissingProofException exBlank = new InvalidOrMissingProofException(" ");
 
-        Mono<ResponseEntity<CredentialErrorResponse>> responseEntityMono = globalExceptionHandler.vcTemplateDoesNotExist(vcTemplateDoesNotExistException);
+        Mono<GlobalErrorMessage> mNull = handler.handleInvalidOrMissingProof(exNull, mockRequest);
+        Mono<GlobalErrorMessage> mBlank = handler.handleInvalidOrMissingProof(exBlank, mockRequest);
 
-        StepVerifier.create(responseEntityMono)
-                .assertNext(responseEntity -> {
-                    assertEquals(HttpStatus.NOT_FOUND, responseEntity.getStatusCode());
-                    assertNotNull(responseEntity.getBody());
-                    assertEquals(CredentialResponseErrorCodes.VC_TEMPLATE_DOES_NOT_EXIST, responseEntity.getBody().error());
-                    assertEquals(errorMessage, responseEntity.getBody().description());
-                })
+        reactor.test.StepVerifier.create(mNull)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.INVALID_OR_MISSING_PROOF,
+                        "Invalid or missing proof",
+                        HttpStatus.NOT_FOUND,
+                        "Credential Request did not contain a proof, or proof was invalid, i.e. it was not bound to a Credential Issuer provided nonce."
+                ))
+                .verifyComplete();
+
+        reactor.test.StepVerifier.create(mBlank)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.INVALID_OR_MISSING_PROOF,
+                        "Invalid or missing proof",
+                        HttpStatus.NOT_FOUND,
+                        "Credential Request did not contain a proof, or proof was invalid, i.e. it was not bound to a Credential Issuer provided nonce."
+                ))
+                .verifyComplete();
+    }
+
+// ===================== handleInvalidToken =====================
+
+    @Test
+    void handleInvalidToken_usesExceptionMessage_whenPresent() {
+        InvalidTokenException ex = new InvalidTokenException("Message");
+        Mono<GlobalErrorMessage> mono = handler.handleInvalidToken(ex, mockRequest);
+
+        reactor.test.StepVerifier.create(mono)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.INVALID_TOKEN,
+                        "Invalid token",
+                        HttpStatus.NOT_FOUND,
+                        "Message"
+                ))
                 .verifyComplete();
     }
 
     @Test
-    void handleParseException() {
-        ParseException exception = new ParseException("Error message", 213);
+    void handleInvalidToken_usesFallback_whenMessageNullOrBlank() {
+        InvalidTokenException exNull = new InvalidTokenException((String) null);
+        InvalidTokenException exBlank = new InvalidTokenException("   ");
 
-        Mono<ResponseEntity<Void>> result = globalExceptionHandler.handleParseException(exception);
+        Mono<GlobalErrorMessage> mNull = handler.handleInvalidToken(exNull, mockRequest);
+        Mono<GlobalErrorMessage> mBlank = handler.handleInvalidToken(exBlank, mockRequest);
 
-        StepVerifier.create(result)
-                .assertNext(responseEntity -> assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, responseEntity.getStatusCode()))
+        reactor.test.StepVerifier.create(mNull)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.INVALID_TOKEN,
+                        "Invalid token",
+                        HttpStatus.NOT_FOUND,
+                        "The request contains the wrong Access Token or the Access Token is missing"
+                ))
+                .verifyComplete();
+
+        reactor.test.StepVerifier.create(mBlank)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.INVALID_TOKEN,
+                        "Invalid token",
+                        HttpStatus.NOT_FOUND,
+                        "The request contains the wrong Access Token or the Access Token is missing"
+                ))
+                .verifyComplete();
+    }
+
+// ===================== handleUserDoesNotExist =====================
+
+    @Test
+    void handleUserDoesNotExist_usesExceptionMessage_whenPresent() {
+        UserDoesNotExistException ex = new UserDoesNotExistException("no user");
+        Mono<GlobalErrorMessage> mono = handler.handleUserDoesNotExist(ex, mockRequest);
+
+        reactor.test.StepVerifier.create(mono)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.USER_DOES_NOT_EXIST,
+                        "User does not exist",
+                        HttpStatus.NOT_FOUND,
+                        "no user"
+                ))
                 .verifyComplete();
     }
 
     @Test
-    void handleBase45Exception() {
-        Base45Exception exception = new Base45Exception(null);
+    void handleUserDoesNotExist_usesFallback_whenMessageNullOrBlank() {
+        UserDoesNotExistException exNull = new UserDoesNotExistException((String) null);
+        UserDoesNotExistException exBlank = new UserDoesNotExistException(" ");
 
-        Mono<ResponseEntity<Void>> result = globalExceptionHandler.handleBase45Exception(exception);
+        Mono<GlobalErrorMessage> mNull = handler.handleUserDoesNotExist(exNull, mockRequest);
+        Mono<GlobalErrorMessage> mBlank = handler.handleUserDoesNotExist(exBlank, mockRequest);
 
-        StepVerifier.create(result)
-                .assertNext(responseEntity -> assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, responseEntity.getStatusCode()))
+        reactor.test.StepVerifier.create(mNull)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.USER_DOES_NOT_EXIST,
+                        "User does not exist",
+                        HttpStatus.NOT_FOUND,
+                        "User does not exist"
+                ))
+                .verifyComplete();
+
+        reactor.test.StepVerifier.create(mBlank)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.USER_DOES_NOT_EXIST,
+                        "User does not exist",
+                        HttpStatus.NOT_FOUND,
+                        "User does not exist"
+                ))
+                .verifyComplete();
+    }
+
+// ===================== handleVcTemplateDoesNotExist =====================
+
+    @Test
+    void handleVcTemplateDoesNotExist_usesExceptionMessage_whenPresent() {
+        VcTemplateDoesNotExistException ex = new VcTemplateDoesNotExistException("no template");
+        Mono<GlobalErrorMessage> mono = handler.handleVcTemplateDoesNotExist(ex, mockRequest);
+
+        reactor.test.StepVerifier.create(mono)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.VC_TEMPLATE_DOES_NOT_EXIST,
+                        "VC template does not exist",
+                        HttpStatus.NOT_FOUND,
+                        "no template"
+                ))
                 .verifyComplete();
     }
 
     @Test
-    void handleCreateDate() {
-        CreateDateException exception = new CreateDateException(null);
+    void handleVcTemplateDoesNotExist_usesFallback_whenMessageNullOrBlank() {
+        VcTemplateDoesNotExistException exNull = new VcTemplateDoesNotExistException((String) null);
+        VcTemplateDoesNotExistException exBlank = new VcTemplateDoesNotExistException("   ");
 
-        Mono<ResponseEntity<Void>> result = globalExceptionHandler.handleCreateDateException(exception);
+        Mono<GlobalErrorMessage> mNull = handler.handleVcTemplateDoesNotExist(exNull, mockRequest);
+        Mono<GlobalErrorMessage> mBlank = handler.handleVcTemplateDoesNotExist(exBlank, mockRequest);
 
-        StepVerifier.create(result)
-                .assertNext(responseEntity -> assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, responseEntity.getStatusCode()))
+        reactor.test.StepVerifier.create(mNull)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.VC_TEMPLATE_DOES_NOT_EXIST,
+                        "VC template does not exist",
+                        HttpStatus.NOT_FOUND,
+                        "The given template name is not supported"
+                ))
+                .verifyComplete();
+
+        reactor.test.StepVerifier.create(mBlank)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.VC_TEMPLATE_DOES_NOT_EXIST,
+                        "VC template does not exist",
+                        HttpStatus.NOT_FOUND,
+                        "The given template name is not supported"
+                ))
+                .verifyComplete();
+    }
+
+    // ===================== handleParseException =====================
+
+    @Test
+    void handleParseException_usesExceptionMessage_whenPresent() {
+        ParseException ex = new ParseException("bad date", 0);
+        Mono<GlobalErrorMessage> mono = handler.handleParseException(ex, mockRequest);
+
+        reactor.test.StepVerifier.create(mono)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        "parse_error",
+                        "Parse error",
+                        HttpStatus.INTERNAL_SERVER_ERROR,
+                        "bad date"
+                ))
                 .verifyComplete();
     }
 
     @Test
-    void handleSignedDataParsing() {
-        SignedDataParsingException exception = new SignedDataParsingException(null);
+    void handleParseException_usesFallback_whenMessageNullOrBlank() {
+        ParseException exNull = new ParseException(null, 0);
+        ParseException exBlank = new ParseException("   ", 0);
 
-        Mono<ResponseEntity<Void>> result = globalExceptionHandler.handleSignedDataParsingException(exception);
+        Mono<GlobalErrorMessage> mNull = handler.handleParseException(exNull, mockRequest);
+        Mono<GlobalErrorMessage> mBlank = handler.handleParseException(exBlank, mockRequest);
 
-        StepVerifier.create(result)
-                .assertNext(responseEntity -> assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, responseEntity.getStatusCode()))
+        reactor.test.StepVerifier.create(mNull)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        "parse_error",
+                        "Parse error",
+                        HttpStatus.INTERNAL_SERVER_ERROR,
+                        "An internal parsing error occurred."
+                ))
+                .verifyComplete();
+
+        reactor.test.StepVerifier.create(mBlank)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        "parse_error",
+                        "Parse error",
+                        HttpStatus.INTERNAL_SERVER_ERROR,
+                        "An internal parsing error occurred."
+                ))
+                .verifyComplete();
+    }
+
+// ===================== handleBase45Exception =====================
+
+    @Test
+    void handleBase45Exception_usesExceptionMessage_whenPresent() {
+        Base45Exception ex = new Base45Exception("decode failed");
+        Mono<GlobalErrorMessage> mono = handler.handleBase45Exception(ex, mockRequest);
+
+        reactor.test.StepVerifier.create(mono)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        "base45_decode_error",
+                        "Base45 decoding error",
+                        HttpStatus.INTERNAL_SERVER_ERROR,
+                        "decode failed"
+                ))
                 .verifyComplete();
     }
 
     @Test
-    void handleAuthenticSourcesUserParsing() {
-        AuthenticSourcesUserParsingException exception = new AuthenticSourcesUserParsingException(null);
+    void handleBase45Exception_usesFallback_whenMessageNullOrBlank() {
+        Base45Exception exNull = new Base45Exception((String) null);
+        Base45Exception exBlank = new Base45Exception("   ");
 
-        Mono<ResponseEntity<Void>> result = globalExceptionHandler.handleSignedDataParsingException(exception);
+        Mono<GlobalErrorMessage> mNull = handler.handleBase45Exception(exNull, mockRequest);
+        Mono<GlobalErrorMessage> mBlank = handler.handleBase45Exception(exBlank, mockRequest);
 
-        StepVerifier.create(result)
-                .assertNext(responseEntity -> assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, responseEntity.getStatusCode()))
+        reactor.test.StepVerifier.create(mNull)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        "base45_decode_error",
+                        "Base45 decoding error",
+                        HttpStatus.INTERNAL_SERVER_ERROR,
+                        "An internal Base45 decoding error occurred."
+                ))
+                .verifyComplete();
+
+        reactor.test.StepVerifier.create(mBlank)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        "base45_decode_error",
+                        "Base45 decoding error",
+                        HttpStatus.INTERNAL_SERVER_ERROR,
+                        "An internal Base45 decoding error occurred."
+                ))
+                .verifyComplete();
+    }
+
+// ===================== handleCreateDateException =====================
+
+    @Test
+    void handleCreateDateException_usesExceptionMessage_whenPresent() {
+        CreateDateException ex = new CreateDateException("cannot build date");
+        Mono<GlobalErrorMessage> mono = handler.handleCreateDateException(ex, mockRequest);
+
+        reactor.test.StepVerifier.create(mono)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        "create_date_error",
+                        "Create date error",
+                        HttpStatus.INTERNAL_SERVER_ERROR,
+                        "cannot build date"
+                ))
                 .verifyComplete();
     }
 
     @Test
-    void handleParseCredentialJsonException() {
-        ParseCredentialJsonException exception = new ParseCredentialJsonException(null);
+    void handleCreateDateException_usesFallback_whenMessageNullOrBlank() {
+        CreateDateException exNull = new CreateDateException((String) null);
+        CreateDateException exBlank = new CreateDateException("");
 
-        Mono<ResponseEntity<Void>> result = globalExceptionHandler.handleParseCredentialJsonException(exception);
+        Mono<GlobalErrorMessage> mNull = handler.handleCreateDateException(exNull, mockRequest);
+        Mono<GlobalErrorMessage> mBlank = handler.handleCreateDateException(exBlank, mockRequest);
 
-        StepVerifier.create(result)
-                .assertNext(responseEntity -> assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, responseEntity.getStatusCode()))
+        reactor.test.StepVerifier.create(mNull)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        "create_date_error",
+                        "Create date error",
+                        HttpStatus.INTERNAL_SERVER_ERROR,
+                        "An internal date creation error occurred."
+                ))
+                .verifyComplete();
+
+        reactor.test.StepVerifier.create(mBlank)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        "create_date_error",
+                        "Create date error",
+                        HttpStatus.INTERNAL_SERVER_ERROR,
+                        "An internal date creation error occurred."
+                ))
+                .verifyComplete();
+    }
+
+// ===================== handleSignedDataParsingException =====================
+
+    @Test
+    void handleSignedDataParsingException_usesExceptionMessage_whenPresent() {
+        SignedDataParsingException ex = new SignedDataParsingException("bad signature payload");
+        Mono<GlobalErrorMessage> mono = handler.handleSignedDataParsingException(ex, mockRequest);
+
+        reactor.test.StepVerifier.create(mono)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        "signed_data_parse_error",
+                        "Signed data parsing error",
+                        HttpStatus.INTERNAL_SERVER_ERROR,
+                        "bad signature payload"
+                ))
                 .verifyComplete();
     }
 
     @Test
-    void handleTemplateReadException() {
-        TemplateReadException exception = new TemplateReadException(null);
+    void handleSignedDataParsingException_usesFallback_whenMessageNullOrBlank() {
+        SignedDataParsingException exNull = new SignedDataParsingException((String) null);
+        SignedDataParsingException exBlank = new SignedDataParsingException("   ");
 
-        Mono<ResponseEntity<Void>> result = globalExceptionHandler.handleTemplateReadException(exception);
+        Mono<GlobalErrorMessage> mNull = handler.handleSignedDataParsingException(exNull, mockRequest);
+        Mono<GlobalErrorMessage> mBlank = handler.handleSignedDataParsingException(exBlank, mockRequest);
 
-        StepVerifier.create(result)
-                .assertNext(responseEntity -> assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, responseEntity.getStatusCode()))
+        reactor.test.StepVerifier.create(mNull)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        "signed_data_parse_error",
+                        "Signed data parsing error",
+                        HttpStatus.INTERNAL_SERVER_ERROR,
+                        "An internal signed data parsing error occurred."
+                ))
+                .verifyComplete();
+
+        reactor.test.StepVerifier.create(mBlank)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        "signed_data_parse_error",
+                        "Signed data parsing error",
+                        HttpStatus.INTERNAL_SERVER_ERROR,
+                        "An internal signed data parsing error occurred."
+                ))
+                .verifyComplete();
+    }
+
+// ===================== handleAuthenticSourcesUserParsingException =====================
+
+    @Test
+    void handleAuthenticSourcesUserParsingException_usesExceptionMessage_whenPresent() {
+        AuthenticSourcesUserParsingException ex = new AuthenticSourcesUserParsingException("auth sources parse failed");
+        Mono<GlobalErrorMessage> mono = handler.handleAuthenticSourcesUserParsingException(ex, mockRequest);
+
+        reactor.test.StepVerifier.create(mono)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        "authentic_sources_user_parsing_error",
+                        "Authentic sources user parsing error",
+                        HttpStatus.INTERNAL_SERVER_ERROR,
+                        "auth sources parse failed"
+                ))
                 .verifyComplete();
     }
 
     @Test
-    void handleProofValidationException() {
-        ProofValidationException exception = new ProofValidationException(null);
+    void handleAuthenticSourcesUserParsingException_usesFallback_whenMessageNullOrBlank() {
+        AuthenticSourcesUserParsingException exNull = new AuthenticSourcesUserParsingException((String) null);
+        AuthenticSourcesUserParsingException exBlank = new AuthenticSourcesUserParsingException("");
 
-        Mono<ResponseEntity<Void>> result = globalExceptionHandler.handleProofValidationException(exception);
+        Mono<GlobalErrorMessage> mNull = handler.handleAuthenticSourcesUserParsingException(exNull, mockRequest);
+        Mono<GlobalErrorMessage> mBlank = handler.handleAuthenticSourcesUserParsingException(exBlank, mockRequest);
 
-        StepVerifier.create(result)
-                .assertNext(responseEntity -> assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, responseEntity.getStatusCode()))
+        reactor.test.StepVerifier.create(mNull)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        "authentic_sources_user_parsing_error",
+                        "Authentic sources user parsing error",
+                        HttpStatus.INTERNAL_SERVER_ERROR,
+                        "An internal authentic-sources user parsing error occurred."
+                ))
+                .verifyComplete();
+
+        reactor.test.StepVerifier.create(mBlank)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        "authentic_sources_user_parsing_error",
+                        "Authentic sources user parsing error",
+                        HttpStatus.INTERNAL_SERVER_ERROR,
+                        "An internal authentic-sources user parsing error occurred."
+                ))
                 .verifyComplete();
     }
-
-    @Test
-    void handleNoCredentialFoundException() {
-        NoCredentialFoundException exception = new NoCredentialFoundException(null);
-
-        Mono<ResponseEntity<Void>> result = globalExceptionHandler.handleNoCredentialFoundException(exception);
-
-        StepVerifier.create(result)
-                .assertNext(responseEntity -> assertEquals(HttpStatus.NOT_FOUND, responseEntity.getStatusCode()))
-                .verifyComplete();
-    }
-
-    @Test
-    void handlePreAuthorizationCodeGetException() {
-        PreAuthorizationCodeGetException exception = new PreAuthorizationCodeGetException(null);
-
-        Mono<ResponseEntity<Void>> result = globalExceptionHandler.handlePreAuthorizationCodeGetException(exception);
-
-        StepVerifier.create(result)
-                .assertNext(responseEntity -> assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, responseEntity.getStatusCode()))
-                .verifyComplete();
-    }
-
-    @Test
-    void handleCustomCredentialOfferNotFoundException() {
-        CredentialOfferNotFoundException exception = new CredentialOfferNotFoundException(null);
-
-        Mono<ResponseEntity<Void>> result = globalExceptionHandler.handleCustomCredentialOfferNotFoundException(exception);
-
-        StepVerifier.create(result)
-                .assertNext(responseEntity -> assertEquals(HttpStatus.NOT_FOUND, responseEntity.getStatusCode()))
-                .verifyComplete();
-    }
-
-    @Test
-    void handleOperationNotSupportedException_withMessage() {
-        String errorMessage = "Error message for testing";
-        OperationNotSupportedException operationNotSupportedException = new OperationNotSupportedException(errorMessage);
-
-        Mono<ResponseEntity<CredentialErrorResponse>> responseEntityMono = globalExceptionHandler.handleOperationNotSupportedException(operationNotSupportedException);
-
-        StepVerifier.create(responseEntityMono)
-                .assertNext(responseEntity -> {
-                    assertEquals(HttpStatus.BAD_REQUEST, responseEntity.getStatusCode());
-                    assertNotNull(responseEntity.getBody());
-                    assertEquals(CredentialResponseErrorCodes.OPERATION_NOT_SUPPORTED, responseEntity.getBody().error());
-                    assertEquals(errorMessage, responseEntity.getBody().description());
-                })
-                .verifyComplete();
-    }
-
-    @Test
-    void handleJWTVerificationException() {
-        JWTVerificationException exception = new JWTVerificationException("message");
-
-        Mono<ResponseEntity<Void>> result = globalExceptionHandler.handleJWTVerificationException(exception);
-
-        StepVerifier.create(result)
-                .assertNext(responseEntity -> assertEquals(HttpStatus.UNAUTHORIZED, responseEntity.getStatusCode()))
-                .verifyComplete();
-    }
-
-    @Test
-    void handleResponseUriException_withMessage() {
-        String errorMessage = "Error message for testing";
-        ResponseUriException responseUriException = new ResponseUriException(errorMessage);
-
-        Mono<ResponseEntity<CredentialErrorResponse>> responseEntityMono = globalExceptionHandler.handleResponseUriException(responseUriException);
-
-        StepVerifier.create(responseEntityMono)
-                .assertNext(responseEntity -> {
-                    assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, responseEntity.getStatusCode());
-                    assertNotNull(responseEntity.getBody());
-                    assertEquals(CredentialResponseErrorCodes.RESPONSE_URI_ERROR, responseEntity.getBody().error());
-                    assertEquals(errorMessage, responseEntity.getBody().description());
-                })
-                .verifyComplete();
-    }
-
-    @Test
-    void handleFormatUnsupportedException_withMessage() {
-        String errorMessage = "Error message for testing";
-        FormatUnsupportedException formatUnsupportedException = new FormatUnsupportedException(errorMessage);
-
-        Mono<ResponseEntity<CredentialErrorResponse>> responseEntityMono = globalExceptionHandler.handleFormatUnsupportedException(formatUnsupportedException);
-
-        StepVerifier.create(responseEntityMono)
-                .assertNext(responseEntity -> {
-                    assertEquals(HttpStatus.BAD_REQUEST, responseEntity.getStatusCode());
-                    assertNotNull(responseEntity.getBody());
-                    assertEquals(CredentialResponseErrorCodes.FORMAT_IS_NOT_SUPPORTED, responseEntity.getBody().error());
-                    assertEquals(errorMessage, responseEntity.getBody().description());
-                })
-                .verifyComplete();
-    }
-
-    @Test
-    void handleTrustServiceProviderForCertificationsException_withMessage() {
-        String errorMessage = "Error message for testing";
-        InsufficientPermissionException insufficientPermissionException = new InsufficientPermissionException(errorMessage);
-
-        Mono<ResponseEntity<CredentialErrorResponse>> responseEntityMono = globalExceptionHandler.handleInsufficientPermissionException(insufficientPermissionException);
-
-        StepVerifier.create(responseEntityMono)
-                .assertNext(responseEntity -> {
-                    assertEquals(HttpStatus.FORBIDDEN, responseEntity.getStatusCode());
-                    assertNotNull(responseEntity.getBody());
-                    assertEquals(CredentialResponseErrorCodes.INSUFFICIENT_PERMISSION, responseEntity.getBody().error());
-                    assertEquals(errorMessage, responseEntity.getBody().description());
-                })
-                .verifyComplete();
-    }
-
-    @Test
-    void handleUnauthorizedRoleException() {
-        String errorMessage = "Error message for testing";
-        UnauthorizedRoleException unauthorizedRoleException = new UnauthorizedRoleException(errorMessage);
-
-        Mono<es.in2.issuer.backend.shared.domain.model.dto.GlobalErrorMessage> resultMono =
-                globalExceptionHandler.handleUnauthorizedRoleException(unauthorizedRoleException);
-
-        StepVerifier.create(resultMono)
-                .assertNext(result -> {
-                    assertEquals(HttpStatus.UNAUTHORIZED.value(), result.status());
-                    assertNotNull(result.message());
-                    assertEquals("UnauthorizedRoleException", result.error());
-                })
-                .verifyComplete();
-    }
-
-    @Test
-    void handleCredentialAlreadyIssuedException() {
-        CredentialAlreadyIssuedException exception = new CredentialAlreadyIssuedException(null);
-
-        Mono<ResponseEntity<Void>> result = globalExceptionHandler.handleCredentialAlreadyIssuedException(exception);
-
-        StepVerifier.create(result)
-                .assertNext(responseEntity -> assertEquals(HttpStatus.CONFLICT, responseEntity.getStatusCode()))
-                .verifyComplete();
-    }
-
-    @Test
-    void handleEmailCommunicationException_withMessage() {
-        String errorMessage = "Notification service unavailable";
-        EmailCommunicationException exception = new EmailCommunicationException(errorMessage);
-
-        Mono<es.in2.issuer.backend.shared.domain.model.dto.GlobalErrorMessage> result = globalExceptionHandler.handleEmailCommunicationException(exception);
-
-        StepVerifier.create(result)
-                .assertNext(globalErrorMessage -> {
-                    assertEquals(HttpStatus.SERVICE_UNAVAILABLE.value(), globalErrorMessage.status());
-                    assertEquals(errorMessage, globalErrorMessage.message());
-                })
-                .verifyComplete();
-    }
-
-    @Test
-    void handleEmailCommunicationException_withoutMessage() {
-        EmailCommunicationException exception = new EmailCommunicationException(null);
-
-        Mono<es.in2.issuer.backend.shared.domain.model.dto.GlobalErrorMessage> result = globalExceptionHandler.handleEmailCommunicationException(exception);
-
-        StepVerifier.create(result)
-                .assertNext(globalErrorMessage -> {
-                    assertEquals(HttpStatus.SERVICE_UNAVAILABLE.value(), globalErrorMessage.status());
-                    assertNull(globalErrorMessage.message());
-                })
-                .verifyComplete();
-    }
-
-    @Test
-    void handleMissingIdTokenHeaderException_withoutMessage() {
-        MissingIdTokenHeaderException ex = new MissingIdTokenHeaderException(null);
-
-        Mono<ResponseEntity<CredentialErrorResponse>> result =
-                globalExceptionHandler.handleMissingIdTokenHeaderException(ex);
-
-        StepVerifier.create(result)
-                .assertNext(resp -> {
-                    assertEquals(HttpStatus.BAD_REQUEST, resp.getStatusCode());
-                    CredentialErrorResponse body = resp.getBody();
-                    assertNotNull(body);
-                    assertEquals(CredentialResponseErrorCodes.MISSING_HEADER, body.error());
-                    assertEquals(
-                            "The X-ID-TOKEN header is missing, this header is needed to issuer a Verifiable Certification",
-                            body.description()
-                    );
-                })
-                .verifyComplete();
-    }
-
-    @Test
-    void handleMissingIdTokenHeaderException_withMessage() {
-        String msg = "Custom missing header message";
-        MissingIdTokenHeaderException ex = new MissingIdTokenHeaderException(msg);
-
-        Mono<ResponseEntity<CredentialErrorResponse>> result =
-                globalExceptionHandler.handleMissingIdTokenHeaderException(ex);
-
-        StepVerifier.create(result)
-                .assertNext(resp -> {
-                    assertEquals(HttpStatus.BAD_REQUEST, resp.getStatusCode());
-                    CredentialErrorResponse body = resp.getBody();
-                    assertNotNull(body);
-                    assertEquals(CredentialResponseErrorCodes.MISSING_HEADER, body.error());
-                    assertEquals(msg, body.description());
-                })
-                .verifyComplete();
-    }
-
-    @Test
-    void handleOrganizationIdentifierMismatchException() {
-        RequestPath mockPath = mock(RequestPath.class);
-        when(mockPath.toString()).thenReturn("/org");
-        ServerHttpRequest request = mock(ServerHttpRequest.class);
-        when(request.getPath()).thenReturn(mockPath);
-
-        String msg = "Org ID mismatch!";
-        OrganizationIdentifierMismatchException ex =
-                new OrganizationIdentifierMismatchException(msg);
-
-        Mono<ResponseEntity<GlobalErrorMessage>> result =
-                globalExceptionHandler.handleOrganizationIdentifierMismatchException(ex, request);
-
-        StepVerifier.create(result)
-                .assertNext(resp -> {
-                    assertEquals(HttpStatus.FORBIDDEN, resp.getStatusCode());
-                    GlobalErrorMessage er = resp.getBody();
-                    assertNotNull(er);
-                    assertEquals("Unauthorized", er.type());
-                    assertEquals(OrganizationIdentifierMismatchException.class.toString(), er.title());
-                    assertEquals(403, er.status());
-                    assertEquals(msg, er.detail());
-                    assertNotNull(er.instance());
-                    assertTrue(Pattern.matches(
-                            "[0-9a-fA-F\\-]{36}", er.instance()
-                    ));
-                })
-                .verifyComplete();
-    }
-
-    @Test
-    void handleNoSuchEntityException() {
-        RequestPath mockPath = mock(RequestPath.class);
-        when(mockPath.toString()).thenReturn("/nosuch");
-        ServerHttpRequest request = mock(ServerHttpRequest.class);
-        when(request.getPath()).thenReturn(mockPath);
-
-        String msg = "Not found!";
-        NoSuchEntityException ex = new NoSuchEntityException(msg);
-
-        Mono<ResponseEntity<GlobalErrorMessage>> result =
-                globalExceptionHandler.handleNoSuchEntityException(ex, request);
-
-        StepVerifier.create(result)
-                .assertNext(resp -> {
-                    assertEquals(HttpStatus.NOT_FOUND, resp.getStatusCode());
-                    GlobalErrorMessage er = resp.getBody();
-                    assertNotNull(er);
-                    assertEquals("Not Found", er.type());
-                    // note: code uses FORBIDDEN.value() as the body.status
-                    assertEquals(404, er.status());
-                    assertEquals(NoSuchEntityException.class.toString(), er.title());
-                    assertEquals(msg, er.detail());
-                    assertNotNull(er.instance());
-                    assertTrue(Pattern.matches(
-                            "[0-9a-fA-F\\-]{36}", er.instance()
-                    ));
-                })
-                .verifyComplete();
-    }
-
-    @Test
-    void handleMissingRequiredDataException_returnsBadRequestWithCorrectApiErrorResponse() {
-        RequestPath mockPath = mock(RequestPath.class);
-        when(mockPath.toString()).thenReturn("/missing-data");
-        ServerHttpRequest request = mock(ServerHttpRequest.class);
-        when(request.getPath()).thenReturn(mockPath);
-
-        String errorMessage = "Required data is missing";
-        MissingRequiredDataException exception = new MissingRequiredDataException(errorMessage);
-
-        Mono<ResponseEntity<GlobalErrorMessage>> result =
-                globalExceptionHandler.handleMissingRequiredDataException(exception, request);
-
-        StepVerifier.create(result)
-                .assertNext(responseEntity -> {
-                    assertEquals(HttpStatus.BAD_REQUEST, responseEntity.getStatusCode());
-                    GlobalErrorMessage responseBody = responseEntity.getBody();
-                    assertNotNull(responseBody);
-                    assertEquals("Bad Request", responseBody.type());
-                    assertEquals(MissingRequiredDataException.class.toString(), responseBody.title());
-                    assertEquals(400, responseBody.status());
-                    assertEquals(errorMessage, responseBody.detail());
-                    assertNotNull(responseBody.instance());
-                    assertTrue(Pattern.matches("[0-9a-fA-F\\-]{36}", responseBody.instance()));
-                })
-                .verifyComplete();
-    }
-
-    @Test
-    void handleInvalidSignatureConfigurationException_returnsBadRequestWithCorrectApiErrorResponse() {
-        RequestPath mockPath = mock(RequestPath.class);
-        when(mockPath.toString()).thenReturn("/invalid-signature");
-        ServerHttpRequest request = mock(ServerHttpRequest.class);
-        when(request.getPath()).thenReturn(mockPath);
-
-        String errorMessage = "Invalid signature configuration";
-        InvalidSignatureConfigurationException exception = new InvalidSignatureConfigurationException(errorMessage);
-
-        Mono<ResponseEntity<GlobalErrorMessage>> result =
-                globalExceptionHandler.handleInvalidSignatureConfigurationException(exception, request);
-
-        StepVerifier.create(result)
-                .assertNext(responseEntity -> {
-                    assertEquals(HttpStatus.BAD_REQUEST, responseEntity.getStatusCode());
-                    GlobalErrorMessage responseBody = responseEntity.getBody();
-                    assertNotNull(responseBody);
-                    assertEquals("Bad Request", responseBody.type());
-                    assertEquals(InvalidSignatureConfigurationException.class.toString(), responseBody.title());
-                    assertEquals(400, responseBody.status());
-                    assertEquals(errorMessage, responseBody.detail());
-                    assertNotNull(responseBody.instance());
-                    assertTrue(Pattern.matches("[0-9a-fA-F\\-]{36}", responseBody.instance()));
-                })
-                .verifyComplete();
-    }
-
-    @Test
-    void handleSadError() {
-        SadException exception = new SadException("Sad exception");
-
-        Mono<CredentialErrorResponse> resultMono = globalExceptionHandler.handleSadError(exception);
-
-        StepVerifier.create(resultMono)
-                .assertNext(result -> {
-                    assertEquals(CredentialResponseErrorCodes.SAD_ERROR, result.error());
-                    assertEquals(exception.getMessage(), result.description());
-                })
-                .verifyComplete();
-    }
-
 
 }

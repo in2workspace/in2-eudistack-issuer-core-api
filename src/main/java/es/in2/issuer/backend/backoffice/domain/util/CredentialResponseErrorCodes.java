@@ -1,5 +1,6 @@
 package es.in2.issuer.backend.backoffice.domain.util;
 
+//todo moure a shared
 public class CredentialResponseErrorCodes {
 
     private CredentialResponseErrorCodes() {
@@ -22,5 +23,6 @@ public class CredentialResponseErrorCodes {
     public static final String INSUFFICIENT_PERMISSION = "insufficient_permission";
     public static final String MISSING_HEADER = "missing_header";
     public static final String SAD_ERROR = "SAD_ERROR";
+    public static final String NO_SUCH_ELEMENT = "no_such_element";
 
 }
