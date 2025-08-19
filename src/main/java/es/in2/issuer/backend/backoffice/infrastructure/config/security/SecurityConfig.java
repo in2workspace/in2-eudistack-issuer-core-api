@@ -11,7 +11,6 @@ import org.springframework.security.authentication.ReactiveAuthenticationManager
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
 import org.springframework.security.config.web.server.SecurityWebFiltersOrder;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
-import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder;
 import org.springframework.security.oauth2.server.resource.web.server.authentication.ServerBearerTokenAuthenticationConverter;
 import org.springframework.security.web.server.SecurityWebFilterChain;
 import org.springframework.security.web.server.authentication.AuthenticationWebFilter;
@@ -26,7 +25,6 @@ import static es.in2.issuer.backend.shared.domain.util.EndpointsConstants.*;
 public class SecurityConfig {
 
     private final CustomAuthenticationManager customAuthenticationManager;
-    private final ReactiveJwtDecoder internalJwtDecoder;
     private final InternalCORSConfig internalCORSConfig;
     private final PublicCORSConfig publicCORSConfig;
 
@@ -41,7 +39,7 @@ public class SecurityConfig {
         AuthenticationWebFilter authenticationWebFilter = new AuthenticationWebFilter(customAuthenticationManager);
         // Set the path for which the filter will be applied
         authenticationWebFilter.setRequiresAuthenticationMatcher(
-                ServerWebExchangeMatchers.pathMatchers(VCI_ISSUANCES_PATH,OID4VCI_CREDENTIAL_PATH,DEFERRED_CREDENTIALS)
+                ServerWebExchangeMatchers.pathMatchers(VCI_ISSUANCES_PATH) //,OID4VCI_CREDENTIAL_PATH,DEFERRED_CREDENTIALS)
         );
         // Configure the Bearer token authentication converter
         ServerBearerTokenAuthenticationConverter bearerConverter = new ServerBearerTokenAuthenticationConverter();
@@ -100,7 +98,7 @@ public class SecurityConfig {
                         .anyExchange().denyAll()
                 )
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
-                .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwtSpec -> jwtSpec.jwtDecoder(internalJwtDecoder)));
+                .addFilterAt(customAuthenticationWebFilter(), SecurityWebFiltersOrder.AUTHENTICATION);
 
         return http.build();
     }
