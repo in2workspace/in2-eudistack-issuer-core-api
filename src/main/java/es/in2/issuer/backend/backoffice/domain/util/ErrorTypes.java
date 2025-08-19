@@ -1,9 +1,9 @@
 package es.in2.issuer.backend.backoffice.domain.util;
 
-//todo moure a shared
-public class CredentialResponseErrorCodes {
+//todo moure a shared? però arch dona error
+public class ErrorTypes {
 
-    private CredentialResponseErrorCodes() {
+    private ErrorTypes() {
         throw new IllegalStateException("Utility class");
     }
 
@@ -24,5 +24,18 @@ public class CredentialResponseErrorCodes {
     public static final String MISSING_HEADER = "missing_header";
     public static final String SAD_ERROR = "SAD_ERROR";
     public static final String NO_SUCH_ELEMENT = "no_such_element";
-
+    public static final String NO_SUCH_ENTITY = "no_such_entity";
+    public static final String PARSE_ERROR = "parse_error";
+    public static final String TEMPLATE_READ_ERROR = "template_read_error";
+    public static final String PROOF_VALIDATION_ERROR = "proof_validation_error";
+    public static final String CREDENTIAL_NOT_FOUND = "credential_not_found_error";
+    public static final String PRE_AUTHORIZATION_CODE_GET = "pre_authorization_code_get_error";
+    public static final String CREDENTIAL_OFFER_NOT_FOUND = "credential_offer_not_found";
+    public static final String CREDENTIAL_ALREADY_ISSUED = "credential_already_issued";
+    public static final String JWT_VERIFICATION = "jwt_verification_error";
+    public static final String UNAUTHORIZED_ROLE = "unauthorized_role";
+    public static final String EMAIL_COMMUNICATION = "email_communication_error";
+    public static final String ORGANIZATION_ID_MISMATCH = "organization_id_mismatch_error";
+    public static final String MISSING_REQUIRED_DATA = "missing_required_data_error";
+    public static final String INVALID_SIGNATURE_CONFIGURATION = "invalid_signature_configuration_error";
 }

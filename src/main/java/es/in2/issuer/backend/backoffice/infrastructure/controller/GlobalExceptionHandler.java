@@ -2,7 +2,7 @@ package es.in2.issuer.backend.backoffice.infrastructure.controller;
 
 
 import es.in2.issuer.backend.backoffice.domain.exception.*;
-import es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes;
+import es.in2.issuer.backend.backoffice.domain.util.ErrorTypes;
 import es.in2.issuer.backend.shared.domain.exception.*;
 import es.in2.issuer.backend.backoffice.domain.model.dtos.GlobalErrorMessage;
 import lombok.extern.slf4j.Slf4j;
@@ -33,7 +33,7 @@ public class GlobalExceptionHandler {
     ) {
         return handleWith(
                 ex, request,
-                CredentialResponseErrorCodes.UNSUPPORTED_CREDENTIAL_TYPE,
+                ErrorTypes.UNSUPPORTED_CREDENTIAL_TYPE,
                 "Unsupported credential type",
                 HttpStatus.NOT_FOUND,
                 "The given credential type is not supported"
@@ -48,7 +48,7 @@ public class GlobalExceptionHandler {
     ) {
         return handleWith(
                 ex, request,
-                CredentialResponseErrorCodes.NO_SUCH_ELEMENT,
+                ErrorTypes.NO_SUCH_ELEMENT,
                 "Resource not found",
                 HttpStatus.NOT_FOUND,
                 "The requested resource was not found"
@@ -64,7 +64,7 @@ public class GlobalExceptionHandler {
     ) {
         return handleWith(
                 ex, request,
-                CredentialResponseErrorCodes.VC_DOES_NOT_EXIST,
+                ErrorTypes.VC_DOES_NOT_EXIST,
                 "Credential does not exist",
                 HttpStatus.BAD_REQUEST,
                 "The given credential ID does not match with any credentials"
@@ -79,7 +79,7 @@ public class GlobalExceptionHandler {
     ) {
         return handleWith(
                 ex, request,
-                CredentialResponseErrorCodes.EXPIRED_PRE_AUTHORIZED_CODE,
+                ErrorTypes.EXPIRED_PRE_AUTHORIZED_CODE,
                 "Expired pre-authorized code",
                 HttpStatus.NOT_FOUND,
                 "The pre-authorized code has expired, has been used, or does not exist."
@@ -95,7 +95,7 @@ public class GlobalExceptionHandler {
     ) {
         return handleWith(
                 ex, request,
-                CredentialResponseErrorCodes.INVALID_OR_MISSING_PROOF,
+                ErrorTypes.INVALID_OR_MISSING_PROOF,
                 "Invalid or missing proof",
                 HttpStatus.NOT_FOUND,
                 "Credential Request did not contain a proof, or proof was invalid, i.e. it was not bound to a Credential Issuer provided nonce."
@@ -111,7 +111,7 @@ public class GlobalExceptionHandler {
     ) {
         return handleWith(
                 ex, request,
-                CredentialResponseErrorCodes.INVALID_TOKEN,
+                ErrorTypes.INVALID_TOKEN,
                 "Invalid token",
                 HttpStatus.NOT_FOUND,
                 "Credential Request contains the wrong Access Token or the Access Token is missing"
@@ -127,7 +127,7 @@ public class GlobalExceptionHandler {
     ) {
         return handleWith(
                 ex, request,
-                CredentialResponseErrorCodes.USER_DOES_NOT_EXIST,
+                ErrorTypes.USER_DOES_NOT_EXIST,
                 "User does not exist",
                 HttpStatus.NOT_FOUND,
                 "User does not exist"
@@ -143,7 +143,7 @@ public class GlobalExceptionHandler {
     ) {
         return handleWith(
                 ex, request,
-                CredentialResponseErrorCodes.VC_TEMPLATE_DOES_NOT_EXIST,
+                ErrorTypes.VC_TEMPLATE_DOES_NOT_EXIST,
                 "VC template does not exist",
                 HttpStatus.NOT_FOUND,
                 "The given template name is not supported"
@@ -159,7 +159,7 @@ public class GlobalExceptionHandler {
         return handleWith(
                 ex, request,
                 // todo
-                "parse_error",
+                ErrorTypes.PARSE_ERROR,
                 "Parse error",
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 "An internal parsing error occurred."
@@ -174,8 +174,7 @@ public class GlobalExceptionHandler {
     ) {
         return handleWith(
                 ex, request,
-                // todo --parse_error?
-                "base45_decode_error",
+                ErrorTypes.PARSE_ERROR,
                 "Base45 decoding error",
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 "An internal Base45 decoding error occurred."
@@ -190,8 +189,7 @@ public class GlobalExceptionHandler {
     ) {
         return handleWith(
                 ex, request,
-                // todo --parse_error?
-                "create_date_error",
+                ErrorTypes.PARSE_ERROR,
                 "Create date error",
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 "An internal date creation error occurred."
@@ -206,8 +204,7 @@ public class GlobalExceptionHandler {
     ) {
         return handleWith(
                 ex, request,
-                // todo parse_error?
-                "signed_data_parse_error",
+                ErrorTypes.PARSE_ERROR,
                 "Signed data parsing error",
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 "An internal signed data parsing error occurred."
@@ -223,7 +220,7 @@ public class GlobalExceptionHandler {
     ) {
         return handleWith(
                 ex, request,
-                "authentic_sources_user_parsing_error",
+                ErrorTypes.PARSE_ERROR,
                 "Authentic sources user parsing error",
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 "An internal authentic-sources user parsing error occurred."
@@ -239,7 +236,7 @@ public class GlobalExceptionHandler {
     ) {
         return handleWith(
                 ex, request,
-                "parse_credential_json_error",
+                ErrorTypes.PARSE_ERROR,
                 "Credential JSON parsing error",
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 "An internal credential JSON parsing error occurred."
@@ -255,7 +252,7 @@ public class GlobalExceptionHandler {
     ) {
         return handleWith(
                 ex, request,
-                "template_read_error",
+                ErrorTypes.TEMPLATE_READ_ERROR,
                 "Template read error",
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 "An internal template read error occurred."
@@ -271,7 +268,7 @@ public class GlobalExceptionHandler {
     ) {
         return handleWith(
                 ex, request,
-                "proof_validation_error",
+                ErrorTypes.PROOF_VALIDATION_ERROR,
                 "Proof validation error",
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 "An internal proof validation error occurred."
@@ -287,7 +284,7 @@ public class GlobalExceptionHandler {
     ) {
         return handleWith(
                 ex, request,
-                "no_credential_found",
+                ErrorTypes.CREDENTIAL_NOT_FOUND,
                 "Credential not found",
                 HttpStatus.NOT_FOUND,
                 "No credential found."
@@ -302,7 +299,7 @@ public class GlobalExceptionHandler {
     ) {
         return handleWith(
                 ex, request,
-                "pre_authorization_code_get_exception",
+                ErrorTypes.PRE_AUTHORIZATION_CODE_GET,
                 "Pre-authorization code retrieval error",
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 "Failed to retrieve pre-authorization code."
@@ -318,7 +315,7 @@ public class GlobalExceptionHandler {
     ) {
         return handleWith(
                 ex, request,
-                "credential_offer_not_found",
+                ErrorTypes.CREDENTIAL_OFFER_NOT_FOUND,
                 "Credential offer not found",
                 HttpStatus.NOT_FOUND,
                 "Credential offer not found."
@@ -334,7 +331,7 @@ public class GlobalExceptionHandler {
     ) {
         return handleWith(
                 ex, request,
-                "credential_already_issued",
+                ErrorTypes.CREDENTIAL_ALREADY_ISSUED,
                 "Credential already issued",
                 HttpStatus.CONFLICT,
                 "The credential has already been issued."
@@ -349,7 +346,7 @@ public class GlobalExceptionHandler {
     ) {
         return handleWith(
                 ex, request,
-                CredentialResponseErrorCodes.OPERATION_NOT_SUPPORTED,
+                ErrorTypes.OPERATION_NOT_SUPPORTED,
                 "Operation not supported",
                 HttpStatus.BAD_REQUEST,
                 "The given operation is not supported"
@@ -365,7 +362,7 @@ public class GlobalExceptionHandler {
     ) {
         return handleWith(
                 ex, request,
-                "jwt_verification_error",
+                ErrorTypes.JWT_VERIFICATION,
                 "JWT verification failed",
                 HttpStatus.UNAUTHORIZED,
                 "JWT verification failed."
@@ -380,7 +377,7 @@ public class GlobalExceptionHandler {
     ) {
         return handleWith(
                 ex, request,
-                CredentialResponseErrorCodes.RESPONSE_URI_ERROR,
+                ErrorTypes.RESPONSE_URI_ERROR,
                 "Response URI error",
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 "Request to response URI failed"
@@ -396,7 +393,7 @@ public class GlobalExceptionHandler {
     ) {
         return handleWith(
                 ex, request,
-                CredentialResponseErrorCodes.FORMAT_IS_NOT_SUPPORTED,
+                ErrorTypes.FORMAT_IS_NOT_SUPPORTED,
                 "Format not supported",
                 HttpStatus.BAD_REQUEST,
                 "Format is not supported"
@@ -412,7 +409,7 @@ public class GlobalExceptionHandler {
     ) {
         return handleWith(
                 ex, request,
-                CredentialResponseErrorCodes.INSUFFICIENT_PERMISSION,
+                ErrorTypes.INSUFFICIENT_PERMISSION,
                 "Insufficient permission",
                 HttpStatus.FORBIDDEN,
                 "The client who made the issuance request do not have the required permissions"
@@ -428,7 +425,7 @@ public class GlobalExceptionHandler {
     ) {
         return handleWith(
                 ex, request,
-                "unauthorized_role",
+                ErrorTypes.UNAUTHORIZED_ROLE,
                 "Unauthorized role",
                 HttpStatus.UNAUTHORIZED,
                 "The user role is not authorized to perform this action"
@@ -443,7 +440,7 @@ public class GlobalExceptionHandler {
     ) {
         return handleWith(
                 ex, request,
-                "email_communication_error",
+                ErrorTypes.EMAIL_COMMUNICATION,
                 "Email communication error",
                 HttpStatus.SERVICE_UNAVAILABLE,
                 "Email communication failed"
@@ -458,7 +455,7 @@ public class GlobalExceptionHandler {
     ) {
         return handleWith(
                 ex, request,
-                CredentialResponseErrorCodes.MISSING_HEADER,
+                ErrorTypes.MISSING_HEADER,
                 "Missing header",
                 HttpStatus.BAD_REQUEST,
                 "The X-ID-TOKEN header is missing, this header is needed to issue a Verifiable Certification"
@@ -474,7 +471,7 @@ public class GlobalExceptionHandler {
     ) {
         return handleWith(
                 ex, request,
-                "organization_id_mismatch_error",
+                ErrorTypes.ORGANIZATION_ID_MISMATCH,
                 "Unauthorized",
                 HttpStatus.FORBIDDEN,
                 "Organization identifier mismatch"
@@ -490,7 +487,7 @@ public class GlobalExceptionHandler {
     ) {
         return handleWith(
                 ex, request,
-                "no_such_entity",
+                ErrorTypes.NO_SUCH_ENTITY,
                 "Not Found",
                 HttpStatus.NOT_FOUND,
                 "Requested entity was not found"
@@ -505,7 +502,7 @@ public class GlobalExceptionHandler {
     ) {
         return handleWith(
                 ex, request,
-                "missing_required_data_error",
+                ErrorTypes.MISSING_REQUIRED_DATA,
                 "Bad Request",
                 HttpStatus.BAD_REQUEST,
                 "Missing required data"
@@ -521,7 +518,7 @@ public class GlobalExceptionHandler {
     ) {
         return handleWith(
                 ex, request,
-                "invalid_signature_configuration_error",
+                ErrorTypes.INVALID_SIGNATURE_CONFIGURATION,
                 "Bad Request",
                 HttpStatus.BAD_REQUEST,
                 "Invalid signature configuration"
@@ -537,7 +534,7 @@ public class GlobalExceptionHandler {
     ) {
         return handleWith(
                 ex, request,
-                CredentialResponseErrorCodes.SAD_ERROR,
+                ErrorTypes.SAD_ERROR,
                 "SAD error",
                 HttpStatus.BAD_GATEWAY,
                 "An upstream SAD error occurred"

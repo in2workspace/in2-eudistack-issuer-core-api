@@ -1,6 +1,7 @@
 package es.in2.issuer.backend.backoffice.infrastructure.controller;
 
 import es.in2.issuer.backend.backoffice.domain.exception.*;
+import es.in2.issuer.backend.backoffice.domain.util.ErrorTypes;
 import es.in2.issuer.backend.shared.domain.exception.*;
 import es.in2.issuer.backend.backoffice.domain.model.dtos.GlobalErrorMessage;
 import org.junit.jupiter.api.BeforeEach;
@@ -187,7 +188,7 @@ class GlobalExceptionHandlerTest {
                 .assertNext(gem -> assertGem(
                         gem,
                         // type
-                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.UNSUPPORTED_CREDENTIAL_TYPE,
+                        es.in2.issuer.backend.backoffice.domain.util.ErrorTypes.UNSUPPORTED_CREDENTIAL_TYPE,
                         // title
                         "Unsupported credential type",
                         // status
@@ -204,7 +205,7 @@ class GlobalExceptionHandlerTest {
         StepVerifier.create(m2)
                 .assertNext(gem -> assertGem(
                         gem,
-                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.UNSUPPORTED_CREDENTIAL_TYPE,
+                        es.in2.issuer.backend.backoffice.domain.util.ErrorTypes.UNSUPPORTED_CREDENTIAL_TYPE,
                         "Unsupported credential type",
                         HttpStatus.NOT_FOUND,
                         "The given credential type is not supported"
@@ -220,7 +221,7 @@ class GlobalExceptionHandlerTest {
         StepVerifier.create(mono)
                 .assertNext(gem -> assertGem(
                         gem,
-                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.UNSUPPORTED_CREDENTIAL_TYPE,
+                        es.in2.issuer.backend.backoffice.domain.util.ErrorTypes.UNSUPPORTED_CREDENTIAL_TYPE,
                         "Unsupported credential type",
                         HttpStatus.NOT_FOUND,
                         "custom msg"
@@ -238,7 +239,7 @@ class GlobalExceptionHandlerTest {
         StepVerifier.create(m1)
                 .assertNext(gem -> assertGem(
                         gem,
-                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.NO_SUCH_ELEMENT,
+                        es.in2.issuer.backend.backoffice.domain.util.ErrorTypes.NO_SUCH_ELEMENT,
                         "Resource not found",
                         HttpStatus.NOT_FOUND,
                         "The requested resource was not found"
@@ -251,7 +252,7 @@ class GlobalExceptionHandlerTest {
         StepVerifier.create(m2)
                 .assertNext(gem -> assertGem(
                         gem,
-                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.NO_SUCH_ELEMENT,
+                        es.in2.issuer.backend.backoffice.domain.util.ErrorTypes.NO_SUCH_ELEMENT,
                         "Resource not found",
                         HttpStatus.NOT_FOUND,
                         "The requested resource was not found"
@@ -267,7 +268,7 @@ class GlobalExceptionHandlerTest {
         StepVerifier.create(mono)
                 .assertNext(gem -> assertGem(
                         gem,
-                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.NO_SUCH_ELEMENT,
+                        es.in2.issuer.backend.backoffice.domain.util.ErrorTypes.NO_SUCH_ELEMENT,
                         "Resource not found",
                         HttpStatus.NOT_FOUND,
                         "not here"
@@ -285,7 +286,7 @@ class GlobalExceptionHandlerTest {
         StepVerifier.create(m1)
                 .assertNext(gem -> assertGem(
                         gem,
-                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.VC_DOES_NOT_EXIST,
+                        es.in2.issuer.backend.backoffice.domain.util.ErrorTypes.VC_DOES_NOT_EXIST,
                         "Credential does not exist",
                         HttpStatus.BAD_REQUEST,
                         "The given credential ID does not match with any credentials"
@@ -298,7 +299,7 @@ class GlobalExceptionHandlerTest {
         StepVerifier.create(m2)
                 .assertNext(gem -> assertGem(
                         gem,
-                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.VC_DOES_NOT_EXIST,
+                        es.in2.issuer.backend.backoffice.domain.util.ErrorTypes.VC_DOES_NOT_EXIST,
                         "Credential does not exist",
                         HttpStatus.BAD_REQUEST,
                         "The given credential ID does not match with any credentials"
@@ -314,7 +315,7 @@ class GlobalExceptionHandlerTest {
         StepVerifier.create(mono)
                 .assertNext(gem -> assertGem(
                         gem,
-                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.VC_DOES_NOT_EXIST,
+                        es.in2.issuer.backend.backoffice.domain.util.ErrorTypes.VC_DOES_NOT_EXIST,
                         "Credential does not exist",
                         HttpStatus.BAD_REQUEST,
                         "cache expired"
@@ -330,7 +331,7 @@ class GlobalExceptionHandlerTest {
         reactor.test.StepVerifier.create(mono)
                 .assertNext(gem -> assertGem(
                         gem,
-                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.EXPIRED_PRE_AUTHORIZED_CODE,
+                        es.in2.issuer.backend.backoffice.domain.util.ErrorTypes.EXPIRED_PRE_AUTHORIZED_CODE,
                         "Expired pre-authorized code",
                         HttpStatus.NOT_FOUND,
                         "expired!"
@@ -349,7 +350,7 @@ class GlobalExceptionHandlerTest {
         reactor.test.StepVerifier.create(mNull)
                 .assertNext(gem -> assertGem(
                         gem,
-                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.EXPIRED_PRE_AUTHORIZED_CODE,
+                        es.in2.issuer.backend.backoffice.domain.util.ErrorTypes.EXPIRED_PRE_AUTHORIZED_CODE,
                         "Expired pre-authorized code",
                         HttpStatus.NOT_FOUND,
                         "The pre-authorized code has expired, has been used, or does not exist."
@@ -359,7 +360,7 @@ class GlobalExceptionHandlerTest {
         reactor.test.StepVerifier.create(mBlank)
                 .assertNext(gem -> assertGem(
                         gem,
-                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.EXPIRED_PRE_AUTHORIZED_CODE,
+                        es.in2.issuer.backend.backoffice.domain.util.ErrorTypes.EXPIRED_PRE_AUTHORIZED_CODE,
                         "Expired pre-authorized code",
                         HttpStatus.NOT_FOUND,
                         "The pre-authorized code has expired, has been used, or does not exist."
@@ -377,7 +378,7 @@ class GlobalExceptionHandlerTest {
         reactor.test.StepVerifier.create(mono)
                 .assertNext(gem -> assertGem(
                         gem,
-                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.INVALID_OR_MISSING_PROOF,
+                        es.in2.issuer.backend.backoffice.domain.util.ErrorTypes.INVALID_OR_MISSING_PROOF,
                         "Invalid or missing proof",
                         HttpStatus.NOT_FOUND,
                         "bad proof"
@@ -396,7 +397,7 @@ class GlobalExceptionHandlerTest {
         reactor.test.StepVerifier.create(mNull)
                 .assertNext(gem -> assertGem(
                         gem,
-                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.INVALID_OR_MISSING_PROOF,
+                        es.in2.issuer.backend.backoffice.domain.util.ErrorTypes.INVALID_OR_MISSING_PROOF,
                         "Invalid or missing proof",
                         HttpStatus.NOT_FOUND,
                         "Credential Request did not contain a proof, or proof was invalid, i.e. it was not bound to a Credential Issuer provided nonce."
@@ -406,7 +407,7 @@ class GlobalExceptionHandlerTest {
         reactor.test.StepVerifier.create(mBlank)
                 .assertNext(gem -> assertGem(
                         gem,
-                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.INVALID_OR_MISSING_PROOF,
+                        es.in2.issuer.backend.backoffice.domain.util.ErrorTypes.INVALID_OR_MISSING_PROOF,
                         "Invalid or missing proof",
                         HttpStatus.NOT_FOUND,
                         "Credential Request did not contain a proof, or proof was invalid, i.e. it was not bound to a Credential Issuer provided nonce."
@@ -424,7 +425,7 @@ class GlobalExceptionHandlerTest {
         reactor.test.StepVerifier.create(mono)
                 .assertNext(gem -> assertGem(
                         gem,
-                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.INVALID_TOKEN,
+                        es.in2.issuer.backend.backoffice.domain.util.ErrorTypes.INVALID_TOKEN,
                         "Invalid token",
                         HttpStatus.NOT_FOUND,
                         "Message"
@@ -443,7 +444,7 @@ class GlobalExceptionHandlerTest {
         reactor.test.StepVerifier.create(mNull)
                 .assertNext(gem -> assertGem(
                         gem,
-                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.INVALID_TOKEN,
+                        es.in2.issuer.backend.backoffice.domain.util.ErrorTypes.INVALID_TOKEN,
                         "Invalid token",
                         HttpStatus.NOT_FOUND,
                         "The request contains the wrong Access Token or the Access Token is missing"
@@ -453,7 +454,7 @@ class GlobalExceptionHandlerTest {
         reactor.test.StepVerifier.create(mBlank)
                 .assertNext(gem -> assertGem(
                         gem,
-                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.INVALID_TOKEN,
+                        es.in2.issuer.backend.backoffice.domain.util.ErrorTypes.INVALID_TOKEN,
                         "Invalid token",
                         HttpStatus.NOT_FOUND,
                         "The request contains the wrong Access Token or the Access Token is missing"
@@ -471,7 +472,7 @@ class GlobalExceptionHandlerTest {
         reactor.test.StepVerifier.create(mono)
                 .assertNext(gem -> assertGem(
                         gem,
-                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.USER_DOES_NOT_EXIST,
+                        es.in2.issuer.backend.backoffice.domain.util.ErrorTypes.USER_DOES_NOT_EXIST,
                         "User does not exist",
                         HttpStatus.NOT_FOUND,
                         "no user"
@@ -490,7 +491,7 @@ class GlobalExceptionHandlerTest {
         reactor.test.StepVerifier.create(mNull)
                 .assertNext(gem -> assertGem(
                         gem,
-                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.USER_DOES_NOT_EXIST,
+                        es.in2.issuer.backend.backoffice.domain.util.ErrorTypes.USER_DOES_NOT_EXIST,
                         "User does not exist",
                         HttpStatus.NOT_FOUND,
                         "User does not exist"
@@ -500,7 +501,7 @@ class GlobalExceptionHandlerTest {
         reactor.test.StepVerifier.create(mBlank)
                 .assertNext(gem -> assertGem(
                         gem,
-                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.USER_DOES_NOT_EXIST,
+                        es.in2.issuer.backend.backoffice.domain.util.ErrorTypes.USER_DOES_NOT_EXIST,
                         "User does not exist",
                         HttpStatus.NOT_FOUND,
                         "User does not exist"
@@ -518,7 +519,7 @@ class GlobalExceptionHandlerTest {
         reactor.test.StepVerifier.create(mono)
                 .assertNext(gem -> assertGem(
                         gem,
-                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.VC_TEMPLATE_DOES_NOT_EXIST,
+                        es.in2.issuer.backend.backoffice.domain.util.ErrorTypes.VC_TEMPLATE_DOES_NOT_EXIST,
                         "VC template does not exist",
                         HttpStatus.NOT_FOUND,
                         "no template"
@@ -537,7 +538,7 @@ class GlobalExceptionHandlerTest {
         reactor.test.StepVerifier.create(mNull)
                 .assertNext(gem -> assertGem(
                         gem,
-                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.VC_TEMPLATE_DOES_NOT_EXIST,
+                        es.in2.issuer.backend.backoffice.domain.util.ErrorTypes.VC_TEMPLATE_DOES_NOT_EXIST,
                         "VC template does not exist",
                         HttpStatus.NOT_FOUND,
                         "The given template name is not supported"
@@ -547,7 +548,7 @@ class GlobalExceptionHandlerTest {
         reactor.test.StepVerifier.create(mBlank)
                 .assertNext(gem -> assertGem(
                         gem,
-                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.VC_TEMPLATE_DOES_NOT_EXIST,
+                        es.in2.issuer.backend.backoffice.domain.util.ErrorTypes.VC_TEMPLATE_DOES_NOT_EXIST,
                         "VC template does not exist",
                         HttpStatus.NOT_FOUND,
                         "The given template name is not supported"
@@ -612,7 +613,7 @@ class GlobalExceptionHandlerTest {
         reactor.test.StepVerifier.create(mono)
                 .assertNext(gem -> assertGem(
                         gem,
-                        "base45_decode_error",
+                        ErrorTypes.PARSE_ERROR,
                         "Base45 decoding error",
                         HttpStatus.INTERNAL_SERVER_ERROR,
                         "decode failed"
@@ -631,7 +632,7 @@ class GlobalExceptionHandlerTest {
         reactor.test.StepVerifier.create(mNull)
                 .assertNext(gem -> assertGem(
                         gem,
-                        "base45_decode_error",
+                        ErrorTypes.PARSE_ERROR,
                         "Base45 decoding error",
                         HttpStatus.INTERNAL_SERVER_ERROR,
                         "An internal Base45 decoding error occurred."
@@ -641,7 +642,7 @@ class GlobalExceptionHandlerTest {
         reactor.test.StepVerifier.create(mBlank)
                 .assertNext(gem -> assertGem(
                         gem,
-                        "base45_decode_error",
+                        ErrorTypes.PARSE_ERROR,
                         "Base45 decoding error",
                         HttpStatus.INTERNAL_SERVER_ERROR,
                         "An internal Base45 decoding error occurred."
@@ -659,7 +660,7 @@ class GlobalExceptionHandlerTest {
         reactor.test.StepVerifier.create(mono)
                 .assertNext(gem -> assertGem(
                         gem,
-                        "create_date_error",
+                        ErrorTypes.PARSE_ERROR,
                         "Create date error",
                         HttpStatus.INTERNAL_SERVER_ERROR,
                         "cannot build date"
@@ -678,7 +679,7 @@ class GlobalExceptionHandlerTest {
         reactor.test.StepVerifier.create(mNull)
                 .assertNext(gem -> assertGem(
                         gem,
-                        "create_date_error",
+                        ErrorTypes.PARSE_ERROR,
                         "Create date error",
                         HttpStatus.INTERNAL_SERVER_ERROR,
                         "An internal date creation error occurred."
@@ -688,7 +689,7 @@ class GlobalExceptionHandlerTest {
         reactor.test.StepVerifier.create(mBlank)
                 .assertNext(gem -> assertGem(
                         gem,
-                        "create_date_error",
+                        ErrorTypes.PARSE_ERROR,
                         "Create date error",
                         HttpStatus.INTERNAL_SERVER_ERROR,
                         "An internal date creation error occurred."
@@ -706,7 +707,7 @@ class GlobalExceptionHandlerTest {
         reactor.test.StepVerifier.create(mono)
                 .assertNext(gem -> assertGem(
                         gem,
-                        "signed_data_parse_error",
+                        ErrorTypes.PARSE_ERROR,
                         "Signed data parsing error",
                         HttpStatus.INTERNAL_SERVER_ERROR,
                         "bad signature payload"
@@ -725,7 +726,7 @@ class GlobalExceptionHandlerTest {
         reactor.test.StepVerifier.create(mNull)
                 .assertNext(gem -> assertGem(
                         gem,
-                        "signed_data_parse_error",
+                        ErrorTypes.PARSE_ERROR,
                         "Signed data parsing error",
                         HttpStatus.INTERNAL_SERVER_ERROR,
                         "An internal signed data parsing error occurred."
@@ -735,7 +736,7 @@ class GlobalExceptionHandlerTest {
         reactor.test.StepVerifier.create(mBlank)
                 .assertNext(gem -> assertGem(
                         gem,
-                        "signed_data_parse_error",
+                        ErrorTypes.PARSE_ERROR,
                         "Signed data parsing error",
                         HttpStatus.INTERNAL_SERVER_ERROR,
                         "An internal signed data parsing error occurred."
@@ -753,7 +754,7 @@ class GlobalExceptionHandlerTest {
         reactor.test.StepVerifier.create(mono)
                 .assertNext(gem -> assertGem(
                         gem,
-                        "authentic_sources_user_parsing_error",
+                        ErrorTypes.PARSE_ERROR,
                         "Authentic sources user parsing error",
                         HttpStatus.INTERNAL_SERVER_ERROR,
                         "auth sources parse failed"
@@ -772,7 +773,7 @@ class GlobalExceptionHandlerTest {
         reactor.test.StepVerifier.create(mNull)
                 .assertNext(gem -> assertGem(
                         gem,
-                        "authentic_sources_user_parsing_error",
+                        ErrorTypes.PARSE_ERROR,
                         "Authentic sources user parsing error",
                         HttpStatus.INTERNAL_SERVER_ERROR,
                         "An internal authentic-sources user parsing error occurred."
@@ -782,7 +783,7 @@ class GlobalExceptionHandlerTest {
         reactor.test.StepVerifier.create(mBlank)
                 .assertNext(gem -> assertGem(
                         gem,
-                        "authentic_sources_user_parsing_error",
+                        ErrorTypes.PARSE_ERROR,
                         "Authentic sources user parsing error",
                         HttpStatus.INTERNAL_SERVER_ERROR,
                         "An internal authentic-sources user parsing error occurred."
@@ -800,7 +801,7 @@ class GlobalExceptionHandlerTest {
         reactor.test.StepVerifier.create(mono)
                 .assertNext(gem -> assertGem(
                         gem,
-                        "parse_credential_json_error",
+                        ErrorTypes.PARSE_ERROR,
                         "Credential JSON parsing error",
                         HttpStatus.INTERNAL_SERVER_ERROR,
                         "bad json"
@@ -818,7 +819,7 @@ class GlobalExceptionHandlerTest {
         reactor.test.StepVerifier.create(mNull)
                 .assertNext(gem -> assertGem(
                         gem,
-                        "parse_credential_json_error",
+                        ErrorTypes.PARSE_ERROR,
                         "Credential JSON parsing error",
                         HttpStatus.INTERNAL_SERVER_ERROR,
                         "An internal credential JSON parsing error occurred."
@@ -828,7 +829,7 @@ class GlobalExceptionHandlerTest {
         reactor.test.StepVerifier.create(mBlank)
                 .assertNext(gem -> assertGem(
                         gem,
-                        "parse_credential_json_error",
+                        ErrorTypes.PARSE_ERROR,
                         "Credential JSON parsing error",
                         HttpStatus.INTERNAL_SERVER_ERROR,
                         "An internal credential JSON parsing error occurred."
@@ -846,7 +847,7 @@ class GlobalExceptionHandlerTest {
         reactor.test.StepVerifier.create(mono)
                 .assertNext(gem -> assertGem(
                         gem,
-                        "template_read_error",
+                        ErrorTypes.TEMPLATE_READ_ERROR,
                         "Template read error",
                         HttpStatus.INTERNAL_SERVER_ERROR,
                         "cannot read template"
@@ -938,7 +939,7 @@ class GlobalExceptionHandlerTest {
         reactor.test.StepVerifier.create(mono)
                 .assertNext(gem -> assertGem(
                         gem,
-                        "no_credential_found",
+                        "credential_not_found_error",
                         "Credential not found",
                         HttpStatus.NOT_FOUND,
                         "nothing here"
@@ -956,7 +957,7 @@ class GlobalExceptionHandlerTest {
         reactor.test.StepVerifier.create(mNull)
                 .assertNext(gem -> assertGem(
                         gem,
-                        "no_credential_found",
+                        "credential_not_found_error",
                         "Credential not found",
                         HttpStatus.NOT_FOUND,
                         "No credential found."
@@ -966,7 +967,7 @@ class GlobalExceptionHandlerTest {
         reactor.test.StepVerifier.create(mBlank)
                 .assertNext(gem -> assertGem(
                         gem,
-                        "no_credential_found",
+                        "credential_not_found_error",
                         "Credential not found",
                         HttpStatus.NOT_FOUND,
                         "No credential found."
@@ -984,7 +985,7 @@ class GlobalExceptionHandlerTest {
         reactor.test.StepVerifier.create(mono)
                 .assertNext(gem -> assertGem(
                         gem,
-                        "pre_authorization_code_get_exception",
+                        "pre_authorization_code_get_error",
                         "Pre-authorization code retrieval error",
                         HttpStatus.INTERNAL_SERVER_ERROR,
                         "service down"
@@ -1002,7 +1003,7 @@ class GlobalExceptionHandlerTest {
         reactor.test.StepVerifier.create(mNull)
                 .assertNext(gem -> assertGem(
                         gem,
-                        "pre_authorization_code_get_exception",
+                        "pre_authorization_code_get_error",
                         "Pre-authorization code retrieval error",
                         HttpStatus.INTERNAL_SERVER_ERROR,
                         "Failed to retrieve pre-authorization code."
@@ -1012,7 +1013,7 @@ class GlobalExceptionHandlerTest {
         reactor.test.StepVerifier.create(mBlank)
                 .assertNext(gem -> assertGem(
                         gem,
-                        "pre_authorization_code_get_exception",
+                        "pre_authorization_code_get_error",
                         "Pre-authorization code retrieval error",
                         HttpStatus.INTERNAL_SERVER_ERROR,
                         "Failed to retrieve pre-authorization code."
@@ -1115,7 +1116,7 @@ class GlobalExceptionHandlerTest {
 // ===================== handleOperationNotSupportedException =====================
 
     @Test
-    void handleOperationNotSupportedException_usesExceptionMessage_whenPresent() throws Exception {
+    void handleOperationNotSupportedException_usesExceptionMessage_whenPresent() {
         OperationNotSupportedException ex = new OperationNotSupportedException("not allowed");
         Mono<GlobalErrorMessage> mono = handler.handleOperationNotSupportedException(ex, mockRequest);
 
@@ -1123,7 +1124,7 @@ class GlobalExceptionHandlerTest {
                 .assertNext(gem -> assertGem(
                         gem,
                         // aquí és una constant, no un literal
-                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.OPERATION_NOT_SUPPORTED,
+                        es.in2.issuer.backend.backoffice.domain.util.ErrorTypes.OPERATION_NOT_SUPPORTED,
                         "Operation not supported",
                         HttpStatus.BAD_REQUEST,
                         "not allowed"
@@ -1132,7 +1133,7 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
-    void handleOperationNotSupportedException_usesFallback_whenMessageNullOrBlank() throws Exception {
+    void handleOperationNotSupportedException_usesFallback_whenMessageNullOrBlank() {
         OperationNotSupportedException exNull = new OperationNotSupportedException(null);
         OperationNotSupportedException exBlank = new OperationNotSupportedException("   ");
         Mono<GlobalErrorMessage> mNull = handler.handleOperationNotSupportedException(exNull, mockRequest);
@@ -1141,7 +1142,7 @@ class GlobalExceptionHandlerTest {
         reactor.test.StepVerifier.create(mNull)
                 .assertNext(gem -> assertGem(
                         gem,
-                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.OPERATION_NOT_SUPPORTED,
+                        es.in2.issuer.backend.backoffice.domain.util.ErrorTypes.OPERATION_NOT_SUPPORTED,
                         "Operation not supported",
                         HttpStatus.BAD_REQUEST,
                         "The given operation is not supported"
@@ -1151,7 +1152,7 @@ class GlobalExceptionHandlerTest {
         reactor.test.StepVerifier.create(mBlank)
                 .assertNext(gem -> assertGem(
                         gem,
-                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.OPERATION_NOT_SUPPORTED,
+                        es.in2.issuer.backend.backoffice.domain.util.ErrorTypes.OPERATION_NOT_SUPPORTED,
                         "Operation not supported",
                         HttpStatus.BAD_REQUEST,
                         "The given operation is not supported"
@@ -1216,7 +1217,7 @@ class GlobalExceptionHandlerTest {
         reactor.test.StepVerifier.create(mono)
                 .assertNext(gem -> assertGem(
                         gem,
-                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.RESPONSE_URI_ERROR,
+                        es.in2.issuer.backend.backoffice.domain.util.ErrorTypes.RESPONSE_URI_ERROR,
                         "Response URI error",
                         HttpStatus.INTERNAL_SERVER_ERROR,
                         "timeout"
@@ -1234,7 +1235,7 @@ class GlobalExceptionHandlerTest {
         reactor.test.StepVerifier.create(mNull)
                 .assertNext(gem -> assertGem(
                         gem,
-                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.RESPONSE_URI_ERROR,
+                        es.in2.issuer.backend.backoffice.domain.util.ErrorTypes.RESPONSE_URI_ERROR,
                         "Response URI error",
                         HttpStatus.INTERNAL_SERVER_ERROR,
                         "Request to response URI failed"
@@ -1244,7 +1245,7 @@ class GlobalExceptionHandlerTest {
         reactor.test.StepVerifier.create(mBlank)
                 .assertNext(gem -> assertGem(
                         gem,
-                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.RESPONSE_URI_ERROR,
+                        es.in2.issuer.backend.backoffice.domain.util.ErrorTypes.RESPONSE_URI_ERROR,
                         "Response URI error",
                         HttpStatus.INTERNAL_SERVER_ERROR,
                         "Request to response URI failed"
@@ -1262,7 +1263,7 @@ class GlobalExceptionHandlerTest {
         reactor.test.StepVerifier.create(mono)
                 .assertNext(gem -> assertGem(
                         gem,
-                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.FORMAT_IS_NOT_SUPPORTED,
+                        es.in2.issuer.backend.backoffice.domain.util.ErrorTypes.FORMAT_IS_NOT_SUPPORTED,
                         "Format not supported",
                         HttpStatus.BAD_REQUEST,
                         "format xyz not supported"
@@ -1280,7 +1281,7 @@ class GlobalExceptionHandlerTest {
         reactor.test.StepVerifier.create(mNull)
                 .assertNext(gem -> assertGem(
                         gem,
-                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.FORMAT_IS_NOT_SUPPORTED,
+                        es.in2.issuer.backend.backoffice.domain.util.ErrorTypes.FORMAT_IS_NOT_SUPPORTED,
                         "Format not supported",
                         HttpStatus.BAD_REQUEST,
                         "Format is not supported"
@@ -1290,7 +1291,7 @@ class GlobalExceptionHandlerTest {
         reactor.test.StepVerifier.create(mBlank)
                 .assertNext(gem -> assertGem(
                         gem,
-                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.FORMAT_IS_NOT_SUPPORTED,
+                        es.in2.issuer.backend.backoffice.domain.util.ErrorTypes.FORMAT_IS_NOT_SUPPORTED,
                         "Format not supported",
                         HttpStatus.BAD_REQUEST,
                         "Format is not supported"
@@ -1308,7 +1309,7 @@ class GlobalExceptionHandlerTest {
         reactor.test.StepVerifier.create(mono)
                 .assertNext(gem -> assertGem(
                         gem,
-                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.INSUFFICIENT_PERMISSION,
+                        es.in2.issuer.backend.backoffice.domain.util.ErrorTypes.INSUFFICIENT_PERMISSION,
                         "Insufficient permission",
                         HttpStatus.FORBIDDEN,
                         "no perms"
@@ -1326,7 +1327,7 @@ class GlobalExceptionHandlerTest {
         reactor.test.StepVerifier.create(mNull)
                 .assertNext(gem -> assertGem(
                         gem,
-                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.INSUFFICIENT_PERMISSION,
+                        es.in2.issuer.backend.backoffice.domain.util.ErrorTypes.INSUFFICIENT_PERMISSION,
                         "Insufficient permission",
                         HttpStatus.FORBIDDEN,
                         "The client who made the issuance request do not have the required permissions"
@@ -1336,7 +1337,7 @@ class GlobalExceptionHandlerTest {
         reactor.test.StepVerifier.create(mBlank)
                 .assertNext(gem -> assertGem(
                         gem,
-                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.INSUFFICIENT_PERMISSION,
+                        es.in2.issuer.backend.backoffice.domain.util.ErrorTypes.INSUFFICIENT_PERMISSION,
                         "Insufficient permission",
                         HttpStatus.FORBIDDEN,
                         "The client who made the issuance request do not have the required permissions"
@@ -1446,7 +1447,7 @@ class GlobalExceptionHandlerTest {
         reactor.test.StepVerifier.create(mono)
                 .assertNext(gem -> assertGem(
                         gem,
-                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.MISSING_HEADER,
+                        es.in2.issuer.backend.backoffice.domain.util.ErrorTypes.MISSING_HEADER,
                         "Missing header",
                         HttpStatus.BAD_REQUEST,
                         "header missing"
@@ -1464,7 +1465,7 @@ class GlobalExceptionHandlerTest {
         reactor.test.StepVerifier.create(mNull)
                 .assertNext(gem -> assertGem(
                         gem,
-                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.MISSING_HEADER,
+                        es.in2.issuer.backend.backoffice.domain.util.ErrorTypes.MISSING_HEADER,
                         "Missing header",
                         HttpStatus.BAD_REQUEST,
                         "The X-ID-TOKEN header is missing, this header is needed to issue a Verifiable Certification"
@@ -1474,7 +1475,7 @@ class GlobalExceptionHandlerTest {
         reactor.test.StepVerifier.create(mBlank)
                 .assertNext(gem -> assertGem(
                         gem,
-                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.MISSING_HEADER,
+                        es.in2.issuer.backend.backoffice.domain.util.ErrorTypes.MISSING_HEADER,
                         "Missing header",
                         HttpStatus.BAD_REQUEST,
                         "The X-ID-TOKEN header is missing, this header is needed to issue a Verifiable Certification"
@@ -1677,7 +1678,7 @@ class GlobalExceptionHandlerTest {
         reactor.test.StepVerifier.create(mono)
                 .assertNext(gem -> assertGem(
                         gem,
-                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.SAD_ERROR,
+                        es.in2.issuer.backend.backoffice.domain.util.ErrorTypes.SAD_ERROR,
                         "SAD error",
                         HttpStatus.BAD_GATEWAY,
                         "upstream SAD failed"
@@ -1695,7 +1696,7 @@ class GlobalExceptionHandlerTest {
         reactor.test.StepVerifier.create(mNull)
                 .assertNext(gem -> assertGem(
                         gem,
-                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.SAD_ERROR,
+                        es.in2.issuer.backend.backoffice.domain.util.ErrorTypes.SAD_ERROR,
                         "SAD error",
                         HttpStatus.BAD_GATEWAY,
                         "An upstream SAD error occurred"
@@ -1705,7 +1706,7 @@ class GlobalExceptionHandlerTest {
         reactor.test.StepVerifier.create(mBlank)
                 .assertNext(gem -> assertGem(
                         gem,
-                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.SAD_ERROR,
+                        es.in2.issuer.backend.backoffice.domain.util.ErrorTypes.SAD_ERROR,
                         "SAD error",
                         HttpStatus.BAD_GATEWAY,
                         "An upstream SAD error occurred"
