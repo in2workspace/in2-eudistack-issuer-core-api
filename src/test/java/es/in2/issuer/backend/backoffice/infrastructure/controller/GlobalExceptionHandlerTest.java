@@ -1159,5 +1159,559 @@ class GlobalExceptionHandlerTest {
                 .verifyComplete();
     }
 
+    // ===================== handleJWTVerificationException =====================
+
+    @Test
+    void handleJWTVerificationException_usesExceptionMessage_whenPresent() {
+        JWTVerificationException ex = new JWTVerificationException("jwt invalid");
+        Mono<GlobalErrorMessage> mono = handler.handleJWTVerificationException(ex, mockRequest);
+
+        reactor.test.StepVerifier.create(mono)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        "jwt_verification_error",
+                        "JWT verification failed",
+                        HttpStatus.UNAUTHORIZED,
+                        "jwt invalid"
+                ))
+                .verifyComplete();
+    }
+
+    @Test
+    void handleJWTVerificationException_usesFallback_whenMessageNullOrBlank() {
+        JWTVerificationException exNull = new JWTVerificationException((String) null);
+        JWTVerificationException exBlank = new JWTVerificationException("   ");
+
+        Mono<GlobalErrorMessage> mNull = handler.handleJWTVerificationException(exNull, mockRequest);
+        Mono<GlobalErrorMessage> mBlank = handler.handleJWTVerificationException(exBlank, mockRequest);
+
+        reactor.test.StepVerifier.create(mNull)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        "jwt_verification_error",
+                        "JWT verification failed",
+                        HttpStatus.UNAUTHORIZED,
+                        "JWT verification failed."
+                ))
+                .verifyComplete();
+
+        reactor.test.StepVerifier.create(mBlank)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        "jwt_verification_error",
+                        "JWT verification failed",
+                        HttpStatus.UNAUTHORIZED,
+                        "JWT verification failed."
+                ))
+                .verifyComplete();
+    }
+
+// ===================== handleResponseUriException =====================
+
+    @Test
+    void handleResponseUriException_usesExceptionMessage_whenPresent() {
+        ResponseUriException ex = new ResponseUriException("timeout");
+        Mono<GlobalErrorMessage> mono = handler.handleResponseUriException(ex, mockRequest);
+
+        reactor.test.StepVerifier.create(mono)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.RESPONSE_URI_ERROR,
+                        "Response URI error",
+                        HttpStatus.INTERNAL_SERVER_ERROR,
+                        "timeout"
+                ))
+                .verifyComplete();
+    }
+
+    @Test
+    void handleResponseUriException_usesFallback_whenMessageNullOrBlank() {
+        ResponseUriException exNull = new ResponseUriException((String) null);
+        ResponseUriException exBlank = new ResponseUriException("");
+        Mono<GlobalErrorMessage> mNull = handler.handleResponseUriException(exNull, mockRequest);
+        Mono<GlobalErrorMessage> mBlank = handler.handleResponseUriException(exBlank, mockRequest);
+
+        reactor.test.StepVerifier.create(mNull)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.RESPONSE_URI_ERROR,
+                        "Response URI error",
+                        HttpStatus.INTERNAL_SERVER_ERROR,
+                        "Request to response URI failed"
+                ))
+                .verifyComplete();
+
+        reactor.test.StepVerifier.create(mBlank)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.RESPONSE_URI_ERROR,
+                        "Response URI error",
+                        HttpStatus.INTERNAL_SERVER_ERROR,
+                        "Request to response URI failed"
+                ))
+                .verifyComplete();
+    }
+
+// ===================== handleFormatUnsupportedException =====================
+
+    @Test
+    void handleFormatUnsupportedException_usesExceptionMessage_whenPresent() {
+        FormatUnsupportedException ex = new FormatUnsupportedException("format xyz not supported");
+        Mono<GlobalErrorMessage> mono = handler.handleFormatUnsupportedException(ex, mockRequest);
+
+        reactor.test.StepVerifier.create(mono)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.FORMAT_IS_NOT_SUPPORTED,
+                        "Format not supported",
+                        HttpStatus.BAD_REQUEST,
+                        "format xyz not supported"
+                ))
+                .verifyComplete();
+    }
+
+    @Test
+    void handleFormatUnsupportedException_usesFallback_whenMessageNullOrBlank() {
+        FormatUnsupportedException exNull = new FormatUnsupportedException((String) null);
+        FormatUnsupportedException exBlank = new FormatUnsupportedException("  ");
+        Mono<GlobalErrorMessage> mNull = handler.handleFormatUnsupportedException(exNull, mockRequest);
+        Mono<GlobalErrorMessage> mBlank = handler.handleFormatUnsupportedException(exBlank, mockRequest);
+
+        reactor.test.StepVerifier.create(mNull)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.FORMAT_IS_NOT_SUPPORTED,
+                        "Format not supported",
+                        HttpStatus.BAD_REQUEST,
+                        "Format is not supported"
+                ))
+                .verifyComplete();
+
+        reactor.test.StepVerifier.create(mBlank)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.FORMAT_IS_NOT_SUPPORTED,
+                        "Format not supported",
+                        HttpStatus.BAD_REQUEST,
+                        "Format is not supported"
+                ))
+                .verifyComplete();
+    }
+
+// ===================== handleInsufficientPermissionException =====================
+
+    @Test
+    void handleInsufficientPermissionException_usesExceptionMessage_whenPresent() {
+        InsufficientPermissionException ex = new InsufficientPermissionException("no perms");
+        Mono<GlobalErrorMessage> mono = handler.handleInsufficientPermissionException(ex, mockRequest);
+
+        reactor.test.StepVerifier.create(mono)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.INSUFFICIENT_PERMISSION,
+                        "Insufficient permission",
+                        HttpStatus.FORBIDDEN,
+                        "no perms"
+                ))
+                .verifyComplete();
+    }
+
+    @Test
+    void handleInsufficientPermissionException_usesFallback_whenMessageNullOrBlank() {
+        InsufficientPermissionException exNull = new InsufficientPermissionException((String) null);
+        InsufficientPermissionException exBlank = new InsufficientPermissionException("");
+        Mono<GlobalErrorMessage> mNull = handler.handleInsufficientPermissionException(exNull, mockRequest);
+        Mono<GlobalErrorMessage> mBlank = handler.handleInsufficientPermissionException(exBlank, mockRequest);
+
+        reactor.test.StepVerifier.create(mNull)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.INSUFFICIENT_PERMISSION,
+                        "Insufficient permission",
+                        HttpStatus.FORBIDDEN,
+                        "The client who made the issuance request do not have the required permissions"
+                ))
+                .verifyComplete();
+
+        reactor.test.StepVerifier.create(mBlank)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.INSUFFICIENT_PERMISSION,
+                        "Insufficient permission",
+                        HttpStatus.FORBIDDEN,
+                        "The client who made the issuance request do not have the required permissions"
+                ))
+                .verifyComplete();
+    }
+
+// ===================== handleUnauthorizedRoleException =====================
+
+    @Test
+    void handleUnauthorizedRoleException_usesExceptionMessage_whenPresent() {
+        UnauthorizedRoleException ex = new UnauthorizedRoleException("role not allowed");
+        Mono<GlobalErrorMessage> mono = handler.handleUnauthorizedRoleException(ex, mockRequest);
+
+        reactor.test.StepVerifier.create(mono)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        "unauthorized_role",
+                        "Unauthorized role",
+                        HttpStatus.UNAUTHORIZED,
+                        "role not allowed"
+                ))
+                .verifyComplete();
+    }
+
+    @Test
+    void handleUnauthorizedRoleException_usesFallback_whenMessageNullOrBlank() {
+        UnauthorizedRoleException exNull = new UnauthorizedRoleException((String) null);
+        UnauthorizedRoleException exBlank = new UnauthorizedRoleException("   ");
+        Mono<GlobalErrorMessage> mNull = handler.handleUnauthorizedRoleException(exNull, mockRequest);
+        Mono<GlobalErrorMessage> mBlank = handler.handleUnauthorizedRoleException(exBlank, mockRequest);
+
+        reactor.test.StepVerifier.create(mNull)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        "unauthorized_role",
+                        "Unauthorized role",
+                        HttpStatus.UNAUTHORIZED,
+                        "The user role is not authorized to perform this action"
+                ))
+                .verifyComplete();
+
+        reactor.test.StepVerifier.create(mBlank)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        "unauthorized_role",
+                        "Unauthorized role",
+                        HttpStatus.UNAUTHORIZED,
+                        "The user role is not authorized to perform this action"
+                ))
+                .verifyComplete();
+    }
+
+// ===================== handleEmailCommunicationException =====================
+
+    @Test
+    void handleEmailCommunicationException_usesExceptionMessage_whenPresent() {
+        EmailCommunicationException ex = new EmailCommunicationException("smtp down");
+        Mono<GlobalErrorMessage> mono = handler.handleEmailCommunicationException(ex, mockRequest);
+
+        reactor.test.StepVerifier.create(mono)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        "email_communication_error",
+                        "Email communication error",
+                        HttpStatus.SERVICE_UNAVAILABLE,
+                        "smtp down"
+                ))
+                .verifyComplete();
+    }
+
+    @Test
+    void handleEmailCommunicationException_usesFallback_whenMessageNullOrBlank() {
+        EmailCommunicationException exNull = new EmailCommunicationException((String) null);
+        EmailCommunicationException exBlank = new EmailCommunicationException("");
+        Mono<GlobalErrorMessage> mNull = handler.handleEmailCommunicationException(exNull, mockRequest);
+        Mono<GlobalErrorMessage> mBlank = handler.handleEmailCommunicationException(exBlank, mockRequest);
+
+        reactor.test.StepVerifier.create(mNull)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        "email_communication_error",
+                        "Email communication error",
+                        HttpStatus.SERVICE_UNAVAILABLE,
+                        "Email communication failed"
+                ))
+                .verifyComplete();
+
+        reactor.test.StepVerifier.create(mBlank)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        "email_communication_error",
+                        "Email communication error",
+                        HttpStatus.SERVICE_UNAVAILABLE,
+                        "Email communication failed"
+                ))
+                .verifyComplete();
+    }
+
+// ===================== handleMissingIdTokenHeaderException =====================
+
+    @Test
+    void handleMissingIdTokenHeaderException_usesExceptionMessage_whenPresent() {
+        MissingIdTokenHeaderException ex = new MissingIdTokenHeaderException("header missing");
+        Mono<GlobalErrorMessage> mono = handler.handleMissingIdTokenHeaderException(ex, mockRequest);
+
+        reactor.test.StepVerifier.create(mono)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.MISSING_HEADER,
+                        "Missing header",
+                        HttpStatus.BAD_REQUEST,
+                        "header missing"
+                ))
+                .verifyComplete();
+    }
+
+    @Test
+    void handleMissingIdTokenHeaderException_usesFallback_whenMessageNullOrBlank() {
+        MissingIdTokenHeaderException exNull = new MissingIdTokenHeaderException((String) null);
+        MissingIdTokenHeaderException exBlank = new MissingIdTokenHeaderException(" ");
+        Mono<GlobalErrorMessage> mNull = handler.handleMissingIdTokenHeaderException(exNull, mockRequest);
+        Mono<GlobalErrorMessage> mBlank = handler.handleMissingIdTokenHeaderException(exBlank, mockRequest);
+
+        reactor.test.StepVerifier.create(mNull)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.MISSING_HEADER,
+                        "Missing header",
+                        HttpStatus.BAD_REQUEST,
+                        "The X-ID-TOKEN header is missing, this header is needed to issue a Verifiable Certification"
+                ))
+                .verifyComplete();
+
+        reactor.test.StepVerifier.create(mBlank)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.MISSING_HEADER,
+                        "Missing header",
+                        HttpStatus.BAD_REQUEST,
+                        "The X-ID-TOKEN header is missing, this header is needed to issue a Verifiable Certification"
+                ))
+                .verifyComplete();
+    }
+
+// ===================== handleOrganizationIdentifierMismatchException =====================
+
+    @Test
+    void handleOrganizationIdentifierMismatchException_usesExceptionMessage_whenPresent() {
+        OrganizationIdentifierMismatchException ex = new OrganizationIdentifierMismatchException("org mismatch");
+        Mono<GlobalErrorMessage> mono = handler.handleOrganizationIdentifierMismatchException(ex, mockRequest);
+
+        reactor.test.StepVerifier.create(mono)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        "organization_id_mismatch_error",
+                        "Unauthorized",
+                        HttpStatus.FORBIDDEN,
+                        "org mismatch"
+                ))
+                .verifyComplete();
+    }
+
+    @Test
+    void handleOrganizationIdentifierMismatchException_usesFallback_whenMessageNullOrBlank() {
+        OrganizationIdentifierMismatchException exNull = new OrganizationIdentifierMismatchException((String) null);
+        OrganizationIdentifierMismatchException exBlank = new OrganizationIdentifierMismatchException("");
+        Mono<GlobalErrorMessage> mNull = handler.handleOrganizationIdentifierMismatchException(exNull, mockRequest);
+        Mono<GlobalErrorMessage> mBlank = handler.handleOrganizationIdentifierMismatchException(exBlank, mockRequest);
+
+        reactor.test.StepVerifier.create(mNull)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        "organization_id_mismatch_error",
+                        "Unauthorized",
+                        HttpStatus.FORBIDDEN,
+                        "Organization identifier mismatch"
+                ))
+                .verifyComplete();
+
+        reactor.test.StepVerifier.create(mBlank)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        "organization_id_mismatch_error",
+                        "Unauthorized",
+                        HttpStatus.FORBIDDEN,
+                        "Organization identifier mismatch"
+                ))
+                .verifyComplete();
+    }
+
+// ===================== handleNoSuchEntityException =====================
+
+    @Test
+    void handleNoSuchEntityException_usesExceptionMessage_whenPresent() {
+        NoSuchEntityException ex = new NoSuchEntityException("entity not found");
+        Mono<GlobalErrorMessage> mono = handler.handleNoSuchEntityException(ex, mockRequest);
+
+        reactor.test.StepVerifier.create(mono)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        "no_such_entity",
+                        "Not Found",
+                        HttpStatus.NOT_FOUND,
+                        "entity not found"
+                ))
+                .verifyComplete();
+    }
+
+    @Test
+    void handleNoSuchEntityException_usesFallback_whenMessageNullOrBlank() {
+        NoSuchEntityException exNull = new NoSuchEntityException((String) null);
+        NoSuchEntityException exBlank = new NoSuchEntityException(" ");
+        Mono<GlobalErrorMessage> mNull = handler.handleNoSuchEntityException(exNull, mockRequest);
+        Mono<GlobalErrorMessage> mBlank = handler.handleNoSuchEntityException(exBlank, mockRequest);
+
+        reactor.test.StepVerifier.create(mNull)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        "no_such_entity",
+                        "Not Found",
+                        HttpStatus.NOT_FOUND,
+                        "Requested entity was not found"
+                ))
+                .verifyComplete();
+
+        reactor.test.StepVerifier.create(mBlank)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        "no_such_entity",
+                        "Not Found",
+                        HttpStatus.NOT_FOUND,
+                        "Requested entity was not found"
+                ))
+                .verifyComplete();
+    }
+
+// ===================== handleMissingRequiredDataException =====================
+
+    @Test
+    void handleMissingRequiredDataException_usesExceptionMessage_whenPresent() {
+        MissingRequiredDataException ex = new MissingRequiredDataException("missing field X");
+        Mono<GlobalErrorMessage> mono = handler.handleMissingRequiredDataException(ex, mockRequest);
+
+        reactor.test.StepVerifier.create(mono)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        "missing_required_data_error",
+                        "Bad Request",
+                        HttpStatus.BAD_REQUEST,
+                        "missing field X"
+                ))
+                .verifyComplete();
+    }
+
+    @Test
+    void handleMissingRequiredDataException_usesFallback_whenMessageNullOrBlank() {
+        MissingRequiredDataException exNull = new MissingRequiredDataException((String) null);
+        MissingRequiredDataException exBlank = new MissingRequiredDataException("");
+        Mono<GlobalErrorMessage> mNull = handler.handleMissingRequiredDataException(exNull, mockRequest);
+        Mono<GlobalErrorMessage> mBlank = handler.handleMissingRequiredDataException(exBlank, mockRequest);
+
+        reactor.test.StepVerifier.create(mNull)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        "missing_required_data_error",
+                        "Bad Request",
+                        HttpStatus.BAD_REQUEST,
+                        "Missing required data"
+                ))
+                .verifyComplete();
+
+        reactor.test.StepVerifier.create(mBlank)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        "missing_required_data_error",
+                        "Bad Request",
+                        HttpStatus.BAD_REQUEST,
+                        "Missing required data"
+                ))
+                .verifyComplete();
+    }
+
+// ===================== handleInvalidSignatureConfigurationException =====================
+
+    @Test
+    void handleInvalidSignatureConfigurationException_usesExceptionMessage_whenPresent() {
+        InvalidSignatureConfigurationException ex = new InvalidSignatureConfigurationException("bad signature cfg");
+        Mono<GlobalErrorMessage> mono = handler.handleInvalidSignatureConfigurationException(ex, mockRequest);
+
+        reactor.test.StepVerifier.create(mono)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        "invalid_signature_configuration_error",
+                        "Bad Request",
+                        HttpStatus.BAD_REQUEST,
+                        "bad signature cfg"
+                ))
+                .verifyComplete();
+    }
+
+    @Test
+    void handleInvalidSignatureConfigurationException_usesFallback_whenMessageNullOrBlank() {
+        InvalidSignatureConfigurationException exNull = new InvalidSignatureConfigurationException((String) null);
+        InvalidSignatureConfigurationException exBlank = new InvalidSignatureConfigurationException("   ");
+
+        Mono<GlobalErrorMessage> mNull = handler.handleInvalidSignatureConfigurationException(exNull, mockRequest);
+        Mono<GlobalErrorMessage> mBlank = handler.handleInvalidSignatureConfigurationException(exBlank, mockRequest);
+
+        reactor.test.StepVerifier.create(mNull)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        "invalid_signature_configuration_error",
+                        "Bad Request",
+                        HttpStatus.BAD_REQUEST,
+                        "Invalid signature configuration"
+                ))
+                .verifyComplete();
+
+        reactor.test.StepVerifier.create(mBlank)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        "invalid_signature_configuration_error",
+                        "Bad Request",
+                        HttpStatus.BAD_REQUEST,
+                        "Invalid signature configuration"
+                ))
+                .verifyComplete();
+    }
+
+// ===================== handleSadError =====================
+
+    @Test
+    void handleSadError_usesExceptionMessage_whenPresent() {
+        SadException ex = new SadException("upstream SAD failed");
+        Mono<GlobalErrorMessage> mono = handler.handleSadError(ex, mockRequest);
+
+        reactor.test.StepVerifier.create(mono)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.SAD_ERROR,
+                        "SAD error",
+                        HttpStatus.BAD_GATEWAY,
+                        "upstream SAD failed"
+                ))
+                .verifyComplete();
+    }
+
+    @Test
+    void handleSadError_usesFallback_whenMessageNullOrBlank() {
+        SadException exNull = new SadException((String) null);
+        SadException exBlank = new SadException("");
+        Mono<GlobalErrorMessage> mNull = handler.handleSadError(exNull, mockRequest);
+        Mono<GlobalErrorMessage> mBlank = handler.handleSadError(exBlank, mockRequest);
+
+        reactor.test.StepVerifier.create(mNull)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.SAD_ERROR,
+                        "SAD error",
+                        HttpStatus.BAD_GATEWAY,
+                        "An upstream SAD error occurred"
+                ))
+                .verifyComplete();
+
+        reactor.test.StepVerifier.create(mBlank)
+                .assertNext(gem -> assertGem(
+                        gem,
+                        es.in2.issuer.backend.backoffice.domain.util.CredentialResponseErrorCodes.SAD_ERROR,
+                        "SAD error",
+                        HttpStatus.BAD_GATEWAY,
+                        "An upstream SAD error occurred"
+                ))
+                .verifyComplete();
+    }
+
 
 }
