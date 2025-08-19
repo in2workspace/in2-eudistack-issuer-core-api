@@ -12,7 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Send LEARCredentialMachine notification.
 
-## [v2.4.1](https://github.com/in2workspace/in2-issuer-api/releases/tag/v2.3.3)
+
+## [v2.4.1](https://github.com/in2workspace/in2-issuer-api/releases/tag/v2.4.1)
 ### Changed
 - In the email sent upon LEARCredentialMachine issuance, use mandator name instead of default.
 
