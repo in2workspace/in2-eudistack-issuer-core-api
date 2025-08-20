@@ -108,6 +108,7 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
         String schema = preSubmittedCredentialDataRequest.schema();
         var payload = preSubmittedCredentialDataRequest.payload();
 
+
         return switch (schema) {
             case LEAR_CREDENTIAL_EMPLOYEE -> {
                 String email = payload.get(MANDATEE).get(EMAIL).asText();
@@ -119,7 +120,8 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
             case LEAR_CREDENTIAL_MACHINE -> {
                 String email = payload.get(MANDATOR).get(EMAIL).asText();
                 String org = payload.get(MANDATOR).get(ORGANIZATION).asText();
-                yield new CredentialOfferEmailNotificationInfo(email, DEFAULT_USER_NAME, org);
+                String name = payload.get(MANDATOR).get(COMMON_NAME).asText();
+                yield new CredentialOfferEmailNotificationInfo(email, name, org);
             }
             case LABEL_CREDENTIAL -> {
                     if(preSubmittedCredentialDataRequest.credentialOwnerEmail() == null || preSubmittedCredentialDataRequest.credentialOwnerEmail().isBlank()) {
