@@ -22,9 +22,10 @@ public class BackofficeExceptionHandler {
 
     private final ErrorResponseFactory errors;
 
+    //todo remove when GlobalErrorTypes are used in more than one module
     @SuppressWarnings("unused")
     private static final Class<?> __arch_touch_global_error_types =
-            es.in2.issuer.backend.shared.domain.util.GlobalErrorTypes.class;
+            GlobalErrorTypes.class;
 
     @ExceptionHandler(AuthenticSourcesUserParsingException.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)

@@ -446,7 +446,7 @@ class GlobalExceptionHandlerTest {
     // -------------------- handleOperationNotSupportedException --------------------
 
     @Test
-    void handleOperationNotSupportedException() throws Exception {
+    void handleOperationNotSupportedException() {
         var ex = new OperationNotSupportedException("not allowed");
         var type = GlobalErrorTypes.OPERATION_NOT_SUPPORTED;
         var title = "Operation not supported";
