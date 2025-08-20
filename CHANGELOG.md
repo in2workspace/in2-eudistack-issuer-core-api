@@ -6,7 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [v2.4.3](https://github.com/in2workspace/in2-issuer-api/releases/tag/v2.4.3)
 ### Changed
-- Standarize error handling.
+- Standardize error handling to RFC 7807 across all endpoints.
+- Move GlobalExceptionHandler to shared module and add specific ControllerAdvice for each domain.
+- Remove unused exceptions.
 
 ## [v2.4.2](https://github.com/in2workspace/in2-issuer-api/releases/tag/v2.4.2)
 ### Added
