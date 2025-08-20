@@ -5,7 +5,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
-## [v2.4.3](https://github.com/in2workspace/in2-issuer-api/releases/tag/v2.4.2)
+## [v2.4.4](https://github.com/in2workspace/in2-issuer-api/releases/tag/v2.4.2)
 ### Added
 - SecurityConfig refactor credential issuer filters.
 
