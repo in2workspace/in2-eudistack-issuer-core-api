@@ -16,7 +16,6 @@ import reactor.test.StepVerifier;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 //todo make recursive
@@ -60,7 +59,7 @@ class BackofficeExceptionHandlerTest {
 
         // Preparem el Mono que retornarà el mock del factory
         var expected = new GlobalErrorMessage(type, title, st.value(), ex.getMessage(), UUID.randomUUID().toString());
-        when(errors.handleWith(eq(ex), eq(request), eq(type), eq(title), eq(st), eq(fallback)))
+        when(errors.handleWith(ex, request, type, title, st, fallback))
                 .thenReturn(Mono.just(expected));
 
         Mono<GlobalErrorMessage> mono = handler.handleAuthenticSourcesUserParsingException(ex, request);
@@ -70,7 +69,7 @@ class BackofficeExceptionHandlerTest {
                 .verifyComplete();
 
         // verifiquem la delegació amb els paràmetres exactes
-        verify(errors).handleWith(eq(ex), eq(request), eq(type), eq(title), eq(st), eq(fallback));
+        verify(errors).handleWith(ex, request, type, title, st, fallback);
     }
 
     @Test
@@ -86,8 +85,8 @@ class BackofficeExceptionHandlerTest {
         var expectedNull  = new GlobalErrorMessage(type, title, st.value(), fallback, UUID.randomUUID().toString());
         var expectedBlank = new GlobalErrorMessage(type, title, st.value(), fallback, UUID.randomUUID().toString());
 
-        when(errors.handleWith(eq(exNull),  eq(request), eq(type), eq(title), eq(st), eq(fallback))).thenReturn(Mono.just(expectedNull));
-        when(errors.handleWith(eq(exBlank), eq(request), eq(type), eq(title), eq(st), eq(fallback))).thenReturn(Mono.just(expectedBlank));
+        when(errors.handleWith(exNull,  request, type, title, st, fallback)).thenReturn(Mono.just(expectedNull));
+        when(errors.handleWith(exBlank, request, type, title, st, fallback)).thenReturn(Mono.just(expectedBlank));
 
         StepVerifier.create(handler.handleAuthenticSourcesUserParsingException(exNull, request))
                 .assertNext(gem -> assertGem(gem, type, title, st, fallback))
@@ -97,8 +96,8 @@ class BackofficeExceptionHandlerTest {
                 .assertNext(gem -> assertGem(gem, type, title, st, fallback))
                 .verifyComplete();
 
-        verify(errors).handleWith(eq(exNull),  eq(request), eq(type), eq(title), eq(st), eq(fallback));
-        verify(errors).handleWith(eq(exBlank), eq(request), eq(type), eq(title), eq(st), eq(fallback));
+        verify(errors).handleWith(exNull,  request, type, title, st, fallback);
+        verify(errors).handleWith(exBlank, request, type, title, st, fallback);
     }
 
     // ------------------- TemplateReadException -------------------
@@ -113,14 +112,14 @@ class BackofficeExceptionHandlerTest {
         String fallback = "An internal template read error occurred.";
 
         var expected = new GlobalErrorMessage(type, title, st.value(), ex.getMessage(), UUID.randomUUID().toString());
-        when(errors.handleWith(eq(ex), eq(request), eq(type), eq(title), eq(st), eq(fallback)))
+        when(errors.handleWith(ex, request, type, title, st, fallback))
                 .thenReturn(Mono.just(expected));
 
         StepVerifier.create(handler.handleTemplateReadException(ex, request))
                 .assertNext(gem -> assertGem(gem, type, title, st, "cannot read template"))
                 .verifyComplete();
 
-        verify(errors).handleWith(eq(ex), eq(request), eq(type), eq(title), eq(st), eq(fallback));
+        verify(errors).handleWith(ex, request, type, title, st, fallback);
     }
 
     @Test
@@ -136,8 +135,8 @@ class BackofficeExceptionHandlerTest {
         var expectedNull  = new GlobalErrorMessage(type, title, st.value(), fallback, UUID.randomUUID().toString());
         var expectedBlank = new GlobalErrorMessage(type, title, st.value(), fallback, UUID.randomUUID().toString());
 
-        when(errors.handleWith(eq(exNull),  eq(request), eq(type), eq(title), eq(st), eq(fallback))).thenReturn(Mono.just(expectedNull));
-        when(errors.handleWith(eq(exBlank), eq(request), eq(type), eq(title), eq(st), eq(fallback))).thenReturn(Mono.just(expectedBlank));
+        when(errors.handleWith(exNull,  request, type, title, st, fallback)).thenReturn(Mono.just(expectedNull));
+        when(errors.handleWith(exBlank, request, type, title, st, fallback)).thenReturn(Mono.just(expectedBlank));
 
         StepVerifier.create(handler.handleTemplateReadException(exNull, request))
                 .assertNext(gem -> assertGem(gem, type, title, st, fallback))
@@ -147,8 +146,8 @@ class BackofficeExceptionHandlerTest {
                 .assertNext(gem -> assertGem(gem, type, title, st, fallback))
                 .verifyComplete();
 
-        verify(errors).handleWith(eq(exNull),  eq(request), eq(type), eq(title), eq(st), eq(fallback));
-        verify(errors).handleWith(eq(exBlank), eq(request), eq(type), eq(title), eq(st), eq(fallback));
+        verify(errors).handleWith(exNull,  request, type, title, st, fallback);
+        verify(errors).handleWith(exBlank, request, type, title, st, fallback);
     }
 
     // ------------------- OrganizationIdentifierMismatchException -------------------
@@ -163,14 +162,14 @@ class BackofficeExceptionHandlerTest {
         String fallback = "Organization identifier mismatch";
 
         var expected = new GlobalErrorMessage(type, title, st.value(), ex.getMessage(), UUID.randomUUID().toString());
-        when(errors.handleWith(eq(ex), eq(request), eq(type), eq(title), eq(st), eq(fallback)))
+        when(errors.handleWith(ex, request, type, title, st, fallback))
                 .thenReturn(Mono.just(expected));
 
         StepVerifier.create(handler.handleOrganizationIdentifierMismatchException(ex, request))
                 .assertNext(gem -> assertGem(gem, type, title, st, "org mismatch"))
                 .verifyComplete();
 
-        verify(errors).handleWith(eq(ex), eq(request), eq(type), eq(title), eq(st), eq(fallback));
+        verify(errors).handleWith(ex, request, type, title, st, fallback);
     }
 
     @Test
@@ -186,8 +185,8 @@ class BackofficeExceptionHandlerTest {
         var expectedNull  = new GlobalErrorMessage(type, title, st.value(), fallback, UUID.randomUUID().toString());
         var expectedBlank = new GlobalErrorMessage(type, title, st.value(), fallback, UUID.randomUUID().toString());
 
-        when(errors.handleWith(eq(exNull),  eq(request), eq(type), eq(title), eq(st), eq(fallback))).thenReturn(Mono.just(expectedNull));
-        when(errors.handleWith(eq(exBlank), eq(request), eq(type), eq(title), eq(st), eq(fallback))).thenReturn(Mono.just(expectedBlank));
+        when(errors.handleWith(exNull,  request, type, title, st, fallback)).thenReturn(Mono.just(expectedNull));
+        when(errors.handleWith(exBlank, request, type, title, st, fallback)).thenReturn(Mono.just(expectedBlank));
 
         StepVerifier.create(handler.handleOrganizationIdentifierMismatchException(exNull, request))
                 .assertNext(gem -> assertGem(gem, type, title, st, fallback))
@@ -197,8 +196,8 @@ class BackofficeExceptionHandlerTest {
                 .assertNext(gem -> assertGem(gem, type, title, st, fallback))
                 .verifyComplete();
 
-        verify(errors).handleWith(eq(exNull),  eq(request), eq(type), eq(title), eq(st), eq(fallback));
-        verify(errors).handleWith(eq(exBlank), eq(request), eq(type), eq(title), eq(st), eq(fallback));
+        verify(errors).handleWith(exNull,  request, type, title, st, fallback);
+        verify(errors).handleWith(exBlank, request, type, title, st, fallback);
     }
 
     // ------------------- NoSuchEntityException -------------------
@@ -213,14 +212,14 @@ class BackofficeExceptionHandlerTest {
         String fallback = "Requested entity was not found";
 
         var expected = new GlobalErrorMessage(type, title, st.value(), ex.getMessage(), UUID.randomUUID().toString());
-        when(errors.handleWith(eq(ex), eq(request), eq(type), eq(title), eq(st), eq(fallback)))
+        when(errors.handleWith(ex, request, type, title, st, fallback))
                 .thenReturn(Mono.just(expected));
 
         StepVerifier.create(handler.handleNoSuchEntityException(ex, request))
                 .assertNext(gem -> assertGem(gem, type, title, st, "entity not found"))
                 .verifyComplete();
 
-        verify(errors).handleWith(eq(ex), eq(request), eq(type), eq(title), eq(st), eq(fallback));
+        verify(errors).handleWith(ex, request, type, title, st, fallback);
     }
 
     @Test
@@ -236,8 +235,8 @@ class BackofficeExceptionHandlerTest {
         var expectedNull  = new GlobalErrorMessage(type, title, st.value(), fallback, UUID.randomUUID().toString());
         var expectedBlank = new GlobalErrorMessage(type, title, st.value(), fallback, UUID.randomUUID().toString());
 
-        when(errors.handleWith(eq(exNull),  eq(request), eq(type), eq(title), eq(st), eq(fallback))).thenReturn(Mono.just(expectedNull));
-        when(errors.handleWith(eq(exBlank), eq(request), eq(type), eq(title), eq(st), eq(fallback))).thenReturn(Mono.just(expectedBlank));
+        when(errors.handleWith(exNull,  request, type, title, st, fallback)).thenReturn(Mono.just(expectedNull));
+        when(errors.handleWith(exBlank, request, type, title, st, fallback)).thenReturn(Mono.just(expectedBlank));
 
         StepVerifier.create(handler.handleNoSuchEntityException(exNull, request))
                 .assertNext(gem -> assertGem(gem, type, title, st, fallback))
@@ -247,8 +246,8 @@ class BackofficeExceptionHandlerTest {
                 .assertNext(gem -> assertGem(gem, type, title, st, fallback))
                 .verifyComplete();
 
-        verify(errors).handleWith(eq(exNull),  eq(request), eq(type), eq(title), eq(st), eq(fallback));
-        verify(errors).handleWith(eq(exBlank), eq(request), eq(type), eq(title), eq(st), eq(fallback));
+        verify(errors).handleWith(exNull,  request, type, title, st, fallback);
+        verify(errors).handleWith(exBlank, request, type, title, st, fallback);
     }
 
     // ------------------- MissingRequiredDataException -------------------
@@ -263,14 +262,14 @@ class BackofficeExceptionHandlerTest {
         String fallback = "Missing required data";
 
         var expected = new GlobalErrorMessage(type, title, st.value(), ex.getMessage(), UUID.randomUUID().toString());
-        when(errors.handleWith(eq(ex), eq(request), eq(type), eq(title), eq(st), eq(fallback)))
+        when(errors.handleWith(ex, request, type, title, st, fallback))
                 .thenReturn(Mono.just(expected));
 
         StepVerifier.create(handler.handleMissingRequiredDataException(ex, request))
                 .assertNext(gem -> assertGem(gem, type, title, st, "missing field X"))
                 .verifyComplete();
 
-        verify(errors).handleWith(eq(ex), eq(request), eq(type), eq(title), eq(st), eq(fallback));
+        verify(errors).handleWith(ex, request, type, title, st, fallback);
     }
 
     @Test
@@ -286,8 +285,8 @@ class BackofficeExceptionHandlerTest {
         var expectedNull  = new GlobalErrorMessage(type, title, st.value(), fallback, UUID.randomUUID().toString());
         var expectedBlank = new GlobalErrorMessage(type, title, st.value(), fallback, UUID.randomUUID().toString());
 
-        when(errors.handleWith(eq(exNull),  eq(request), eq(type), eq(title), eq(st), eq(fallback))).thenReturn(Mono.just(expectedNull));
-        when(errors.handleWith(eq(exBlank), eq(request), eq(type), eq(title), eq(st), eq(fallback))).thenReturn(Mono.just(expectedBlank));
+        when(errors.handleWith(exNull,  request, type, title, st, fallback)).thenReturn(Mono.just(expectedNull));
+        when(errors.handleWith(exBlank, request, type, title, st, fallback)).thenReturn(Mono.just(expectedBlank));
 
         StepVerifier.create(handler.handleMissingRequiredDataException(exNull, request))
                 .assertNext(gem -> assertGem(gem, type, title, st, fallback))
@@ -297,8 +296,8 @@ class BackofficeExceptionHandlerTest {
                 .assertNext(gem -> assertGem(gem, type, title, st, fallback))
                 .verifyComplete();
 
-        verify(errors).handleWith(eq(exNull),  eq(request), eq(type), eq(title), eq(st), eq(fallback));
-        verify(errors).handleWith(eq(exBlank), eq(request), eq(type), eq(title), eq(st), eq(fallback));
+        verify(errors).handleWith(exNull,  request, type, title, st, fallback);
+        verify(errors).handleWith(exBlank, request, type, title, st, fallback);
     }
 
     // ------------------- InvalidSignatureConfigurationException -------------------
@@ -313,14 +312,14 @@ class BackofficeExceptionHandlerTest {
         String fallback = "Invalid signature configuration";
 
         var expected = new GlobalErrorMessage(type, title, st.value(), ex.getMessage(), UUID.randomUUID().toString());
-        when(errors.handleWith(eq(ex), eq(request), eq(type), eq(title), eq(st), eq(fallback)))
+        when(errors.handleWith(ex, request, type, title, st, fallback))
                 .thenReturn(Mono.just(expected));
 
         StepVerifier.create(handler.handleInvalidSignatureConfigurationException(ex, request))
                 .assertNext(gem -> assertGem(gem, type, title, st, "bad signature cfg"))
                 .verifyComplete();
 
-        verify(errors).handleWith(eq(ex), eq(request), eq(type), eq(title), eq(st), eq(fallback));
+        verify(errors).handleWith(ex, request, type, title, st, fallback);
     }
 
     @Test
@@ -336,8 +335,8 @@ class BackofficeExceptionHandlerTest {
         var expectedNull  = new GlobalErrorMessage(type, title, st.value(), fallback, UUID.randomUUID().toString());
         var expectedBlank = new GlobalErrorMessage(type, title, st.value(), fallback, UUID.randomUUID().toString());
 
-        when(errors.handleWith(eq(exNull),  eq(request), eq(type), eq(title), eq(st), eq(fallback))).thenReturn(Mono.just(expectedNull));
-        when(errors.handleWith(eq(exBlank), eq(request), eq(type), eq(title), eq(st), eq(fallback))).thenReturn(Mono.just(expectedBlank));
+        when(errors.handleWith(exNull,  request, type, title, st, fallback)).thenReturn(Mono.just(expectedNull));
+        when(errors.handleWith(exBlank, request, type, title, st, fallback)).thenReturn(Mono.just(expectedBlank));
 
         StepVerifier.create(handler.handleInvalidSignatureConfigurationException(exNull, request))
                 .assertNext(gem -> assertGem(gem, type, title, st, fallback))
@@ -347,7 +346,7 @@ class BackofficeExceptionHandlerTest {
                 .assertNext(gem -> assertGem(gem, type, title, st, fallback))
                 .verifyComplete();
 
-        verify(errors).handleWith(eq(exNull),  eq(request), eq(type), eq(title), eq(st), eq(fallback));
-        verify(errors).handleWith(eq(exBlank), eq(request), eq(type), eq(title), eq(st), eq(fallback));
+        verify(errors).handleWith(exNull,  request, type, title, st, fallback);
+        verify(errors).handleWith(exBlank, request, type, title, st, fallback);
     }
 }

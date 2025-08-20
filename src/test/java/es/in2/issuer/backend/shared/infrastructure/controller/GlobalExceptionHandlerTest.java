@@ -19,7 +19,6 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 //todo make recursive
@@ -60,14 +59,14 @@ class GlobalExceptionHandlerTest {
         var fallback = "The given credential type is not supported";
         var expected = new GlobalErrorMessage(type, title, st.value(), ex.getMessage(), UUID.randomUUID().toString());
 
-        when(errors.handleWith(eq(ex), eq(request), eq(type), eq(title), eq(st), eq(fallback)))
+        when(errors.handleWith(ex, request, type, title, st, fallback))
                 .thenReturn(Mono.just(expected));
 
         StepVerifier.create(handler.handleCredentialTypeUnsupported(ex, request))
                 .assertNext(gem -> assertGem(gem, type, title, st, "custom msg"))
                 .verifyComplete();
 
-        verify(errors).handleWith(eq(ex), eq(request), eq(type), eq(title), eq(st), eq(fallback));
+        verify(errors).handleWith(ex, request, type, title, st, fallback);
     }
 
     @Test
@@ -82,9 +81,9 @@ class GlobalExceptionHandlerTest {
         var expectedNull = new GlobalErrorMessage(type, title, st.value(), fallback, UUID.randomUUID().toString());
         var expectedBlank = new GlobalErrorMessage(type, title, st.value(), fallback, UUID.randomUUID().toString());
 
-        when(errors.handleWith(eq(exNull), eq(request), eq(type), eq(title), eq(st), eq(fallback)))
+        when(errors.handleWith(exNull, request, type, title, st, fallback))
                 .thenReturn(Mono.just(expectedNull));
-        when(errors.handleWith(eq(exBlank), eq(request), eq(type), eq(title), eq(st), eq(fallback)))
+        when(errors.handleWith(exBlank, request, type, title, st, fallback))
                 .thenReturn(Mono.just(expectedBlank));
 
         StepVerifier.create(handler.handleCredentialTypeUnsupported(exNull, request))
@@ -94,8 +93,8 @@ class GlobalExceptionHandlerTest {
                 .assertNext(gem -> assertGem(gem, type, title, st, fallback))
                 .verifyComplete();
 
-        verify(errors).handleWith(eq(exNull), eq(request), eq(type), eq(title), eq(st), eq(fallback));
-        verify(errors).handleWith(eq(exBlank), eq(request), eq(type), eq(title), eq(st), eq(fallback));
+        verify(errors).handleWith(exNull, request, type, title, st, fallback);
+        verify(errors).handleWith(exBlank, request, type, title, st, fallback);
     }
 
     // -------------------- handleNoSuchElementException --------------------
@@ -109,14 +108,14 @@ class GlobalExceptionHandlerTest {
         var fallback = "The requested resource was not found";
         var expected = new GlobalErrorMessage(type, title, st.value(), ex.getMessage(), UUID.randomUUID().toString());
 
-        when(errors.handleWith(eq(ex), eq(request), eq(type), eq(title), eq(st), eq(fallback)))
+        when(errors.handleWith(ex, request, type, title, st, fallback))
                 .thenReturn(Mono.just(expected));
 
         StepVerifier.create(handler.handleNoSuchElementException(ex, request))
                 .assertNext(gem -> assertGem(gem, type, title, st, "not here"))
                 .verifyComplete();
 
-        verify(errors).handleWith(eq(ex), eq(request), eq(type), eq(title), eq(st), eq(fallback));
+        verify(errors).handleWith(ex, request, type, title, st, fallback);
     }
 
     @Test
@@ -129,14 +128,14 @@ class GlobalExceptionHandlerTest {
         var exBlank = new NoSuchElementException("  ");
         var expected = new GlobalErrorMessage(type, title, st.value(), fallback, UUID.randomUUID().toString());
 
-        when(errors.handleWith(eq(exBlank), eq(request), eq(type), eq(title), eq(st), eq(fallback)))
+        when(errors.handleWith(exBlank, request, type, title, st, fallback))
                 .thenReturn(Mono.just(expected));
 
         StepVerifier.create(handler.handleNoSuchElementException(exBlank, request))
                 .assertNext(gem -> assertGem(gem, type, title, st, fallback))
                 .verifyComplete();
 
-        verify(errors).handleWith(eq(exBlank), eq(request), eq(type), eq(title), eq(st), eq(fallback));
+        verify(errors).handleWith(exBlank, request, type, title, st, fallback);
     }
 
     // -------------------- handleInvalidOrMissingProof --------------------
@@ -150,14 +149,14 @@ class GlobalExceptionHandlerTest {
         var fallback = "Credential Request did not contain a proof, or proof was invalid, i.e. it was not bound to a Credential Issuer provided nonce.";
         var expected = new GlobalErrorMessage(type, title, st.value(), ex.getMessage(), UUID.randomUUID().toString());
 
-        when(errors.handleWith(eq(ex), eq(request), eq(type), eq(title), eq(st), eq(fallback)))
+        when(errors.handleWith(ex, request, type, title, st, fallback))
                 .thenReturn(Mono.just(expected));
 
         StepVerifier.create(handler.handleInvalidOrMissingProof(ex, request))
                 .assertNext(gem -> assertGem(gem, type, title, st, "bad proof"))
                 .verifyComplete();
 
-        verify(errors).handleWith(eq(ex), eq(request), eq(type), eq(title), eq(st), eq(fallback));
+        verify(errors).handleWith(ex, request, type, title, st, fallback);
     }
 
     @Test
@@ -173,9 +172,9 @@ class GlobalExceptionHandlerTest {
         var expectedNull = new GlobalErrorMessage(type, title, st.value(), fallback, UUID.randomUUID().toString());
         var expectedBlank = new GlobalErrorMessage(type, title, st.value(), fallback, UUID.randomUUID().toString());
 
-        when(errors.handleWith(eq(exNull), eq(request), eq(type), eq(title), eq(st), eq(fallback)))
+        when(errors.handleWith(exNull, request, type, title, st, fallback))
                 .thenReturn(Mono.just(expectedNull));
-        when(errors.handleWith(eq(exBlank), eq(request), eq(type), eq(title), eq(st), eq(fallback)))
+        when(errors.handleWith(exBlank, request, type, title, st, fallback))
                 .thenReturn(Mono.just(expectedBlank));
 
         StepVerifier.create(handler.handleInvalidOrMissingProof(exNull, request))
@@ -185,8 +184,8 @@ class GlobalExceptionHandlerTest {
                 .assertNext(gem -> assertGem(gem, type, title, st, fallback))
                 .verifyComplete();
 
-        verify(errors).handleWith(eq(exNull), eq(request), eq(type), eq(title), eq(st), eq(fallback));
-        verify(errors).handleWith(eq(exBlank), eq(request), eq(type), eq(title), eq(st), eq(fallback));
+        verify(errors).handleWith(exNull, request, type, title, st, fallback);
+        verify(errors).handleWith(exBlank, request, type, title, st, fallback);
     }
 
     // -------------------- handleInvalidToken --------------------
@@ -200,14 +199,14 @@ class GlobalExceptionHandlerTest {
         var fallback = "Credential Request contains the wrong Access Token or the Access Token is missing";
 
         var expected = new GlobalErrorMessage(type, title, st.value(), ex.getMessage(), UUID.randomUUID().toString());
-        when(errors.handleWith(eq(ex), eq(request), eq(type), eq(title), eq(st), eq(fallback)))
+        when(errors.handleWith(ex, request, type, title, st, fallback))
                 .thenReturn(Mono.just(expected));
 
         StepVerifier.create(handler.handleInvalidToken(ex, request))
                 .assertNext(gem -> assertGem(gem, type, title, st, "Message"))
                 .verifyComplete();
 
-        verify(errors).handleWith(eq(ex), eq(request), eq(type), eq(title), eq(st), eq(fallback));
+        verify(errors).handleWith(ex, request, type, title, st, fallback);
     }
 
     @Test
@@ -223,8 +222,8 @@ class GlobalExceptionHandlerTest {
         var expectedNull = new GlobalErrorMessage(type, title, st.value(), fallback, UUID.randomUUID().toString());
         var expectedBlank = new GlobalErrorMessage(type, title, st.value(), fallback, UUID.randomUUID().toString());
 
-        when(errors.handleWith(eq(exNull), eq(request), eq(type), eq(title), eq(st), eq(fallback))).thenReturn(Mono.just(expectedNull));
-        when(errors.handleWith(eq(exBlank), eq(request), eq(type), eq(title), eq(st), eq(fallback))).thenReturn(Mono.just(expectedBlank));
+        when(errors.handleWith(exNull, request, type, title, st, fallback)).thenReturn(Mono.just(expectedNull));
+        when(errors.handleWith(exBlank, request, type, title, st, fallback)).thenReturn(Mono.just(expectedBlank));
 
         StepVerifier.create(handler.handleInvalidToken(exNull, request))
                 .assertNext(gem -> assertGem(gem, type, title, st, fallback))
@@ -233,8 +232,8 @@ class GlobalExceptionHandlerTest {
                 .assertNext(gem -> assertGem(gem, type, title, st, fallback))
                 .verifyComplete();
 
-        verify(errors).handleWith(eq(exNull), eq(request), eq(type), eq(title), eq(st), eq(fallback));
-        verify(errors).handleWith(eq(exBlank), eq(request), eq(type), eq(title), eq(st), eq(fallback));
+        verify(errors).handleWith(exNull, request, type, title, st, fallback);
+        verify(errors).handleWith(exBlank, request, type, title, st, fallback);
     }
 
     // -------------------- handleParseException --------------------
@@ -248,13 +247,13 @@ class GlobalExceptionHandlerTest {
         var fallback = "An internal parsing error occurred.";
         var expected = new GlobalErrorMessage(type, title, st.value(), ex.getMessage(), UUID.randomUUID().toString());
 
-        when(errors.handleWith(eq(ex), eq(request), eq(type), eq(title), eq(st), eq(fallback))).thenReturn(Mono.just(expected));
+        when(errors.handleWith(ex, request, type, title, st, fallback)).thenReturn(Mono.just(expected));
 
         StepVerifier.create(handler.handleParseException(ex, request))
                 .assertNext(gem -> assertGem(gem, type, title, st, "bad date"))
                 .verifyComplete();
 
-        verify(errors).handleWith(eq(ex), eq(request), eq(type), eq(title), eq(st), eq(fallback));
+        verify(errors).handleWith(ex, request, type, title, st, fallback);
     }
 
     @Test
@@ -270,8 +269,8 @@ class GlobalExceptionHandlerTest {
         var expectedNull = new GlobalErrorMessage(type, title, st.value(), fallback, UUID.randomUUID().toString());
         var expectedBlank = new GlobalErrorMessage(type, title, st.value(), fallback, UUID.randomUUID().toString());
 
-        when(errors.handleWith(eq(exNull), eq(request), eq(type), eq(title), eq(st), eq(fallback))).thenReturn(Mono.just(expectedNull));
-        when(errors.handleWith(eq(exBlank), eq(request), eq(type), eq(title), eq(st), eq(fallback))).thenReturn(Mono.just(expectedBlank));
+        when(errors.handleWith(exNull, request, type, title, st, fallback)).thenReturn(Mono.just(expectedNull));
+        when(errors.handleWith(exBlank, request, type, title, st, fallback)).thenReturn(Mono.just(expectedBlank));
 
         StepVerifier.create(handler.handleParseException(exNull, request))
                 .assertNext(gem -> assertGem(gem, type, title, st, fallback))
@@ -280,8 +279,8 @@ class GlobalExceptionHandlerTest {
                 .assertNext(gem -> assertGem(gem, type, title, st, fallback))
                 .verifyComplete();
 
-        verify(errors).handleWith(eq(exNull), eq(request), eq(type), eq(title), eq(st), eq(fallback));
-        verify(errors).handleWith(eq(exBlank), eq(request), eq(type), eq(title), eq(st), eq(fallback));
+        verify(errors).handleWith(exNull, request, type, title, st, fallback);
+        verify(errors).handleWith(exBlank, request, type, title, st, fallback);
     }
 
     // -------------------- handleBase45Exception --------------------
@@ -295,13 +294,13 @@ class GlobalExceptionHandlerTest {
         var fallback = "An internal Base45 decoding error occurred.";
         var expected = new GlobalErrorMessage(type, title, st.value(), "decode failed", UUID.randomUUID().toString());
 
-        when(errors.handleWith(eq(ex), eq(request), eq(type), eq(title), eq(st), eq(fallback))).thenReturn(Mono.just(expected));
+        when(errors.handleWith(ex, request, type, title, st, fallback)).thenReturn(Mono.just(expected));
 
         StepVerifier.create(handler.handleBase45Exception(ex, request))
                 .assertNext(gem -> assertGem(gem, type, title, st, "decode failed"))
                 .verifyComplete();
 
-        verify(errors).handleWith(eq(ex), eq(request), eq(type), eq(title), eq(st), eq(fallback));
+        verify(errors).handleWith(ex, request, type, title, st, fallback);
     }
 
     // -------------------- handleSignedDataParsingException --------------------
@@ -315,13 +314,13 @@ class GlobalExceptionHandlerTest {
         var fallback = "An internal signed data parsing error occurred.";
         var expected = new GlobalErrorMessage(type, title, st.value(), "bad signature payload", UUID.randomUUID().toString());
 
-        when(errors.handleWith(eq(ex), eq(request), eq(type), eq(title), eq(st), eq(fallback))).thenReturn(Mono.just(expected));
+        when(errors.handleWith(ex, request, type, title, st, fallback)).thenReturn(Mono.just(expected));
 
         StepVerifier.create(handler.handleSignedDataParsingException(ex, request))
                 .assertNext(gem -> assertGem(gem, type, title, st, "bad signature payload"))
                 .verifyComplete();
 
-        verify(errors).handleWith(eq(ex), eq(request), eq(type), eq(title), eq(st), eq(fallback));
+        verify(errors).handleWith(ex, request, type, title, st, fallback);
     }
 
     // -------------------- handleParseCredentialJsonException --------------------
@@ -335,13 +334,13 @@ class GlobalExceptionHandlerTest {
         var fallback = "An internal credential JSON parsing error occurred.";
         var expected = new GlobalErrorMessage(type, title, st.value(), "bad json", UUID.randomUUID().toString());
 
-        when(errors.handleWith(eq(ex), eq(request), eq(type), eq(title), eq(st), eq(fallback))).thenReturn(Mono.just(expected));
+        when(errors.handleWith(ex, request, type, title, st, fallback)).thenReturn(Mono.just(expected));
 
         StepVerifier.create(handler.handleParseCredentialJsonException(ex, request))
                 .assertNext(gem -> assertGem(gem, type, title, st, "bad json"))
                 .verifyComplete();
 
-        verify(errors).handleWith(eq(ex), eq(request), eq(type), eq(title), eq(st), eq(fallback));
+        verify(errors).handleWith(ex, request, type, title, st, fallback);
     }
 
     // -------------------- handleProofValidationException --------------------
@@ -355,13 +354,13 @@ class GlobalExceptionHandlerTest {
         var fallback = "An internal proof validation error occurred.";
         var expected = new GlobalErrorMessage(type, title, st.value(), "proof invalid", UUID.randomUUID().toString());
 
-        when(errors.handleWith(eq(ex), eq(request), eq(type), eq(title), eq(st), eq(fallback))).thenReturn(Mono.just(expected));
+        when(errors.handleWith(ex, request, type, title, st, fallback)).thenReturn(Mono.just(expected));
 
         StepVerifier.create(handler.handleProofValidationException(ex, request))
                 .assertNext(gem -> assertGem(gem, type, title, st, "proof invalid"))
                 .verifyComplete();
 
-        verify(errors).handleWith(eq(ex), eq(request), eq(type), eq(title), eq(st), eq(fallback));
+        verify(errors).handleWith(ex, request, type, title, st, fallback);
     }
 
     // -------------------- handleNoCredentialFoundException --------------------
@@ -375,13 +374,13 @@ class GlobalExceptionHandlerTest {
         var fallback = "No credential found.";
         var expected = new GlobalErrorMessage(type, title, st.value(), "nothing here", UUID.randomUUID().toString());
 
-        when(errors.handleWith(eq(ex), eq(request), eq(type), eq(title), eq(st), eq(fallback))).thenReturn(Mono.just(expected));
+        when(errors.handleWith(ex, request, type, title, st, fallback)).thenReturn(Mono.just(expected));
 
         StepVerifier.create(handler.handleNoCredentialFoundException(ex, request))
                 .assertNext(gem -> assertGem(gem, type, title, st, "nothing here"))
                 .verifyComplete();
 
-        verify(errors).handleWith(eq(ex), eq(request), eq(type), eq(title), eq(st), eq(fallback));
+        verify(errors).handleWith(ex, request, type, title, st, fallback);
     }
 
     // -------------------- handlePreAuthorizationCodeGetException --------------------
@@ -395,13 +394,13 @@ class GlobalExceptionHandlerTest {
         var fallback = "Failed to retrieve pre-authorization code.";
         var expected = new GlobalErrorMessage(type, title, st.value(), "service down", UUID.randomUUID().toString());
 
-        when(errors.handleWith(eq(ex), eq(request), eq(type), eq(title), eq(st), eq(fallback))).thenReturn(Mono.just(expected));
+        when(errors.handleWith(ex, request, type, title, st, fallback)).thenReturn(Mono.just(expected));
 
         StepVerifier.create(handler.handlePreAuthorizationCodeGetException(ex, request))
                 .assertNext(gem -> assertGem(gem, type, title, st, "service down"))
                 .verifyComplete();
 
-        verify(errors).handleWith(eq(ex), eq(request), eq(type), eq(title), eq(st), eq(fallback));
+        verify(errors).handleWith(ex, request, type, title, st, fallback);
     }
 
     // -------------------- handleCredentialOfferNotFoundException --------------------
@@ -415,13 +414,13 @@ class GlobalExceptionHandlerTest {
         var fallback = "Credential offer not found.";
         var expected = new GlobalErrorMessage(type, title, st.value(), "offer not found", UUID.randomUUID().toString());
 
-        when(errors.handleWith(eq(ex), eq(request), eq(type), eq(title), eq(st), eq(fallback))).thenReturn(Mono.just(expected));
+        when(errors.handleWith(ex, request, type, title, st, fallback)).thenReturn(Mono.just(expected));
 
         StepVerifier.create(handler.handleCredentialOfferNotFoundException(ex, request))
                 .assertNext(gem -> assertGem(gem, type, title, st, "offer not found"))
                 .verifyComplete();
 
-        verify(errors).handleWith(eq(ex), eq(request), eq(type), eq(title), eq(st), eq(fallback));
+        verify(errors).handleWith(ex, request, type, title, st, fallback);
     }
 
     // -------------------- handleCredentialAlreadyIssuedException --------------------
@@ -435,13 +434,13 @@ class GlobalExceptionHandlerTest {
         var fallback = "The credential has already been issued.";
         var expected = new GlobalErrorMessage(type, title, st.value(), "already issued", UUID.randomUUID().toString());
 
-        when(errors.handleWith(eq(ex), eq(request), eq(type), eq(title), eq(st), eq(fallback))).thenReturn(Mono.just(expected));
+        when(errors.handleWith(ex, request, type, title, st, fallback)).thenReturn(Mono.just(expected));
 
         StepVerifier.create(handler.handleCredentialAlreadyIssuedException(ex, request))
                 .assertNext(gem -> assertGem(gem, type, title, st, "already issued"))
                 .verifyComplete();
 
-        verify(errors).handleWith(eq(ex), eq(request), eq(type), eq(title), eq(st), eq(fallback));
+        verify(errors).handleWith(ex, request, type, title, st, fallback);
     }
 
     // -------------------- handleOperationNotSupportedException --------------------
@@ -455,13 +454,13 @@ class GlobalExceptionHandlerTest {
         var fallback = "The given operation is not supported";
         var expected = new GlobalErrorMessage(type, title, st.value(), "not allowed", UUID.randomUUID().toString());
 
-        when(errors.handleWith(eq(ex), eq(request), eq(type), eq(title), eq(st), eq(fallback))).thenReturn(Mono.just(expected));
+        when(errors.handleWith(ex, request, type, title, st, fallback)).thenReturn(Mono.just(expected));
 
         StepVerifier.create(handler.handleOperationNotSupportedException(ex, request))
                 .assertNext(gem -> assertGem(gem, type, title, st, "not allowed"))
                 .verifyComplete();
 
-        verify(errors).handleWith(eq(ex), eq(request), eq(type), eq(title), eq(st), eq(fallback));
+        verify(errors).handleWith(ex, request, type, title, st, fallback);
     }
 
     // -------------------- handleJWTVerificationException --------------------
@@ -475,13 +474,13 @@ class GlobalExceptionHandlerTest {
         var fallback = "JWT verification failed.";
         var expected = new GlobalErrorMessage(type, title, st.value(), "jwt invalid", UUID.randomUUID().toString());
 
-        when(errors.handleWith(eq(ex), eq(request), eq(type), eq(title), eq(st), eq(fallback))).thenReturn(Mono.just(expected));
+        when(errors.handleWith(ex, request, type, title, st, fallback)).thenReturn(Mono.just(expected));
 
         StepVerifier.create(handler.handleJWTVerificationException(ex, request))
                 .assertNext(gem -> assertGem(gem, type, title, st, "jwt invalid"))
                 .verifyComplete();
 
-        verify(errors).handleWith(eq(ex), eq(request), eq(type), eq(title), eq(st), eq(fallback));
+        verify(errors).handleWith(ex, request, type, title, st, fallback);
     }
 
     // -------------------- handleFormatUnsupportedException --------------------
@@ -495,13 +494,13 @@ class GlobalExceptionHandlerTest {
         var fallback = "Format is not supported";
         var expected = new GlobalErrorMessage(type, title, st.value(), "format xyz not supported", UUID.randomUUID().toString());
 
-        when(errors.handleWith(eq(ex), eq(request), eq(type), eq(title), eq(st), eq(fallback))).thenReturn(Mono.just(expected));
+        when(errors.handleWith(ex, request, type, title, st, fallback)).thenReturn(Mono.just(expected));
 
         StepVerifier.create(handler.handleFormatUnsupportedException(ex, request))
                 .assertNext(gem -> assertGem(gem, type, title, st, "format xyz not supported"))
                 .verifyComplete();
 
-        verify(errors).handleWith(eq(ex), eq(request), eq(type), eq(title), eq(st), eq(fallback));
+        verify(errors).handleWith(ex, request, type, title, st, fallback);
     }
 
     // -------------------- handleInsufficientPermissionException --------------------
@@ -515,13 +514,13 @@ class GlobalExceptionHandlerTest {
         var fallback = "The client who made the issuance request do not have the required permissions";
         var expected = new GlobalErrorMessage(type, title, st.value(), "no perms", UUID.randomUUID().toString());
 
-        when(errors.handleWith(eq(ex), eq(request), eq(type), eq(title), eq(st), eq(fallback))).thenReturn(Mono.just(expected));
+        when(errors.handleWith(ex, request, type, title, st, fallback)).thenReturn(Mono.just(expected));
 
         StepVerifier.create(handler.handleInsufficientPermissionException(ex, request))
                 .assertNext(gem -> assertGem(gem, type, title, st, "no perms"))
                 .verifyComplete();
 
-        verify(errors).handleWith(eq(ex), eq(request), eq(type), eq(title), eq(st), eq(fallback));
+        verify(errors).handleWith(ex, request, type, title, st, fallback);
     }
 
     // -------------------- handleUnauthorizedRoleException --------------------
@@ -535,13 +534,13 @@ class GlobalExceptionHandlerTest {
         var fallback = "The user role is not authorized to perform this action";
         var expected = new GlobalErrorMessage(type, title, st.value(), "role not allowed", UUID.randomUUID().toString());
 
-        when(errors.handleWith(eq(ex), eq(request), eq(type), eq(title), eq(st), eq(fallback))).thenReturn(Mono.just(expected));
+        when(errors.handleWith(ex, request, type, title, st, fallback)).thenReturn(Mono.just(expected));
 
         StepVerifier.create(handler.handleUnauthorizedRoleException(ex, request))
                 .assertNext(gem -> assertGem(gem, type, title, st, "role not allowed"))
                 .verifyComplete();
 
-        verify(errors).handleWith(eq(ex), eq(request), eq(type), eq(title), eq(st), eq(fallback));
+        verify(errors).handleWith(ex, request, type, title, st, fallback);
     }
 
     // -------------------- handleEmailCommunicationException --------------------
@@ -555,13 +554,13 @@ class GlobalExceptionHandlerTest {
         var fallback = "Email communication failed";
         var expected = new GlobalErrorMessage(type, title, st.value(), "smtp down", UUID.randomUUID().toString());
 
-        when(errors.handleWith(eq(ex), eq(request), eq(type), eq(title), eq(st), eq(fallback))).thenReturn(Mono.just(expected));
+        when(errors.handleWith(ex, request, type, title, st, fallback)).thenReturn(Mono.just(expected));
 
         StepVerifier.create(handler.handleEmailCommunicationException(ex, request))
                 .assertNext(gem -> assertGem(gem, type, title, st, "smtp down"))
                 .verifyComplete();
 
-        verify(errors).handleWith(eq(ex), eq(request), eq(type), eq(title), eq(st), eq(fallback));
+        verify(errors).handleWith(ex, request, type, title, st, fallback);
     }
 
     // -------------------- handleMissingIdTokenHeaderException --------------------
@@ -575,13 +574,13 @@ class GlobalExceptionHandlerTest {
         var fallback = "The X-ID-TOKEN header is missing, this header is needed to issue a Verifiable Certification";
         var expected = new GlobalErrorMessage(type, title, st.value(), "header missing", UUID.randomUUID().toString());
 
-        when(errors.handleWith(eq(ex), eq(request), eq(type), eq(title), eq(st), eq(fallback))).thenReturn(Mono.just(expected));
+        when(errors.handleWith(ex, request, type, title, st, fallback)).thenReturn(Mono.just(expected));
 
         StepVerifier.create(handler.handleMissingIdTokenHeaderException(ex, request))
                 .assertNext(gem -> assertGem(gem, type, title, st, "header missing"))
                 .verifyComplete();
 
-        verify(errors).handleWith(eq(ex), eq(request), eq(type), eq(title), eq(st), eq(fallback));
+        verify(errors).handleWith(ex, request, type, title, st, fallback);
     }
 
     // -------------------- handleSadError --------------------
@@ -595,12 +594,12 @@ class GlobalExceptionHandlerTest {
         var fallback = "An upstream SAD error occurred";
         var expected = new GlobalErrorMessage(type, title, st.value(), "upstream SAD failed", UUID.randomUUID().toString());
 
-        when(errors.handleWith(eq(ex), eq(request), eq(type), eq(title), eq(st), eq(fallback))).thenReturn(Mono.just(expected));
+        when(errors.handleWith(ex, request, type, title, st, fallback)).thenReturn(Mono.just(expected));
 
         StepVerifier.create(handler.handleSadError(ex, request))
                 .assertNext(gem -> assertGem(gem, type, title, st, "upstream SAD failed"))
                 .verifyComplete();
 
-        verify(errors).handleWith(eq(ex), eq(request), eq(type), eq(title), eq(st), eq(fallback));
+        verify(errors).handleWith(ex, request, type, title, st, fallback);
     }
 }
