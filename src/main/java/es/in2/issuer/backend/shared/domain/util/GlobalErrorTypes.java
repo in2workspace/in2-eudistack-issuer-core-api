@@ -9,12 +9,7 @@ public class GlobalErrorTypes {
     public static final String INVALID_TOKEN = "invalid_token";
     public static final String UNSUPPORTED_CREDENTIAL_TYPE = "unsupported_credential_type";
     public static final String INVALID_OR_MISSING_PROOF = "invalid_or_missing_proof";
-    public static final String EXPIRED_PRE_AUTHORIZED_CODE = "pre-authorized_code is expired or used";
-    public static final String VC_TEMPLATE_DOES_NOT_EXIST = "vc_template_does_not_exist";
-    public static final String VC_DOES_NOT_EXIST = "vc_does_not_exist";
-    public static final String USER_DOES_NOT_EXIST = "user_does_not_exist";
     public static final String OPERATION_NOT_SUPPORTED = "operation_not_supported";
-    public static final String RESPONSE_URI_ERROR = "response_uri_error";
     public static final String FORMAT_IS_NOT_SUPPORTED = "format_is_not_supported";
     public static final String INSUFFICIENT_PERMISSION = "insufficient_permission";
     public static final String MISSING_HEADER = "missing_header";
