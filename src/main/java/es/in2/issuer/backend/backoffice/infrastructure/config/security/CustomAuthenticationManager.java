@@ -39,13 +39,23 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
     public Mono<Authentication> authenticate(Authentication authentication) {
         String token = authentication.getCredentials().toString();
 
-        return Mono.fromCallable(() -> SignedJWT.parse(token))
+        return Mono.fromCallable(() -> {
+                    try {
+                        return SignedJWT.parse(token);
+                    } catch (ParseException e) {
+                        throw new BadCredentialsException("Invalid JWT token format", e);
+                    }
+                })
                 .flatMap(signedJWT -> {
                     String issuer;
                     try {
                         issuer = signedJWT.getJWTClaimsSet().getIssuer();
                     } catch (ParseException e) {
                         return Mono.error(new BadCredentialsException("Unable to parse JWT claims", e));
+                    }
+
+                    if (issuer == null) {
+                        return Mono.error(new BadCredentialsException("Missing issuer (iss) claim"));
                     }
 
                     if (issuer.equals(appConfig.getVerifierUrl())) {
@@ -58,12 +68,11 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
                         return Mono.fromCallable(() -> JWSObject.parse(token))
                                 .flatMap(jwsObject -> jwtService.validateJwtSignatureReactive(jwsObject)
                                         .flatMap(isValid -> {
-                                            if (Boolean.TRUE.equals(isValid)) {
-                                                return parseAndValidateJwt(token)
-                                                        .map(jwt -> (Authentication) new JwtAuthenticationToken(jwt, Collections.emptyList()));
-                                            } else {
+                                            if (!isValid) {
                                                 return Mono.error(new BadCredentialsException("Invalid JWT signature"));
                                             }
+                                            return parseAndValidateJwt(token)
+                                                    .map(jwt -> (Authentication) new JwtAuthenticationToken(jwt, Collections.emptyList()));
                                         }));
                     } else {
                         // Caso futuro o desconocido
