@@ -1,13 +1,12 @@
-package es.in2.issuer.backend.backoffice.infrastructure.controller;
+package es.in2.issuer.backend.shared.infrastructure.controller;
 
-
-import es.in2.issuer.backend.backoffice.domain.exception.*;
-import es.in2.issuer.backend.backoffice.domain.util.ErrorTypes;
 import es.in2.issuer.backend.shared.domain.exception.*;
-import es.in2.issuer.backend.backoffice.domain.model.dtos.GlobalErrorMessage;
+import es.in2.issuer.backend.shared.domain.model.dto.GlobalErrorMessage;
+import es.in2.issuer.backend.shared.domain.util.GlobalErrorTypes;
+import es.in2.issuer.backend.shared.infrastructure.controller.error.ErrorResponseFactory;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.server.RequestPath;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -17,13 +16,13 @@ import reactor.core.publisher.Mono;
 import javax.naming.OperationNotSupportedException;
 import java.text.ParseException;
 import java.util.NoSuchElementException;
-import java.util.UUID;
-
-import static es.in2.issuer.backend.backoffice.domain.util.Constants.ERROR_LOG_FORMAT;
 
 @Slf4j
 @RestControllerAdvice
+@RequiredArgsConstructor
 public class GlobalExceptionHandler {
+
+    private final ErrorResponseFactory errors;
 
     @ExceptionHandler(CredentialTypeUnsupportedException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
@@ -31,9 +30,9 @@ public class GlobalExceptionHandler {
             CredentialTypeUnsupportedException ex,
             ServerHttpRequest request
     ) {
-        return handleWith(
+        return errors.handleWith(
                 ex, request,
-                ErrorTypes.UNSUPPORTED_CREDENTIAL_TYPE,
+                GlobalErrorTypes.UNSUPPORTED_CREDENTIAL_TYPE,
                 "Unsupported credential type",
                 HttpStatus.NOT_FOUND,
                 "The given credential type is not supported"
@@ -46,46 +45,14 @@ public class GlobalExceptionHandler {
             NoSuchElementException ex,
             ServerHttpRequest request
     ) {
-        return handleWith(
+        return errors.handleWith(
                 ex, request,
-                ErrorTypes.NO_SUCH_ELEMENT,
+                GlobalErrorTypes.NO_SUCH_ELEMENT,
                 "Resource not found",
                 HttpStatus.NOT_FOUND,
                 "The requested resource was not found"
         );
     }
-
-
-    @ExceptionHandler(ExpiredCacheException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public Mono<GlobalErrorMessage> handleExpiredCache(
-            ExpiredCacheException ex,
-            ServerHttpRequest request
-    ) {
-        return handleWith(
-                ex, request,
-                ErrorTypes.VC_DOES_NOT_EXIST,
-                "Credential does not exist",
-                HttpStatus.BAD_REQUEST,
-                "The given credential ID does not match with any credentials"
-        );
-    }
-
-    @ExceptionHandler(ExpiredPreAuthorizedCodeException.class)
-    @ResponseStatus(HttpStatus.NOT_FOUND)
-    public Mono<GlobalErrorMessage> handleExpiredPreAuthorizedCode(
-            ExpiredPreAuthorizedCodeException ex,
-            ServerHttpRequest request
-    ) {
-        return handleWith(
-                ex, request,
-                ErrorTypes.EXPIRED_PRE_AUTHORIZED_CODE,
-                "Expired pre-authorized code",
-                HttpStatus.NOT_FOUND,
-                "The pre-authorized code has expired, has been used, or does not exist."
-        );
-    }
-
 
     @ExceptionHandler(InvalidOrMissingProofException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
@@ -93,15 +60,14 @@ public class GlobalExceptionHandler {
             InvalidOrMissingProofException ex,
             ServerHttpRequest request
     ) {
-        return handleWith(
+        return errors.handleWith(
                 ex, request,
-                ErrorTypes.INVALID_OR_MISSING_PROOF,
+                GlobalErrorTypes.INVALID_OR_MISSING_PROOF,
                 "Invalid or missing proof",
                 HttpStatus.NOT_FOUND,
                 "Credential Request did not contain a proof, or proof was invalid, i.e. it was not bound to a Credential Issuer provided nonce."
         );
     }
-
 
     @ExceptionHandler(InvalidTokenException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
@@ -109,44 +75,12 @@ public class GlobalExceptionHandler {
             InvalidTokenException ex,
             ServerHttpRequest request
     ) {
-        return handleWith(
+        return errors.handleWith(
                 ex, request,
-                ErrorTypes.INVALID_TOKEN,
+                GlobalErrorTypes.INVALID_TOKEN,
                 "Invalid token",
                 HttpStatus.NOT_FOUND,
                 "Credential Request contains the wrong Access Token or the Access Token is missing"
-        );
-    }
-
-
-    @ExceptionHandler(UserDoesNotExistException.class)
-    @ResponseStatus(HttpStatus.NOT_FOUND)
-    public Mono<GlobalErrorMessage> handleUserDoesNotExist(
-            UserDoesNotExistException ex,
-            ServerHttpRequest request
-    ) {
-        return handleWith(
-                ex, request,
-                ErrorTypes.USER_DOES_NOT_EXIST,
-                "User does not exist",
-                HttpStatus.NOT_FOUND,
-                "User does not exist"
-        );
-    }
-
-
-    @ExceptionHandler(VcTemplateDoesNotExistException.class)
-    @ResponseStatus(HttpStatus.NOT_FOUND)
-    public Mono<GlobalErrorMessage> handleVcTemplateDoesNotExist(
-            VcTemplateDoesNotExistException ex,
-            ServerHttpRequest request
-    ) {
-        return handleWith(
-                ex, request,
-                ErrorTypes.VC_TEMPLATE_DOES_NOT_EXIST,
-                "VC template does not exist",
-                HttpStatus.NOT_FOUND,
-                "The given template name is not supported"
         );
     }
 
@@ -156,10 +90,10 @@ public class GlobalExceptionHandler {
             ParseException ex,
             ServerHttpRequest request
     ) {
-        return handleWith(
+        return errors.handleWith(
                 ex, request,
                 // todo
-                ErrorTypes.PARSE_ERROR,
+                GlobalErrorTypes.PARSE_ERROR,
                 "Parse error",
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 "An internal parsing error occurred."
@@ -172,27 +106,12 @@ public class GlobalExceptionHandler {
             Base45Exception ex,
             ServerHttpRequest request
     ) {
-        return handleWith(
+        return errors.handleWith(
                 ex, request,
-                ErrorTypes.PARSE_ERROR,
+                GlobalErrorTypes.PARSE_ERROR,
                 "Base45 decoding error",
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 "An internal Base45 decoding error occurred."
-        );
-    }
-
-    @ExceptionHandler(CreateDateException.class)
-    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public Mono<GlobalErrorMessage> handleCreateDateException(
-            CreateDateException ex,
-            ServerHttpRequest request
-    ) {
-        return handleWith(
-                ex, request,
-                ErrorTypes.PARSE_ERROR,
-                "Create date error",
-                HttpStatus.INTERNAL_SERVER_ERROR,
-                "An internal date creation error occurred."
         );
     }
 
@@ -202,31 +121,14 @@ public class GlobalExceptionHandler {
             SignedDataParsingException ex,
             ServerHttpRequest request
     ) {
-        return handleWith(
+        return errors.handleWith(
                 ex, request,
-                ErrorTypes.PARSE_ERROR,
+                GlobalErrorTypes.PARSE_ERROR,
                 "Signed data parsing error",
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 "An internal signed data parsing error occurred."
         );
     }
-
-
-    @ExceptionHandler(AuthenticSourcesUserParsingException.class)
-    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public Mono<GlobalErrorMessage> handleAuthenticSourcesUserParsingException(
-            AuthenticSourcesUserParsingException ex,
-            ServerHttpRequest request
-    ) {
-        return handleWith(
-                ex, request,
-                ErrorTypes.PARSE_ERROR,
-                "Authentic sources user parsing error",
-                HttpStatus.INTERNAL_SERVER_ERROR,
-                "An internal authentic-sources user parsing error occurred."
-        );
-    }
-
 
     @ExceptionHandler(ParseCredentialJsonException.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -234,31 +136,14 @@ public class GlobalExceptionHandler {
             ParseCredentialJsonException ex,
             ServerHttpRequest request
     ) {
-        return handleWith(
+        return errors.handleWith(
                 ex, request,
-                ErrorTypes.PARSE_ERROR,
+                GlobalErrorTypes.PARSE_ERROR,
                 "Credential JSON parsing error",
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 "An internal credential JSON parsing error occurred."
         );
     }
-
-
-    @ExceptionHandler(TemplateReadException.class)
-    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public Mono<GlobalErrorMessage> handleTemplateReadException(
-            TemplateReadException ex,
-            ServerHttpRequest request
-    ) {
-        return handleWith(
-                ex, request,
-                ErrorTypes.TEMPLATE_READ_ERROR,
-                "Template read error",
-                HttpStatus.INTERNAL_SERVER_ERROR,
-                "An internal template read error occurred."
-        );
-    }
-
 
     @ExceptionHandler(ProofValidationException.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -266,15 +151,14 @@ public class GlobalExceptionHandler {
             ProofValidationException ex,
             ServerHttpRequest request
     ) {
-        return handleWith(
+        return errors.handleWith(
                 ex, request,
-                ErrorTypes.PROOF_VALIDATION_ERROR,
+                GlobalErrorTypes.PROOF_VALIDATION_ERROR,
                 "Proof validation error",
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 "An internal proof validation error occurred."
         );
     }
-
 
     @ExceptionHandler(NoCredentialFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
@@ -282,9 +166,9 @@ public class GlobalExceptionHandler {
             NoCredentialFoundException ex,
             ServerHttpRequest request
     ) {
-        return handleWith(
+        return errors.handleWith(
                 ex, request,
-                ErrorTypes.CREDENTIAL_NOT_FOUND,
+                GlobalErrorTypes.CREDENTIAL_NOT_FOUND,
                 "Credential not found",
                 HttpStatus.NOT_FOUND,
                 "No credential found."
@@ -297,15 +181,14 @@ public class GlobalExceptionHandler {
             PreAuthorizationCodeGetException ex,
             ServerHttpRequest request
     ) {
-        return handleWith(
+        return errors.handleWith(
                 ex, request,
-                ErrorTypes.PRE_AUTHORIZATION_CODE_GET,
+                GlobalErrorTypes.PRE_AUTHORIZATION_CODE_GET,
                 "Pre-authorization code retrieval error",
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 "Failed to retrieve pre-authorization code."
         );
     }
-
 
     @ExceptionHandler(CredentialOfferNotFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
@@ -313,15 +196,14 @@ public class GlobalExceptionHandler {
             CredentialOfferNotFoundException ex,
             ServerHttpRequest request
     ) {
-        return handleWith(
+        return errors.handleWith(
                 ex, request,
-                ErrorTypes.CREDENTIAL_OFFER_NOT_FOUND,
+                GlobalErrorTypes.CREDENTIAL_OFFER_NOT_FOUND,
                 "Credential offer not found",
                 HttpStatus.NOT_FOUND,
                 "Credential offer not found."
         );
     }
-
 
     @ExceptionHandler(CredentialAlreadyIssuedException.class)
     @ResponseStatus(HttpStatus.CONFLICT)
@@ -329,9 +211,9 @@ public class GlobalExceptionHandler {
             CredentialAlreadyIssuedException ex,
             ServerHttpRequest request
     ) {
-        return handleWith(
+        return errors.handleWith(
                 ex, request,
-                ErrorTypes.CREDENTIAL_ALREADY_ISSUED,
+                GlobalErrorTypes.CREDENTIAL_ALREADY_ISSUED,
                 "Credential already issued",
                 HttpStatus.CONFLICT,
                 "The credential has already been issued."
@@ -344,15 +226,14 @@ public class GlobalExceptionHandler {
             OperationNotSupportedException ex,
             ServerHttpRequest request
     ) {
-        return handleWith(
+        return errors.handleWith(
                 ex, request,
-                ErrorTypes.OPERATION_NOT_SUPPORTED,
+                GlobalErrorTypes.OPERATION_NOT_SUPPORTED,
                 "Operation not supported",
                 HttpStatus.BAD_REQUEST,
                 "The given operation is not supported"
         );
     }
-
 
     @ExceptionHandler(JWTVerificationException.class)
     @ResponseStatus(HttpStatus.UNAUTHORIZED)
@@ -360,30 +241,14 @@ public class GlobalExceptionHandler {
             JWTVerificationException ex,
             ServerHttpRequest request
     ) {
-        return handleWith(
+        return errors.handleWith(
                 ex, request,
-                ErrorTypes.JWT_VERIFICATION,
+                GlobalErrorTypes.JWT_VERIFICATION,
                 "JWT verification failed",
                 HttpStatus.UNAUTHORIZED,
                 "JWT verification failed."
         );
     }
-
-    @ExceptionHandler(ResponseUriException.class)
-    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public Mono<GlobalErrorMessage> handleResponseUriException(
-            ResponseUriException ex,
-            ServerHttpRequest request
-    ) {
-        return handleWith(
-                ex, request,
-                ErrorTypes.RESPONSE_URI_ERROR,
-                "Response URI error",
-                HttpStatus.INTERNAL_SERVER_ERROR,
-                "Request to response URI failed"
-        );
-    }
-
 
     @ExceptionHandler(FormatUnsupportedException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
@@ -391,15 +256,14 @@ public class GlobalExceptionHandler {
             FormatUnsupportedException ex,
             ServerHttpRequest request
     ) {
-        return handleWith(
+        return errors.handleWith(
                 ex, request,
-                ErrorTypes.FORMAT_IS_NOT_SUPPORTED,
+                GlobalErrorTypes.FORMAT_IS_NOT_SUPPORTED,
                 "Format not supported",
                 HttpStatus.BAD_REQUEST,
                 "Format is not supported"
         );
     }
-
 
     @ExceptionHandler(InsufficientPermissionException.class)
     @ResponseStatus(HttpStatus.FORBIDDEN)
@@ -407,15 +271,14 @@ public class GlobalExceptionHandler {
             InsufficientPermissionException ex,
             ServerHttpRequest request
     ) {
-        return handleWith(
+        return errors.handleWith(
                 ex, request,
-                ErrorTypes.INSUFFICIENT_PERMISSION,
+                GlobalErrorTypes.INSUFFICIENT_PERMISSION,
                 "Insufficient permission",
                 HttpStatus.FORBIDDEN,
                 "The client who made the issuance request do not have the required permissions"
         );
     }
-
 
     @ExceptionHandler(UnauthorizedRoleException.class)
     @ResponseStatus(HttpStatus.UNAUTHORIZED)
@@ -423,9 +286,9 @@ public class GlobalExceptionHandler {
             UnauthorizedRoleException ex,
             ServerHttpRequest request
     ) {
-        return handleWith(
+        return errors.handleWith(
                 ex, request,
-                ErrorTypes.UNAUTHORIZED_ROLE,
+                GlobalErrorTypes.UNAUTHORIZED_ROLE,
                 "Unauthorized role",
                 HttpStatus.UNAUTHORIZED,
                 "The user role is not authorized to perform this action"
@@ -438,9 +301,9 @@ public class GlobalExceptionHandler {
             EmailCommunicationException ex,
             ServerHttpRequest request
     ) {
-        return handleWith(
+        return errors.handleWith(
                 ex, request,
-                ErrorTypes.EMAIL_COMMUNICATION,
+                GlobalErrorTypes.EMAIL_COMMUNICATION,
                 "Email communication error",
                 HttpStatus.SERVICE_UNAVAILABLE,
                 "Email communication failed"
@@ -453,78 +316,14 @@ public class GlobalExceptionHandler {
             MissingIdTokenHeaderException ex,
             ServerHttpRequest request
     ) {
-        return handleWith(
+        return errors.handleWith(
                 ex, request,
-                ErrorTypes.MISSING_HEADER,
+                GlobalErrorTypes.MISSING_HEADER,
                 "Missing header",
                 HttpStatus.BAD_REQUEST,
                 "The X-ID-TOKEN header is missing, this header is needed to issue a Verifiable Certification"
         );
     }
-
-
-    @ExceptionHandler(OrganizationIdentifierMismatchException.class)
-    @ResponseStatus(HttpStatus.FORBIDDEN)
-    public Mono<GlobalErrorMessage> handleOrganizationIdentifierMismatchException(
-            OrganizationIdentifierMismatchException ex,
-            ServerHttpRequest request
-    ) {
-        return handleWith(
-                ex, request,
-                ErrorTypes.ORGANIZATION_ID_MISMATCH,
-                "Unauthorized",
-                HttpStatus.FORBIDDEN,
-                "Organization identifier mismatch"
-        );
-    }
-
-
-    @ExceptionHandler(NoSuchEntityException.class)
-    @ResponseStatus(HttpStatus.NOT_FOUND)
-    public Mono<GlobalErrorMessage> handleNoSuchEntityException(
-            NoSuchEntityException ex,
-            ServerHttpRequest request
-    ) {
-        return handleWith(
-                ex, request,
-                ErrorTypes.NO_SUCH_ENTITY,
-                "Not Found",
-                HttpStatus.NOT_FOUND,
-                "Requested entity was not found"
-        );
-    }
-
-    @ExceptionHandler(MissingRequiredDataException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public Mono<GlobalErrorMessage> handleMissingRequiredDataException(
-            MissingRequiredDataException ex,
-            ServerHttpRequest request
-    ) {
-        return handleWith(
-                ex, request,
-                ErrorTypes.MISSING_REQUIRED_DATA,
-                "Bad Request",
-                HttpStatus.BAD_REQUEST,
-                "Missing required data"
-        );
-    }
-
-
-    @ExceptionHandler(InvalidSignatureConfigurationException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public Mono<GlobalErrorMessage> handleInvalidSignatureConfigurationException(
-            InvalidSignatureConfigurationException ex,
-            ServerHttpRequest request
-    ) {
-        return handleWith(
-                ex, request,
-                ErrorTypes.INVALID_SIGNATURE_CONFIGURATION,
-                "Bad Request",
-                HttpStatus.BAD_REQUEST,
-                "Invalid signature configuration"
-        );
-    }
-
 
     @ExceptionHandler(SadException.class)
     @ResponseStatus(HttpStatus.BAD_GATEWAY)
@@ -532,53 +331,12 @@ public class GlobalExceptionHandler {
             SadException ex,
             ServerHttpRequest request
     ) {
-        return handleWith(
+        return errors.handleWith(
                 ex, request,
-                ErrorTypes.SAD_ERROR,
+                GlobalErrorTypes.SAD_ERROR,
                 "SAD error",
                 HttpStatus.BAD_GATEWAY,
                 "An upstream SAD error occurred"
         );
     }
-
-
-    private Mono<GlobalErrorMessage> handleWith(
-            Exception ex,
-            ServerHttpRequest request,
-            String type,
-            String title,
-            HttpStatus status,
-            String fallbackDetail
-    ) {
-        String detail = resolveDetail(ex, fallbackDetail);
-        return Mono.just(buildError(type, title, status, detail, ex, request));
-    }
-
-    private String resolveDetail(Exception ex, String fallback) {
-        String msg = ex.getMessage();
-        return (msg == null || msg.isBlank()) ? fallback : msg;
-    }
-
-    private GlobalErrorMessage buildError(
-            String type,
-            String title,
-            HttpStatus httpStatus,
-            String detail,
-            Exception ex,
-            ServerHttpRequest request
-    ) {
-        String instance = UUID.randomUUID().toString();
-        RequestPath path = request.getPath();
-
-        log.error(ERROR_LOG_FORMAT, instance, path, httpStatus.value(), ex.getClass(), detail);
-
-        return new GlobalErrorMessage(
-                type,
-                title,
-                httpStatus.value(),
-                detail,
-                instance
-        );
-    }
-
 }
