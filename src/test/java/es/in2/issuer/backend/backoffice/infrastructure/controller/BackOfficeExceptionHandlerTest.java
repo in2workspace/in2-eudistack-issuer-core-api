@@ -52,7 +52,7 @@ class BackofficeExceptionHandlerTest {
         var ex = new AuthenticSourcesUserParsingException("auth sources parse failed");
 
         // EXPECTED constants del handler
-        String type   = GlobalErrorTypes.PARSE_ERROR;
+        String type   = GlobalErrorTypes.PARSE_ERROR.getCode();
         String title  = "Authentic sources user parsing error";
         HttpStatus st = HttpStatus.INTERNAL_SERVER_ERROR;
         String fallback = "An internal authentic-sources user parsing error occurred.";
@@ -77,7 +77,7 @@ class BackofficeExceptionHandlerTest {
         var exNull  = new AuthenticSourcesUserParsingException((String) null);
         var exBlank = new AuthenticSourcesUserParsingException("");
 
-        String type   = GlobalErrorTypes.PARSE_ERROR;
+        String type   = GlobalErrorTypes.PARSE_ERROR.getCode();
         String title  = "Authentic sources user parsing error";
         HttpStatus st = HttpStatus.INTERNAL_SERVER_ERROR;
         String fallback = "An internal authentic-sources user parsing error occurred.";
@@ -106,7 +106,7 @@ class BackofficeExceptionHandlerTest {
     void handleTemplateReadException_usesExceptionMessage_whenPresent() {
         var ex = new TemplateReadException("cannot read template");
 
-        String type   = BackofficeErrorTypes.TEMPLATE_READ_ERROR;
+        String type   = BackofficeErrorTypes.TEMPLATE_READ_ERROR.getCode();
         String title  = "Template read error";
         HttpStatus st = HttpStatus.INTERNAL_SERVER_ERROR;
         String fallback = "An internal template read error occurred.";
@@ -127,7 +127,7 @@ class BackofficeExceptionHandlerTest {
         var exNull  = new TemplateReadException((String) null);
         var exBlank = new TemplateReadException("");
 
-        String type   = BackofficeErrorTypes.TEMPLATE_READ_ERROR;
+        String type   = BackofficeErrorTypes.TEMPLATE_READ_ERROR.getCode();
         String title  = "Template read error";
         HttpStatus st = HttpStatus.INTERNAL_SERVER_ERROR;
         String fallback = "An internal template read error occurred.";
@@ -156,7 +156,7 @@ class BackofficeExceptionHandlerTest {
     void handleOrganizationIdentifierMismatchException_usesExceptionMessage_whenPresent() {
         var ex = new OrganizationIdentifierMismatchException("org mismatch");
 
-        String type   = BackofficeErrorTypes.ORGANIZATION_ID_MISMATCH;
+        String type   = BackofficeErrorTypes.ORGANIZATION_ID_MISMATCH.getCode();
         String title  = "Unauthorized";
         HttpStatus st = HttpStatus.FORBIDDEN;
         String fallback = "Organization identifier mismatch";
@@ -177,7 +177,7 @@ class BackofficeExceptionHandlerTest {
         var exNull  = new OrganizationIdentifierMismatchException((String) null);
         var exBlank = new OrganizationIdentifierMismatchException("");
 
-        String type   = BackofficeErrorTypes.ORGANIZATION_ID_MISMATCH;
+        String type   = BackofficeErrorTypes.ORGANIZATION_ID_MISMATCH.getCode();
         String title  = "Unauthorized";
         HttpStatus st = HttpStatus.FORBIDDEN;
         String fallback = "Organization identifier mismatch";
@@ -206,7 +206,7 @@ class BackofficeExceptionHandlerTest {
     void handleNoSuchEntityException_usesExceptionMessage_whenPresent() {
         var ex = new NoSuchEntityException("entity not found");
 
-        String type   = BackofficeErrorTypes.NO_SUCH_ENTITY;
+        String type   = BackofficeErrorTypes.NO_SUCH_ENTITY.getCode();
         String title  = "Not Found";
         HttpStatus st = HttpStatus.NOT_FOUND;
         String fallback = "Requested entity was not found";
@@ -227,7 +227,7 @@ class BackofficeExceptionHandlerTest {
         var exNull  = new NoSuchEntityException((String) null);
         var exBlank = new NoSuchEntityException(" ");
 
-        String type   = BackofficeErrorTypes.NO_SUCH_ENTITY;
+        String type   = BackofficeErrorTypes.NO_SUCH_ENTITY.getCode();
         String title  = "Not Found";
         HttpStatus st = HttpStatus.NOT_FOUND;
         String fallback = "Requested entity was not found";
@@ -256,7 +256,7 @@ class BackofficeExceptionHandlerTest {
     void handleMissingRequiredDataException_usesExceptionMessage_whenPresent() {
         var ex = new MissingRequiredDataException("missing field X");
 
-        String type   = BackofficeErrorTypes.MISSING_REQUIRED_DATA;
+        String type   = BackofficeErrorTypes.MISSING_REQUIRED_DATA.getCode();
         String title  = "Bad Request";
         HttpStatus st = HttpStatus.BAD_REQUEST;
         String fallback = "Missing required data";
@@ -277,7 +277,7 @@ class BackofficeExceptionHandlerTest {
         var exNull  = new MissingRequiredDataException((String) null);
         var exBlank = new MissingRequiredDataException("");
 
-        String type   = BackofficeErrorTypes.MISSING_REQUIRED_DATA;
+        String type   = BackofficeErrorTypes.MISSING_REQUIRED_DATA.getCode();
         String title  = "Bad Request";
         HttpStatus st = HttpStatus.BAD_REQUEST;
         String fallback = "Missing required data";
@@ -306,7 +306,7 @@ class BackofficeExceptionHandlerTest {
     void handleInvalidSignatureConfigurationException_usesExceptionMessage_whenPresent() {
         var ex = new InvalidSignatureConfigurationException("bad signature cfg");
 
-        String type   = BackofficeErrorTypes.INVALID_SIGNATURE_CONFIGURATION;
+        String type   = BackofficeErrorTypes.INVALID_SIGNATURE_CONFIGURATION.getCode();
         String title  = "Bad Request";
         HttpStatus st = HttpStatus.BAD_REQUEST;
         String fallback = "Invalid signature configuration";
@@ -327,7 +327,7 @@ class BackofficeExceptionHandlerTest {
         var exNull  = new InvalidSignatureConfigurationException((String) null);
         var exBlank = new InvalidSignatureConfigurationException("   ");
 
-        String type   = BackofficeErrorTypes.INVALID_SIGNATURE_CONFIGURATION;
+        String type   = BackofficeErrorTypes.INVALID_SIGNATURE_CONFIGURATION.getCode();
         String title  = "Bad Request";
         HttpStatus st = HttpStatus.BAD_REQUEST;
         String fallback = "Invalid signature configuration";

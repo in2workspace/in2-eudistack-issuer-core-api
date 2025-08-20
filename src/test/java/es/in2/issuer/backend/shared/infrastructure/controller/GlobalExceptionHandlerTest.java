@@ -53,7 +53,7 @@ class GlobalExceptionHandlerTest {
     @Test
     void handleCredentialTypeUnsupported_usesExceptionMessage_whenPresent() {
         var ex = new CredentialTypeUnsupportedException("custom msg");
-        var type = GlobalErrorTypes.UNSUPPORTED_CREDENTIAL_TYPE;
+        var type = GlobalErrorTypes.UNSUPPORTED_CREDENTIAL_TYPE.getCode();
         var title = "Unsupported credential type";
         var st = HttpStatus.NOT_FOUND;
         var fallback = "The given credential type is not supported";
@@ -71,7 +71,7 @@ class GlobalExceptionHandlerTest {
 
     @Test
     void handleCredentialTypeUnsupported_usesFallback_whenMessageNullOrBlank() {
-        var type = GlobalErrorTypes.UNSUPPORTED_CREDENTIAL_TYPE;
+        var type = GlobalErrorTypes.UNSUPPORTED_CREDENTIAL_TYPE.getCode();
         var title = "Unsupported credential type";
         var st = HttpStatus.NOT_FOUND;
         var fallback = "The given credential type is not supported";
@@ -102,7 +102,7 @@ class GlobalExceptionHandlerTest {
     @Test
     void handleNoSuchElementException_usesExceptionMessage_whenPresent() {
         var ex = new NoSuchElementException("not here");
-        var type = GlobalErrorTypes.NO_SUCH_ELEMENT;
+        var type = GlobalErrorTypes.NO_SUCH_ELEMENT.getCode();
         var title = "Resource not found";
         var st = HttpStatus.NOT_FOUND;
         var fallback = "The requested resource was not found";
@@ -120,7 +120,7 @@ class GlobalExceptionHandlerTest {
 
     @Test
     void handleNoSuchElementException_usesFallback_whenMessageNullOrBlank() {
-        var type = GlobalErrorTypes.NO_SUCH_ELEMENT;
+        var type = GlobalErrorTypes.NO_SUCH_ELEMENT.getCode();
         var title = "Resource not found";
         var st = HttpStatus.NOT_FOUND;
         var fallback = "The requested resource was not found";
@@ -143,7 +143,7 @@ class GlobalExceptionHandlerTest {
     @Test
     void handleInvalidOrMissingProof_usesExceptionMessage_whenPresent() {
         var ex = new InvalidOrMissingProofException("bad proof");
-        var type = GlobalErrorTypes.INVALID_OR_MISSING_PROOF;
+        var type = GlobalErrorTypes.INVALID_OR_MISSING_PROOF.getCode();
         var title = "Invalid or missing proof";
         var st = HttpStatus.NOT_FOUND;
         var fallback = "Credential Request did not contain a proof, or proof was invalid, i.e. it was not bound to a Credential Issuer provided nonce.";
@@ -161,7 +161,7 @@ class GlobalExceptionHandlerTest {
 
     @Test
     void handleInvalidOrMissingProof_usesFallback_whenMessageNullOrBlank() {
-        var type = GlobalErrorTypes.INVALID_OR_MISSING_PROOF;
+        var type = GlobalErrorTypes.INVALID_OR_MISSING_PROOF.getCode();
         var title = "Invalid or missing proof";
         var st = HttpStatus.NOT_FOUND;
         var fallback = "Credential Request did not contain a proof, or proof was invalid, i.e. it was not bound to a Credential Issuer provided nonce.";
@@ -193,7 +193,7 @@ class GlobalExceptionHandlerTest {
     @Test
     void handleInvalidToken_usesExceptionMessage_whenPresent() {
         var ex = new InvalidTokenException("Message");
-        var type = GlobalErrorTypes.INVALID_TOKEN;
+        var type = GlobalErrorTypes.INVALID_TOKEN.getCode();
         var title = "Invalid token";
         var st = HttpStatus.NOT_FOUND;
         var fallback = "Credential Request contains the wrong Access Token or the Access Token is missing";
@@ -211,7 +211,7 @@ class GlobalExceptionHandlerTest {
 
     @Test
     void handleInvalidToken_usesFallback_whenMessageNullOrBlank() {
-        var type = GlobalErrorTypes.INVALID_TOKEN;
+        var type = GlobalErrorTypes.INVALID_TOKEN.getCode();
         var title = "Invalid token";
         var st = HttpStatus.NOT_FOUND;
         var fallback = "Credential Request contains the wrong Access Token or the Access Token is missing";
@@ -241,7 +241,7 @@ class GlobalExceptionHandlerTest {
     @Test
     void handleParseException_usesExceptionMessage_whenPresent() {
         var ex = new ParseException("bad date", 0);
-        var type = GlobalErrorTypes.PARSE_ERROR;
+        var type = GlobalErrorTypes.PARSE_ERROR.getCode();
         var title = "Parse error";
         var st = HttpStatus.INTERNAL_SERVER_ERROR;
         var fallback = "An internal parsing error occurred.";
@@ -258,7 +258,7 @@ class GlobalExceptionHandlerTest {
 
     @Test
     void handleParseException_usesFallback_whenMessageNullOrBlank() {
-        var type = GlobalErrorTypes.PARSE_ERROR;
+        var type = GlobalErrorTypes.PARSE_ERROR.getCode();
         var title = "Parse error";
         var st = HttpStatus.INTERNAL_SERVER_ERROR;
         var fallback = "An internal parsing error occurred.";
@@ -288,7 +288,7 @@ class GlobalExceptionHandlerTest {
     @Test
     void handleBase45Exception() {
         var ex = new Base45Exception("decode failed");
-        var type = GlobalErrorTypes.PARSE_ERROR;
+        var type = GlobalErrorTypes.PARSE_ERROR.getCode();
         var title = "Base45 decoding error";
         var st = HttpStatus.INTERNAL_SERVER_ERROR;
         var fallback = "An internal Base45 decoding error occurred.";
@@ -308,7 +308,7 @@ class GlobalExceptionHandlerTest {
     @Test
     void handleSignedDataParsingException() {
         var ex = new SignedDataParsingException("bad signature payload");
-        var type = GlobalErrorTypes.PARSE_ERROR;
+        var type = GlobalErrorTypes.PARSE_ERROR.getCode();
         var title = "Signed data parsing error";
         var st = HttpStatus.INTERNAL_SERVER_ERROR;
         var fallback = "An internal signed data parsing error occurred.";
@@ -328,7 +328,7 @@ class GlobalExceptionHandlerTest {
     @Test
     void handleParseCredentialJsonException() {
         var ex = new ParseCredentialJsonException("bad json");
-        var type = GlobalErrorTypes.PARSE_ERROR;
+        var type = GlobalErrorTypes.PARSE_ERROR.getCode();
         var title = "Credential JSON parsing error";
         var st = HttpStatus.INTERNAL_SERVER_ERROR;
         var fallback = "An internal credential JSON parsing error occurred.";
@@ -348,7 +348,7 @@ class GlobalExceptionHandlerTest {
     @Test
     void handleProofValidationException() {
         var ex = new ProofValidationException("proof invalid");
-        var type = GlobalErrorTypes.PROOF_VALIDATION_ERROR;
+        var type = GlobalErrorTypes.PROOF_VALIDATION_ERROR.getCode();
         var title = "Proof validation error";
         var st = HttpStatus.INTERNAL_SERVER_ERROR;
         var fallback = "An internal proof validation error occurred.";
@@ -368,7 +368,7 @@ class GlobalExceptionHandlerTest {
     @Test
     void handleNoCredentialFoundException() {
         var ex = new NoCredentialFoundException("nothing here");
-        var type = GlobalErrorTypes.CREDENTIAL_NOT_FOUND;
+        var type = GlobalErrorTypes.CREDENTIAL_NOT_FOUND.getCode();
         var title = "Credential not found";
         var st = HttpStatus.NOT_FOUND;
         var fallback = "No credential found.";
@@ -388,7 +388,7 @@ class GlobalExceptionHandlerTest {
     @Test
     void handlePreAuthorizationCodeGetException() {
         var ex = new PreAuthorizationCodeGetException("service down");
-        var type = GlobalErrorTypes.PRE_AUTHORIZATION_CODE_GET;
+        var type = GlobalErrorTypes.PRE_AUTHORIZATION_CODE_GET.getCode();
         var title = "Pre-authorization code retrieval error";
         var st = HttpStatus.INTERNAL_SERVER_ERROR;
         var fallback = "Failed to retrieve pre-authorization code.";
@@ -408,7 +408,7 @@ class GlobalExceptionHandlerTest {
     @Test
     void handleCredentialOfferNotFoundException() {
         var ex = new CredentialOfferNotFoundException("offer not found");
-        var type = GlobalErrorTypes.CREDENTIAL_OFFER_NOT_FOUND;
+        var type = GlobalErrorTypes.CREDENTIAL_OFFER_NOT_FOUND.getCode();
         var title = "Credential offer not found";
         var st = HttpStatus.NOT_FOUND;
         var fallback = "Credential offer not found.";
@@ -428,7 +428,7 @@ class GlobalExceptionHandlerTest {
     @Test
     void handleCredentialAlreadyIssuedException() {
         var ex = new CredentialAlreadyIssuedException("already issued");
-        var type = GlobalErrorTypes.CREDENTIAL_ALREADY_ISSUED;
+        var type = GlobalErrorTypes.CREDENTIAL_ALREADY_ISSUED.getCode();
         var title = "Credential already issued";
         var st = HttpStatus.CONFLICT;
         var fallback = "The credential has already been issued.";
@@ -448,7 +448,7 @@ class GlobalExceptionHandlerTest {
     @Test
     void handleOperationNotSupportedException() {
         var ex = new OperationNotSupportedException("not allowed");
-        var type = GlobalErrorTypes.OPERATION_NOT_SUPPORTED;
+        var type = GlobalErrorTypes.OPERATION_NOT_SUPPORTED.getCode();
         var title = "Operation not supported";
         var st = HttpStatus.BAD_REQUEST;
         var fallback = "The given operation is not supported";
@@ -468,7 +468,7 @@ class GlobalExceptionHandlerTest {
     @Test
     void handleJWTVerificationException() {
         var ex = new JWTVerificationException("jwt invalid");
-        var type = GlobalErrorTypes.JWT_VERIFICATION;
+        var type = GlobalErrorTypes.JWT_VERIFICATION.getCode();
         var title = "JWT verification failed";
         var st = HttpStatus.UNAUTHORIZED;
         var fallback = "JWT verification failed.";
@@ -488,7 +488,7 @@ class GlobalExceptionHandlerTest {
     @Test
     void handleFormatUnsupportedException() {
         var ex = new FormatUnsupportedException("format xyz not supported");
-        var type = GlobalErrorTypes.FORMAT_IS_NOT_SUPPORTED;
+        var type = GlobalErrorTypes.FORMAT_IS_NOT_SUPPORTED.getCode();
         var title = "Format not supported";
         var st = HttpStatus.BAD_REQUEST;
         var fallback = "Format is not supported";
@@ -508,7 +508,7 @@ class GlobalExceptionHandlerTest {
     @Test
     void handleInsufficientPermissionException() {
         var ex = new InsufficientPermissionException("no perms");
-        var type = GlobalErrorTypes.INSUFFICIENT_PERMISSION;
+        var type = GlobalErrorTypes.INSUFFICIENT_PERMISSION.getCode();
         var title = "Insufficient permission";
         var st = HttpStatus.FORBIDDEN;
         var fallback = "The client who made the issuance request do not have the required permissions";
@@ -528,7 +528,7 @@ class GlobalExceptionHandlerTest {
     @Test
     void handleUnauthorizedRoleException() {
         var ex = new UnauthorizedRoleException("role not allowed");
-        var type = GlobalErrorTypes.UNAUTHORIZED_ROLE;
+        var type = GlobalErrorTypes.UNAUTHORIZED_ROLE.getCode();
         var title = "Unauthorized role";
         var st = HttpStatus.UNAUTHORIZED;
         var fallback = "The user role is not authorized to perform this action";
@@ -548,7 +548,7 @@ class GlobalExceptionHandlerTest {
     @Test
     void handleEmailCommunicationException() {
         var ex = new EmailCommunicationException("smtp down");
-        var type = GlobalErrorTypes.EMAIL_COMMUNICATION;
+        var type = GlobalErrorTypes.EMAIL_COMMUNICATION.getCode();
         var title = "Email communication error";
         var st = HttpStatus.SERVICE_UNAVAILABLE;
         var fallback = "Email communication failed";
@@ -568,7 +568,7 @@ class GlobalExceptionHandlerTest {
     @Test
     void handleMissingIdTokenHeaderException() {
         var ex = new MissingIdTokenHeaderException("header missing");
-        var type = GlobalErrorTypes.MISSING_HEADER;
+        var type = GlobalErrorTypes.MISSING_HEADER.getCode();
         var title = "Missing header";
         var st = HttpStatus.BAD_REQUEST;
         var fallback = "The X-ID-TOKEN header is missing, this header is needed to issue a Verifiable Certification";
@@ -588,7 +588,7 @@ class GlobalExceptionHandlerTest {
     @Test
     void handleSadError() {
         var ex = new SadException("upstream SAD failed");
-        var type = GlobalErrorTypes.SAD_ERROR;
+        var type = GlobalErrorTypes.SAD_ERROR.getCode();
         var title = "SAD error";
         var st = HttpStatus.BAD_GATEWAY;
         var fallback = "An upstream SAD error occurred";

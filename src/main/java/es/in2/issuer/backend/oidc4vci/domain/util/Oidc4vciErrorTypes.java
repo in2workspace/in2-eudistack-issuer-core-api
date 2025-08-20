@@ -1,7 +1,15 @@
 package es.in2.issuer.backend.oidc4vci.domain.util;
 
-public class Oidc4vciErrorTypes {
-    private Oidc4vciErrorTypes() {
-        throw new IllegalStateException("Utility class");
-    }
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+
+//todo use when there are error types specific from Oidc4vci module
+@Getter
+@RequiredArgsConstructor
+public enum Oidc4vciErrorTypes {
+
+    ;
+
+    private final String code;
+
 }

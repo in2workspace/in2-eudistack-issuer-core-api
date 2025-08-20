@@ -30,7 +30,7 @@ public class BackofficeExceptionHandler {
     ) {
         return errors.handleWith(
                 ex, request,
-                GlobalErrorTypes.PARSE_ERROR,
+                GlobalErrorTypes.PARSE_ERROR.getCode(),
                 "Authentic sources user parsing error",
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 "An internal authentic-sources user parsing error occurred."
@@ -45,7 +45,7 @@ public class BackofficeExceptionHandler {
     ) {
         return errors.handleWith(
                 ex, request,
-                BackofficeErrorTypes.TEMPLATE_READ_ERROR,
+                BackofficeErrorTypes.TEMPLATE_READ_ERROR.getCode(),
                 "Template read error",
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 "An internal template read error occurred."
@@ -60,7 +60,7 @@ public class BackofficeExceptionHandler {
     ) {
         return errors.handleWith(
                 ex, request,
-                BackofficeErrorTypes.ORGANIZATION_ID_MISMATCH,
+                BackofficeErrorTypes.ORGANIZATION_ID_MISMATCH.getCode(),
                 "Unauthorized",
                 HttpStatus.FORBIDDEN,
                 "Organization identifier mismatch"
@@ -75,7 +75,7 @@ public class BackofficeExceptionHandler {
     ) {
         return errors.handleWith(
                 ex, request,
-                BackofficeErrorTypes.NO_SUCH_ENTITY,
+                BackofficeErrorTypes.NO_SUCH_ENTITY.getCode(),
                 "Not Found",
                 HttpStatus.NOT_FOUND,
                 "Requested entity was not found"
@@ -90,7 +90,7 @@ public class BackofficeExceptionHandler {
     ) {
         return errors.handleWith(
                 ex, request,
-                BackofficeErrorTypes.MISSING_REQUIRED_DATA,
+                BackofficeErrorTypes.MISSING_REQUIRED_DATA.getCode(),
                 "Bad Request",
                 HttpStatus.BAD_REQUEST,
                 "Missing required data"
@@ -105,7 +105,7 @@ public class BackofficeExceptionHandler {
     ) {
         return errors.handleWith(
                 ex, request,
-                BackofficeErrorTypes.INVALID_SIGNATURE_CONFIGURATION,
+                BackofficeErrorTypes.INVALID_SIGNATURE_CONFIGURATION.getCode(),
                 "Bad Request",
                 HttpStatus.BAD_REQUEST,
                 "Invalid signature configuration"

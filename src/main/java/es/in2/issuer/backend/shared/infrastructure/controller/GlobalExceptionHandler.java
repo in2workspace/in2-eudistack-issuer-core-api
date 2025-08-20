@@ -33,7 +33,7 @@ public class GlobalExceptionHandler {
     ) {
         return errors.handleWith(
                 ex, request,
-                GlobalErrorTypes.UNSUPPORTED_CREDENTIAL_TYPE,
+                GlobalErrorTypes.UNSUPPORTED_CREDENTIAL_TYPE.getCode(),
                 "Unsupported credential type",
                 HttpStatus.NOT_FOUND,
                 "The given credential type is not supported"
@@ -48,7 +48,7 @@ public class GlobalExceptionHandler {
     ) {
         return errors.handleWith(
                 ex, request,
-                GlobalErrorTypes.NO_SUCH_ELEMENT,
+                GlobalErrorTypes.NO_SUCH_ELEMENT.getCode(),
                 "Resource not found",
                 HttpStatus.NOT_FOUND,
                 "The requested resource was not found"
@@ -63,7 +63,7 @@ public class GlobalExceptionHandler {
     ) {
         return errors.handleWith(
                 ex, request,
-                GlobalErrorTypes.INVALID_OR_MISSING_PROOF,
+                GlobalErrorTypes.INVALID_OR_MISSING_PROOF.getCode(),
                 "Invalid or missing proof",
                 HttpStatus.NOT_FOUND,
                 "Credential Request did not contain a proof, or proof was invalid, i.e. it was not bound to a Credential Issuer provided nonce."
@@ -78,7 +78,7 @@ public class GlobalExceptionHandler {
     ) {
         return errors.handleWith(
                 ex, request,
-                GlobalErrorTypes.INVALID_TOKEN,
+                GlobalErrorTypes.INVALID_TOKEN.getCode(),
                 "Invalid token",
                 HttpStatus.NOT_FOUND,
                 "Credential Request contains the wrong Access Token or the Access Token is missing"
@@ -94,7 +94,7 @@ public class GlobalExceptionHandler {
         return errors.handleWith(
                 ex, request,
                 // todo
-                GlobalErrorTypes.PARSE_ERROR,
+                GlobalErrorTypes.PARSE_ERROR.getCode(),
                 "Parse error",
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 "An internal parsing error occurred."
@@ -109,7 +109,7 @@ public class GlobalExceptionHandler {
     ) {
         return errors.handleWith(
                 ex, request,
-                GlobalErrorTypes.PARSE_ERROR,
+                GlobalErrorTypes.PARSE_ERROR.getCode(),
                 "Base45 decoding error",
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 "An internal Base45 decoding error occurred."
@@ -124,7 +124,7 @@ public class GlobalExceptionHandler {
     ) {
         return errors.handleWith(
                 ex, request,
-                GlobalErrorTypes.PARSE_ERROR,
+                GlobalErrorTypes.PARSE_ERROR.getCode(),
                 "Signed data parsing error",
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 "An internal signed data parsing error occurred."
@@ -139,7 +139,7 @@ public class GlobalExceptionHandler {
     ) {
         return errors.handleWith(
                 ex, request,
-                GlobalErrorTypes.PARSE_ERROR,
+                GlobalErrorTypes.PARSE_ERROR.getCode(),
                 "Credential JSON parsing error",
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 "An internal credential JSON parsing error occurred."
@@ -154,7 +154,7 @@ public class GlobalExceptionHandler {
     ) {
         return errors.handleWith(
                 ex, request,
-                GlobalErrorTypes.PROOF_VALIDATION_ERROR,
+                GlobalErrorTypes.PROOF_VALIDATION_ERROR.getCode(),
                 "Proof validation error",
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 "An internal proof validation error occurred."
@@ -169,7 +169,7 @@ public class GlobalExceptionHandler {
     ) {
         return errors.handleWith(
                 ex, request,
-                GlobalErrorTypes.CREDENTIAL_NOT_FOUND,
+                GlobalErrorTypes.CREDENTIAL_NOT_FOUND.getCode(),
                 "Credential not found",
                 HttpStatus.NOT_FOUND,
                 "No credential found."
@@ -184,7 +184,7 @@ public class GlobalExceptionHandler {
     ) {
         return errors.handleWith(
                 ex, request,
-                GlobalErrorTypes.PRE_AUTHORIZATION_CODE_GET,
+                GlobalErrorTypes.PRE_AUTHORIZATION_CODE_GET.getCode(),
                 "Pre-authorization code retrieval error",
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 "Failed to retrieve pre-authorization code."
@@ -199,7 +199,7 @@ public class GlobalExceptionHandler {
     ) {
         return errors.handleWith(
                 ex, request,
-                GlobalErrorTypes.CREDENTIAL_OFFER_NOT_FOUND,
+                GlobalErrorTypes.CREDENTIAL_OFFER_NOT_FOUND.getCode(),
                 "Credential offer not found",
                 HttpStatus.NOT_FOUND,
                 "Credential offer not found."
@@ -214,7 +214,7 @@ public class GlobalExceptionHandler {
     ) {
         return errors.handleWith(
                 ex, request,
-                GlobalErrorTypes.CREDENTIAL_ALREADY_ISSUED,
+                GlobalErrorTypes.CREDENTIAL_ALREADY_ISSUED.getCode(),
                 "Credential already issued",
                 HttpStatus.CONFLICT,
                 "The credential has already been issued."
@@ -229,7 +229,7 @@ public class GlobalExceptionHandler {
     ) {
         return errors.handleWith(
                 ex, request,
-                GlobalErrorTypes.OPERATION_NOT_SUPPORTED,
+                GlobalErrorTypes.OPERATION_NOT_SUPPORTED.getCode(),
                 "Operation not supported",
                 HttpStatus.BAD_REQUEST,
                 "The given operation is not supported"
@@ -244,7 +244,7 @@ public class GlobalExceptionHandler {
     ) {
         return errors.handleWith(
                 ex, request,
-                GlobalErrorTypes.JWT_VERIFICATION,
+                GlobalErrorTypes.JWT_VERIFICATION.getCode(),
                 "JWT verification failed",
                 HttpStatus.UNAUTHORIZED,
                 "JWT verification failed."
@@ -259,7 +259,7 @@ public class GlobalExceptionHandler {
     ) {
         return errors.handleWith(
                 ex, request,
-                GlobalErrorTypes.FORMAT_IS_NOT_SUPPORTED,
+                GlobalErrorTypes.FORMAT_IS_NOT_SUPPORTED.getCode(),
                 "Format not supported",
                 HttpStatus.BAD_REQUEST,
                 "Format is not supported"
@@ -274,7 +274,7 @@ public class GlobalExceptionHandler {
     ) {
         return errors.handleWith(
                 ex, request,
-                GlobalErrorTypes.INSUFFICIENT_PERMISSION,
+                GlobalErrorTypes.INSUFFICIENT_PERMISSION.getCode(),
                 "Insufficient permission",
                 HttpStatus.FORBIDDEN,
                 "The client who made the issuance request do not have the required permissions"
@@ -289,7 +289,7 @@ public class GlobalExceptionHandler {
     ) {
         return errors.handleWith(
                 ex, request,
-                GlobalErrorTypes.UNAUTHORIZED_ROLE,
+                GlobalErrorTypes.UNAUTHORIZED_ROLE.getCode(),
                 "Unauthorized role",
                 HttpStatus.UNAUTHORIZED,
                 "The user role is not authorized to perform this action"
@@ -304,7 +304,7 @@ public class GlobalExceptionHandler {
     ) {
         return errors.handleWith(
                 ex, request,
-                GlobalErrorTypes.EMAIL_COMMUNICATION,
+                GlobalErrorTypes.EMAIL_COMMUNICATION.getCode(),
                 "Email communication error",
                 HttpStatus.SERVICE_UNAVAILABLE,
                 "Email communication failed"
@@ -319,7 +319,7 @@ public class GlobalExceptionHandler {
     ) {
         return errors.handleWith(
                 ex, request,
-                GlobalErrorTypes.MISSING_HEADER,
+                GlobalErrorTypes.MISSING_HEADER.getCode(),
                 "Missing header",
                 HttpStatus.BAD_REQUEST,
                 "The X-ID-TOKEN header is missing, this header is needed to issue a Verifiable Certification"
@@ -334,7 +334,7 @@ public class GlobalExceptionHandler {
     ) {
         return errors.handleWith(
                 ex, request,
-                GlobalErrorTypes.SAD_ERROR,
+                GlobalErrorTypes.SAD_ERROR.getCode(),
                 "SAD error",
                 HttpStatus.BAD_GATEWAY,
                 "An upstream SAD error occurred"
