@@ -939,7 +939,7 @@ class GlobalExceptionHandlerTest {
         reactor.test.StepVerifier.create(mono)
                 .assertNext(gem -> assertGem(
                         gem,
-                        "credential_not_found_error",
+                        "credential_not_found",
                         "Credential not found",
                         HttpStatus.NOT_FOUND,
                         "nothing here"
@@ -957,7 +957,7 @@ class GlobalExceptionHandlerTest {
         reactor.test.StepVerifier.create(mNull)
                 .assertNext(gem -> assertGem(
                         gem,
-                        "credential_not_found_error",
+                        "credential_not_found",
                         "Credential not found",
                         HttpStatus.NOT_FOUND,
                         "No credential found."
@@ -967,7 +967,7 @@ class GlobalExceptionHandlerTest {
         reactor.test.StepVerifier.create(mBlank)
                 .assertNext(gem -> assertGem(
                         gem,
-                        "credential_not_found_error",
+                        "credential_not_found",
                         "Credential not found",
                         HttpStatus.NOT_FOUND,
                         "No credential found."
@@ -1493,7 +1493,7 @@ class GlobalExceptionHandlerTest {
         reactor.test.StepVerifier.create(mono)
                 .assertNext(gem -> assertGem(
                         gem,
-                        "organization_id_mismatch_error",
+                        "organization_id_mismatch",
                         "Unauthorized",
                         HttpStatus.FORBIDDEN,
                         "org mismatch"
@@ -1511,7 +1511,7 @@ class GlobalExceptionHandlerTest {
         reactor.test.StepVerifier.create(mNull)
                 .assertNext(gem -> assertGem(
                         gem,
-                        "organization_id_mismatch_error",
+                        "organization_id_mismatch",
                         "Unauthorized",
                         HttpStatus.FORBIDDEN,
                         "Organization identifier mismatch"
@@ -1521,7 +1521,7 @@ class GlobalExceptionHandlerTest {
         reactor.test.StepVerifier.create(mBlank)
                 .assertNext(gem -> assertGem(
                         gem,
-                        "organization_id_mismatch_error",
+                        "organization_id_mismatch",
                         "Unauthorized",
                         HttpStatus.FORBIDDEN,
                         "Organization identifier mismatch"
@@ -1585,7 +1585,7 @@ class GlobalExceptionHandlerTest {
         reactor.test.StepVerifier.create(mono)
                 .assertNext(gem -> assertGem(
                         gem,
-                        "missing_required_data_error",
+                        "missing_required_data",
                         "Bad Request",
                         HttpStatus.BAD_REQUEST,
                         "missing field X"
@@ -1603,7 +1603,7 @@ class GlobalExceptionHandlerTest {
         reactor.test.StepVerifier.create(mNull)
                 .assertNext(gem -> assertGem(
                         gem,
-                        "missing_required_data_error",
+                        "missing_required_data",
                         "Bad Request",
                         HttpStatus.BAD_REQUEST,
                         "Missing required data"
@@ -1613,7 +1613,7 @@ class GlobalExceptionHandlerTest {
         reactor.test.StepVerifier.create(mBlank)
                 .assertNext(gem -> assertGem(
                         gem,
-                        "missing_required_data_error",
+                        "missing_required_data",
                         "Bad Request",
                         HttpStatus.BAD_REQUEST,
                         "Missing required data"
@@ -1631,7 +1631,7 @@ class GlobalExceptionHandlerTest {
         reactor.test.StepVerifier.create(mono)
                 .assertNext(gem -> assertGem(
                         gem,
-                        "invalid_signature_configuration_error",
+                        "invalid_signature_configuration",
                         "Bad Request",
                         HttpStatus.BAD_REQUEST,
                         "bad signature cfg"
@@ -1650,7 +1650,7 @@ class GlobalExceptionHandlerTest {
         reactor.test.StepVerifier.create(mNull)
                 .assertNext(gem -> assertGem(
                         gem,
-                        "invalid_signature_configuration_error",
+                        "invalid_signature_configuration",
                         "Bad Request",
                         HttpStatus.BAD_REQUEST,
                         "Invalid signature configuration"
@@ -1660,7 +1660,7 @@ class GlobalExceptionHandlerTest {
         reactor.test.StepVerifier.create(mBlank)
                 .assertNext(gem -> assertGem(
                         gem,
-                        "invalid_signature_configuration_error",
+                        "invalid_signature_configuration",
                         "Bad Request",
                         HttpStatus.BAD_REQUEST,
                         "Invalid signature configuration"
