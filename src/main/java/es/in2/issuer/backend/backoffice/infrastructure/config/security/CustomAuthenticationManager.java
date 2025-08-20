@@ -2,7 +2,11 @@ package es.in2.issuer.backend.backoffice.infrastructure.config.security;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.nimbusds.jose.JWSObject;
+import com.nimbusds.jwt.SignedJWT;
+import es.in2.issuer.backend.shared.domain.service.JWTService;
 import es.in2.issuer.backend.shared.domain.service.VerifierService;
+import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Configuration;
@@ -14,6 +18,7 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import reactor.core.publisher.Mono;
 
 import java.nio.charset.StandardCharsets;
+import java.text.ParseException;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.Collections;
@@ -27,14 +32,53 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
 
     private final VerifierService verifierService;
     private final ObjectMapper objectMapper;
+    private final AppConfig appConfig;
+    private final JWTService jwtService;
 
     @Override
     public Mono<Authentication> authenticate(Authentication authentication) {
         String token = authentication.getCredentials().toString();
 
-        return verifierService.verifyToken(token)
-                .then(parseAndValidateJwt(token))
-                .map(jwt -> new JwtAuthenticationToken(jwt, Collections.emptyList()));
+        return Mono.fromCallable(() -> {
+                    try {
+                        return SignedJWT.parse(token);
+                    } catch (ParseException e) {
+                        throw new BadCredentialsException("Invalid JWT token format", e);
+                    }
+                })
+                .flatMap(signedJWT -> {
+                    String issuer;
+                    try {
+                        issuer = signedJWT.getJWTClaimsSet().getIssuer();
+                    } catch (ParseException e) {
+                        return Mono.error(new BadCredentialsException("Unable to parse JWT claims", e));
+                    }
+
+                    if (issuer == null) {
+                        return Mono.error(new BadCredentialsException("Missing issuer (iss) claim"));
+                    }
+
+                    if (issuer.equals(appConfig.getVerifierUrl())) {
+                        // Caso Verifier → validar vía microservicio Verifier
+                        return verifierService.verifyToken(token)
+                                .then(parseAndValidateJwt(token))
+                                .map(jwt -> new JwtAuthenticationToken(jwt, Collections.emptyList()));
+                    } else if (issuer.equals(appConfig.getIssuerBackendUrl())) {
+                        // Caso Credential Issuer (Keycloak) → validar firma local
+                        return Mono.fromCallable(() -> JWSObject.parse(token))
+                                .flatMap(jwsObject -> jwtService.validateJwtSignatureReactive(jwsObject)
+                                        .flatMap(isValid -> {
+                                            if (!isValid) {
+                                                return Mono.error(new BadCredentialsException("Invalid JWT signature"));
+                                            }
+                                            return parseAndValidateJwt(token)
+                                                    .map(jwt -> (Authentication) new JwtAuthenticationToken(jwt, Collections.emptyList()));
+                                        }));
+                    } else {
+                        // Caso futuro o desconocido
+                        return Mono.error(new BadCredentialsException("Unknown token issuer: " + issuer));
+                    }
+                });
     }
 
     private Mono<Jwt> parseAndValidateJwt(String token) {
