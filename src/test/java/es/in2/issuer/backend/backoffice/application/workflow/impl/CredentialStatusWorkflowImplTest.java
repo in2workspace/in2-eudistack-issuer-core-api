@@ -1,16 +1,14 @@
 package es.in2.issuer.backend.backoffice.application.workflow.impl;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import es.in2.issuer.backend.backoffice.domain.service.CredentialStatusAuthorizationService;
 import es.in2.issuer.backend.backoffice.domain.service.CredentialStatusService;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.CredentialStatus;
+import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.employee.LEARCredentialEmployee;
 import es.in2.issuer.backend.shared.domain.model.entities.CredentialProcedure;
 import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum;
 import es.in2.issuer.backend.shared.domain.service.AccessTokenService;
 import es.in2.issuer.backend.shared.domain.service.CredentialProcedureService;
-import es.in2.issuer.backend.shared.domain.service.EmailService;
+import es.in2.issuer.backend.shared.domain.util.factory.LEARCredentialEmployeeFactory;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -20,21 +18,26 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-import java.util.UUID;
-
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class CredentialStatusWorkflowImplTest {
 
-    @Mock private ObjectMapper objectMapper;
-    @Mock private AccessTokenService accessTokenService;
-    @Mock private CredentialStatusService credentialStatusService;
-    @Mock private CredentialStatusAuthorizationService credentialStatusAuthorizationService;
-    @Mock private CredentialProcedureService credentialProcedureService;
-    @Mock private EmailService emailService;
+    @Mock
+    private AccessTokenService accessTokenService;
+
+    @Mock
+    private CredentialStatusService credentialStatusService;
+
+    @Mock
+    private CredentialStatusAuthorizationService credentialStatusAuthorizationService;
+
+    @Mock
+    private CredentialProcedureService credentialProcedureService;
+
+    @Mock
+    private LEARCredentialEmployeeFactory learCredentialEmployeeFactory;
 
     @InjectMocks
     private CredentialStatusWorkflowImpl credentialStatusWorkflow;
@@ -50,117 +53,59 @@ class CredentialStatusWorkflowImplTest {
 
         var result = credentialStatusWorkflow.getCredentialsByListId("processId", listId);
 
-        StepVerifier.create(result)
+        StepVerifier
+                .create(result)
                 .assertNext(x -> assertThat(x).isEqualTo(statusListIndex1))
                 .assertNext(x -> assertThat(x).isEqualTo(statusListIndex2))
                 .verifyComplete();
     }
 
     @Test
-    void revokeCredential_ReturnsVoid() throws JsonProcessingException {
+    void revokeCredential_ReturnsVoid() {
         String credentialId = "1b59b5f8-a66b-4694-af47-cf38db7a3d73";
         int listId = 1;
         String bearerToken = "bearerToken";
 
-        String decodedCredential = """
-        {
-          "@context": ["https://www.w3.org/2018/credentials/v1"],
-          "id": "example-id",
-          "type": ["VerifiableCredential", "LEARCredentialEmployee"],
-          "credentialStatus": {
-            "id": "https://issuer/credentials/status/1#urn:uuid:8c7a6213",
-            "type": "PlainListEntity",
-            "statusPurpose": "revocation",
-            "statusListIndex": "urn:uuid:8c7a6213",
-            "statusListCredential": "https://issuer/credentials/status/1"
-          }
-        }
-        """;
-
-        ObjectMapper realMapper = new ObjectMapper();
-        JsonNode root = realMapper.readTree(decodedCredential);
+        CredentialStatus credentialStatus = CredentialStatus.builder().build();
+        LEARCredentialEmployee learCredentialEmployee = LEARCredentialEmployee.builder()
+                .credentialStatus(credentialStatus)
+                .build();
 
         CredentialProcedure credentialProcedure = new CredentialProcedure();
         credentialProcedure.setCredentialStatus(CredentialStatusEnum.VALID);
-        credentialProcedure.setCredentialDecoded(decodedCredential);
-        credentialProcedure.setProcedureId(UUID.randomUUID());
 
         when(accessTokenService.getCleanBearerToken(bearerToken))
                 .thenReturn(Mono.just(bearerToken));
 
-        when(credentialStatusAuthorizationService.authorize("processId", bearerToken, credentialId))
+        String processId = "processId";
+        when(credentialStatusAuthorizationService.authorize(processId, bearerToken, credentialId))
                 .thenReturn(Mono.empty());
+
+        String decodedCredential = "decodedCredential";
+        credentialProcedure.setCredentialDecoded(decodedCredential);
 
         when(credentialProcedureService.getCredentialByCredentialId(credentialId))
                 .thenReturn(Mono.just(credentialProcedure));
 
-        when(objectMapper.readTree(decodedCredential)).thenReturn(root);
+        when(learCredentialEmployeeFactory.mapStringToLEARCredentialEmployee(decodedCredential))
+                .thenReturn(learCredentialEmployee);
 
-        when(credentialStatusService.revokeCredential(eq(listId), any(CredentialStatus.class)))
+        when(credentialStatusService.revokeCredential(listId, credentialStatus))
                 .thenReturn(Mono.empty());
 
         when(credentialProcedureService.updateCredentialProcedureCredentialStatusToRevoke(credentialProcedure))
                 .thenReturn(Mono.empty());
 
-        when(emailService.notifyIfCredentialStatusChanges(any(), any()))
-                .thenReturn(Mono.empty());
+        var result = credentialStatusWorkflow.revokeCredential(
+                processId,
+                bearerToken,
+                credentialId,
+                listId);
 
-        Mono<Void> result = credentialStatusWorkflow.revokeCredential("processId", bearerToken, credentialId, listId);
+        StepVerifier
+                .create(result)
+                .verifyComplete();
 
-        StepVerifier.create(result).verifyComplete();
-
-        verify(credentialStatusService, times(1)).revokeCredential(eq(listId), any(CredentialStatus.class));
-
-        verify(emailService, times(1)).notifyIfCredentialStatusChanges(credentialProcedure, "REVOKED");
-    }
-
-
-    @Test
-    void revokeCredential_SendsEmailWhenRevoked() throws Exception {
-        String processId = "processId";
-        String bearerToken = "bearerToken";
-        String credentialId = "cred-123";
-        int listId = 7;
-
-        CredentialProcedure cp = new CredentialProcedure();
-        cp.setCredentialDecoded("""
-            {"credentialStatus":{
-              "id":"x","type":"PlainListEntity","statusPurpose":"revocation",
-              "statusListIndex":"idx","statusListCredential":"url"}}
-            """);
-        cp.setCredentialStatus(CredentialStatusEnum.VALID);
-        cp.setProcedureId(UUID.randomUUID());
-        cp.setCredentialId(UUID.randomUUID());
-        cp.setCredentialType("LEARCredentialEmployee");
-
-        ObjectMapper real = new ObjectMapper();
-        JsonNode root = real.readTree(cp.getCredentialDecoded());
-
-        when(accessTokenService.getCleanBearerToken(bearerToken)).thenReturn(Mono.just(bearerToken));
-        when(credentialStatusAuthorizationService.authorize(processId, bearerToken, credentialId)).thenReturn(Mono.empty());
-        when(credentialProcedureService.getCredentialByCredentialId(credentialId)).thenReturn(Mono.just(cp));
-        when(objectMapper.readTree(cp.getCredentialDecoded())).thenReturn(root);
-
-        when(credentialStatusService.revokeCredential(eq(listId), any(CredentialStatus.class))).thenReturn(Mono.empty());
-
-        when(credentialProcedureService.updateCredentialProcedureCredentialStatusToRevoke(any(CredentialProcedure.class)))
-                .thenAnswer(inv -> {
-                    CredentialProcedure arg = inv.getArgument(0);
-                    arg.setCredentialStatus(CredentialStatusEnum.REVOKED);
-                    return Mono.empty();
-                });
-
-        when(emailService.notifyIfCredentialStatusChanges(
-                any(), anyString()
-        )).thenReturn(Mono.empty());
-
-        Mono<Void> result = credentialStatusWorkflow.revokeCredential(processId, bearerToken, credentialId, listId);
-
-        StepVerifier.create(result).verifyComplete();
-
-        verify(emailService).notifyIfCredentialStatusChanges(
-                cp,
-                "REVOKED"
-        );
+        verify(credentialStatusService, times(1)).revokeCredential(listId, credentialStatus);
     }
 }

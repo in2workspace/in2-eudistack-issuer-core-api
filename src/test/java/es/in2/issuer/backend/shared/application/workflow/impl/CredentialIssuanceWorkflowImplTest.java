@@ -7,12 +7,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import es.in2.issuer.backend.shared.application.workflow.CredentialSignerWorkflow;
 import es.in2.issuer.backend.shared.domain.exception.EmailCommunicationException;
 import es.in2.issuer.backend.shared.domain.exception.FormatUnsupportedException;
-import es.in2.issuer.backend.shared.domain.exception.InvalidOrMissingProofException;
-import es.in2.issuer.backend.shared.domain.model.dto.*;
-import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.Mandator;
-import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.Signer;
-import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.employee.LEARCredentialEmployee;
-import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum;
+import es.in2.issuer.backend.shared.domain.model.dto.AuthServerNonceRequest;
+import es.in2.issuer.backend.shared.domain.model.dto.PreSubmittedCredentialDataRequest;
 import es.in2.issuer.backend.shared.domain.service.*;
 import es.in2.issuer.backend.shared.domain.util.factory.LEARCredentialEmployeeFactory;
 import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
@@ -27,11 +23,10 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import javax.naming.OperationNotSupportedException;
-import java.util.List;
 
-import static es.in2.issuer.backend.backoffice.domain.util.Constants.*;
+import static es.in2.issuer.backend.backoffice.domain.util.Constants.JWT_VC;
+import static es.in2.issuer.backend.backoffice.domain.util.Constants.MAIL_ERROR_COMMUNICATION_EXCEPTION_MESSAGE;
 import static es.in2.issuer.backend.shared.domain.util.Constants.JWT_VC_JSON;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -540,66 +535,5 @@ class CredentialIssuanceServiceImplTest {
         StepVerifier.create(verifiableCredentialIssuanceWorkflow.bindAccessTokenByPreAuthorizedCode(processId, authServerNonceRequest))
                 .verifyComplete();
     }
-
-    @Test
-    void completeWithdrawLEARMachineProcessSyncSuccess() throws Exception {
-        String processId = "1234";
-        String type = "LEARCredentialMachine";
-        String knowledgebaseWalletUrl = "https://knowledgebase.com";
-        String issuerUiExternalDomain = "https://example.com";
-        String token = "token";
-        String idToken = null;
-        String expectedEmail = "machine.owner@in2.es";
-        String expectedName  = "Robot 3000";
-        String expectedOrg   = "IN2 Machines";
-
-        String json = """
-        {
-          "mandator": {
-            "email": "machine.owner@in2.es",
-            "commonName": "Robot 3000",
-            "organization": "IN2 Machines"
-          }
-        }
-        """;
-
-        ObjectMapper objectMapper = new ObjectMapper();
-        JsonNode jsonNode = objectMapper.readTree(json);
-
-        PreSubmittedCredentialDataRequest preSubmittedCredentialDataRequest =
-                PreSubmittedCredentialDataRequest.builder()
-                        .payload(jsonNode)
-                        .schema("LEARCredentialMachine")
-                        .format(JWT_VC_JSON)
-                        .operationMode("S")
-                        .build();
-
-        String transactionCode = "tx-9876";
-
-        // arrange
-        when(verifiableCredentialPolicyAuthorizationService.authorize(token, type, jsonNode, idToken))
-                .thenReturn(Mono.empty());
-
-        when(verifiableCredentialService.generateVc(processId, preSubmittedCredentialDataRequest, expectedEmail))
-                .thenReturn(Mono.just(transactionCode));
-
-        when(appConfig.getIssuerFrontendUrl()).thenReturn(issuerUiExternalDomain);
-        when(appConfig.getKnowledgebaseWalletUrl()).thenReturn(knowledgebaseWalletUrl);
-
-
-        when(emailService.sendCredentialActivationEmail(
-                expectedEmail,
-                "Activate your new credential",
-                issuerUiExternalDomain + "/credential-offer?transaction_code=" + transactionCode,
-                knowledgebaseWalletUrl,
-                expectedName,
-                expectedOrg
-        )).thenReturn(Mono.empty());
-
-        StepVerifier.create(
-                verifiableCredentialIssuanceWorkflow.execute(processId, preSubmittedCredentialDataRequest, token, idToken)
-        ).verifyComplete();
-    }
-
 
 }

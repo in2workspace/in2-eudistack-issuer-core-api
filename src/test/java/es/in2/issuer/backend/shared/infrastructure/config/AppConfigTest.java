@@ -91,20 +91,6 @@ class AppConfigTest {
     }
 
     @Test
-    void testGetWalletFrontendUrl() {
-        // Arrange
-        String expectedDomain = "https://ui.example.com";
-        when(appProperties.walletUrl()).thenReturn("ui.external.url");
-        when(configAdapter.getConfiguration("ui.external.url")).thenReturn(expectedDomain);
-
-        // Act
-        String actualDomain = appConfig.getWalletFrontendUrl();
-
-        // Assert
-        assertEquals(expectedDomain, actualDomain);
-    }
-
-    @Test
     void testGetConfigSource() {
         // Arrange
         String expectedConfigSource = "configSourceValue";

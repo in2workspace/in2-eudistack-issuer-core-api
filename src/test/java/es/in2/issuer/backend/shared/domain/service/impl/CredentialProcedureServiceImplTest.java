@@ -3,9 +3,7 @@ package es.in2.issuer.backend.shared.domain.service.impl;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import es.in2.issuer.backend.shared.domain.exception.ParseCredentialJsonException;
 import es.in2.issuer.backend.shared.domain.model.dto.CredentialDetails;
-import es.in2.issuer.backend.shared.domain.model.dto.CredentialOfferEmailNotificationInfo;
 import es.in2.issuer.backend.shared.domain.model.dto.CredentialProcedureCreationRequest;
 import es.in2.issuer.backend.shared.domain.model.dto.CredentialProcedures;
 import es.in2.issuer.backend.shared.domain.model.entities.CredentialProcedure;
@@ -735,75 +733,4 @@ class CredentialProcedureServiceImplTest {
         StepVerifier.create(result)
                 .verifyComplete();
     }
-
-    @Test
-    void getEmailCredentialOfferInfoByProcedureId_shouldReturnInfoForLearCredentialMachine() throws Exception {
-        String procedureId = UUID.randomUUID().toString();
-
-        String credentialDecoded = """
-        {
-          "credentialSubject": {
-            "mandate": {
-              "mandator": {
-                "commonName": "Acme Robot 2000",
-                "organization": "Acme Corp",
-                "email": "robot@acme.test"
-              }
-            }
-          }
-        }
-        """;
-
-        CredentialProcedure credentialProcedure = new CredentialProcedure();
-        credentialProcedure.setProcedureId(UUID.fromString(procedureId));
-        credentialProcedure.setCredentialDecoded(credentialDecoded);
-        credentialProcedure.setCredentialType("LEAR_CREDENTIAL_MACHINE");
-
-        JsonNode credentialNode = new ObjectMapper().readTree(credentialDecoded);
-
-        when(credentialProcedureRepository.findByProcedureId(any(UUID.class)))
-                .thenReturn(Mono.just(credentialProcedure));
-        when(objectMapper.readTree(credentialDecoded))
-                .thenReturn(credentialNode);
-
-        Mono<CredentialOfferEmailNotificationInfo> result =
-                credentialProcedureService.getEmailCredentialOfferInfoByProcedureId(procedureId);
-
-        StepVerifier.create(result)
-                .assertNext(info -> {
-                    String s = info.toString();
-                    assert s.contains("robot@acme.test");
-                    assert s.contains("Acme Robot 2000");
-                    assert s.contains("Acme Corp");
-                })
-                .verifyComplete();
-    }
-
-    @Test
-    void getEmailCredentialOfferInfoByProcedureId_shouldMapJsonErrorForLearCredentialMachine() throws Exception {
-        // Given
-        String procedureId = UUID.randomUUID().toString();
-        String malformedJson = "{ \"credentialSubject\": { \"mandate\": { \"mandator\": { \"email\": ";
-
-        CredentialProcedure credentialProcedure = new CredentialProcedure();
-        credentialProcedure.setProcedureId(UUID.fromString(procedureId));
-        credentialProcedure.setCredentialDecoded(malformedJson);
-        credentialProcedure.setCredentialType("LEAR_CREDENTIAL_MACHINE");
-
-        when(credentialProcedureRepository.findByProcedureId(any(UUID.class)))
-                .thenReturn(Mono.just(credentialProcedure));
-
-        when(objectMapper.readTree(malformedJson))
-                .thenThrow(new com.fasterxml.jackson.core.JsonParseException(null, "broken json"));
-
-        // Execute
-        Mono<CredentialOfferEmailNotificationInfo> result =
-                credentialProcedureService.getEmailCredentialOfferInfoByProcedureId(procedureId);
-
-        // Then
-        StepVerifier.create(result)
-                .expectError(ParseCredentialJsonException.class)
-                .verify();
-    }
-
 }

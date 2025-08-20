@@ -407,22 +407,6 @@ public class RemoteSignatureServiceImpl implements RemoteSignatureService {
                 });
     }
 
-    public Mono<String> getMandatorMailLearCredentialMachine(String procedureId) {
-        return credentialProcedureRepository.findById(UUID.fromString(procedureId))
-                .flatMap(credentialProcedure -> {
-                    try {
-                        JsonNode credential = objectMapper.readTree(credentialProcedure.getCredentialDecoded());
-                        if (credential.get(CREDENTIAL_SUBJECT).get(MANDATE).get(MANDATOR).get(EMAIL).asText().equals("jesus.ruiz@in2.es")) {
-                            return Mono.just("domesupport@in2.es");
-                        } else {
-                            return Mono.just(credential.get(CREDENTIAL_SUBJECT).get(MANDATE).get(MANDATOR).get(EMAIL).asText());
-                        }
-                    } catch (JsonProcessingException e) {
-                        return Mono.error(new RuntimeException());
-                    }
-                });
-    }
-
 
     private Mono<String> sendSignatureRequest(SignatureRequest signatureRequest, String accessToken, String sad) {
         credentialID = remoteSignatureConfig.getRemoteSignatureCredentialId();

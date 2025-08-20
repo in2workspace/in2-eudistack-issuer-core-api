@@ -26,7 +26,6 @@ import java.util.UUID;
 
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.*;
 import static es.in2.issuer.backend.shared.domain.util.Constants.*;
-import static es.in2.issuer.backend.shared.domain.util.Constants.LEAR_CREDENTIAL_MACHINE;
 
 @Service
 @RequiredArgsConstructor
@@ -168,14 +167,14 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
                             }
                             case LABEL_CREDENTIAL_TYPE -> Mono.just("domesupport@in2.es");
 
-                            case LEAR_CREDENTIAL_MACHINE_TYPE ->
-                                Mono.just(credential
+                            case LEAR_CREDENTIAL_MACHINE_TYPE -> {
+                                yield Mono.just(credential
                                         .get(CREDENTIAL_SUBJECT)
                                         .get(MANDATE)
                                         .get(MANDATOR)
                                         .get(EMAIL)
                                         .asText());
-
+                            }
 
                             default ->
                                     Mono.error(new IllegalArgumentException("Unsupported credential type: " + credentialProcedure.getCredentialType()));
@@ -243,7 +242,6 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
     public Mono<Void> updateCredentialProcedureCredentialStatusToRevoke(CredentialProcedure
                                                                                 credentialProcedure) {
         credentialProcedure.setCredentialStatus(CredentialStatusEnum.REVOKED);
-        credentialProcedure.setUpdatedAt(Timestamp.from(Instant.now()));
         return credentialProcedureRepository.save(credentialProcedure)
                 .doOnSuccess(result -> log.info(UPDATED_CREDENTIAL))
                 .then();
@@ -307,34 +305,6 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
                                                 .asText();
                                         return new CredentialOfferEmailNotificationInfo(
                                                 credentialProcedure.getOwnerEmail(),
-                                                user,
-                                                org
-                                        );
-                                    })
-                                    .onErrorMap(JsonProcessingException.class, e ->
-                                            new ParseCredentialJsonException(
-                                                    "Error parsing credential for procedureId: " + procedureId
-                                            )
-                                    );
-                            case LEAR_CREDENTIAL_MACHINE_TYPE -> Mono.fromCallable(() ->
-                                            objectMapper.readTree(credentialProcedure.getCredentialDecoded())
-                                    )
-                                    .map(credential -> {
-                                        JsonNode mandator = credential
-                                                .get(CREDENTIAL_SUBJECT)
-                                                .get(MANDATE)
-                                                .get(MANDATOR);
-                                        String user = mandator
-                                                .get(COMMON_NAME)
-                                                .asText();
-                                        String org = mandator
-                                                .get(ORGANIZATION)
-                                                .asText();
-                                        String email = mandator
-                                                .get(EMAIL)
-                                                .asText();
-                                        return new CredentialOfferEmailNotificationInfo(
-                                                email,
                                                 user,
                                                 org
                                         );

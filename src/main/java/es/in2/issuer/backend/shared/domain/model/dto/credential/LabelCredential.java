@@ -19,8 +19,7 @@ public record LabelCredential(
         @NotNull
         @JsonProperty("validFrom") String validFrom,
         @NotNull
-        @JsonProperty("validUntil") String validUntil,
-        @JsonProperty("credentialStatus") CredentialStatus credentialStatus) {
+        @JsonProperty("validUntil") String validUntil) {
     @Builder
     public record CredentialSubject(
             @JsonProperty("id") String id,

@@ -299,7 +299,7 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
     }
 
     private boolean isLearCredentialEmployeeMandatorOrganizationIdentifierAllowedSignerLEARCredentialMachine(Mandator mandator) {
-        return IN2_ORGANIZATION_IDENTIFIER.equals(mandator.organizationIdentifier());
+        return IN2_ORGANIZATION_IDENTIFIER.equals(mandator.organization());
     }
 
     private boolean payloadPowersOnlyIncludeProductOffering(List<Power> powers) {
