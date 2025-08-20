@@ -93,7 +93,6 @@ public class GlobalExceptionHandler {
     ) {
         return errors.handleWith(
                 ex, request,
-                // todo
                 GlobalErrorTypes.PARSE_ERROR.getCode(),
                 "Parse error",
                 HttpStatus.INTERNAL_SERVER_ERROR,
