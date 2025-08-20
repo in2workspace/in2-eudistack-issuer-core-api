@@ -602,4 +602,33 @@ class GlobalExceptionHandlerTest {
 
         verify(errors).handleWith(ex, request, type, title, st, fallback);
     }
+
+    // -------------------- handleCredentialSerializationException --------------------
+
+    @Test
+    void handleCredentialSerializationException() {
+        var ex = new CredentialSerializationException("Credential serialization err");
+        var type = GlobalErrorTypes.CREDENTIAL_SERIALIZATION.getCode();
+        var title = "Credential serialization error";
+        var st = HttpStatus.INTERNAL_SERVER_ERROR;
+        var fallback = "An error occurred during credential serialization";
+
+        var expected = new GlobalErrorMessage(
+                type,
+                title,
+                st.value(),
+                "Credential serialization err",
+                UUID.randomUUID().toString()
+        );
+
+        when(errors.handleWith(ex, request, type, title, st, fallback))
+                .thenReturn(Mono.just(expected));
+
+        StepVerifier.create(handler.handleCredentialSerializationException(ex, request))
+                .assertNext(gem -> assertGem(gem, type, title, st, "Credential serialization err"))
+                .verifyComplete();
+
+        verify(errors).handleWith(ex, request, type, title, st, fallback);
+    }
+
 }

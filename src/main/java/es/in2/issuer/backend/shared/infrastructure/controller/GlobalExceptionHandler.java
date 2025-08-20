@@ -327,6 +327,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(SadException.class)
     @ResponseStatus(HttpStatus.BAD_GATEWAY)
+    //todo exception, not error
     public Mono<GlobalErrorMessage> handleSadError(
             SadException ex,
             ServerHttpRequest request
@@ -337,6 +338,21 @@ public class GlobalExceptionHandler {
                 "SAD error",
                 HttpStatus.BAD_GATEWAY,
                 "An upstream SAD error occurred"
+        );
+    }
+
+    @ExceptionHandler(CredentialSerializationException.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public Mono<GlobalErrorMessage> handleCredentialSerializationException(
+            CredentialSerializationException ex,
+            ServerHttpRequest request
+    ) {
+        return errors.handleWith(
+                ex, request,
+                GlobalErrorTypes.CREDENTIAL_SERIALIZATION.getCode(),
+                "Credential serialization error",
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                "An error occurred during credential serialization"
         );
     }
 }
