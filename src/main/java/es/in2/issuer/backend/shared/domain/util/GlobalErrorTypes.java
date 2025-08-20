@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 public enum GlobalErrorTypes {
 
     INVALID_TOKEN("invalid_token"),
+    INVALID_JWT("invalid_jwt"),
     UNSUPPORTED_CREDENTIAL_TYPE("unsupported_credential_type"),
     INVALID_OR_MISSING_PROOF("invalid_or_missing_proof"),
     OPERATION_NOT_SUPPORTED("operation_not_supported"),
