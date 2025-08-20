@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
+//todo make recursive
 class GlobalExceptionHandlerTest {
 
     private ErrorResponseFactory errors;     // mock

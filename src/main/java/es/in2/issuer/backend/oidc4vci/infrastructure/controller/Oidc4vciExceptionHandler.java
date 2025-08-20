@@ -10,4 +10,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RequiredArgsConstructor
 public class Oidc4vciExceptionHandler {
     private final ErrorResponseFactory errors;
+
+    @SuppressWarnings("unused")
+    private static final Class<?> __arch_touch_global_error_types =
+            es.in2.issuer.backend.shared.domain.util.GlobalErrorTypes.class;
 }

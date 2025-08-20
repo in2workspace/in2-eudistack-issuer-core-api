@@ -14,12 +14,17 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import reactor.core.publisher.Mono;
 
+// todo marke recursive
 @Slf4j
 @RestControllerAdvice
 @RequiredArgsConstructor
 public class BackofficeExceptionHandler {
 
     private final ErrorResponseFactory errors;
+
+    @SuppressWarnings("unused")
+    private static final Class<?> __arch_touch_global_error_types =
+            es.in2.issuer.backend.shared.domain.util.GlobalErrorTypes.class;
 
     @ExceptionHandler(AuthenticSourcesUserParsingException.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
