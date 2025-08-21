@@ -52,7 +52,9 @@ public class EmailServiceImpl implements EmailService {
 
             javaMailSender.send(mimeMessage);
             return null;
-        }).subscribeOn(Schedulers.boundedElastic()).then();
+        })
+                .subscribeOn(Schedulers.boundedElastic()).then()
+                .onErrorMap(ex -> new EmailCommunicationException("Error when sending tx code notification"));
     }
 
     @Override
