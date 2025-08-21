@@ -659,4 +659,5 @@ class GlobalExceptionHandlerTest {
         verify(errors).handleWith(ex, request, type, title, st, fallback);
     }
 
+
 }

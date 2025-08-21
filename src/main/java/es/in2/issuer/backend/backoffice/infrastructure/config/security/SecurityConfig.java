@@ -15,6 +15,7 @@ import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder;
 import org.springframework.security.oauth2.server.resource.web.server.authentication.ServerBearerTokenAuthenticationConverter;
 import org.springframework.security.web.server.SecurityWebFilterChain;
 import org.springframework.security.web.server.authentication.AuthenticationWebFilter;
+import org.springframework.security.web.server.authentication.ServerAuthenticationEntryPointFailureHandler;
 import org.springframework.security.web.server.util.matcher.NegatedServerWebExchangeMatcher;
 import org.springframework.security.web.server.util.matcher.ServerWebExchangeMatcher;
 import org.springframework.security.web.server.util.matcher.ServerWebExchangeMatchers;
@@ -52,6 +53,8 @@ public class SecurityConfig {
         ServerBearerTokenAuthenticationConverter bearerConverter = new ServerBearerTokenAuthenticationConverter();
         authenticationWebFilter.setServerAuthenticationConverter(bearerConverter);
 
+        ServerAuthenticationEntryPointFailureHandler ServerAuthenticationEntryPointFailureHandler = new ServerAuthenticationEntryPointFailureHandler(entryPoint);
+        authenticationWebFilter.setAuthenticationFailureHandler(ServerAuthenticationEntryPointFailureHandler);
         return authenticationWebFilter;
     }
 
@@ -131,7 +134,7 @@ public class SecurityConfig {
     //todo entry point?
     @Bean
     @Order(3)
-    public SecurityWebFilterChain oid4vciFilterChain(ServerHttpSecurity http) {
+    public SecurityWebFilterChain oid4vciFilterChain(ServerHttpSecurity http, ProblemAuthenticationEntryPoint entryPoint) {
         http
                 .securityMatcher(ServerWebExchangeMatchers.pathMatchers(CORS_OID4VCI_PATH))
                 .cors(cors -> cors.configurationSource(oid4VciCORSConfig.oid4vciCorsConfigurationSource()))
@@ -140,7 +143,8 @@ public class SecurityConfig {
                         .anyExchange().authenticated()
                 )
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
-                .addFilterAt(oid4vciBearerAuthenticationFilter(), SecurityWebFiltersOrder.AUTHENTICATION);
+                .exceptionHandling(e -> e.authenticationEntryPoint(entryPoint))
+                .addFilterAt(oid4vciBearerAuthenticationFilter(entryPoint), SecurityWebFiltersOrder.AUTHENTICATION);
         return http.build();
     }
 
@@ -157,6 +161,7 @@ public class SecurityConfig {
                 )
                 .exceptionHandling(e -> e.authenticationEntryPoint(entryPoint))
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
+                .exceptionHandling(e -> e.authenticationEntryPoint(entryPoint))
                 .oauth2ResourceServer(oauth2ResourceServer ->
                         oauth2ResourceServer
                                 .jwt(jwtSpec -> jwtSpec
@@ -166,7 +171,7 @@ public class SecurityConfig {
         return http.build();
     }
 
-    private AuthenticationWebFilter oid4vciBearerAuthenticationFilter() {
+    private AuthenticationWebFilter oid4vciBearerAuthenticationFilter(ProblemAuthenticationEntryPoint entryPoint) {
         AuthenticationWebFilter authenticationWebFilter = new AuthenticationWebFilter(oidc4vciAuthenticationManager);
 
         // Set the path for which the filter will be applied
@@ -178,6 +183,8 @@ public class SecurityConfig {
         ServerBearerTokenAuthenticationConverter bearerConverter = new ServerBearerTokenAuthenticationConverter();
         authenticationWebFilter.setServerAuthenticationConverter(bearerConverter);
 
+        ServerAuthenticationEntryPointFailureHandler ServerAuthenticationEntryPointFailureHandler = new ServerAuthenticationEntryPointFailureHandler(entryPoint);
+        authenticationWebFilter.setAuthenticationFailureHandler(ServerAuthenticationEntryPointFailureHandler);
         return authenticationWebFilter;
     }
 
