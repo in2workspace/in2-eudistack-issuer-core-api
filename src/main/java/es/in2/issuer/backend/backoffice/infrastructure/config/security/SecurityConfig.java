@@ -39,7 +39,7 @@ public class SecurityConfig {
         AuthenticationWebFilter authenticationWebFilter = new AuthenticationWebFilter(customAuthenticationManager);
         // Set the path for which the filter will be applied
         authenticationWebFilter.setRequiresAuthenticationMatcher(
-                ServerWebExchangeMatchers.pathMatchers(VCI_ISSUANCES_PATH) //,OID4VCI_CREDENTIAL_PATH,DEFERRED_CREDENTIALS)
+                ServerWebExchangeMatchers.pathMatchers(VCI_ISSUANCES_PATH, OAUTH_TOKEN_PATH, OID4VCI_CREDENTIAL_OFFER_PATH)
         );
         // Configure the Bearer token authentication converter
         ServerBearerTokenAuthenticationConverter bearerConverter = new ServerBearerTokenAuthenticationConverter();
@@ -84,17 +84,20 @@ public class SecurityConfig {
     public SecurityWebFilterChain backofficeFilterChain(ServerHttpSecurity http) {
         http
                 .securityMatcher(ServerWebExchangeMatchers.pathMatchers(
-                        BACKOFFICE_BASE_PATH+"/**",
-                        ACTUATOR_BASE_PATH+"/**",
-                        SPRINGDOC_BASE_PATH+"/**"
+                        BACKOFFICE_PATH,
+                        ACTUATOR_PATH,
+                        SPRINGDOC_PATH
                 ))
                 .cors(cors -> cors.configurationSource(internalCORSConfig.defaultCorsConfigurationSource()))
                 .authorizeExchange(exchange -> exchange
                         .pathMatchers(HttpMethod.GET,
-                                ACTUATOR_BASE_PATH+"/**",
-                                SPRINGDOC_BASE_PATH+"/**"
+                                ACTUATOR_PATH,
+                                SPRINGDOC_PATH
                         ).permitAll()
-                        .pathMatchers(BACKOFFICE_BASE_PATH+"/**").authenticated()
+                        .pathMatchers(HttpMethod.GET, BACKOFFICE_PATH).authenticated()
+                        .pathMatchers(HttpMethod.POST, BACKOFFICE_PATH ).authenticated()
+                        .pathMatchers(HttpMethod.PUT, BACKOFFICE_PATH).authenticated()
+                        .pathMatchers(HttpMethod.DELETE, BACKOFFICE_PATH).authenticated()
                         .anyExchange().denyAll()
                 )
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
