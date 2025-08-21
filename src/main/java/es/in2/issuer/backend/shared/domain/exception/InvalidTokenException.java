@@ -8,4 +8,9 @@ public class InvalidTokenException extends Exception {
         super(DEFAULT_MESSAGE);
     }
 
+    public InvalidTokenException(String message) {
+        super((message == null || message.trim().isEmpty()) ? DEFAULT_MESSAGE : message);
+    }
+
+
 }
