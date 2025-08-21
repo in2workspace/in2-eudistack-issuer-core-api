@@ -30,11 +30,13 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
 
     @Override
     public Mono<Authentication> authenticate(Authentication authentication) {
+        log.info("authenticate");
         String token = authentication.getCredentials().toString();
 
         return verifierService.verifyToken(token)
                 .then(parseAndValidateJwt(token))
                 .map(jwt -> (Authentication) new JwtAuthenticationToken(jwt, Collections.emptyList()))
+                .onErrorResume(e -> Mono.error(new BadCredentialsException("Custom BadCredentialsException in authenticate")))
                 .doOnError(e -> log.error("Error authenticating token: {}", e));
     }
 

@@ -42,7 +42,7 @@ public class SecurityConfig {
     }
 
     @Bean
-    public AuthenticationWebFilter customAuthenticationWebFilter() {
+    public AuthenticationWebFilter customAuthenticationWebFilter(ProblemAuthenticationEntryPoint entryPoint) {
         AuthenticationWebFilter authenticationWebFilter = new AuthenticationWebFilter(customAuthenticationManager);
         // Set the path for which the filter will be applied
         authenticationWebFilter.setRequiresAuthenticationMatcher(
@@ -113,19 +113,22 @@ public class SecurityConfig {
     // External filter chain for external endpoints
     @Bean
     @Order(2)
-    public SecurityWebFilterChain externalFilterChain(ServerHttpSecurity http) {
+    public SecurityWebFilterChain externalFilterChain(ServerHttpSecurity http,
+                                                      ProblemAuthenticationEntryPoint entryPoint) {
         http
                 .securityMatcher(ServerWebExchangeMatchers.pathMatchers(HttpMethod.POST, VCI_ISSUANCES_PATH))
                 .cors(cors -> cors.configurationSource(externalServicesCORSConfig.externalCorsConfigurationSource()))
                 .authorizeExchange(exchanges -> exchanges
                         .anyExchange().authenticated()
                 )
+                .exceptionHandling(e -> e.authenticationEntryPoint(entryPoint))
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
-                .addFilterAt(customAuthenticationWebFilter(), SecurityWebFiltersOrder.AUTHENTICATION);
+                .addFilterAt(customAuthenticationWebFilter(entryPoint), SecurityWebFiltersOrder.AUTHENTICATION);
 
         return http.build();
     }
 
+    //todo entry point?
     @Bean
     @Order(3)
     public SecurityWebFilterChain oid4vciFilterChain(ServerHttpSecurity http) {
@@ -144,13 +147,15 @@ public class SecurityConfig {
     // Internal security configuration for internal endpoints
     @Bean
     @Order(4)
-    public SecurityWebFilterChain internalFilterChain(ServerHttpSecurity http) {
+    public SecurityWebFilterChain internalFilterChain(ServerHttpSecurity http,
+                                                      ProblemAuthenticationEntryPoint entryPoint) {
         http
                 .securityMatcher(ServerWebExchangeMatchers.anyExchange())
                 .cors(cors -> internalCORSConfig.defaultCorsConfigurationSource())
                 .authorizeExchange(exchanges -> exchanges
                         .anyExchange().authenticated()
                 )
+                .exceptionHandling(e -> e.authenticationEntryPoint(entryPoint))
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
                 .oauth2ResourceServer(oauth2ResourceServer ->
                         oauth2ResourceServer

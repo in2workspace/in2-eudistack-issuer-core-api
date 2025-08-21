@@ -66,6 +66,7 @@ public class VerifierServiceImpl implements VerifierService {
                 .flatMap(metadata -> fetchJWKSet(metadata.jwksUri()))
                 .flatMap(jwkSet -> {
                     try {
+                        //todo usar jwtservice.parseJWT?
                         SignedJWT signedJWT = SignedJWT.parse(accessToken);
                         JWTClaimsSet claims = signedJWT.getJWTClaimsSet();
 
