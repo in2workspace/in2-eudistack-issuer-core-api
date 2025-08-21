@@ -61,7 +61,7 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(publicCORSConfig.publicCorsConfigurationSource()))
                 .authorizeExchange(exchange -> exchange
                         .pathMatchers(HttpMethod.GET,
-                                CORS_CREDENTIAL_OFFER_PATH, //TODO: en lugar de ** debería ser {id} para especificar?
+                                CORS_CREDENTIAL_OFFER_PATH,
                                 CREDENTIAL_ISSUER_METADATA_WELL_KNOWN_PATH,
                                 AUTHORIZATION_SERVER_METADATA_WELL_KNOWN_PATH
                         ).permitAll()

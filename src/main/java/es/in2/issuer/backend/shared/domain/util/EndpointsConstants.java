@@ -31,7 +31,7 @@ public class EndpointsConstants {
 
     // CORS Configuration
     public static final String CORS_OID4VCI_PATH = "/oid4vci/**";
-    public static final String CORS_CREDENTIAL_OFFER_PATH = "/oid4vci/v1/credential-offer/**";
+    public static final String CORS_CREDENTIAL_OFFER_PATH = "/oid4vci/v1/credential-offer/**"; //TODO: en lugar de ** debería ser {id} para especificar?
     public static final String STATUS_CREDENTIALS = "/backoffice/v1/credentials/status/**";
 
     // todo: remove these constants if not needed
