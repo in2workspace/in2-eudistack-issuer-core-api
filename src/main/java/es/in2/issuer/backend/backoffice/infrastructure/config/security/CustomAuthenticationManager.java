@@ -34,7 +34,8 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
 
         return verifierService.verifyToken(token)
                 .then(parseAndValidateJwt(token))
-                .map(jwt -> new JwtAuthenticationToken(jwt, Collections.emptyList()));
+                .map(jwt -> (Authentication) new JwtAuthenticationToken(jwt, Collections.emptyList()))
+                .doOnError(e -> log.error("Error authenticating token: {}", e));
     }
 
     private Mono<Jwt> parseAndValidateJwt(String token) {
