@@ -583,10 +583,10 @@ class GlobalExceptionHandlerTest {
         verify(errors).handleWith(ex, request, type, title, st, fallback);
     }
 
-    // -------------------- handleSadError --------------------
+    // -------------------- handleSadException--------------------
 
     @Test
-    void handleSadError() {
+    void handleSadException() {
         var ex = new SadException("upstream SAD failed");
         var type = GlobalErrorTypes.SAD_ERROR.getCode();
         var title = "SAD error";
@@ -596,7 +596,7 @@ class GlobalExceptionHandlerTest {
 
         when(errors.handleWith(ex, request, type, title, st, fallback)).thenReturn(Mono.just(expected));
 
-        StepVerifier.create(handler.handleSadError(ex, request))
+        StepVerifier.create(handler.handleSadException(ex, request))
                 .assertNext(gem -> assertGem(gem, type, title, st, "upstream SAD failed"))
                 .verifyComplete();
 
