@@ -8,6 +8,7 @@ import com.nimbusds.jose.crypto.RSASSAVerifier;
 import com.nimbusds.jose.jwk.*;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
+import es.in2.issuer.backend.backoffice.infrastructure.config.security.exception.ParseAuthenticationException;
 import es.in2.issuer.backend.shared.domain.exception.JWTVerificationException;
 import es.in2.issuer.backend.shared.domain.exception.TokenFetchException;
 import es.in2.issuer.backend.shared.domain.exception.WellKnownInfoFetchException;
@@ -89,7 +90,7 @@ public class VerifierServiceImpl implements VerifierService {
                         return Mono.empty(); // Valid token
                     } catch (ParseException | JOSEException e) {
                         log.error("Error parsing or verifying JWT", e);
-                        return Mono.error(new JWTVerificationException("Error parsing or verifying JWT"));
+                        return Mono.error(new ParseAuthenticationException("Error parsing or verifying JWT (custom ParseAuthenticationException)"));
                     }
                 });
     }

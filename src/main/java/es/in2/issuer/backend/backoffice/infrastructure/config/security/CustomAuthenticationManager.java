@@ -2,6 +2,7 @@ package es.in2.issuer.backend.backoffice.infrastructure.config.security;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import es.in2.issuer.backend.backoffice.infrastructure.config.security.exception.ParseAuthenticationException;
 import es.in2.issuer.backend.shared.domain.service.VerifierService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -36,8 +37,7 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
         return verifierService.verifyToken(token)
                 .then(parseAndValidateJwt(token))
                 .map(jwt -> (Authentication) new JwtAuthenticationToken(jwt, Collections.emptyList()))
-                .onErrorResume(e -> Mono.error(new BadCredentialsException("Custom BadCredentialsException in authenticate")))
-                .doOnError(e -> log.error("Error authenticating token: {}", e));
+                .doOnError(e -> log.error("Error authenticating token from authenticate", e));
     }
 
     private Mono<Jwt> parseAndValidateJwt(String token) {
