@@ -30,7 +30,7 @@ public class PublicCORSConfig {
         CorsConfiguration openConfig = new CorsConfiguration();
         openConfig.setAllowedOriginPatterns(List.of("*"));
         openConfig.setAllowedMethods(List.of("GET", "POST", "OPTIONS"));
-        openConfig.setAllowedHeaders(List.of("*"));
+        openConfig.setAllowedHeaders(List.of("https://*"));
         openConfig.setAllowCredentials(false);
         openConfig.setMaxAge(1800L);
 
