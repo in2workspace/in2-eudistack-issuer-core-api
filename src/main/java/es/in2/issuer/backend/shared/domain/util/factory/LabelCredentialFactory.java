@@ -3,6 +3,7 @@ package es.in2.issuer.backend.shared.domain.util.factory;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import es.in2.issuer.backend.shared.domain.exception.CredentialSerializationException;
 import es.in2.issuer.backend.shared.domain.exception.InvalidCredentialFormatException;
 import es.in2.issuer.backend.shared.domain.exception.ParseErrorException;
 import es.in2.issuer.backend.shared.domain.model.dto.CredentialProcedureCreationRequest;
@@ -154,7 +155,7 @@ public class LabelCredentialFactory {
 
             return Mono.just(objectMapper.writeValueAsString(labelCredential));
         } catch (JsonProcessingException e) {
-            throw new ParseErrorException(e.getMessage());
+            return Mono.error(new CredentialSerializationException("Error serializing LabelCredential to string."));
         }
     }
 
@@ -162,7 +163,7 @@ public class LabelCredentialFactory {
         try {
             return Mono.just(objectMapper.writeValueAsString(labelCredentialJwtPayload));
         } catch (JsonProcessingException e) {
-            throw new ParseErrorException(e.getMessage());
+            return Mono.error(new CredentialSerializationException("Error serializing LabelCredential JWT payload to string."));
         }
     }
 

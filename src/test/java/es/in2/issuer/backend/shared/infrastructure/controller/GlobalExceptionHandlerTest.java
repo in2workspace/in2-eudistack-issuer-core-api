@@ -583,10 +583,10 @@ class GlobalExceptionHandlerTest {
         verify(errors).handleWith(ex, request, type, title, st, fallback);
     }
 
-    // -------------------- handleSadError --------------------
+    // -------------------- handleSadException--------------------
 
     @Test
-    void handleSadError() {
+    void handleSadException() {
         var ex = new SadException("upstream SAD failed");
         var type = GlobalErrorTypes.SAD_ERROR.getCode();
         var title = "SAD error";
@@ -596,10 +596,39 @@ class GlobalExceptionHandlerTest {
 
         when(errors.handleWith(ex, request, type, title, st, fallback)).thenReturn(Mono.just(expected));
 
-        StepVerifier.create(handler.handleSadError(ex, request))
+        StepVerifier.create(handler.handleSadException(ex, request))
                 .assertNext(gem -> assertGem(gem, type, title, st, "upstream SAD failed"))
                 .verifyComplete();
 
         verify(errors).handleWith(ex, request, type, title, st, fallback);
     }
+
+    // -------------------- handleCredentialSerializationException --------------------
+
+    @Test
+    void handleCredentialSerializationException() {
+        var ex = new CredentialSerializationException("Credential serialization err");
+        var type = GlobalErrorTypes.CREDENTIAL_SERIALIZATION.getCode();
+        var title = "Credential serialization error";
+        var st = HttpStatus.INTERNAL_SERVER_ERROR;
+        var fallback = "An error occurred during credential serialization";
+
+        var expected = new GlobalErrorMessage(
+                type,
+                title,
+                st.value(),
+                "Credential serialization err",
+                UUID.randomUUID().toString()
+        );
+
+        when(errors.handleWith(ex, request, type, title, st, fallback))
+                .thenReturn(Mono.just(expected));
+
+        StepVerifier.create(handler.handleCredentialSerializationException(ex, request))
+                .assertNext(gem -> assertGem(gem, type, title, st, "Credential serialization err"))
+                .verifyComplete();
+
+        verify(errors).handleWith(ex, request, type, title, st, fallback);
+    }
+
 }

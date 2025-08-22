@@ -3,6 +3,7 @@ package es.in2.issuer.backend.shared.domain.util.factory;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import es.in2.issuer.backend.shared.domain.exception.CredentialSerializationException;
 import es.in2.issuer.backend.shared.domain.exception.InvalidCredentialFormatException;
 import es.in2.issuer.backend.shared.domain.model.dto.CredentialProcedureCreationRequest;
 import es.in2.issuer.backend.shared.domain.model.dto.LEARCredentialEmployeeJwtPayload;
@@ -24,6 +25,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -311,5 +313,43 @@ class LEARCredentialEmployeeFactoryTest {
         );
 
         assertEquals("Invalid credential format", exception.getMessage());
+    }
+
+    @Test
+    void convertLEARCredentialEmployeeInToString_whenWriteFails_emitsCredentialSerializationException() throws Exception {
+        LEARCredentialEmployee credential = mock(LEARCredentialEmployee.class);
+        when(objectMapper.writeValueAsString(any(LEARCredentialEmployee.class)))
+                .thenThrow(new JsonProcessingException("error") {});
+
+        Method m = LEARCredentialEmployeeFactory.class
+                .getDeclaredMethod("convertLEARCredentialEmployeeInToString", LEARCredentialEmployee.class);
+        m.setAccessible(true);
+
+        Object invokeResult = m.invoke(learCredentialEmployeeFactory, credential);
+
+        assertInstanceOf(Mono.class, invokeResult);
+
+        StepVerifier.create((Mono<?>) invokeResult)
+                .expectErrorSatisfies(ex -> {
+                    assertInstanceOf(CredentialSerializationException.class, ex);
+                    assertEquals("Error serializing LEARCredentialEmployee to string.", ex.getMessage());
+                })
+                .verify();
+    }
+
+    @Test
+    void convertLEARCredentialEmployeeJwtPayloadInToString_whenWriteFails_emitsCredentialSerializationException() throws Exception {
+        LEARCredentialEmployeeJwtPayload payload = mock(LEARCredentialEmployeeJwtPayload.class);
+        when(objectMapper.writeValueAsString(any(LEARCredentialEmployeeJwtPayload.class)))
+                .thenThrow(new JsonProcessingException("error"){});
+
+        Mono<String> result = learCredentialEmployeeFactory.convertLEARCredentialEmployeeJwtPayloadInToString(payload);
+
+        StepVerifier.create(result)
+                .expectErrorSatisfies(ex -> {
+                    assertInstanceOf(CredentialSerializationException.class, ex);
+                    assertEquals("Error serializing LEARCredentialEmployee JWT payload to string.", ex.getMessage());
+                })
+                .verify();
     }
 }
