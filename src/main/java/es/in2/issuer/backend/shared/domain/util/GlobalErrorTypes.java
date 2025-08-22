@@ -24,7 +24,8 @@ public enum GlobalErrorTypes {
     CREDENTIAL_ALREADY_ISSUED("credential_already_issued"),
     JWT_VERIFICATION("jwt_verification_error"),
     UNAUTHORIZED_ROLE("unauthorized_role"),
-    EMAIL_COMMUNICATION("email_communication_error");
+    EMAIL_COMMUNICATION("email_communication_error"),
+    CREDENTIAL_SERIALIZATION("credential_serialization");
 
     private final String code;
 

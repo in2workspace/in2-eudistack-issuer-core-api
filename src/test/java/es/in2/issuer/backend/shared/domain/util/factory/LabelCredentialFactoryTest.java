@@ -2,6 +2,8 @@ package es.in2.issuer.backend.shared.domain.util.factory;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import es.in2.issuer.backend.shared.domain.exception.CredentialSerializationException;
 import es.in2.issuer.backend.shared.domain.exception.InvalidCredentialFormatException;
 import es.in2.issuer.backend.shared.domain.model.dto.CredentialProcedureCreationRequest;
 import es.in2.issuer.backend.shared.domain.model.dto.LabelCredentialJwtPayload;
@@ -19,6 +21,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
+import java.lang.reflect.Method;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -250,7 +253,50 @@ class LabelCredentialFactoryTest {
                 labelCredentialFactory.mapStringToLabelCredential(malformedJson));
     }
 
+    @Test
+    void convertLabelCredentialInToString_whenWriteFails_emitsCredentialSerializationException() throws Exception {
+        LabelCredential credential = LabelCredential.builder()
+                .id("label-1")
+                .type(List.of("gx:LabelCredential"))
+                .validFrom(Instant.now().toString())
+                .validUntil(Instant.now().plus(1, ChronoUnit.DAYS).toString())
+                .credentialSubject(LabelCredential.CredentialSubject.builder().id("sub-1").build())
+                .build();
 
+        when(objectMapper.writeValueAsString(any(LabelCredential.class)))
+                .thenThrow(new JsonProcessingException("error") {});
+
+        Method m = LabelCredentialFactory.class
+                .getDeclaredMethod("convertLabelCredentialInToString", LabelCredential.class);
+        m.setAccessible(true);
+
+        Object invokeResult = m.invoke(labelCredentialFactory, credential);
+
+        assertInstanceOf(Mono.class, invokeResult);
+
+        StepVerifier.create((Mono<?>) invokeResult)
+                .expectErrorSatisfies(ex -> {
+                    assertInstanceOf(CredentialSerializationException.class, ex);
+                    assertEquals("Error serializing LabelCredential to string.", ex.getMessage());
+                })
+                .verify();
+    }
+
+    @Test
+    void convertLabelCredentialJwtPayloadInToString_whenWriteFails_emitsCredentialSerializationException() throws Exception {
+        LabelCredentialJwtPayload payload = mock(LabelCredentialJwtPayload.class);
+        when(objectMapper.writeValueAsString(any(LabelCredentialJwtPayload.class)))
+                .thenThrow(new JsonProcessingException("error"){});
+
+        Mono<String> result = labelCredentialFactory.convertLabelCredentialJwtPayloadInToString(payload);
+
+        StepVerifier.create(result)
+                .expectErrorSatisfies(ex -> {
+                    assertInstanceOf(CredentialSerializationException.class, ex);
+                    assertEquals("Error serializing LabelCredential JWT payload to string.", ex.getMessage());
+                })
+                .verify();
+    }
 
 
 }

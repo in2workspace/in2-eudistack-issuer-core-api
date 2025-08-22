@@ -3,7 +3,9 @@ package es.in2.issuer.backend.shared.domain.util.factory;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import es.in2.issuer.backend.shared.domain.exception.CredentialSerializationException;
 import es.in2.issuer.backend.shared.domain.model.dto.CredentialProcedureCreationRequest;
+import es.in2.issuer.backend.shared.domain.model.dto.LEARCredentialMachineJwtPayload;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.machine.LEARCredentialMachine;
 import es.in2.issuer.backend.shared.domain.service.AccessTokenService;
 import es.in2.issuer.backend.shared.infrastructure.config.properties.CorsProperties;
@@ -16,9 +18,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
+import java.lang.reflect.Method;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -76,4 +80,41 @@ class LEARCredentialMachineFactoryTest {
                 .verifyComplete();
     }
 
+    @Test
+    void convertLEARCredentialMachineInToString_whenWriteFails_emitsCredentialSerializationException() throws Exception {
+        LEARCredentialMachine credential = mock(LEARCredentialMachine.class);
+        when(objectMapper.writeValueAsString(any(LEARCredentialMachine.class)))
+                .thenThrow(new JsonProcessingException("error") {});
+
+        Method m = LEARCredentialMachineFactory.class
+                .getDeclaredMethod("convertLEARCredentialMachineInToString", LEARCredentialMachine.class);
+        m.setAccessible(true);
+
+        Object invokeResult = m.invoke(learCredentialMachineFactory, credential);
+
+        assertInstanceOf(Mono.class, invokeResult);
+
+        StepVerifier.create((Mono<?>) invokeResult)
+                .expectErrorSatisfies(ex -> {
+                    assertInstanceOf(CredentialSerializationException.class, ex);
+                    assertEquals("Error serializing LEARCredentialMachine to string.", ex.getMessage());
+                })
+                .verify();
+    }
+
+    @Test
+    void convertLEARCredentialMachineJwtPayloadInToString_whenWriteFails_emitsCredentialSerializationException() throws Exception {
+        LEARCredentialMachineJwtPayload payload = mock(LEARCredentialMachineJwtPayload.class);
+        when(objectMapper.writeValueAsString(any(LEARCredentialMachineJwtPayload.class)))
+                .thenThrow(new JsonProcessingException("error"){});
+
+        Mono<String> result = learCredentialMachineFactory.convertLEARCredentialMachineJwtPayloadInToString(payload);
+
+        StepVerifier.create(result)
+                .expectErrorSatisfies(ex -> {
+                    assertInstanceOf(CredentialSerializationException.class, ex);
+                    assertEquals("Error serializing LEARCredentialMachine JWT payload to string.", ex.getMessage());
+                })
+                .verify();
+    }
 }
