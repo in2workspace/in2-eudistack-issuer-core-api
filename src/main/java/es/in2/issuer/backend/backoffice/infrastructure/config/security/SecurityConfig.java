@@ -38,6 +38,7 @@ public class SecurityConfig {
     public AuthenticationWebFilter customAuthenticationWebFilter() {
         AuthenticationWebFilter authenticationWebFilter = new AuthenticationWebFilter(customAuthenticationManager);
         // Set the path for which the filter will be applied
+        log.debug("customAuthenticationWebFilter - inside");
         authenticationWebFilter.setRequiresAuthenticationMatcher(
                 ServerWebExchangeMatchers.pathMatchers(VCI_ISSUANCES_PATH, OAUTH_TOKEN_PATH,
                         OID4VCI_CREDENTIAL_OFFER_PATH, BACKOFFICE_PATH)
