@@ -28,9 +28,9 @@ public class PublicCORSConfig {
 
         // Configuración abierta para los endpoints públicos que no requieren restricción
         CorsConfiguration openConfig = new CorsConfiguration();
-        openConfig.setAllowedOriginPatterns(List.of("*"));
+        openConfig.setAllowedOriginPatterns(List.of("https://*"));
         openConfig.setAllowedMethods(List.of("GET", "POST", "OPTIONS"));
-        openConfig.setAllowedHeaders(List.of("https://*"));
+        openConfig.setAllowedHeaders(List.of("*"));
         openConfig.setAllowCredentials(false);
         openConfig.setMaxAge(1800L);
 
