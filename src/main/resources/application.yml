@@ -76,10 +76,6 @@ management:
     prometheus:
       # Enables the Prometheus metrics endpoint
       enabled: true
-  #   todo temporary for tests --remove
-  health:
-    mail:
-      enabled: false
 
 springdoc:
   api-docs:
