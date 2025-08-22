@@ -39,6 +39,8 @@ public class EndpointsConstants {
 
     //backoffice Endpoints
     public static final String BACKOFFICE_PATH = "/backoffice/**";
+    public static final String BACKOFFICE_STATUS_CREDENTIALS = BACKOFFICE_BASE_PATH+"/credentials/status/**";
+    public static final String BACKOFFICE_DEFERRED_CREDENTIALS = BACKOFFICE_BASE_PATH + "/deferred-credentials";
 
     // todo: remove these constants if not needed
     public static final String TRUST_FRAMEWORK_ISSUER = "/issuer";
