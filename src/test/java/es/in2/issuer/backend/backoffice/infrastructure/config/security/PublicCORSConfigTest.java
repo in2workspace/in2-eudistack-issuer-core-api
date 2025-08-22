@@ -37,7 +37,7 @@ class PublicCORSConfigTest {
         );
         CorsConfiguration openConfig = source.getCorsConfiguration(exchange1);
         assertNotNull(openConfig);
-        assertTrue(Objects.requireNonNull(openConfig.getAllowedOriginPatterns()).contains("*"));
+        assertTrue(Objects.requireNonNull(openConfig.getAllowedOriginPatterns()).contains("https://*"));
         assertNotNull(openConfig.getAllowedMethods());
         assertTrue(openConfig.getAllowedMethods().containsAll(List.of("GET", "POST", "OPTIONS")));
     }
