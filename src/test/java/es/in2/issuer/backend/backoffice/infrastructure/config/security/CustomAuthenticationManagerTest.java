@@ -208,12 +208,10 @@ class CustomAuthenticationManagerTest {
     @Test
     void authenticate_withValidKeycloakToken_returnsAuthentication() throws Exception {
         String headerJson = "{\"alg\":\"RS256\",\"typ\":\"JWT\"}";
-        String payloadJson = "{\"iss\":\"http://issuer.local\",\"iat\":1633036800,\"exp\":"
+        String payloadJson = "{\"iss\":\"https://keycloak.local\",\"iat\":1633036800,\"exp\":"
                 + (Instant.now().getEpochSecond() + 3600)
                 + ",\"vc\":{\"type\":[\"LEARCredentialMachine\"]}}";
         String token = buildToken(headerJson, payloadJson);
-
-        when(appConfig.getIssuerBackendUrl()).thenReturn("http://issuer.local");
 
         when(jwtService.validateJwtSignatureReactive(any(JWSObject.class)))
                 .thenReturn(Mono.just(true));
@@ -232,10 +230,9 @@ class CustomAuthenticationManagerTest {
     @Test
     void authenticate_withKeycloakToken_missingVcClaim_throwsBadCredentialsException() throws Exception {
         String headerJson = "{\"alg\":\"RS256\",\"typ\":\"JWT\"}";
-        String payloadJson = "{\"iss\":\"http://issuer.local\",\"iat\":1633036800,\"exp\":" + (Instant.now().getEpochSecond() + 3600) + "}";
+        String payloadJson = "{\"iss\":\"https://keycloak.local\",\"iat\":1633036800,\"exp\":" + (Instant.now().getEpochSecond() + 3600) + "}";
         String token = buildToken(headerJson, payloadJson);
 
-        when(appConfig.getIssuerBackendUrl()).thenReturn("http://issuer.local");
 
         when(jwtService.validateJwtSignatureReactive(any(JWSObject.class)))
                 .thenReturn(Mono.just(true));
@@ -256,10 +253,8 @@ class CustomAuthenticationManagerTest {
     @Test
     void authenticate_withKeycloakToken_invalidVcType_throwsBadCredentialsException() throws Exception {
         String headerJson = "{\"alg\":\"RS256\",\"typ\":\"JWT\"}";
-        String payloadJson = "{\"iss\":\"http://issuer.local\",\"iat\":1633036800,\"exp\":" + (Instant.now().getEpochSecond() + 3600) + ",\"vc\":{\"type\":[\"OtherType\"]}}";
+        String payloadJson = "{\"iss\":\"https://keycloak.local\",\"iat\":1633036800,\"exp\":" + (Instant.now().getEpochSecond() + 3600) + ",\"vc\":{\"type\":[\"OtherType\"]}}";
         String token = buildToken(headerJson, payloadJson);
-
-        when(appConfig.getIssuerBackendUrl()).thenReturn("http://issuer.local");
 
         when(jwtService.validateJwtSignatureReactive(any(JWSObject.class)))
                 .thenReturn(Mono.just(true));
