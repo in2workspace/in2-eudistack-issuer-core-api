@@ -19,6 +19,9 @@ jobs:
   release-snapshot:
     if: github.event_name == 'pull_request'
     name: Release Snapshot
+    concurrency:
+      group: docker-pr-${{ github.event.number }}
+      cancel-in-progress: true
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
@@ -40,6 +43,10 @@ jobs:
       - name: Get Project Version
         id: project_version
         run: echo "VERSION=$(./gradlew -q properties | grep '^version:' | awk '{print $2}')" >> $GITHUB_ENV
+
+      - name: Compute PR-based snapshot suffix
+        if: github.event_name == 'pull_request'
+        run: echo "SNAPSHOT_SUFFIX=-pr-${{ github.event.number }}" >> $GITHUB_ENV
 
       - name: Check for existing release tag (only on PR)
         if: github.event_name == 'pull_request'
@@ -63,7 +70,7 @@ jobs:
           docker push $DOCKER_HUB_CLIENT_NAME/$IMAGE_TAG
         env:
           VERSION: ${{ env.VERSION }}
-          SUFFIX: -snapshot
+          SNAPSHOT_SUFFIX: ${{ env.SNAPSHOT_SUFFIX }}
           DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
           DOCKER_PASSWORD: ${{ secrets.DOCKER_TOKEN }}
           DOCKER_HUB_CLIENT_NAME: in2workspace
