@@ -1,17 +1,19 @@
 name: Release
+
 on:
   push:
     branches:
       - main
-      - 'release/**'
+      - release/**
   pull_request:
     branches:
       - main
-      - 'release/**'
+      - release/**
     types: [ opened, synchronize, reopened ]
 
 permissions:
   contents: write
+  packages: write
 
 jobs:
   release-snapshot:
@@ -31,9 +33,13 @@ jobs:
       - name: Make Gradlew Executable
         run: chmod +x ./gradlew
 
+      - name: Get Project Name
+        id: project_name
+        run: echo "PROJECT_NAME=$(./gradlew -q properties | grep '^name:' | awk '{print $2}')" >> $GITHUB_ENV
+
       - name: Get Project Version
-        id: get_version
-        run: echo "VERSION=$(./gradlew -q printVersion)" >> $GITHUB_ENV
+        id: project_version
+        run: echo "VERSION=$(./gradlew -q properties | grep '^version:' | awk '{print $2}')" >> $GITHUB_ENV
 
       - name: Check for existing release tag (only on PR)
         if: github.event_name == 'pull_request'
@@ -51,7 +57,6 @@ jobs:
 
       - name: Build and Push docker image
         run: |
-          PROJECT_NAME=$(./gradlew -q printProjectName)
           IMAGE_TAG="$PROJECT_NAME:v$VERSION$SUFFIX"
           docker build --file Dockerfile --build-arg SKIP_TESTS=true --tag $DOCKER_HUB_CLIENT_NAME/$IMAGE_TAG .
           echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
@@ -80,9 +85,13 @@ jobs:
       - name: Make Gradlew Executable
         run: chmod +x ./gradlew
 
+      - name: Get Project Name
+        id: project_name
+        run: echo "PROJECT_NAME=$(./gradlew -q properties | grep '^name:' | awk '{print $2}')" >> $GITHUB_ENV
+
       - name: Get Project Version
-        id: get_version
-        run: echo "VERSION=$(./gradlew -q printVersion)" >> $GITHUB_ENV
+        id: project_version
+        run: echo "VERSION=$(./gradlew -q properties | grep '^version:' | awk '{print $2}')" >> $GITHUB_ENV
 
       - name: Check for existing release tag (only on PR)
         if: github.event_name == 'pull_request'
@@ -100,7 +109,6 @@ jobs:
 
       - name: Build and Push docker image
         run: |
-          PROJECT_NAME=$(./gradlew -q printProjectName)
           IMAGE_TAG="$PROJECT_NAME:v$VERSION"
           docker build --file Dockerfile --build-arg SKIP_TESTS=true --tag $DOCKER_HUB_CLIENT_NAME/$IMAGE_TAG .
           echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
