@@ -198,18 +198,6 @@ tasks.jacocoTestReport {
     }))
 }
 
-tasks.register('printVersion') {
-    doLast {
-        println version
-    }
-}
-
-tasks.register('printProjectName') {
-    doLast {
-        println rootProject.name
-    }
-}
-
 def isNonStable = { String version ->
     def stableKeyword = ['RELEASE', 'FINAL', 'GA'].any { it -> version.toUpperCase().contains(it) }
     def regex = /^[0-9,.v-]+(-r)?$/

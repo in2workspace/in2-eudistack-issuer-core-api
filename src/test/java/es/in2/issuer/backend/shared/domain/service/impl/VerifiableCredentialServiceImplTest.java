@@ -289,7 +289,7 @@ class VerifiableCredentialServiceImplTest {
         String expectedCredentialJson = objectMapper.writeValueAsString(learCredential);
 
         // Log the expected credential JSON for debugging
-        System.out.println("Expected Credential JSON: " + expectedCredentialJson);
+        System.out.println("Expected credential JSON: " + expectedCredentialJson);
 
         // Assert: Verify the result
         StepVerifier.create(result)
@@ -392,7 +392,7 @@ class VerifiableCredentialServiceImplTest {
         String expectedCredentialJson = objectMapper.writeValueAsString(learCredential);
 
         // Log the expected credential JSON for debugging
-        System.out.println("Expected Credential JSON: " + expectedCredentialJson);
+        System.out.println("Expected credential JSON: " + expectedCredentialJson);
 
         // Assert: Verify the result
         StepVerifier.create(result)
