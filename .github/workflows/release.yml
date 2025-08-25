@@ -64,7 +64,7 @@ jobs:
 
       - name: Build and Push docker image
         run: |
-          IMAGE_TAG="$PROJECT_NAME:v$VERSION$SUFFIX"
+          IMAGE_TAG="$PROJECT_NAME:v$VERSION$SNAPSHOT_SUFFIX"
           docker build --file Dockerfile --build-arg SKIP_TESTS=true --tag $DOCKER_HUB_CLIENT_NAME/$IMAGE_TAG .
           echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
           docker push $DOCKER_HUB_CLIENT_NAME/$IMAGE_TAG
