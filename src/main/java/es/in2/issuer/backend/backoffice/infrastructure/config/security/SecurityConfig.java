@@ -48,25 +48,17 @@ public class SecurityConfig {
                         OID4VCI_CREDENTIAL_OFFER_PATH, BACKOFFICE_PATH)
         );
         // Configure the Bearer token authentication converter
-        ServerBearerTokenAuthenticationConverter bearerConverter = new ServerBearerTokenAuthenticationConverter();
-
-        authenticationWebFilter.setServerAuthenticationConverter(exchange -> {
-        // Log de todos los headers
-            exchange.getRequest().getHeaders().forEach((name, values) ->
-                    log.debug("📦 Header {} -> {}", name, values));
-
-            log.debug("🔥 customAuthenticationWebFilter triggered -> [{} {}]",
-                    exchange.getRequest().getMethod(),
-                    exchange.getRequest().getPath());
-
-            return bearerConverter.convert(exchange)
-                    .doOnNext(auth -> log.debug("✅ Found Bearer token: {}", auth.getCredentials()))
-                    .switchIfEmpty(Mono.defer(() -> {
-                        log.warn("❌ No Bearer token found or invalid format in request to {}", exchange.getRequest().getPath());
-                        return Mono.empty();
-                    }));
-        });
-
+        ServerBearerTokenAuthenticationConverter bearerConverter = new ServerBearerTokenAuthenticationConverter() {
+            @Override
+            public Mono<Authentication> convert(ServerWebExchange exchange) {
+                exchange.getRequest().getHeaders().forEach((name, values) ->
+                        log.debug("📦 Header {} -> {}", name, values));
+                log.debug("🔥 customAuthenticationWebFilter triggered -> [{} {}]",
+                        exchange.getRequest().getMethod(),
+                        exchange.getRequest().getPath());
+                return super.convert(exchange);
+            }
+        };
         authenticationWebFilter.setServerAuthenticationConverter(bearerConverter);
 
         return authenticationWebFilter;
