@@ -80,7 +80,7 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
                                                     .map(jwt -> (Authentication) new JwtAuthenticationToken(jwt, Collections.emptyList()));
                                         }));
                     } else {
-                        // Caso futuro o desconocido
+                        log.debug("✅ Token from unknow");
                         return Mono.error(new BadCredentialsException("Unknown token issuer: " + issuer));
                     }
                 });
