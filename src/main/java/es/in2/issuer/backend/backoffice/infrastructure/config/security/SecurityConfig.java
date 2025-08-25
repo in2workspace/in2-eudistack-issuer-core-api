@@ -12,6 +12,7 @@ import org.springframework.security.config.annotation.web.reactive.EnableWebFlux
 import org.springframework.security.config.web.server.SecurityWebFiltersOrder;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder;
 import org.springframework.security.oauth2.server.resource.web.server.authentication.ServerBearerTokenAuthenticationConverter;
 import org.springframework.security.web.server.SecurityWebFilterChain;
 import org.springframework.security.web.server.authentication.AuthenticationWebFilter;
@@ -30,6 +31,7 @@ public class SecurityConfig {
     private final CustomAuthenticationManager customAuthenticationManager;
     private final InternalCORSConfig internalCORSConfig;
     private final PublicCORSConfig publicCORSConfig;
+    private final ReactiveJwtDecoder internalJwtDecoder;
 
     @Bean
     @Primary
@@ -117,6 +119,7 @@ public class SecurityConfig {
                         .anyExchange().denyAll()
                 )
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
+                .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.jwtDecoder(internalJwtDecoder)))
                 .addFilterAt(customAuthenticationWebFilter(), SecurityWebFiltersOrder.AUTHENTICATION);
         log.debug("backofficeFilterChain - build");
         return http.build();
