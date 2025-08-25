@@ -62,7 +62,7 @@ public class SecurityConfig {
             }
         };
         authenticationWebFilter.setServerAuthenticationConverter(bearerConverter);
-
+        log.debug("🔥 authenticationWebFilter {}",authenticationWebFilter);
         return authenticationWebFilter;
     }
 
