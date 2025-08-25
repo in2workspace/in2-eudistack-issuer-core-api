@@ -59,9 +59,12 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
                     }
 
                     if (issuer == null) {
+                        log.error("❌ Missing issuer (iss) claim");
                         return Mono.error(new BadCredentialsException("Missing issuer (iss) claim"));
                     }
-                    log.debug("🔐 CustomAuthenticationManager - wher u from? - {} {}", appConfig.getVerifierUrl(), appConfig.getIssuerBackendUrl());
+                    log.debug("🔐 CustomAuthenticationManager - Locations - {} {}",
+                            appConfig.getVerifierUrl(), appConfig.getIssuerBackendUrl());
+
                     if (issuer.equals(appConfig.getVerifierUrl())) {
                         // Caso Verifier → validar vía microservicio Verifier
                         log.debug("✅ Token from Verifier - {}", appConfig.getVerifierUrl());
