@@ -11,10 +11,13 @@ import org.springframework.security.authentication.ReactiveAuthenticationManager
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
 import org.springframework.security.config.web.server.SecurityWebFiltersOrder;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.server.resource.web.server.authentication.ServerBearerTokenAuthenticationConverter;
 import org.springframework.security.web.server.SecurityWebFilterChain;
 import org.springframework.security.web.server.authentication.AuthenticationWebFilter;
 import org.springframework.security.web.server.util.matcher.ServerWebExchangeMatchers;
+import org.springframework.web.server.ServerWebExchange;
+import reactor.core.publisher.Mono;
 
 import static es.in2.issuer.backend.shared.domain.util.EndpointsConstants.*;
 
@@ -39,12 +42,21 @@ public class SecurityConfig {
         AuthenticationWebFilter authenticationWebFilter = new AuthenticationWebFilter(customAuthenticationManager);
         // Set the path for which the filter will be applied
         log.debug("customAuthenticationWebFilter - inside");
+
         authenticationWebFilter.setRequiresAuthenticationMatcher(
                 ServerWebExchangeMatchers.pathMatchers(VCI_ISSUANCES_PATH, OAUTH_TOKEN_PATH,
                         OID4VCI_CREDENTIAL_OFFER_PATH, BACKOFFICE_PATH)
         );
         // Configure the Bearer token authentication converter
-        ServerBearerTokenAuthenticationConverter bearerConverter = new ServerBearerTokenAuthenticationConverter();
+        ServerBearerTokenAuthenticationConverter bearerConverter = new ServerBearerTokenAuthenticationConverter() {
+            @Override
+            public Mono<Authentication> convert(ServerWebExchange exchange) {
+                log.debug("🔥 customAuthenticationWebFilter triggered -> [{} {}]",
+                        exchange.getRequest().getMethod(),
+                        exchange.getRequest().getPath());
+                return super.convert(exchange);
+            }
+        };
         authenticationWebFilter.setServerAuthenticationConverter(bearerConverter);
 
         return authenticationWebFilter;
@@ -77,7 +89,7 @@ public class SecurityConfig {
                 )
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
                 .addFilterAt(customAuthenticationWebFilter(), SecurityWebFiltersOrder.AUTHENTICATION);
-
+        log.debug("publicFilterChain - inside");
         return http.build();
     }
 
@@ -104,7 +116,7 @@ public class SecurityConfig {
                 )
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
                 .addFilterAt(customAuthenticationWebFilter(), SecurityWebFiltersOrder.AUTHENTICATION);
-
+        log.debug("backofficeFilterChain - inside");
         return http.build();
     }
 
