@@ -37,7 +37,7 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
 
     @Override
     public Mono<Authentication> authenticate(Authentication authentication) {
-        log.debug("🔐 CustomAuthenticationManager - received token: {}", authentication.getCredentials());
+        log.debug("🔐 CustomAuthenticationManager - authenticate - start");
         String token = authentication.getCredentials().toString();
 
         return Mono.fromCallable(() -> {
@@ -52,6 +52,7 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
                     String issuer;
                     try {
                         issuer = signedJWT.getJWTClaimsSet().getIssuer();
+                        log.debug("🔐 CustomAuthenticationManager - signedJWT - {}", issuer);
                     } catch (ParseException e) {
                         log.error("❌ Unable to parse JWT claims", e);
                         return Mono.error(new BadCredentialsException("Unable to parse JWT claims", e));
@@ -60,16 +61,16 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
                     if (issuer == null) {
                         return Mono.error(new BadCredentialsException("Missing issuer (iss) claim"));
                     }
-
+                    log.debug("🔐 CustomAuthenticationManager - wher u from? - {} {}", appConfig.getVerifierUrl(), appConfig.getIssuerBackendUrl());
                     if (issuer.equals(appConfig.getVerifierUrl())) {
                         // Caso Verifier → validar vía microservicio Verifier
-                        log.debug("✅ Token from Verifier");
+                        log.debug("✅ Token from Verifier - {}", appConfig.getVerifierUrl());
                         return verifierService.verifyToken(token)
                                 .then(parseAndValidateJwt(token))
                                 .map(jwt -> new JwtAuthenticationToken(jwt, Collections.emptyList()));
                     } else if (issuer.equals(appConfig.getIssuerBackendUrl())) {
                         // Caso Credential Issuer (Keycloak) → validar firma local
-                        log.debug("✅ Token from Credential Issuer");
+                        log.debug("✅ Token from Credential Issuer - {}",appConfig.getIssuerBackendUrl());
                         return Mono.fromCallable(() -> JWSObject.parse(token))
                                 .flatMap(jwsObject -> jwtService.validateJwtSignatureReactive(jwsObject)
                                         .flatMap(isValid -> {
