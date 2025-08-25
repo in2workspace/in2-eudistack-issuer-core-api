@@ -15,6 +15,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.server.resource.web.server.authentication.ServerBearerTokenAuthenticationConverter;
 import org.springframework.security.web.server.SecurityWebFilterChain;
 import org.springframework.security.web.server.authentication.AuthenticationWebFilter;
+import org.springframework.security.web.server.context.NoOpServerSecurityContextRepository;
 import org.springframework.security.web.server.util.matcher.ServerWebExchangeMatchers;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
@@ -60,6 +61,7 @@ public class SecurityConfig {
             }
         };
         authenticationWebFilter.setServerAuthenticationConverter(bearerConverter);
+        authenticationWebFilter.setSecurityContextRepository(NoOpServerSecurityContextRepository.getInstance());
 
         return authenticationWebFilter;
     }
