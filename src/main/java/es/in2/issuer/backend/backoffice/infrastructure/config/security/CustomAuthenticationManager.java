@@ -43,7 +43,8 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
                     try {
                         return SignedJWT.parse(token);
                     } catch (ParseException e) {
-                        throw new BadCredentialsException("Invalid JWT token format", e);
+                            log.error("❌ Failed to parse JWT", e);
+                            throw new BadCredentialsException("Invalid JWT token format", e);
                     }
                 })
                 .flatMap(signedJWT -> {
@@ -51,6 +52,7 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
                     try {
                         issuer = signedJWT.getJWTClaimsSet().getIssuer();
                     } catch (ParseException e) {
+                        log.error("❌ Unable to parse JWT claims", e);
                         return Mono.error(new BadCredentialsException("Unable to parse JWT claims", e));
                     }
 
@@ -60,11 +62,13 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
 
                     if (issuer.equals(appConfig.getVerifierUrl())) {
                         // Caso Verifier → validar vía microservicio Verifier
+                        log.debug("✅ Token from Verifier");
                         return verifierService.verifyToken(token)
                                 .then(parseAndValidateJwt(token))
                                 .map(jwt -> new JwtAuthenticationToken(jwt, Collections.emptyList()));
                     } else if (issuer.equals(appConfig.getIssuerBackendUrl())) {
                         // Caso Credential Issuer (Keycloak) → validar firma local
+                        log.debug("✅ Token from Credential Issuer");
                         return Mono.fromCallable(() -> JWSObject.parse(token))
                                 .flatMap(jwsObject -> jwtService.validateJwtSignatureReactive(jwsObject)
                                         .flatMap(isValid -> {
