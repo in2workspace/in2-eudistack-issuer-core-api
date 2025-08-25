@@ -27,7 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [v2.4.0](https://github.com/in2workspace/in2-issuer-api/releases/tag/v2.4.0)
 ### Added
-- Revoke and expired credential notification.
+- Revoke and expired notification for credentials.
 
 ## [v2.3.2](https://github.com/in2workspace/in2-issuer-api/releases/tag/v2.3.2)
 ### Fixed
