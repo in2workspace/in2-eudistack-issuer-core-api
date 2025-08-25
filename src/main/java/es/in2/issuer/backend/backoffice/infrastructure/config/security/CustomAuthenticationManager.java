@@ -37,6 +37,7 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
 
     @Override
     public Mono<Authentication> authenticate(Authentication authentication) {
+        log.debug("🔐 CustomAuthenticationManager - received token: {}", authentication.getCredentials());
         String token = authentication.getCredentials().toString();
 
         return Mono.fromCallable(() -> {
