@@ -31,7 +31,6 @@ public class SecurityConfig {
     private final CustomAuthenticationManager customAuthenticationManager;
     private final InternalCORSConfig internalCORSConfig;
     private final PublicCORSConfig publicCORSConfig;
-    //private final ReactiveJwtDecoder internalJwtDecoder;
 
     @Bean
     @Primary
@@ -47,7 +46,7 @@ public class SecurityConfig {
 
         authenticationWebFilter.setRequiresAuthenticationMatcher(
                 ServerWebExchangeMatchers.pathMatchers(VCI_ISSUANCES_PATH, OAUTH_TOKEN_PATH,
-                        OID4VCI_CREDENTIAL_OFFER_PATH, BACKOFFICE_ISSUANCE)
+                        OID4VCI_CREDENTIAL_OFFER_PATH, BACKOFFICE_PATH)
         );
         // Configure the Bearer token authentication converter
         ServerBearerTokenAuthenticationConverter bearerConverter = new ServerBearerTokenAuthenticationConverter() {
@@ -119,7 +118,6 @@ public class SecurityConfig {
                         .anyExchange().denyAll()
                 )
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
-                //.oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.jwtDecoder(internalJwtDecoder)))
                 .addFilterAt(customAuthenticationWebFilter(), SecurityWebFiltersOrder.AUTHENTICATION);
         log.debug("backofficeFilterChain - build");
         return http.build();
