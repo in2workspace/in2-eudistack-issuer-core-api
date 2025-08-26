@@ -47,7 +47,8 @@ public class SecurityConfig {
 
         authenticationWebFilter.setRequiresAuthenticationMatcher(
                 ServerWebExchangeMatchers.pathMatchers(VCI_ISSUANCES_PATH, OAUTH_TOKEN_PATH,
-                        OID4VCI_CREDENTIAL_OFFER_PATH, BACKOFFICE_PATH)
+                        OID4VCI_CREDENTIAL_OFFER_PATH, BACKOFFICE_STATUS_CREDENTIALS,
+                        BACKOFFICE_DEFERRED_CREDENTIALS)
         );
         // Configure the Bearer token authentication converter
         ServerBearerTokenAuthenticationConverter bearerConverter = new ServerBearerTokenAuthenticationConverter() {
