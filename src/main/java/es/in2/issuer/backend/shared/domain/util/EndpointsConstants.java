@@ -26,7 +26,7 @@ public class EndpointsConstants {
     public static final String OID4VCI_CREDENTIAL_PATH = OID4VCI_BASE_PATH + "/credential";
     public static final String OID4VCI_DEFERRED_CREDENTIAL_PATH = OID4VCI_BASE_PATH + "/deferred-credential";
 
-    public static final String CORS_CREDENTIAL_OFFER_PATH = OID4VCI_BASE_PATH + "/credential-offer/{id}";
+    public static final String CORS_CREDENTIAL_OFFER_PATH = OID4VCI_BASE_PATH + "/credential-offer/**";
 
     // Well-Known Endpoints
     public static final String WELL_KNOWN_PATH = WELL_KNOWN_BASE_PATH + "/**";
