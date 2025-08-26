@@ -73,7 +73,7 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
                         return verifierService.verifyToken(token)
                                 .then(parseAndValidateJwt(token))
                                 .map(jwt -> new JwtAuthenticationToken(jwt, Collections.emptyList()));
-                    } else if (issuer.startsWith(KEYCLOAK)) {
+                    } else if (issuer.equals(appConfig.getIssuerBackendUrl())) {
                         // Caso Credential Issuer (Keycloak) → validar firma local
                         log.debug("✅ Token from Credential Issuer - {}",appConfig.getIssuerBackendUrl());
                         return Mono.fromCallable(() -> JWSObject.parse(token))
