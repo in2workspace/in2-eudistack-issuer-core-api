@@ -7,6 +7,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.ReactiveAuthenticationManager;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
+import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder;
 import org.springframework.security.web.server.SecurityWebFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
@@ -24,6 +25,8 @@ class SecurityConfigTest {
     private InternalCORSConfig internalCORSConfig;
     @Mock
     private PublicCORSConfig publicCORSConfig;
+    @Mock
+    private ReactiveJwtDecoder reactiveJwtDecoder;
 
     @InjectMocks
     private SecurityConfig securityConfig;
