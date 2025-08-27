@@ -63,10 +63,6 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
                         log.error("❌ Missing issuer (iss) claim");
                         return Mono.error(new BadCredentialsException("Missing issuer (iss) claim"));
                     }
-                    log.debug("🔐 CustomAuthenticationManager - Locations - veri:{} issuer:{} external:{} default:{} trust:{}",
-                            appConfig.getVerifierUrl(), appConfig.getIssuerBackendUrl(), appConfig.getExternalCorsAllowedOrigins(),
-                            appConfig.getDefaultCorsAllowedOrigins(), appConfig.getTrustFrameworkUrl());
-
                     if (issuer.equals(appConfig.getVerifierUrl())) {
                         // Caso Verifier → validar vía microservicio Verifier
                         log.debug("✅ Token from Verifier - {}", appConfig.getVerifierUrl());
@@ -80,6 +76,7 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
                                 .flatMap(jwsObject -> jwtService.validateJwtSignatureReactive(jwsObject)
                                         .flatMap(isValid -> {
                                             if (!isValid) {
+                                                log.error("❌ Invalid JWT signature");
                                                 return Mono.error(new BadCredentialsException("Invalid JWT signature"));
                                             }
                                             return parseAndValidateJwt(token)
