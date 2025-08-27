@@ -34,7 +34,6 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
     private final ObjectMapper objectMapper;
     private final AppConfig appConfig;
     private final JWTService jwtService;
-    private final String KEYCLOAK = "https://keycloak";
 
     @Override
     public Mono<Authentication> authenticate(Authentication authentication) {
@@ -67,7 +66,7 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
                         // Caso Verifier → validar vía microservicio Verifier
                         log.debug("✅ Token from Verifier - {}", appConfig.getVerifierUrl());
                         return verifierService.verifyToken(token)
-                                .then(parseAndValidateJwt(token))
+                                .then(parseAndValidateJwt(token, Boolean.TRUE))
                                 .map(jwt -> new JwtAuthenticationToken(jwt, Collections.emptyList()));
                     } else if (issuer.equals(appConfig.getIssuerBackendUrl())) {
                         // Caso Credential Issuer (Keycloak) → validar firma local
@@ -79,7 +78,7 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
                                                 log.error("❌ Invalid JWT signature");
                                                 return Mono.error(new BadCredentialsException("Invalid JWT signature"));
                                             }
-                                            return parseAndValidateJwt(token)
+                                            return parseAndValidateJwt(token, Boolean.FALSE)
                                                     .map(jwt -> (Authentication) new JwtAuthenticationToken(jwt, Collections.emptyList()));
                                         }));
                     } else {
@@ -89,7 +88,7 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
                 });
     }
 
-    private Mono<Jwt> parseAndValidateJwt(String token) {
+    private Mono<Jwt> parseAndValidateJwt(String token, boolean validateVcClaim) {
         return Mono.fromCallable(() -> {
             log.debug("✅ parseAndValidateJwt");
             String[] parts = token.split("\\.");
@@ -106,7 +105,8 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
             Map<String, Object> claims = objectMapper.readValue(payloadJson, Map.class);
 
             // Validate 'vc' claim
-            validateVcClaim(claims);
+            if(validateVcClaim)
+                validateVcClaim(claims);
 
             // Extract issuedAt and expiresAt times if present
             Instant issuedAt = claims.containsKey("iat") ? Instant.ofEpochSecond(((Number) claims.get("iat")).longValue()) : Instant.now();
