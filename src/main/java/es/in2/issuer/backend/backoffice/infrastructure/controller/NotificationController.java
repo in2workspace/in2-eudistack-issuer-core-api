@@ -12,7 +12,7 @@ import java.util.UUID;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/v1/notifications")
+@RequestMapping("/backoffice/v1/notifications")
 @RequiredArgsConstructor
 public class NotificationController {
 
