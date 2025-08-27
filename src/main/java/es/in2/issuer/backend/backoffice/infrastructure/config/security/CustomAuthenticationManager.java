@@ -91,6 +91,7 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
 
     private Mono<Jwt> parseAndValidateJwt(String token) {
         return Mono.fromCallable(() -> {
+            log.debug("✅ parseAndValidateJwt");
             String[] parts = token.split("\\.");
             if (parts.length < 3) {
                 throw new BadCredentialsException("Invalid JWT token format");
@@ -117,6 +118,7 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
 
     private void validateVcClaim(Map<String, Object> claims) {
         Object vcObj = claims.get("vc");
+        log.debug("✅ validateVcClaim");
         if (vcObj == null) {
             throw new BadCredentialsException("The 'vc' claim is required but not present.");
         }
