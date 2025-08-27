@@ -104,6 +104,7 @@ public class JWTServiceImpl implements JWTService {
         } else if (kid.contains(prefix)) {
             encodedPublicKey = kid.substring(kid.indexOf(prefix) + prefix.length());
         } else {
+            log.error("❌ Formato de 'kid' no válido");
             throw new IllegalArgumentException("Formato de 'kid' no válido");
         }
 
