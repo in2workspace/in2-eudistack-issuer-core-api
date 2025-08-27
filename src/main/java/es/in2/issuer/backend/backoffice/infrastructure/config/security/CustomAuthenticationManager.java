@@ -120,6 +120,7 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
         Object vcObj = claims.get("vc");
         log.debug("✅ validateVcClaim");
         if (vcObj == null) {
+            log.error("❌ The 'vc' claim is required but not present.");
             throw new BadCredentialsException("The 'vc' claim is required but not present.");
         }
         String vcJson;
@@ -129,6 +130,7 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
             try {
                 vcJson = objectMapper.writeValueAsString(vcObj);
             } catch (Exception e) {
+                log.error("❌ Error processing 'vc' claim. {]", e);
                 throw new BadCredentialsException("Error processing 'vc' claim", e);
             }
         }
@@ -136,10 +138,13 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
         try {
             vcNode = objectMapper.readTree(vcJson);
         } catch (Exception e) {
+            log.error("❌ Error parsing 'vc' claim. {]", e);
             throw new BadCredentialsException("Error parsing 'vc' claim", e);
         }
         JsonNode typeNode = vcNode.get("type");
-        if (typeNode == null || !typeNode.isArray() || StreamSupport.stream(typeNode.spliterator(), false).noneMatch(node -> "LEARCredentialMachine".equals(node.asText()))) {
+        if (typeNode == null || !typeNode.isArray() || StreamSupport.stream(typeNode.spliterator(), false)
+                .noneMatch(node -> "LEARCredentialMachine".equals(node.asText()))) {
+            log.error("❌Credential type required: LEARCredentialMachine.");
             throw new BadCredentialsException("Credential type required: LEARCredentialMachine.");
         }
     }
