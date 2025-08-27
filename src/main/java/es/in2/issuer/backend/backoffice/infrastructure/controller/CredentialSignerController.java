@@ -13,7 +13,7 @@ import static es.in2.issuer.backend.backoffice.domain.util.Constants.JWT_VC;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/v1/sign-credential")
+@RequestMapping("/backoffice/v1/sign-credential")
 @RequiredArgsConstructor
 public class CredentialSignerController {
 

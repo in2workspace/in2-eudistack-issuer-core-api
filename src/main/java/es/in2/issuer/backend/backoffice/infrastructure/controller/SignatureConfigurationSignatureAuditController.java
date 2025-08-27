@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 
 @RestController
-@RequestMapping("/ops/v1/signatures/configs/audit")
+@RequestMapping("/ops/v1/signatures/configs/audit") //TODO: deberia ser backoffice? obsoleta?
 @RequiredArgsConstructor
 public class SignatureConfigurationSignatureAuditController {
 
