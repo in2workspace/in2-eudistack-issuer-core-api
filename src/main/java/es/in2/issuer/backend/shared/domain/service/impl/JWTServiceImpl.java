@@ -88,8 +88,9 @@ public class JWTServiceImpl implements JWTService {
     @Override
     public Mono<Boolean> validateJwtSignatureReactive(JWSObject jwsObject) {
         String kid = jwsObject.getHeader().getKeyID();
-        log.debug("JWTServiceImp - validateJwtSignatureReactive - kid: {}", kid);
+        log.debug("validateJwtSignatureReactive - kid: {}", kid);
         String encodedPublicKey = extractEncodedPublicKey(kid);
+        log.debug("validateJwtSignatureReactive - encodedPublicKey: {}", encodedPublicKey);
         return decodePublicKeyIntoBytes(encodedPublicKey)
                 .flatMap(publicKeyBytes -> validateJwtSignature(jwsObject.getParsedString(), publicKeyBytes));
     }
@@ -115,6 +116,7 @@ public class JWTServiceImpl implements JWTService {
     private Mono<Boolean> validateJwtSignature(String jwtString, byte[] publicKeyBytes) {
         return Mono.fromCallable(() -> {
             try {
+                log.debug("validateJwtSignature");
                 // Set the curve as secp256r1
                 ECCurve curve = new SecP256R1Curve();
                 BigInteger x = new BigInteger(1, Arrays.copyOfRange(publicKeyBytes, 1, publicKeyBytes.length));
