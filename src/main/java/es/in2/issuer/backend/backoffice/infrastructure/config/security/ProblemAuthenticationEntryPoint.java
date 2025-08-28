@@ -23,25 +23,30 @@ public class ProblemAuthenticationEntryPoint implements ServerAuthenticationEntr
 
     private final ObjectMapper objectMapper;
     private final ErrorResponseFactory errors;
+    private final SecurityProblemResolver resolver;
 
     @Override
     public Mono<Void> commence(ServerWebExchange exchange, AuthenticationException ex) {
         log.info("ProblemAuthenticationEntryPoint.commence");
         log.info("Exception: ", ex);
+
         var response = exchange.getResponse();
-        response.setStatusCode(HttpStatus.UNAUTHORIZED);
+        var spec = resolver.resolve(ex, true);
+
+        response.setStatusCode(spec.status());
         response.getHeaders().setContentType(MediaType.valueOf("application/problem+json"));
 
-        var problem = Map.of(
-                "type", "authentication_error_custom",
-                "title", "Unauthorized custom",
-                "status", HttpStatus.UNAUTHORIZED.value(),
-                "detail", ex.getMessage() != null ? ex.getMessage() : "Authentication failed custom",
-                "instance", UUID.randomUUID().toString()
+        var msg = errors.handleWithNow(
+                ex,
+                exchange.getRequest(),
+                spec.type(),
+                spec.title(),
+                spec.status(),
+                spec.fallbackDetail()
         );
 
         try {
-            byte[] body = objectMapper.writeValueAsBytes(problem);
+            byte[] body = objectMapper.writeValueAsBytes(msg);
             return response.writeWith(Mono.just(response.bufferFactory().wrap(body)));
         } catch (Exception e) {
             byte[] fallback = "{\"title\":\"Unauthorized\",\"status\":401}"
