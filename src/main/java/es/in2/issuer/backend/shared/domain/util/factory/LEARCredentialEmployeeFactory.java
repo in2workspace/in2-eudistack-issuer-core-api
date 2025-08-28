@@ -178,6 +178,7 @@ public class LEARCredentialEmployeeFactory {
     }
 
     public Mono<LEARCredentialEmployeeJwtPayload> buildLEARCredentialEmployeeJwtPayload(LEARCredentialEmployee learCredentialEmployee) {
+        log.debug("buildLEARCredentialEmployeeJwtPayload: {}", learCredentialEmployee);
         return Mono.just(
                 LEARCredentialEmployeeJwtPayload.builder()
                         .JwtId(UUID.randomUUID().toString())
