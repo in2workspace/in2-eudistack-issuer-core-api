@@ -32,6 +32,7 @@ import javax.naming.ldap.Rdn;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.ConnectException;
+import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
@@ -282,12 +283,21 @@ public class RemoteSignatureServiceImpl implements RemoteSignatureService {
                     }
                 }))
                 .onErrorResume(WebClientResponseException.class, ex -> {
+                    log.error("❌ Access token endpoint [{}] returned {} {}",
+                            signatureGetAccessTokenEndpoint, ex.getStatusCode(), ex.getStatusText());
                     if (ex.getStatusCode() == HttpStatus.UNAUTHORIZED) {
                         return Mono.error(new RemoteSignatureException("Unauthorized: Invalid credentials"));
                     }
-                    return Mono.error(ex);
+                    return Mono.error(new RemoteSignatureException("Remote service error while retrieving access token", ex));
                 })
-                .doOnError(error -> log.error("Error retrieving access token: {}", error.getMessage()));
+                .onErrorResume(UnknownHostException.class, ex -> {
+                    log.error("❌ Could not resolve host [{}] - check DNS or VPN", signatureGetAccessTokenEndpoint);
+                    return Mono.error(new RemoteSignatureException("Signature service unreachable: DNS resolution failed", ex));
+                })
+                .onErrorResume(Exception.class, ex -> {
+                    log.error("❌ Unexpected error accessing [{}]: {}", signatureGetAccessTokenEndpoint, ex.getMessage());
+                    return Mono.error(new RemoteSignatureException("Unexpected error retrieving access token", ex));
+                });
     }
 
     public Mono<String> requestCertificateInfo(String accessToken, String credentialID) {
