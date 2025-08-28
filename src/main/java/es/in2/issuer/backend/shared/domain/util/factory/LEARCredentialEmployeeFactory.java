@@ -82,7 +82,7 @@ public class LEARCredentialEmployeeFactory {
             } else {
                 throw new InvalidCredentialFormatException("Invalid credential format");
             }
-            log.info(employee.toString());
+            log.info("✅ {}", employee.toString());
             return employee;
         } catch (JsonProcessingException e) {
             log.error("Error parsing LEARCredentialEmployee", e);
