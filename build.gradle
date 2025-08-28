@@ -11,10 +11,7 @@ plugins {
 }
 
 group = 'es.in2'
-
-version = '2.4.5'
-
-
+version = '2.0.0'
 
 java {
     sourceCompatibility = '17'
@@ -198,18 +195,6 @@ tasks.jacocoTestReport {
                 "**/infrastructure/config/SecurityConfig.class"
         ])
     }))
-}
-
-tasks.register('printVersion') {
-    doLast {
-        println version
-    }
-}
-
-tasks.register('printProjectName') {
-    doLast {
-        println rootProject.name
-    }
 }
 
 def isNonStable = { String version ->

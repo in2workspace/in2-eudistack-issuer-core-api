@@ -327,8 +327,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(SadException.class)
     @ResponseStatus(HttpStatus.BAD_GATEWAY)
-    //todo exception, not error
-    public Mono<GlobalErrorMessage> handleSadError(
+    public Mono<GlobalErrorMessage> handleSadException(
             SadException ex,
             ServerHttpRequest request
     ) {
@@ -355,20 +354,4 @@ public class GlobalExceptionHandler {
                 "An error occurred during credential serialization"
         );
     }
-
-    @ExceptionHandler(JWTParsingException.class)
-    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public Mono<GlobalErrorMessage> handleJWTParsingException(
-            JWTParsingException ex,
-            ServerHttpRequest request
-    ) {
-        return errors.handleWith(
-                ex, request,
-                GlobalErrorTypes.INVALID_JWT.getCode(),
-                "JWT parsing error",
-                HttpStatus.INTERNAL_SERVER_ERROR,
-                "The provided JWT is invalid or can't be parsed."
-        );
-    }
-
 }

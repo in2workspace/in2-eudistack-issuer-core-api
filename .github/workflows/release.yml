@@ -1,24 +1,28 @@
 name: Release
+
 on:
   push:
     branches:
       - main
-      - 'release/**'
   pull_request:
     branches:
       - main
-      - 'release/**'
     types: [ opened, synchronize, reopened ]
 
 permissions:
   contents: write
+  packages: write
 
 jobs:
   release-snapshot:
     if: github.event_name == 'pull_request'
     name: Release Snapshot
+    concurrency:
+      group: docker-${{ github.head_ref || github.ref_name }}
+      cancel-in-progress: true
     runs-on: ubuntu-latest
     steps:
+
       - name: Checkout Repository
         uses: actions/checkout@v4
 
@@ -31,9 +35,17 @@ jobs:
       - name: Make Gradlew Executable
         run: chmod +x ./gradlew
 
+      - name: Get Project Name
+        id: project_name
+        run: echo "PROJECT_NAME=$(./gradlew -q properties | grep '^name:' | awk '{print $2}')" >> $GITHUB_ENV
+
       - name: Get Project Version
-        id: get_version
-        run: echo "VERSION=$(./gradlew -q printVersion)" >> $GITHUB_ENV
+        id: project_version
+        run: echo "VERSION=$(./gradlew -q properties | grep '^version:' | awk '{print $2}')" >> $GITHUB_ENV
+
+      - name: Compute PR-based snapshot suffix
+        if: github.event_name == 'pull_request'
+        run: echo "SNAPSHOT_SUFFIX=-pr-${{ github.event.number }}" >> $GITHUB_ENV
 
       - name: Check for existing release tag (only on PR)
         if: github.event_name == 'pull_request'
@@ -49,19 +61,45 @@ jobs:
             echo "No existing release with tag v$VERSION found. Proceeding with build."
           fi
 
-      - name: Build and Push docker image
-        run: |
-          PROJECT_NAME=$(./gradlew -q printProjectName)
-          IMAGE_TAG="$PROJECT_NAME:v$VERSION$SUFFIX"
-          docker build --file Dockerfile --build-arg SKIP_TESTS=true --tag $DOCKER_HUB_CLIENT_NAME/$IMAGE_TAG .
-          echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
-          docker push $DOCKER_HUB_CLIENT_NAME/$IMAGE_TAG
+      # Logins
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PAT }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and Push docker image (DockerHub + ECR)
         env:
+          PROJECT_NAME: ${{ env.PROJECT_NAME }}
           VERSION: ${{ env.VERSION }}
-          SUFFIX: -snapshot
-          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-          DOCKER_PASSWORD: ${{ secrets.DOCKER_TOKEN }}
-          DOCKER_HUB_CLIENT_NAME: in2workspace
+          SNAPSHOT_SUFFIX: ${{ env.SNAPSHOT_SUFFIX }}
+          DOCKERHUB_ORG: ${{ secrets.DOCKERHUB_ORG }}
+          ECR_REGISTRY: ${{ steps.ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
+        run: |
+          set -euo pipefail
+          TAG="v${VERSION}${SNAPSHOT_SUFFIX}"
+          
+          DH_IMAGE="docker.io/${DOCKERHUB_ORG}/${PROJECT_NAME}:${TAG}"
+          ECR_IMAGE="${ECR_REGISTRY}/${ECR_REPOSITORY}:${TAG}"
+          
+          docker build -f Dockerfile --build-arg SKIP_TESTS=true -t "${DH_IMAGE}" .
+          docker tag "${DH_IMAGE}" "${ECR_IMAGE}"
+          
+          docker push "${DH_IMAGE}"
+          
+          docker push "${ECR_IMAGE}"
 
   release:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -80,9 +118,13 @@ jobs:
       - name: Make Gradlew Executable
         run: chmod +x ./gradlew
 
+      - name: Get Project Name
+        id: project_name
+        run: echo "PROJECT_NAME=$(./gradlew -q properties | grep '^name:' | awk '{print $2}')" >> $GITHUB_ENV
+
       - name: Get Project Version
-        id: get_version
-        run: echo "VERSION=$(./gradlew -q printVersion)" >> $GITHUB_ENV
+        id: project_version
+        run: echo "VERSION=$(./gradlew -q properties | grep '^version:' | awk '{print $2}')" >> $GITHUB_ENV
 
       - name: Check for existing release tag (only on PR)
         if: github.event_name == 'pull_request'
@@ -98,18 +140,51 @@ jobs:
             echo "No existing release with tag v$VERSION found. Proceeding with build."
           fi
 
-      - name: Build and Push docker image
-        run: |
-          PROJECT_NAME=$(./gradlew -q printProjectName)
-          IMAGE_TAG="$PROJECT_NAME:v$VERSION"
-          docker build --file Dockerfile --build-arg SKIP_TESTS=true --tag $DOCKER_HUB_CLIENT_NAME/$IMAGE_TAG .
-          echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
-          docker push $DOCKER_HUB_CLIENT_NAME/$IMAGE_TAG
+      # Logins
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PAT }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and Push docker image (DockerHub + ECR)
         env:
+          PROJECT_NAME: ${{ env.PROJECT_NAME }}
           VERSION: ${{ env.VERSION }}
-          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-          DOCKER_PASSWORD: ${{ secrets.DOCKER_TOKEN }}
-          DOCKER_HUB_CLIENT_NAME: in2workspace
+          DOCKERHUB_ORG: ${{ secrets.DOCKERHUB_ORG }}
+          ECR_REGISTRY: ${{ steps.ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
+        run: |
+          set -euo pipefail
+          TAG="v${VERSION}"
+
+          DH_IMAGE="docker.io/${DOCKERHUB_ORG}/${PROJECT_NAME}:${TAG}"
+          DH_LATEST="docker.io/${DOCKERHUB_ORG}/${PROJECT_NAME}:latest"
+
+          ECR_IMAGE="${ECR_REGISTRY}/${ECR_REPOSITORY}:${TAG}"
+          ECR_LATEST="${ECR_REGISTRY}/${ECR_REPOSITORY}:latest"
+
+          docker build -f Dockerfile --build-arg SKIP_TESTS=true -t "${DH_IMAGE}" .
+          docker tag "${DH_IMAGE}" "${DH_LATEST}"
+          docker tag "${DH_IMAGE}" "${ECR_IMAGE}"
+          docker tag "${DH_IMAGE}" "${ECR_LATEST}"
+
+          docker push "${DH_IMAGE}"
+          docker push "${DH_LATEST}"
+
+          docker push "${ECR_IMAGE}"
+          docker push "${ECR_LATEST}"
 
       - name: Create GitHub Release
         uses: actions/create-release@v1
