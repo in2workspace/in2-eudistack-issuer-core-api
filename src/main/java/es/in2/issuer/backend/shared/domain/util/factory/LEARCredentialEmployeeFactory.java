@@ -235,6 +235,7 @@ public class LEARCredentialEmployeeFactory {
     }
 
     private Mono<LEARCredentialEmployee> bindIssuerToLearCredentialEmployee(LEARCredentialEmployee decodedCredential, String procedureId) {
+        log.debug("🔐: bindIssuerToLearCredentialEmployee");
         return issuerFactory.createDetailedIssuer(procedureId, LEAR_CREDENTIAL_EMPLOYEE)
                 .map(issuer -> LEARCredentialEmployee.builder()
                         .context(decodedCredential.context())

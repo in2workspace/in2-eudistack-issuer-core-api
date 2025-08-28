@@ -29,12 +29,14 @@ public class IssuerFactory {
     private final RemoteSignatureServiceImpl remoteSignatureServiceImpl;
 
     public Mono<DetailedIssuer> createDetailedIssuer(String procedureId, String credentialType) {
+        log.debug("🔐: createDetailedIssuer");
         return isServerMode()
                 ? Mono.just(buildLocalDetailedIssuer())
                 : createRemoteDetailedIssuer(procedureId, credentialType);
     }
 
     public Mono<SimpleIssuer> createSimpleIssuer(String procedureId, String credentialType) {
+        log.debug("🔐: createSimpleIssuer");
         return isServerMode()
                 ? Mono.just(buildLocalSimpleIssuer())
                 : createRemoteDetailedIssuer(procedureId, credentialType)
@@ -66,6 +68,7 @@ public class IssuerFactory {
     }
 
     private Mono<DetailedIssuer> createRemoteDetailedIssuer(String procedureId, String credentialType) {
+        log.debug("🔐: createRemoteDetailedIssuer");
         return Mono.defer(() ->
                         remoteSignatureServiceImpl.validateCredentials()
                                 .flatMap(valid -> {

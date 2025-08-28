@@ -198,7 +198,6 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
                                         .flatMap(issuer -> labelCredentialFactory.mapIssuer(procedureId, issuer))
                                         .flatMap(bindCredential -> {
                                             log.info("ProcessID: {} - Credential mapped and bind to the issuer: {}", procedureId, bindCredential);
-                                            log.debug("🔐: {}", credentialProcedure.getCredentialDecoded());
                                             return credentialProcedureService.updateDecodedCredentialByProcedureId(procedureId, bindCredential, JWT_VC);
                                         });
 
@@ -206,7 +205,6 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
                                 learCredentialEmployeeFactory.mapCredentialAndBindIssuerInToTheCredential(credentialProcedure.getCredentialDecoded(), procedureId)
                                         .flatMap(bindCredential -> {
                                             log.info("ProcessID: {} - Credential mapped and bind to the issuer: {}", procedureId, bindCredential);
-                                            log.debug("🔐: {}", credentialProcedure.getCredentialDecoded());
                                             return credentialProcedureService.updateDecodedCredentialByProcedureId(procedureId, bindCredential, JWT_VC);
                                         });
 
