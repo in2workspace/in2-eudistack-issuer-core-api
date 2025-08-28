@@ -62,6 +62,7 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
                 try{
                     String credentialType = credentialProcedure.getCredentialType();
                     log.info("Building JWT payload for credential signing for credential with type: {}", credentialType);
+                    log.debug("test: {}", credentialProcedure);
                     return switch (credentialType) {
                         case LABEL_CREDENTIAL_TYPE -> {
                             LabelCredential labelCredential = labelCredentialFactory
