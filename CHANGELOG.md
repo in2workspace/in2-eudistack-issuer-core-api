@@ -4,9 +4,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+//todo
+## [v2.4.5](https://github.com/in2workspace/in2-issuer-api/releases/tag/v2.4.5)
+### Added
+- Handle credential serialization error and JWT parsing error.
+
 ## [v2.4.4](https://github.com/in2workspace/in2-issuer-api/releases/tag/v2.4.4)
 ### Added
 - Handle error when sending PIN and when serializing credential.
+
 
 ## [v2.4.3](https://github.com/in2workspace/in2-issuer-api/releases/tag/v2.4.3)
 ### Changed
