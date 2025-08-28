@@ -119,7 +119,7 @@ public class SecurityConfig {
     public SecurityWebFilterChain externalFilterChain(ServerHttpSecurity http,
                                                       ProblemAuthenticationEntryPoint entryPoint) {
         http
-                .securityMatcher(ServerWebExchangeMatchers.pathMatchers(HttpMethod.POST, VCI_ISSUANCES_PATH))
+                .securityMatcher(ServerWebExchangeMatchers.pathMatchers(HttpMethod.POST, VCI_ISSUANCES_PATH, "/backoffice/v1/issuances"))
                 .cors(cors -> cors.configurationSource(externalServicesCORSConfig.externalCorsConfigurationSource()))
                 .authorizeExchange(exchanges -> exchanges
                         .anyExchange().authenticated()
