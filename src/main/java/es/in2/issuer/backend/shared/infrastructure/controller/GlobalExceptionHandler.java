@@ -327,8 +327,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(SadException.class)
     @ResponseStatus(HttpStatus.BAD_GATEWAY)
-    //todo exception, not error
-    public Mono<GlobalErrorMessage> handleSadError(
+    public Mono<GlobalErrorMessage> handleSadException(
             SadException ex,
             ServerHttpRequest request
     ) {
