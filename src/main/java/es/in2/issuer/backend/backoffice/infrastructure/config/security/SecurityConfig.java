@@ -47,8 +47,7 @@ public class SecurityConfig {
 
         authenticationWebFilter.setRequiresAuthenticationMatcher(
                 ServerWebExchangeMatchers.pathMatchers(VCI_ISSUANCES_PATH, OAUTH_TOKEN_PATH,
-                        OID4VCI_CREDENTIAL_OFFER_PATH, OID4VCI_CREDENTIAL_PATH, OID4VCI_DEFERRED_CREDENTIAL_PATH,
-                        BACKOFFICE_RETRY_SIGN_CREDENTIALS)
+                        OID4VCI_CREDENTIAL_OFFER_PATH, OID4VCI_CREDENTIAL_PATH, OID4VCI_DEFERRED_CREDENTIAL_PATH)
         );
         // Configure the Bearer token authentication converter
         ServerBearerTokenAuthenticationConverter bearerConverter = new ServerBearerTokenAuthenticationConverter() {
@@ -70,6 +69,7 @@ public class SecurityConfig {
     @Bean
     @Order(1)
     public SecurityWebFilterChain publicFilterChain(ServerHttpSecurity http) {
+        log.debug("publicFilterChain - inside");
         http
                 .securityMatcher(ServerWebExchangeMatchers.pathMatchers(
                         CORS_OID4VCI_PATH,
@@ -101,6 +101,7 @@ public class SecurityConfig {
     @Bean
     @Order(2)
     public SecurityWebFilterChain backofficeFilterChain(ServerHttpSecurity http) {
+        log.debug("backofficeFilterChain - inside");
         http
                 .securityMatcher(ServerWebExchangeMatchers.pathMatchers(
                         BACKOFFICE_PATH,
