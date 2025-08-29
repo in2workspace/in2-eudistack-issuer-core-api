@@ -82,7 +82,7 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
                                                     .map(jwt -> (Authentication) new JwtAuthenticationToken(jwt, Collections.emptyList()));
                                         }));
                     } else {
-                        log.debug("❌ Token from unknow");
+                        log.debug("❌ Token from unknown");
                         return Mono.error(new BadCredentialsException("Unknown token issuer: " + issuer));
                     }
                 });
@@ -130,7 +130,7 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
             try {
                 vcJson = objectMapper.writeValueAsString(vcObj);
             } catch (Exception e) {
-                log.error("❌ Error processing 'vc' claim. {]", e);
+                log.error("❌ Error processing 'vc' claim.", e);
                 throw new BadCredentialsException("Error processing 'vc' claim", e);
             }
         }
