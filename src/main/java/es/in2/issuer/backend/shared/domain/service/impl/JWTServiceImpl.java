@@ -105,8 +105,8 @@ public class JWTServiceImpl implements JWTService {
         } else if (kid.contains(prefix)) {
             encodedPublicKey = kid.substring(kid.indexOf(prefix) + prefix.length());
         } else {
-            log.error("❌ Formato de 'kid' no válido");
-            throw new IllegalArgumentException("Formato de 'kid' no válido");
+            log.error("❌ 'kid' format not correct");
+            throw new IllegalArgumentException("'kid' format not correct");
         }
 
         return encodedPublicKey;
@@ -175,7 +175,7 @@ public class JWTServiceImpl implements JWTService {
             return SignedJWT.parse(jwt);
         } catch (ParseException e) {
             log.error("Error al parsear el JWTs: {}", e.getMessage());
-            throw new JWTParsingException("Error al parsear el JWTs");
+            throw new JWTParsingException("Error on parse el JWTs");
         }
     }
 
