@@ -63,6 +63,8 @@ public class VerifierServiceImpl implements VerifierService {
     }
 
     private Mono<Void> parseAndValidateJwt(String accessToken, boolean checkExpiration) {
+        log.info("parseAndValidateJWT");
+        log.info(accessToken);
         return getWellKnownInfo()
                 .flatMap(metadata -> fetchJWKSet(metadata.jwksUri()))
                 .flatMap(jwkSet -> {
@@ -73,6 +75,8 @@ public class VerifierServiceImpl implements VerifierService {
 
                         // Validate the issuer
                         if (!appConfig.getVerifierUrl().equals(claims.getIssuer())) {
+                            log.info(appConfig.getVerifierUrl());
+                            log.info(claims.getIssuer());
                             return Mono.error(new JWTVerificationException("Invalid issuer"));
                         }
 
