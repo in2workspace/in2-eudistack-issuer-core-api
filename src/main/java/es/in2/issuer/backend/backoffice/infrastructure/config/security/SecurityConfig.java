@@ -53,8 +53,6 @@ public class SecurityConfig {
         ServerBearerTokenAuthenticationConverter bearerConverter = new ServerBearerTokenAuthenticationConverter() {
             @Override
             public Mono<Authentication> convert(ServerWebExchange exchange) {
-                exchange.getRequest().getHeaders().forEach((name, values) ->
-                        log.debug("📦 Header {} -> {}", name, values));
                 log.debug("🔥 customAuthenticationWebFilter triggered -> [{} {}]",
                         exchange.getRequest().getMethod(),
                         exchange.getRequest().getPath());

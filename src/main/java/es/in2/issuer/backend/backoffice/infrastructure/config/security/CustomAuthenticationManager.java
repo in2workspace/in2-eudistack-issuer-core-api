@@ -52,7 +52,7 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
                     String issuer;
                     try {
                         issuer = signedJWT.getJWTClaimsSet().getIssuer();
-                        log.debug("🔐 CustomAuthenticationManager - signedJWT - {}", issuer);
+                        log.debug("🔐 CustomAuthenticationManager - Issuer - {}", issuer);
                     } catch (ParseException e) {
                         log.error("❌ Unable to parse JWT claims", e);
                         return Mono.error(new BadCredentialsException("Unable to parse JWT claims", e));
@@ -82,7 +82,7 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
                                                     .map(jwt -> (Authentication) new JwtAuthenticationToken(jwt, Collections.emptyList()));
                                         }));
                     } else {
-                        log.debug("✅ Token from unknow");
+                        log.debug("❌ Token from unknow");
                         return Mono.error(new BadCredentialsException("Unknown token issuer: " + issuer));
                     }
                 });
