@@ -26,7 +26,7 @@ public class PublicCORSConfig {
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
 
-        // Configuración abierta para los endpoints públicos que no requieren restricción
+        // Open config for public endpoints
         CorsConfiguration openConfig = new CorsConfiguration();
         openConfig.setAllowedOriginPatterns(List.of("https://*"));
         openConfig.setAllowedMethods(List.of("GET", "POST", "OPTIONS"));
@@ -38,7 +38,7 @@ public class PublicCORSConfig {
         source.registerCorsConfiguration(AUTHORIZATION_SERVER_METADATA_WELL_KNOWN_PATH, openConfig);
         source.registerCorsConfiguration(CORS_CREDENTIAL_OFFER_PATH, openConfig);
 
-        // Configuración restringida para los endpoints críticos
+        // Restricted config
         CorsConfiguration externalConfig = new CorsConfiguration();
         externalConfig.setAllowedOrigins(appConfig.getExternalCorsAllowedOrigins());
         externalConfig.setAllowedMethods(List.of("POST", "OPTIONS"));
