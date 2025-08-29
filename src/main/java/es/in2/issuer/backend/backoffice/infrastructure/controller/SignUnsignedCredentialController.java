@@ -11,7 +11,7 @@ import reactor.core.publisher.Mono;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/v1/retry-sign-credential")
+@RequestMapping("/backoffice/v1/retry-sign-credential")
 @RequiredArgsConstructor
 public class SignUnsignedCredentialController {
 

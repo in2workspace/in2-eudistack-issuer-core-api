@@ -20,7 +20,7 @@ import reactor.core.publisher.Mono;
 public class CloudProviderController {
     private final CloudProviderService cloudProviderService;
 
-    @PostMapping(path = "/ops/v1/signatures/cloud-providers",
+    @PostMapping(path = "/ops/v1/signatures/cloud-providers", //TODO: debería ser backoffice? obsoleta?
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
