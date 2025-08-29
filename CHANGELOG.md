@@ -6,29 +6,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [v2.0.0](https://github.com/in2workspace/in2-issuer-api/releases/tag/v2.0.0)
 ### Added
-- Adapt endpoints to oid4vci.
-- Add sign access request.
-- Add revocation endpoint.
 - Label credential issuance.
-- Add LEARCredentialMachine issuance.
+- LEARCredentialMachine issuance.
+- Sign access request.
+- Revocation endpoint.
 - Revoke and expired credential notification.
-- Send LEARCredentialMachine notification.
 - Handle error when sending PIN and when serializing credential.
-- SecurityConfig refactor credential issuer filters.
 
 ### Changed
-- In the email sent upon LEARCredentialMachine issuance, use mandator name instead of default.
+- Adapt endpoints to oid4vci.
+- Refactor SecurityConfig credential issuer filters.
 - Standardize error handling to RFC 7807 across all endpoints.
 - Move GlobalExceptionHandler to shared module and add specific ControllerAdvice for each domain.
 - Remove unused exceptions.
-
-### Fixed
-- No security for revocation GET endpoint.
-- Fixed url backend in Credential Status
-- Revocation endpoint for label
-- Fix LEARCredentialMachine signature.
-- Add credential status LEARCredentialMachine issuance.
-- LEARCredentialMachine mandator validation.
 
 
 
