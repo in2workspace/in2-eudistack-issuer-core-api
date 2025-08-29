@@ -1,7 +1,8 @@
 package es.in2.issuer.backend.backoffice.infrastructure.config.security;
 
-import es.in2.issuer.backend.backoffice.infrastructure.config.security.exception.ParseAuthenticationException;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.*;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
@@ -10,22 +11,43 @@ import java.util.Map;
 public class SecurityProblemResolver {
 
     private static final ProblemSpec DEFAULT_AUTH_SPEC =
-            new ProblemSpec(SecurityErrorTypes.DEFAULT_AUTH.getCode(), "Unauthorized", HttpStatus.UNAUTHORIZED, "Authentication failed");
+            new ProblemSpec(SecurityErrorTypes.DEFAULT_AUTH.getCode(), "Unauthorized",
+                    HttpStatus.UNAUTHORIZED, "Authentication failed");
 
     private static final ProblemSpec DEFAULT_ACCESS_SPEC =
-            new ProblemSpec(SecurityErrorTypes.DEFAULT_ACCESS.getCode(), "Forbidden", HttpStatus.FORBIDDEN, "Access denied");
+            new ProblemSpec(SecurityErrorTypes.DEFAULT_ACCESS.getCode(), "Forbidden",
+                    HttpStatus.FORBIDDEN, "Access denied");
 
     private final Map<Class<? extends Throwable>, ProblemSpec> map = Map.ofEntries(
-            // 401a
-            Map.entry(
-                    ParseAuthenticationException.class,
-                    new ProblemSpec(
-                            SecurityErrorTypes.INVALID_TOKEN.getCode(),
-                            "Invalid token",
-                            HttpStatus.UNAUTHORIZED,
-                            "Invalid token"
-                    )
-            )
+            // 401
+            Map.entry(BadCredentialsException.class,
+                    new ProblemSpec(SecurityErrorTypes.INVALID_TOKEN.getCode(),
+                            "Invalid token", HttpStatus.UNAUTHORIZED, "Invalid token")),
+
+            Map.entry(AuthenticationServiceException.class,
+                    new ProblemSpec(SecurityErrorTypes.DEFAULT_AUTH.getCode(),
+                            "Authentication service error", HttpStatus.UNAUTHORIZED, "Authentication failed")),
+
+            Map.entry(InsufficientAuthenticationException.class,
+                    new ProblemSpec(SecurityErrorTypes.DEFAULT_AUTH.getCode(),
+                            "Insufficient authentication", HttpStatus.UNAUTHORIZED, "Additional authentication required")),
+
+            Map.entry(UsernameNotFoundException.class,
+                    new ProblemSpec(SecurityErrorTypes.DEFAULT_AUTH.getCode(),
+                            "User not found", HttpStatus.UNAUTHORIZED, "Authentication failed")),
+
+            Map.entry(DisabledException.class,
+                    new ProblemSpec(SecurityErrorTypes.DEFAULT_AUTH.getCode(),
+                            "User disabled", HttpStatus.UNAUTHORIZED, "Authentication failed")),
+            Map.entry(LockedException.class,
+                    new ProblemSpec(SecurityErrorTypes.DEFAULT_AUTH.getCode(),
+                            "User locked", HttpStatus.UNAUTHORIZED, "Authentication failed")),
+            Map.entry(AccountExpiredException.class,
+                    new ProblemSpec(SecurityErrorTypes.DEFAULT_AUTH.getCode(),
+                            "Account expired", HttpStatus.UNAUTHORIZED, "Authentication failed")),
+            Map.entry(CredentialsExpiredException.class,
+                    new ProblemSpec(SecurityErrorTypes.DEFAULT_AUTH.getCode(),
+                            "Credentials expired", HttpStatus.UNAUTHORIZED, "Authentication failed"))
             // 403 todo
     );
 
@@ -41,3 +63,4 @@ public class SecurityProblemResolver {
 
     public record ProblemSpec(String type, String title, HttpStatus status, String fallbackDetail) {}
 }
+

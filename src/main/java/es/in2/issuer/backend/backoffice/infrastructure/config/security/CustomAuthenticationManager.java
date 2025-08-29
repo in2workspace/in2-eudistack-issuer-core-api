@@ -2,14 +2,15 @@ package es.in2.issuer.backend.backoffice.infrastructure.config.security;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import es.in2.issuer.backend.backoffice.infrastructure.config.security.exception.ParseAuthenticationException;
 import es.in2.issuer.backend.shared.domain.service.VerifierService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.ReactiveAuthenticationManager;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import reactor.core.publisher.Mono;
@@ -37,6 +38,8 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
         return verifierService.verifyToken(token)
                 .then(parseAndValidateJwt(token))
                 .map(jwt -> (Authentication) new JwtAuthenticationToken(jwt, Collections.emptyList()))
+                .onErrorMap(e -> (e instanceof AuthenticationException) ? e
+                        : new AuthenticationServiceException(e.getMessage(), e))
                 .doOnError(e -> log.error("Error authenticating token from authenticate", e));
     }
 
