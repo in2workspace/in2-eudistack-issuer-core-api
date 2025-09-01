@@ -118,7 +118,6 @@ class CustomAuthenticationManagerTest {
 
     @Test
     void authenticate_withInvalidVcType_throwsBadCredentialsException() {
-        // Camí del Verifier: sí valida 'vc'
         String headerJson = "{\"alg\":\"RS256\",\"typ\":\"JWT\"}";
         String payloadJson = "{\"iss\":\"http://verifier.local\",\"iat\":1633036800,\"exp\":1633040400," +
                 "\"vc\":{\"type\":[\"SomeOtherType\"]}}";
@@ -139,7 +138,6 @@ class CustomAuthenticationManagerTest {
 
     @Test
     void authenticate_withInvalidPayloadDecoding_throwsBadCredentialsException() {
-        // Fa fallar el parse de claims a SignedJWT.getJWTClaimsSet() abans d'arribar al parse manual
         String headerJson = "{\"alg\":\"RS256\",\"typ\":\"JWT\"}";
         String header = base64UrlEncode(headerJson);
         String payload = "invalidPayload"; // no és base64url-JSON
@@ -208,7 +206,7 @@ class CustomAuthenticationManagerTest {
 
     @Test
     void authenticate_withKeycloakToken_missingVcClaim_returnsAuthentication() {
-        // IMPORTANT: el codi productiu NO valida 'vc' en el camí de Keycloak (validateVcClaim = false)
+
         String headerJson = "{\"alg\":\"RS256\",\"typ\":\"JWT\"}";
         String payloadJson = "{\"iss\":\"http://issuer.local\",\"iat\":1633036800,\"exp\":" +
                 (Instant.now().getEpochSecond() + 3600) + "}";
@@ -228,7 +226,7 @@ class CustomAuthenticationManagerTest {
 
     @Test
     void authenticate_withKeycloakToken_invalidVcType_returnsAuthentication() {
-        // IMPORTANT: el codi productiu NO valida 'vc' en el camí de Keycloak (validateVcClaim = false)
+
         String headerJson = "{\"alg\":\"RS256\",\"typ\":\"JWT\"}";
         String payloadJson = "{\"iss\":\"http://issuer.local\",\"iat\":1633036800,\"exp\":" +
                 (Instant.now().getEpochSecond() + 3600) + ",\"vc\":{\"type\":[\"OtherType\"]}}";

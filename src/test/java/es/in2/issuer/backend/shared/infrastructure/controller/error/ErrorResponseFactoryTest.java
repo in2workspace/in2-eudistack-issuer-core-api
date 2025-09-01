@@ -164,4 +164,47 @@ class ErrorResponseFactoryTest {
                 })
                 .verifyComplete();
     }
+
+    @Test
+    void handleWithNow_usesExceptionMessage_whenPresent() {
+        Exception ex = new IllegalArgumentException("bad arg");
+        GlobalErrorMessage msg = factory.handleWithNow(
+                ex,
+                mockRequest,
+                "https://example.com/problem",
+                "Bad Request",
+                HttpStatus.BAD_REQUEST,
+                "fallback detail"
+        );
+
+        assertNotNull(msg);
+        assertEquals("https://example.com/problem", msg.type());
+        assertEquals("Bad Request", msg.title());
+        assertEquals(HttpStatus.BAD_REQUEST.value(), msg.status());
+        assertEquals("bad arg", msg.detail());
+        assertNotNull(msg.instance());
+        assertDoesNotThrow(() -> UUID.fromString(msg.instance()));
+    }
+
+    @Test
+    void handleWithNow_usesFallback_whenExceptionMessageNullOrBlank() {
+        Exception ex1 = new RuntimeException((String) null);
+        Exception ex2 = new RuntimeException("");
+        Exception ex3 = new RuntimeException("   ");
+
+        GlobalErrorMessage m1 = factory.handleWithNow(
+                ex1, mockRequest, "t", "Title", HttpStatus.INTERNAL_SERVER_ERROR, "fallback-1");
+        GlobalErrorMessage m2 = factory.handleWithNow(
+                ex2, mockRequest, "t", "Title", HttpStatus.INTERNAL_SERVER_ERROR, "fallback-2");
+        GlobalErrorMessage m3 = factory.handleWithNow(
+                ex3, mockRequest, "t", "Title", HttpStatus.INTERNAL_SERVER_ERROR, "fallback-3");
+
+        assertEquals("fallback-1", m1.detail());
+        assertEquals("fallback-2", m2.detail());
+        assertEquals("fallback-3", m3.detail());
+        assertDoesNotThrow(() -> UUID.fromString(m1.instance()));
+        assertDoesNotThrow(() -> UUID.fromString(m2.instance()));
+        assertDoesNotThrow(() -> UUID.fromString(m3.instance()));
+    }
+
 }

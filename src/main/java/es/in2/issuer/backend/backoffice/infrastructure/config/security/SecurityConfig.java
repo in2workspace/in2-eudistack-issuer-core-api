@@ -16,6 +16,7 @@ import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder;
 import org.springframework.security.oauth2.server.resource.web.server.authentication.ServerBearerTokenAuthenticationConverter;
 import org.springframework.security.web.server.SecurityWebFilterChain;
 import org.springframework.security.web.server.authentication.AuthenticationWebFilter;
+import org.springframework.security.web.server.authentication.ServerAuthenticationEntryPointFailureHandler;
 import org.springframework.security.web.server.util.matcher.ServerWebExchangeMatchers;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
@@ -40,7 +41,7 @@ public class SecurityConfig {
     }
 
     @Bean
-    public AuthenticationWebFilter customAuthenticationWebFilter() {
+    public AuthenticationWebFilter customAuthenticationWebFilter(ProblemAuthenticationEntryPoint entryPoint) {
         AuthenticationWebFilter authenticationWebFilter = new AuthenticationWebFilter(customAuthenticationManager);
         // Set the path for which the filter will be applied
         log.debug("customAuthenticationWebFilter - inside");
@@ -63,13 +64,19 @@ public class SecurityConfig {
             }
         };
         authenticationWebFilter.setServerAuthenticationConverter(bearerConverter);
+        authenticationWebFilter.setAuthenticationFailureHandler(new ServerAuthenticationEntryPointFailureHandler(entryPoint));
         return authenticationWebFilter;
     }
 
     @Bean
     @Order(1)
-    public SecurityWebFilterChain publicFilterChain(ServerHttpSecurity http) {
+    public SecurityWebFilterChain publicFilterChain(
+            ServerHttpSecurity http,
+            ProblemAuthenticationEntryPoint entryPoint,
+            ProblemAccessDeniedHandler deniedH
+    ) {
         log.debug("publicFilterChain - inside");
+
         http
                 .securityMatcher(ServerWebExchangeMatchers.pathMatchers(
                         CORS_OID4VCI_PATH,
@@ -93,14 +100,22 @@ public class SecurityConfig {
                         .anyExchange().denyAll()
                 )
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
-                .addFilterAt(customAuthenticationWebFilter(), SecurityWebFiltersOrder.AUTHENTICATION);
+                .addFilterAt(customAuthenticationWebFilter(entryPoint), SecurityWebFiltersOrder.AUTHENTICATION)
+                .exceptionHandling(e -> e
+                        .authenticationEntryPoint(entryPoint)
+                        .accessDeniedHandler(deniedH)
+                );
         log.debug("publicFilterChain - build");
         return http.build();
     }
 
     @Bean
     @Order(2)
-    public SecurityWebFilterChain backofficeFilterChain(ServerHttpSecurity http) {
+    public SecurityWebFilterChain backofficeFilterChain(
+            ServerHttpSecurity http,
+            ProblemAuthenticationEntryPoint entryPoint,
+            ProblemAccessDeniedHandler deniedH) {
+
         log.debug("backofficeFilterChain - inside");
         http
                 .securityMatcher(ServerWebExchangeMatchers.pathMatchers(
@@ -121,7 +136,14 @@ public class SecurityConfig {
                         .anyExchange().denyAll()
                 )
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
-                .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.jwtDecoder(internalJwtDecoder)));
+                .oauth2ResourceServer(oauth2 -> oauth2
+                        .authenticationEntryPoint(entryPoint)
+                        .jwt(jwt -> jwt.jwtDecoder(internalJwtDecoder)))
+                .exceptionHandling(e -> e
+                        .authenticationEntryPoint(entryPoint)
+                        .accessDeniedHandler(deniedH)
+                );
+
         log.debug("backofficeFilterChain - build");
         return http.build();
     }

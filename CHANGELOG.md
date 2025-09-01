@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Revocation endpoint.
 - Revoke and expired credential notification.
 - Handle error when sending PIN and when serializing credential.
+- Handle errors in security chains flow.
 
 ### Changed
 - Adapt endpoints to oid4vci.

@@ -22,6 +22,14 @@ public class ErrorResponseFactory {
         return Mono.fromSupplier(() -> buildError(type, title, status, detail, ex, request));
     }
 
+    public GlobalErrorMessage handleWithNow(
+            Exception ex, ServerHttpRequest request,
+            String type, String title, HttpStatus status, String fallbackDetail
+    ) {
+        String detail = resolveDetail(ex, fallbackDetail);
+        return buildError(type, title, status, detail, ex, request);
+    }
+
     private String resolveDetail(Exception ex, String fallback) {
         String msg = ex.getMessage();
         return (msg == null || msg.isBlank()) ? fallback : msg;

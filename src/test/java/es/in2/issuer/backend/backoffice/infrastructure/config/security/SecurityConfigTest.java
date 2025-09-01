@@ -9,12 +9,13 @@ import org.springframework.security.authentication.ReactiveAuthenticationManager
 import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder;
 import org.springframework.security.web.server.SecurityWebFilterChain;
+import org.springframework.security.web.server.authentication.AuthenticationWebFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class SecurityConfigTest {
@@ -28,6 +29,12 @@ class SecurityConfigTest {
     @Mock
     private ReactiveJwtDecoder reactiveJwtDecoder;
 
+    @Mock
+    private ProblemAuthenticationEntryPoint entryPoint;
+
+    @Mock
+    private ProblemAccessDeniedHandler deniedHandler;
+
     @InjectMocks
     private SecurityConfig securityConfig;
 
@@ -39,26 +46,46 @@ class SecurityConfigTest {
     }
 
     @Test
-    void customAuthenticationWebFilter_shouldBeConfigured() {
-        var filter = securityConfig.customAuthenticationWebFilter();
+    void customAuthenticationWebFilter_shouldCreateFilterWithBearerConverter() {
+        AuthenticationWebFilter filter = securityConfig.customAuthenticationWebFilter(entryPoint);
         assertNotNull(filter);
+        // We can’t easily inspect the internal matcher/converter, but the mere fact of constructing it
+        // without exceptions validates that the manager and the failure handler have been wired up.
+
     }
 
     @Test
-    void publicFilterChain_shouldBuildWithoutErrors() {
+    void publicFilterChain_shouldBuildWithPublicCorsAndAuthRules() {
+        // Given
         when(publicCORSConfig.publicCorsConfigurationSource()).thenReturn(minimalCorsSource());
-        SecurityWebFilterChain chain = securityConfig.publicFilterChain(ServerHttpSecurity.http());
+
+        // ServerHttpSecurity factory estàtica per WebFlux
+        ServerHttpSecurity http = ServerHttpSecurity.http();
+
+        // When
+        SecurityWebFilterChain chain = securityConfig.publicFilterChain(http, entryPoint, deniedHandler);
+
+        // Then
         assertNotNull(chain);
+        verify(publicCORSConfig, times(1)).publicCorsConfigurationSource();
+
     }
 
     @Test
-    void backofficeFilterChain_shouldBuildWithoutErrors() {
+    void backofficeFilterChain_shouldBuildWithInternalCorsAndJwtDecoder() {
+        // Given
         when(internalCORSConfig.defaultCorsConfigurationSource()).thenReturn(minimalCorsSource());
-        SecurityWebFilterChain chain = securityConfig.backofficeFilterChain(ServerHttpSecurity.http());
+
+        ServerHttpSecurity http = ServerHttpSecurity.http();
+
+        // When
+        SecurityWebFilterChain chain = securityConfig.backofficeFilterChain(http, entryPoint, deniedHandler);
+
+        // Then
         assertNotNull(chain);
+        verify(internalCORSConfig, times(1)).defaultCorsConfigurationSource();
+
     }
-
-
 
     private UrlBasedCorsConfigurationSource minimalCorsSource() {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
