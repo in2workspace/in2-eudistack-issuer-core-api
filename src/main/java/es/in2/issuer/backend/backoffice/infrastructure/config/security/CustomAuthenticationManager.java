@@ -141,7 +141,6 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
             vcNode = objectMapper.readTree(vcJson);
         } catch (Exception e) {
             log.error("❌ Error parsing 'vc' claim.", e);
-            log.error("❌ Error parsing 'vc' claim.", e);
             throw new BadCredentialsException("Error parsing 'vc' claim", e);
         }
         JsonNode typeNode = vcNode.get("type");
