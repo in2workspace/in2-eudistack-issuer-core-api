@@ -115,7 +115,9 @@ public class SecurityConfig {
             ServerHttpSecurity http,
             ProblemAuthenticationEntryPoint entryPoint,
             ProblemAccessDeniedHandler deniedH) {
+
         log.debug("backofficeFilterChain - inside");
+
         http
                 .securityMatcher(ServerWebExchangeMatchers.pathMatchers(
                         BACKOFFICE_PATH,
@@ -135,12 +137,13 @@ public class SecurityConfig {
                         .anyExchange().denyAll()
                 )
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
-                .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.jwtDecoder(internalJwtDecoder)))
+                .oauth2ResourceServer(oauth2 -> oauth2
+                        .authenticationEntryPoint(entryPoint)
+                        .jwt(jwt -> jwt.jwtDecoder(internalJwtDecoder)))
                 .exceptionHandling(e -> e
                         .authenticationEntryPoint(entryPoint)
                         .accessDeniedHandler(deniedH)
                 );
-        ;
         log.debug("backofficeFilterChain - build");
         return http.build();
     }
