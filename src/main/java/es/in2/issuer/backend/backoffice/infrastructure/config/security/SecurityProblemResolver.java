@@ -1,6 +1,7 @@
 package es.in2.issuer.backend.backoffice.infrastructure.config.security;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.*;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Component;
@@ -47,18 +48,21 @@ public class SecurityProblemResolver {
                             "Account expired", HttpStatus.UNAUTHORIZED, "Authentication failed")),
             Map.entry(CredentialsExpiredException.class,
                     new ProblemSpec(SecurityErrorTypes.DEFAULT_AUTH.getCode(),
-                            "Credentials expired", HttpStatus.UNAUTHORIZED, "Authentication failed"))
-            // 403 todo
+                            "Credentials expired", HttpStatus.UNAUTHORIZED, "Authentication failed")),
+            // 403
+            Map.entry(AccessDeniedException.class,
+                    new ProblemSpec(SecurityErrorTypes.DEFAULT_ACCESS.getCode(),
+                            "Forbidden", HttpStatus.FORBIDDEN, "Access denied"))
     );
 
-    public ProblemSpec resolve(Throwable ex, boolean isAuthPhase) {
+    public ProblemSpec resolve(Throwable ex, boolean isAuthenticationPhase) {
         Class<?> c = ex.getClass();
         while (c != null && c != Object.class) {
             ProblemSpec spec = map.get(c);
             if (spec != null) return spec;
             c = c.getSuperclass();
         }
-        return isAuthPhase ? DEFAULT_AUTH_SPEC : DEFAULT_ACCESS_SPEC;
+        return isAuthenticationPhase ? DEFAULT_AUTH_SPEC : DEFAULT_ACCESS_SPEC;
     }
 
     public record ProblemSpec(String type, String title, HttpStatus status, String fallbackDetail) {}

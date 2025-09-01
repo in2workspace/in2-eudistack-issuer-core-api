@@ -9,7 +9,9 @@ public enum SecurityErrorTypes {
 
     DEFAULT_AUTH("authentication_error"),
     DEFAULT_ACCESS("authorization_error"),
-    INVALID_TOKEN("invalid_token");
+    INVALID_TOKEN("invalid_token"),
+    CSRF_MISSING("csrf_missing"),
+    CSRF_INVALID("csrf_missing");
 
     private final String code;
 

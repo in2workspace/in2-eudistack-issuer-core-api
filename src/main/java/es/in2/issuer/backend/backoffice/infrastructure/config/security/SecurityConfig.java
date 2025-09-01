@@ -67,8 +67,13 @@ public class SecurityConfig {
 
     @Bean
     @Order(1)
-    public SecurityWebFilterChain publicFilterChain(ServerHttpSecurity http, ProblemAuthenticationEntryPoint entryPoint) {
+    public SecurityWebFilterChain publicFilterChain(
+            ServerHttpSecurity http,
+            ProblemAuthenticationEntryPoint entryPoint,
+            ProblemAccessDeniedHandler deniedH
+    ) {
         log.debug("publicFilterChain - inside");
+
         http
                 .securityMatcher(ServerWebExchangeMatchers.pathMatchers(
                         CORS_OID4VCI_PATH,
@@ -92,14 +97,21 @@ public class SecurityConfig {
                         .anyExchange().denyAll()
                 )
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
-                .addFilterAt(customAuthenticationWebFilter(entryPoint), SecurityWebFiltersOrder.AUTHENTICATION);
+                .addFilterAt(customAuthenticationWebFilter(entryPoint), SecurityWebFiltersOrder.AUTHENTICATION)
+                .exceptionHandling(e -> e
+                        .authenticationEntryPoint(entryPoint)
+                        .accessDeniedHandler(deniedH)
+                );
         log.debug("publicFilterChain - build");
         return http.build();
     }
 
     @Bean
     @Order(2)
-    public SecurityWebFilterChain backofficeFilterChain(ServerHttpSecurity http, ProblemAuthenticationEntryPoint entryPoint) {
+    public SecurityWebFilterChain backofficeFilterChain(
+            ServerHttpSecurity http,
+            ProblemAuthenticationEntryPoint entryPoint,
+            ProblemAccessDeniedHandler deniedH) {
         log.debug("backofficeFilterChain - inside");
         http
                 .securityMatcher(ServerWebExchangeMatchers.pathMatchers(
@@ -121,7 +133,12 @@ public class SecurityConfig {
                 )
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.jwtDecoder(internalJwtDecoder)))
-                .addFilterAt(customAuthenticationWebFilter(entryPoint), SecurityWebFiltersOrder.AUTHENTICATION);
+                .addFilterAt(customAuthenticationWebFilter(entryPoint), SecurityWebFiltersOrder.AUTHENTICATION)
+                .exceptionHandling(e -> e
+                        .authenticationEntryPoint(entryPoint)
+                        .accessDeniedHandler(deniedH)
+                );
+        ;
         log.debug("backofficeFilterChain - build");
         return http.build();
     }
