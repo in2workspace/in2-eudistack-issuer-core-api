@@ -88,6 +88,7 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
                 })
                 .onErrorMap(e -> (e instanceof AuthenticationException) ? e
                         : new AuthenticationServiceException(e.getMessage(), e));
+                });
     }
 
     private Mono<Jwt> parseAndValidateJwt(String token, boolean validateVcClaim) {
@@ -141,6 +142,7 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
             vcNode = objectMapper.readTree(vcJson);
         } catch (Exception e) {
             log.error("❌ Error parsing 'vc' claim.", e);
+            log.error("❌ Error parsing 'vc' claim. {}", e);
             throw new BadCredentialsException("Error parsing 'vc' claim", e);
         }
         JsonNode typeNode = vcNode.get("type");

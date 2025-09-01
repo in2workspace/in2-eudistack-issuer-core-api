@@ -76,7 +76,7 @@ public class SecurityConfig {
             ProblemAccessDeniedHandler deniedH
     ) {
         log.debug("publicFilterChain - inside");
-
+      
         http
                 .securityMatcher(ServerWebExchangeMatchers.pathMatchers(
                         CORS_OID4VCI_PATH,
@@ -117,7 +117,6 @@ public class SecurityConfig {
             ProblemAccessDeniedHandler deniedH) {
 
         log.debug("backofficeFilterChain - inside");
-
         http
                 .securityMatcher(ServerWebExchangeMatchers.pathMatchers(
                         BACKOFFICE_PATH,
@@ -144,6 +143,7 @@ public class SecurityConfig {
                         .authenticationEntryPoint(entryPoint)
                         .accessDeniedHandler(deniedH)
                 );
+
         log.debug("backofficeFilterChain - build");
         return http.build();
     }
