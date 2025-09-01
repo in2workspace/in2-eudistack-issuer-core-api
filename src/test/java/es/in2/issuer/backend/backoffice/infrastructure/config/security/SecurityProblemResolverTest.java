@@ -24,7 +24,7 @@ class SecurityProblemResolverTest {
         assertEquals("Invalid token", spec.title());
         assertEquals(HttpStatus.UNAUTHORIZED, spec.status());
         assertEquals("Invalid token", spec.fallbackDetail());
-        assertNotNull(spec.type()); // no assumim el codi concret, però ha d'existir
+        assertNotNull(spec.type());
     }
 
     @Test
@@ -93,7 +93,6 @@ class SecurityProblemResolverTest {
 
     @Test
     void fallsBackToDefaultAccessSpec_whenNoMapping_andAuthPhaseFalse() {
-        // Excepció desconeguda en fase d’autorització -> DEFAULT_ACCESS_SPEC
         ProblemSpec spec = resolver.resolve(new IllegalStateException("???"), false);
 
         assertNotNull(spec);
@@ -105,15 +104,14 @@ class SecurityProblemResolverTest {
 
     @Test
     void resolvesBySuperclass_whenSubclassMatchesMappedType() {
-        // Definim una subclasse de BadCredentialsException per assegurar-nos que fa "walk" per la superclasse
-        class MyBadCreds extends BadCredentialsException {
+       class MyBadCreds extends BadCredentialsException {
             MyBadCreds(String msg) { super(msg); }
         }
 
         ProblemSpec spec = resolver.resolve(new MyBadCreds("custom bad creds"), true);
 
         assertNotNull(spec);
-        assertEquals("Invalid token", spec.title());            // mateix mapping que BadCredentialsException
+        assertEquals("Invalid token", spec.title());
         assertEquals(HttpStatus.UNAUTHORIZED, spec.status());
         assertEquals("Invalid token", spec.fallbackDetail());
         assertNotNull(spec.type());

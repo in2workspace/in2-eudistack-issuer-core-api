@@ -181,7 +181,7 @@ class ErrorResponseFactoryTest {
         assertEquals("https://example.com/problem", msg.type());
         assertEquals("Bad Request", msg.title());
         assertEquals(HttpStatus.BAD_REQUEST.value(), msg.status());
-        assertEquals("bad arg", msg.detail()); // fa servir el missatge de l'excepció
+        assertEquals("bad arg", msg.detail());
         assertNotNull(msg.instance());
         assertDoesNotThrow(() -> UUID.fromString(msg.instance()));
     }
