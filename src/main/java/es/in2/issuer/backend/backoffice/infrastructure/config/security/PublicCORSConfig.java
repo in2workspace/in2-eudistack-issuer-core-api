@@ -9,6 +9,7 @@ import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
 
 import java.util.List;
 
+import static es.in2.issuer.backend.backoffice.domain.util.Constants.OPTIONS;
 import static es.in2.issuer.backend.shared.domain.util.EndpointsConstants.*;
 
 
@@ -29,7 +30,7 @@ public class PublicCORSConfig {
         // Open config for public endpoints
         CorsConfiguration openConfig = new CorsConfiguration();
         openConfig.setAllowedOriginPatterns(List.of("https://*"));
-        openConfig.setAllowedMethods(List.of("GET", "POST", "OPTIONS"));
+        openConfig.setAllowedMethods(List.of("GET", "POST", OPTIONS));
         openConfig.setAllowedHeaders(List.of("*"));
         openConfig.setAllowCredentials(false);
         openConfig.setMaxAge(1800L);
@@ -41,7 +42,7 @@ public class PublicCORSConfig {
         // Restricted config
         CorsConfiguration externalConfig = new CorsConfiguration();
         externalConfig.setAllowedOrigins(appConfig.getExternalCorsAllowedOrigins());
-        externalConfig.setAllowedMethods(List.of("POST", "OPTIONS"));
+        externalConfig.setAllowedMethods(List.of("POST", OPTIONS));
         externalConfig.setAllowedHeaders(List.of("*"));
         externalConfig.setAllowCredentials(false);
         externalConfig.setMaxAge(1800L);
@@ -49,7 +50,7 @@ public class PublicCORSConfig {
         source.registerCorsConfiguration(VCI_ISSUANCES_PATH, externalConfig);
 
         CorsConfiguration oid4vciConfig = new CorsConfiguration();
-        oid4vciConfig.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        oid4vciConfig.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", OPTIONS));
         oid4vciConfig.setAllowedHeaders(List.of("*"));
         oid4vciConfig.setAllowCredentials(false);
         oid4vciConfig.setMaxAge(1800L);

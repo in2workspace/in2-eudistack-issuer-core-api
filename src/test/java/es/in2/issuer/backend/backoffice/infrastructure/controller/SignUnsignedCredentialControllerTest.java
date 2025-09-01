@@ -10,7 +10,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.core.publisher.Mono;
 
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -33,7 +32,7 @@ class SignUnsignedCredentialControllerTest {
         String authorizationHeader = "Bearer token";
         String procedureId = "d290f1ee-6c54-4b01-90e6-d701748f0851";
 
-        when(credentialSignerWorkflow.retrySignUnsignedCredential(eq(authorizationHeader), eq(procedureId)))
+        when(credentialSignerWorkflow.retrySignUnsignedCredential(authorizationHeader, procedureId))
                 .thenReturn(Mono.empty());
 
         // when + then
@@ -44,7 +43,7 @@ class SignUnsignedCredentialControllerTest {
                 .expectStatus().isCreated(); // 201 segons @ResponseStatus(HttpStatus.CREATED)
 
         verify(credentialSignerWorkflow, times(1))
-                .retrySignUnsignedCredential(eq(authorizationHeader), eq(procedureId));
+                .retrySignUnsignedCredential(authorizationHeader, procedureId);
         verifyNoMoreInteractions(credentialSignerWorkflow);
     }
 
@@ -54,7 +53,7 @@ class SignUnsignedCredentialControllerTest {
         String authorizationHeader = "Bearer token";
         String procedureId = "d290f1ee-6c54-4b01-90e6-d701748f0851";
 
-        when(credentialSignerWorkflow.retrySignUnsignedCredential(eq(authorizationHeader), eq(procedureId)))
+        when(credentialSignerWorkflow.retrySignUnsignedCredential(authorizationHeader, procedureId))
                 .thenReturn(Mono.error(new RuntimeException("Simulated error")));
 
         // when + then
@@ -65,7 +64,7 @@ class SignUnsignedCredentialControllerTest {
                 .expectStatus().is5xxServerError();
 
         verify(credentialSignerWorkflow, times(1))
-                .retrySignUnsignedCredential(eq(authorizationHeader), eq(procedureId));
+                .retrySignUnsignedCredential(authorizationHeader, procedureId);
         verifyNoMoreInteractions(credentialSignerWorkflow);
     }
 }
