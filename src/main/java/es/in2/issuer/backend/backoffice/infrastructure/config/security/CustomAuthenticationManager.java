@@ -74,7 +74,7 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
                         return Mono.fromCallable(() -> JWSObject.parse(token))
                                 .flatMap(jwsObject -> jwtService.validateJwtSignatureReactive(jwsObject)
                                         .flatMap(isValid -> {
-                                            if (!isValid) {
+                                            if (!Boolean.TRUE.equals(isValid)) {
                                                 log.error("❌ Invalid JWT signature");
                                                 return Mono.error(new BadCredentialsException("Invalid JWT signature"));
                                             }
