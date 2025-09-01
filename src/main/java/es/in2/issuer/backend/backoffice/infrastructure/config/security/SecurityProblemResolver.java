@@ -1,5 +1,6 @@
 package es.in2.issuer.backend.backoffice.infrastructure.config.security;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.*;
@@ -8,6 +9,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.Map;
 
+@Slf4j
 @Component
 public class SecurityProblemResolver {
 
@@ -56,6 +58,9 @@ public class SecurityProblemResolver {
     );
 
     public ProblemSpec resolve(Throwable ex, boolean isAuthenticationPhase) {
+        log.debug("SecurityProblemResolver.resolve - inside");
+        log.debug("Exception: ", ex);
+
         Class<?> c = ex.getClass();
         while (c != null && c != Object.class) {
             ProblemSpec spec = map.get(c);

@@ -24,9 +24,8 @@ public class ProblemAuthenticationEntryPoint implements ServerAuthenticationEntr
 
     @Override
     public Mono<Void> commence(ServerWebExchange exchange, AuthenticationException ex) {
-       // todo remove logs
-        log.info("ProblemAuthenticationEntryPoint.commence");
-        log.info("Exception: ", ex);
+        log.debug("ProblemAuthenticationEntryPoint.commence - inside");
+        log.debug("Exception: ", ex);
 
         var response = exchange.getResponse();
         var spec = resolver.resolve(ex, true);
