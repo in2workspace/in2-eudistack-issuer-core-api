@@ -65,13 +65,11 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
                         return Mono.error(new BadCredentialsException("Missing issuer (iss) claim"));
                     }
                     if (issuer.equals(appConfig.getVerifierUrl())) {
-                        // Caso Verifier → validar vía microservicio Verifier
                         log.debug("✅ Token from Verifier - {}", appConfig.getVerifierUrl());
                         return verifierService.verifyToken(token)
                                 .then(parseAndValidateJwt(token, Boolean.TRUE))
                                 .map(jwt -> new JwtAuthenticationToken(jwt, Collections.emptyList()));
                     } else if (issuer.equals(appConfig.getIssuerBackendUrl())) {
-                        // Caso Credential Issuer (Keycloak) → validar firma local
                         log.debug("✅ Token from Credential Issuer - {}",appConfig.getIssuerBackendUrl());
                         return Mono.fromCallable(() -> JWSObject.parse(token))
                                 .flatMap(jwsObject -> jwtService.validateJwtSignatureReactive(jwsObject)
@@ -84,7 +82,7 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
                                                     .map(jwt -> (Authentication) new JwtAuthenticationToken(jwt, Collections.emptyList()));
                                         }));
                     } else {
-                        log.debug("❌ Token from unknown");
+                        log.debug("❌ Token from unknown issuer");
                         return Mono.error(new BadCredentialsException("Unknown token issuer: " + issuer));
                     }
                 })
@@ -142,7 +140,7 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
         try {
             vcNode = objectMapper.readTree(vcJson);
         } catch (Exception e) {
-            log.error("❌ Error parsing 'vc' claim. {]", e);
+            log.error("❌ Error parsing 'vc' claim.", e);
             throw new BadCredentialsException("Error parsing 'vc' claim", e);
         }
         JsonNode typeNode = vcNode.get("type");

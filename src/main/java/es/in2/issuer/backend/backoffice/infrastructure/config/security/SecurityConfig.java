@@ -47,8 +47,11 @@ public class SecurityConfig {
         log.debug("customAuthenticationWebFilter - inside");
 
         authenticationWebFilter.setRequiresAuthenticationMatcher(
-                ServerWebExchangeMatchers.pathMatchers(BACKOFFICE_PATH, VCI_ISSUANCES_PATH, OAUTH_TOKEN_PATH,
-                        OID4VCI_CREDENTIAL_OFFER_PATH, OID4VCI_CREDENTIAL_PATH, OID4VCI_DEFERRED_CREDENTIAL_PATH)
+                ServerWebExchangeMatchers.pathMatchers(
+                        VCI_ISSUANCES_PATH,
+                        OAUTH_TOKEN_PATH,
+                        OID4VCI_CREDENTIAL_PATH,
+                        OID4VCI_DEFERRED_CREDENTIAL_PATH)
         );
         // Configure the Bearer token authentication converter
         ServerBearerTokenAuthenticationConverter bearerConverter = new ServerBearerTokenAuthenticationConverter() {
@@ -133,7 +136,6 @@ public class SecurityConfig {
                 )
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.jwtDecoder(internalJwtDecoder)))
-                .addFilterAt(customAuthenticationWebFilter(entryPoint), SecurityWebFiltersOrder.AUTHENTICATION)
                 .exceptionHandling(e -> e
                         .authenticationEntryPoint(entryPoint)
                         .accessDeniedHandler(deniedH)
