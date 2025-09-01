@@ -14,8 +14,7 @@ import reactor.core.publisher.Mono;
 
 @Slf4j
 @RestController
-//fixme: change to /backoffice/v1/procedures
-@RequestMapping("/api/v1/procedures")
+@RequestMapping("/backoffice/v1/procedures")
 @RequiredArgsConstructor
 public class CredentialProcedureController {
 

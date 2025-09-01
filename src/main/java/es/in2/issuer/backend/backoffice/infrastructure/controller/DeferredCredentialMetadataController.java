@@ -12,7 +12,7 @@ import java.util.UUID;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/v1/deferred-credential-metadata")
+@RequestMapping("/oid4vci/v1/deferred-credential-metadata")
 @RequiredArgsConstructor
 public class DeferredCredentialMetadataController {
 

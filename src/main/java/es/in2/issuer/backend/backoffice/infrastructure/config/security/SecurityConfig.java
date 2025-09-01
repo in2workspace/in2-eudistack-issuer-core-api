@@ -11,13 +11,14 @@ import org.springframework.security.authentication.ReactiveAuthenticationManager
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
 import org.springframework.security.config.web.server.SecurityWebFiltersOrder;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder;
 import org.springframework.security.oauth2.server.resource.web.server.authentication.ServerBearerTokenAuthenticationConverter;
 import org.springframework.security.web.server.SecurityWebFilterChain;
 import org.springframework.security.web.server.authentication.AuthenticationWebFilter;
-import org.springframework.security.web.server.util.matcher.NegatedServerWebExchangeMatcher;
-import org.springframework.security.web.server.util.matcher.ServerWebExchangeMatcher;
 import org.springframework.security.web.server.util.matcher.ServerWebExchangeMatchers;
+import org.springframework.web.server.ServerWebExchange;
+import reactor.core.publisher.Mono;
 
 import static es.in2.issuer.backend.shared.domain.util.EndpointsConstants.*;
 
@@ -28,12 +29,9 @@ import static es.in2.issuer.backend.shared.domain.util.EndpointsConstants.*;
 public class SecurityConfig {
 
     private final CustomAuthenticationManager customAuthenticationManager;
-    private final ReactiveJwtDecoder internalJwtDecoder;
     private final InternalCORSConfig internalCORSConfig;
-    private final ExternalServicesCORSConfig externalServicesCORSConfig;
     private final PublicCORSConfig publicCORSConfig;
-    private final Oid4vciCORSConfig oid4VciCORSConfig;
-    private final Oidc4vciAuthenticationManager oidc4vciAuthenticationManager;
+    private final ReactiveJwtDecoder internalJwtDecoder;
 
     @Bean
     @Primary
@@ -45,135 +43,87 @@ public class SecurityConfig {
     public AuthenticationWebFilter customAuthenticationWebFilter() {
         AuthenticationWebFilter authenticationWebFilter = new AuthenticationWebFilter(customAuthenticationManager);
         // Set the path for which the filter will be applied
+        log.debug("customAuthenticationWebFilter - inside");
+
         authenticationWebFilter.setRequiresAuthenticationMatcher(
-                ServerWebExchangeMatchers.pathMatchers(VCI_ISSUANCES_PATH)
+                ServerWebExchangeMatchers.pathMatchers(
+                        VCI_ISSUANCES_PATH,
+                        OAUTH_TOKEN_PATH,
+                        OID4VCI_CREDENTIAL_PATH,
+                        OID4VCI_DEFERRED_CREDENTIAL_PATH)
         );
         // Configure the Bearer token authentication converter
-        ServerBearerTokenAuthenticationConverter bearerConverter = new ServerBearerTokenAuthenticationConverter();
+        ServerBearerTokenAuthenticationConverter bearerConverter = new ServerBearerTokenAuthenticationConverter() {
+            @Override
+            public Mono<Authentication> convert(ServerWebExchange exchange) {
+                log.debug("CustomAuthenticationWebFilter triggered -> [{} {}]",
+                        exchange.getRequest().getMethod(),
+                        exchange.getRequest().getPath());
+                return super.convert(exchange);
+            }
+        };
         authenticationWebFilter.setServerAuthenticationConverter(bearerConverter);
-
         return authenticationWebFilter;
     }
 
     @Bean
     @Order(1)
     public SecurityWebFilterChain publicFilterChain(ServerHttpSecurity http) {
+        log.debug("publicFilterChain - inside");
         http
-                .securityMatcher(
-                        ServerWebExchangeMatchers.matchers(
-                                ServerWebExchangeMatchers.pathMatchers(
-                                        HttpMethod.GET,
-                                        SWAGGER_UI_PATH,
-                                        SWAGGER_RESOURCES_PATH,
-                                        SWAGGER_API_DOCS_PATH,
-                                        SWAGGER_SPRING_UI_PATH,
-                                        SWAGGER_WEBJARS_PATH,
-                                        HEALTH_PATH,
-                                        CORS_CREDENTIAL_OFFER_PATH,
-                                        CREDENTIAL_ISSUER_METADATA_WELL_KNOWN_PATH,
-                                        AUTHORIZATION_SERVER_METADATA_WELL_KNOWN_PATH,
-                                        PROMETHEUS_PATH,
-                                        STATUS_CREDENTIALS
-                                ),
-                                ServerWebExchangeMatchers.pathMatchers(
-                                        HttpMethod.POST,
-                                        OAUTH_TOKEN_PATH,
-                                        DEFERRED_CREDENTIALS
-                                )
-                        )
-                )
+                .securityMatcher(ServerWebExchangeMatchers.pathMatchers(
+                        CORS_OID4VCI_PATH,
+                        VCI_PATH,
+                        WELL_KNOWN_PATH,
+                        OAUTH_PATH
+                ))
                 .cors(cors -> cors.configurationSource(publicCORSConfig.publicCorsConfigurationSource()))
-                .authorizeExchange(exchanges -> exchanges
-                        .pathMatchers(
-                                HttpMethod.GET,
-                                SWAGGER_UI_PATH,
-                                SWAGGER_RESOURCES_PATH,
-                                SWAGGER_API_DOCS_PATH,
-                                SWAGGER_SPRING_UI_PATH,
-                                SWAGGER_WEBJARS_PATH,
-                                HEALTH_PATH,
+                .authorizeExchange(exchange -> exchange
+                        .pathMatchers(HttpMethod.GET,
                                 CORS_CREDENTIAL_OFFER_PATH,
                                 CREDENTIAL_ISSUER_METADATA_WELL_KNOWN_PATH,
-                                AUTHORIZATION_SERVER_METADATA_WELL_KNOWN_PATH,
-                                PROMETHEUS_PATH,
-                                STATUS_CREDENTIALS
+                                AUTHORIZATION_SERVER_METADATA_WELL_KNOWN_PATH
                         ).permitAll()
-                        .pathMatchers(
-                                HttpMethod.POST,
-                                OAUTH_TOKEN_PATH,
-                                DEFERRED_CREDENTIALS
-                        ).permitAll()
-                        .anyExchange().authenticated()
-                )
-                .csrf(ServerHttpSecurity.CsrfSpec::disable);
-
-        return http.build();
-    }
-
-    // External filter chain for external endpoints
-    @Bean
-    @Order(2)
-    public SecurityWebFilterChain externalFilterChain(ServerHttpSecurity http) {
-        http
-                .securityMatcher(ServerWebExchangeMatchers.pathMatchers(HttpMethod.POST, VCI_ISSUANCES_PATH))
-                .cors(cors -> cors.configurationSource(externalServicesCORSConfig.externalCorsConfigurationSource()))
-                .authorizeExchange(exchanges -> exchanges
-                        .anyExchange().authenticated()
+                        .pathMatchers(HttpMethod.POST, OAUTH_TOKEN_PATH).permitAll()
+                        .pathMatchers(HttpMethod.POST,
+                                VCI_ISSUANCES_PATH,
+                                OID4VCI_CREDENTIAL_PATH,
+                                OID4VCI_DEFERRED_CREDENTIAL_PATH
+                        ).authenticated()
+                        .anyExchange().denyAll()
                 )
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
                 .addFilterAt(customAuthenticationWebFilter(), SecurityWebFiltersOrder.AUTHENTICATION);
-
+        log.debug("publicFilterChain - build");
         return http.build();
     }
 
     @Bean
-    @Order(3)
-    public SecurityWebFilterChain oid4vciFilterChain(ServerHttpSecurity http) {
+    @Order(2)
+    public SecurityWebFilterChain backofficeFilterChain(ServerHttpSecurity http) {
+        log.debug("backofficeFilterChain - inside");
         http
-                .securityMatcher(ServerWebExchangeMatchers.pathMatchers(CORS_OID4VCI_PATH))
-                .cors(cors -> cors.configurationSource(oid4VciCORSConfig.oid4vciCorsConfigurationSource()))
-                .authorizeExchange(exchanges -> exchanges
-                        .pathMatchers(OAUTH_TOKEN_PATH, OID4VCI_CREDENTIAL_OFFER_PATH).permitAll()
-                        .anyExchange().authenticated()
+                .securityMatcher(ServerWebExchangeMatchers.pathMatchers(
+                        BACKOFFICE_PATH,
+                        ACTUATOR_PATH,
+                        SPRINGDOC_PATH
+                ))
+                .cors(cors -> cors.configurationSource(internalCORSConfig.defaultCorsConfigurationSource()))
+                .authorizeExchange(exchange -> exchange
+                        .pathMatchers(HttpMethod.GET,
+                                ACTUATOR_PATH,
+                                SPRINGDOC_PATH
+                        ).permitAll()
+                        .pathMatchers(HttpMethod.GET, BACKOFFICE_PATH).authenticated()
+                        .pathMatchers(HttpMethod.POST, BACKOFFICE_PATH ).authenticated()
+                        .pathMatchers(HttpMethod.PUT, BACKOFFICE_PATH).authenticated()
+                        .pathMatchers(HttpMethod.DELETE, BACKOFFICE_PATH).authenticated()
+                        .anyExchange().denyAll()
                 )
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
-                .addFilterAt(oid4vciBearerAuthenticationFilter(), SecurityWebFiltersOrder.AUTHENTICATION);
+                .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.jwtDecoder(internalJwtDecoder)));
+        log.debug("backofficeFilterChain - build");
         return http.build();
-    }
-
-    // Internal security configuration for internal endpoints
-    @Bean
-    @Order(4)
-    public SecurityWebFilterChain internalFilterChain(ServerHttpSecurity http) {
-        http
-                .securityMatcher(ServerWebExchangeMatchers.anyExchange())
-                .cors(cors -> internalCORSConfig.defaultCorsConfigurationSource())
-                .authorizeExchange(exchanges -> exchanges
-                        .anyExchange().authenticated()
-                )
-                .csrf(ServerHttpSecurity.CsrfSpec::disable)
-                .oauth2ResourceServer(oauth2ResourceServer ->
-                        oauth2ResourceServer
-                                .jwt(jwtSpec -> jwtSpec
-                                        .jwtDecoder(internalJwtDecoder))
-
-                );
-        return http.build();
-    }
-
-    private AuthenticationWebFilter oid4vciBearerAuthenticationFilter() {
-        AuthenticationWebFilter authenticationWebFilter = new AuthenticationWebFilter(oidc4vciAuthenticationManager);
-
-        // Set the path for which the filter will be applied
-        ServerWebExchangeMatcher excludedPaths = ServerWebExchangeMatchers.pathMatchers(OAUTH_TOKEN_PATH, OID4VCI_CREDENTIAL_OFFER_PATH);
-        authenticationWebFilter.setRequiresAuthenticationMatcher(
-                new NegatedServerWebExchangeMatcher(excludedPaths)
-        );
-        // Configure the Bearer token authentication converter
-        ServerBearerTokenAuthenticationConverter bearerConverter = new ServerBearerTokenAuthenticationConverter();
-        authenticationWebFilter.setServerAuthenticationConverter(bearerConverter);
-
-        return authenticationWebFilter;
     }
 
 }

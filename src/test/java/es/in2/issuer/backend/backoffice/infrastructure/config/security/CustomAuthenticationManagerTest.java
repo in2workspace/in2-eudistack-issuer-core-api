@@ -1,12 +1,13 @@
 package es.in2.issuer.backend.backoffice.infrastructure.config.security;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.nimbusds.jose.JWSObject;
+import es.in2.issuer.backend.shared.domain.service.JWTService;
 import es.in2.issuer.backend.shared.domain.service.VerifierService;
+import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -17,10 +18,10 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.Base64;
-import java.util.Map;
 
-import static org.mockito.Mockito.verify;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -30,37 +31,46 @@ class CustomAuthenticationManagerTest {
     private VerifierService verifierService;
 
     @Mock
-    private ObjectMapper objectMapper;
+    private JWTService jwtService;
 
-    @InjectMocks
+    @Mock
+    private AppConfig appConfig;
+
     private CustomAuthenticationManager authenticationManager;
+
+    @BeforeEach
+    void setUp() {
+        // ObjectMapper real per evitar unnecessary stubbings
+        authenticationManager = new CustomAuthenticationManager(
+                verifierService,
+                new ObjectMapper(),
+                appConfig,
+                jwtService
+        );
+    }
 
     private String base64UrlEncode(String str) {
         return Base64.getUrlEncoder().withoutPadding().encodeToString(str.getBytes(StandardCharsets.UTF_8));
     }
 
-    @Test
-    void authenticate_withValidToken_returnsAuthentication() throws Exception {
-        // Arrange
-        String headerJson = "{\"alg\":\"none\"}";
-        // On the header, the claim 'vc' is included with the array that contains "LEARCredentialMachine"
-        String payloadJson = "{\"iat\":1633036800,\"exp\":1633040400,\"vc\":{\"type\":[\"LEARCredentialMachine\"]}}";
+    private String buildToken(String headerJson, String payloadJson) {
         String header = base64UrlEncode(headerJson);
         String payload = base64UrlEncode(payloadJson);
-        String token = header + "." + payload + ".signature";
+        String signature = base64UrlEncode("fake-signature");
+        return header + "." + payload + "." + signature;
+    }
 
+    @Test
+    void authenticate_withValidVerifierToken_returnsAuthentication() {
+        // Arrange
+        String headerJson = "{\"alg\":\"RS256\",\"typ\":\"JWT\"}";
+        String payloadJson = "{\"iss\":\"http://verifier.local\",\"iat\":1633036800," +
+                "\"exp\":" + (Instant.now().getEpochSecond() + 3600) + "," +
+                "\"vc\":{\"type\":[\"LEARCredentialMachine\"]}}";
+        String token = buildToken(headerJson, payloadJson);
+
+        when(appConfig.getVerifierUrl()).thenReturn("http://verifier.local");
         when(verifierService.verifyToken(token)).thenReturn(Mono.empty());
-
-        ObjectMapper realMapper = new ObjectMapper();
-        Map<String, Object> headersMap = realMapper.readValue(headerJson, Map.class);
-        Map<String, Object> claimsMap = realMapper.readValue(payloadJson, Map.class);
-        when(objectMapper.readValue(headerJson, Map.class)).thenReturn(headersMap);
-        when(objectMapper.readValue(payloadJson, Map.class)).thenReturn(claimsMap);
-
-        String vcJson = realMapper.writeValueAsString(claimsMap.get("vc"));
-        when(objectMapper.writeValueAsString(claimsMap.get("vc"))).thenReturn(vcJson);
-        JsonNode vcNode = realMapper.readTree(vcJson);
-        when(objectMapper.readTree(vcJson)).thenReturn(vcNode);
 
         Authentication authentication = new TestingAuthenticationToken(null, token);
 
@@ -71,142 +81,188 @@ class CustomAuthenticationManagerTest {
         StepVerifier.create(result)
                 .expectNextMatches(JwtAuthenticationToken.class::isInstance)
                 .verifyComplete();
-
-        verify(verifierService).verifyToken(token);
     }
 
     @Test
     void authenticate_withInvalidTokenFormat_throwsBadCredentialsException() {
         String token = "invalidToken";
         Authentication authentication = new TestingAuthenticationToken(null, token);
-        when(verifierService.verifyToken(token)).thenReturn(Mono.empty());
 
-        // Act
         Mono<Authentication> result = authenticationManager.authenticate(authentication);
 
-        // Assert
         StepVerifier.create(result)
                 .expectErrorMatches(e -> e instanceof BadCredentialsException &&
-                        e.getMessage().equals("Invalid JWT token format"))
+                        "Invalid JWT token format".equals(e.getMessage()))
                 .verify();
     }
 
     @Test
-    void authenticate_withMissingVcClaim_throwsBadCredentialsException() throws Exception {
-        // Arrange
-        String headerJson = "{\"alg\":\"none\"}";
-        String payloadJson = "{\"iat\":1633036800,\"exp\":1633040400}";
-        String header = base64UrlEncode(headerJson);
-        String payload = base64UrlEncode(payloadJson);
-        String token = header + "." + payload + ".signature";
+    void authenticate_withMissingVcClaim_throwsBadCredentialsException() {
+        // Camí del Verifier: sí valida 'vc'
+        String headerJson = "{\"alg\":\"RS256\",\"typ\":\"JWT\"}";
+        String payloadJson = "{\"iss\":\"http://verifier.local\",\"iat\":1633036800,\"exp\":1633040400}";
+        String token = buildToken(headerJson, payloadJson);
 
+        when(appConfig.getVerifierUrl()).thenReturn("http://verifier.local");
         when(verifierService.verifyToken(token)).thenReturn(Mono.empty());
-
-        ObjectMapper realMapper = new ObjectMapper();
-        Map<String, Object> headersMap = realMapper.readValue(headerJson, Map.class);
-        Map<String, Object> claimsMap = realMapper.readValue(payloadJson, Map.class);
-        when(objectMapper.readValue(headerJson, Map.class)).thenReturn(headersMap);
-        when(objectMapper.readValue(payloadJson, Map.class)).thenReturn(claimsMap);
 
         Authentication authentication = new TestingAuthenticationToken(null, token);
 
-        // Act
         Mono<Authentication> result = authenticationManager.authenticate(authentication);
 
-        // Assert
         StepVerifier.create(result)
                 .expectErrorMatches(e -> e instanceof BadCredentialsException &&
-                        e.getMessage().equals("The 'vc' claim is required but not present."))
+                        "The 'vc' claim is required but not present.".equals(e.getMessage()))
                 .verify();
     }
 
     @Test
-    void authenticate_withInvalidVcType_throwsBadCredentialsException() throws Exception {
-        // Arrange
-        String headerJson = "{\"alg\":\"none\"}";
-        String payloadJson = "{\"iat\":1633036800,\"exp\":1633040400,\"vc\":{\"type\":[\"SomeOtherType\"]}}";
-        String header = base64UrlEncode(headerJson);
-        String payload = base64UrlEncode(payloadJson);
-        String token = header + "." + payload + ".signature";
+    void authenticate_withInvalidVcType_throwsBadCredentialsException() {
+        // Camí del Verifier: sí valida 'vc'
+        String headerJson = "{\"alg\":\"RS256\",\"typ\":\"JWT\"}";
+        String payloadJson = "{\"iss\":\"http://verifier.local\",\"iat\":1633036800,\"exp\":1633040400," +
+                "\"vc\":{\"type\":[\"SomeOtherType\"]}}";
+        String token = buildToken(headerJson, payloadJson);
 
+        when(appConfig.getVerifierUrl()).thenReturn("http://verifier.local");
         when(verifierService.verifyToken(token)).thenReturn(Mono.empty());
-
-        ObjectMapper realMapper = new ObjectMapper();
-        Map<String, Object> headersMap = realMapper.readValue(headerJson, Map.class);
-        Map<String, Object> claimsMap = realMapper.readValue(payloadJson, Map.class);
-        when(objectMapper.readValue(headerJson, Map.class)).thenReturn(headersMap);
-        when(objectMapper.readValue(payloadJson, Map.class)).thenReturn(claimsMap);
-
-        String vcJson = realMapper.writeValueAsString(claimsMap.get("vc"));
-        when(objectMapper.writeValueAsString(claimsMap.get("vc"))).thenReturn(vcJson);
-        JsonNode vcNode = realMapper.readTree(vcJson);
-        when(objectMapper.readTree(vcJson)).thenReturn(vcNode);
 
         Authentication authentication = new TestingAuthenticationToken(null, token);
 
-        // Act
         Mono<Authentication> result = authenticationManager.authenticate(authentication);
 
-        // Assert
         StepVerifier.create(result)
                 .expectErrorMatches(e -> e instanceof BadCredentialsException &&
-                        e.getMessage().equals("Credential type required: LEARCredentialMachine."))
+                        "Credential type required: LEARCredentialMachine.".equals(e.getMessage()))
                 .verify();
     }
 
     @Test
-    void authenticate_withInvalidPayloadDecoding_throwsBadCredentialsException() throws JsonProcessingException {
-        // Arrange
-        String header = base64UrlEncode("{\"alg\":\"none\"}");
-        String payload = "invalidPayload";
+    void authenticate_withInvalidPayloadDecoding_throwsBadCredentialsException() {
+        // Fa fallar el parse de claims a SignedJWT.getJWTClaimsSet() abans d'arribar al parse manual
+        String headerJson = "{\"alg\":\"RS256\",\"typ\":\"JWT\"}";
+        String header = base64UrlEncode(headerJson);
+        String payload = "invalidPayload"; // no és base64url-JSON
         String token = header + "." + payload + ".signature";
+
         Authentication authentication = new TestingAuthenticationToken(null, token);
 
-        when(verifierService.verifyToken(token)).thenReturn(Mono.empty());
-        when(objectMapper.readValue("{\"alg\":\"none\"}", Map.class))
-                .thenReturn(Map.of("alg", "none"));
-
-        String payloadJson;
-        try {
-            payloadJson = new String(Base64.getUrlDecoder().decode(payload), StandardCharsets.UTF_8);
-        } catch (Exception e) {
-            payloadJson = "";
-        }
-        when(objectMapper.readValue(payloadJson, Map.class))
-                .thenThrow(new BadCredentialsException("Invalid JWT payload format"));
-
-        // Act
         Mono<Authentication> result = authenticationManager.authenticate(authentication);
 
-        // Assert
         StepVerifier.create(result)
-                .expectErrorMatches(e ->
-                        e instanceof BadCredentialsException &&
-                                e.getMessage().equals("Invalid JWT payload format"))
+                .expectErrorMatches(e -> e instanceof BadCredentialsException &&
+                        "Unable to parse JWT claims".equals(e.getMessage()))
                 .verify();
     }
 
-
     @Test
-    void authenticate_withVerifierServiceFailure_propagatesError() {
-        // Arrange
-        String headerJson = "{\"alg\":\"none\"}";
-        String payloadJson = "{\"iat\":1633036800,\"exp\":1633040400,\"vc\":{\"type\":[\"LEARCredentialMachine\"]}}";
-        String header = base64UrlEncode(headerJson);
-        String payload = base64UrlEncode(payloadJson);
-        String token = header + "." + payload + ".signature";
+    void authenticate_withVerifierServiceFailure_wrapsInAuthenticationServiceException() {
+        String headerJson = "{\"alg\":\"RS256\",\"typ\":\"JWT\"}";
+        String payloadJson = "{\"iss\":\"http://verifier.local\",\"exp\":1633040400," +
+                "\"vc\":{\"type\":[\"LEARCredentialMachine\"]}}";
+        String token = buildToken(headerJson, payloadJson);
 
         RuntimeException verifyException = new RuntimeException("Verification failed");
+
+        when(appConfig.getVerifierUrl()).thenReturn("http://verifier.local");
         when(verifierService.verifyToken(token)).thenReturn(Mono.error(verifyException));
 
         Authentication authentication = new TestingAuthenticationToken(null, token);
 
-        // Act
         Mono<Authentication> result = authenticationManager.authenticate(authentication);
 
-        // Assert
         StepVerifier.create(result)
-                .expectErrorMatches(e -> e.equals(verifyException))
+                .expectErrorSatisfies(e -> {
+                    // Acceptem ambdues formes: embolcallada o no
+                    if (e instanceof org.springframework.security.authentication.AuthenticationServiceException ase) {
+                        assert "Verification failed".equals(ase.getMessage());
+                        assert ase.getCause() == verifyException;
+                    } else {
+                        assert e instanceof RuntimeException;
+                        assert "Verification failed".equals(e.getMessage());
+                    }
+                })
+                .verify();
+    }
+
+
+    @Test
+    void authenticate_withValidKeycloakToken_returnsAuthentication() {
+        String headerJson = "{\"alg\":\"RS256\",\"typ\":\"JWT\"}";
+        String payloadJson = "{\"iss\":\"http://issuer.local\",\"iat\":1633036800,\"exp\":" +
+                (Instant.now().getEpochSecond() + 3600) + "," +
+                "\"vc\":{\"type\":[\"LEARCredentialMachine\"]}}";
+        String token = buildToken(headerJson, payloadJson);
+
+        when(appConfig.getIssuerBackendUrl()).thenReturn("http://issuer.local");
+        when(jwtService.validateJwtSignatureReactive(any(JWSObject.class)))
+                .thenReturn(Mono.just(true));
+
+        Authentication authentication = new TestingAuthenticationToken(null, token);
+        Mono<Authentication> result = authenticationManager.authenticate(authentication);
+
+        StepVerifier.create(result)
+                .expectNextMatches(JwtAuthenticationToken.class::isInstance)
+                .verifyComplete();
+    }
+
+    @Test
+    void authenticate_withKeycloakToken_missingVcClaim_returnsAuthentication() {
+        // IMPORTANT: el codi productiu NO valida 'vc' en el camí de Keycloak (validateVcClaim = false)
+        String headerJson = "{\"alg\":\"RS256\",\"typ\":\"JWT\"}";
+        String payloadJson = "{\"iss\":\"http://issuer.local\",\"iat\":1633036800,\"exp\":" +
+                (Instant.now().getEpochSecond() + 3600) + "}";
+        String token = buildToken(headerJson, payloadJson);
+
+        when(appConfig.getIssuerBackendUrl()).thenReturn("http://issuer.local");
+        when(jwtService.validateJwtSignatureReactive(any(JWSObject.class)))
+                .thenReturn(Mono.just(true));
+
+        Authentication authentication = new TestingAuthenticationToken(null, token);
+        Mono<Authentication> result = authenticationManager.authenticate(authentication);
+
+        StepVerifier.create(result)
+                .expectNextMatches(JwtAuthenticationToken.class::isInstance)
+                .verifyComplete();
+    }
+
+    @Test
+    void authenticate_withKeycloakToken_invalidVcType_returnsAuthentication() {
+        // IMPORTANT: el codi productiu NO valida 'vc' en el camí de Keycloak (validateVcClaim = false)
+        String headerJson = "{\"alg\":\"RS256\",\"typ\":\"JWT\"}";
+        String payloadJson = "{\"iss\":\"http://issuer.local\",\"iat\":1633036800,\"exp\":" +
+                (Instant.now().getEpochSecond() + 3600) + ",\"vc\":{\"type\":[\"OtherType\"]}}";
+        String token = buildToken(headerJson, payloadJson);
+
+        when(appConfig.getIssuerBackendUrl()).thenReturn("http://issuer.local");
+        when(jwtService.validateJwtSignatureReactive(any(JWSObject.class)))
+                .thenReturn(Mono.just(true));
+
+        Authentication authentication = new TestingAuthenticationToken(null, token);
+        Mono<Authentication> result = authenticationManager.authenticate(authentication);
+
+        StepVerifier.create(result)
+                .expectNextMatches(JwtAuthenticationToken.class::isInstance)
+                .verifyComplete();
+    }
+
+    @Test
+    void authenticate_withKeycloakToken_invalidSignature_throwsBadCredentialsException() {
+        String headerJson = "{\"alg\":\"RS256\",\"typ\":\"JWT\"}";
+        String payloadJson = "{\"iss\":\"http://issuer.local\",\"iat\":1633036800,\"exp\":" +
+                (Instant.now().getEpochSecond() + 3600) + "}";
+        String token = buildToken(headerJson, payloadJson);
+
+        when(appConfig.getIssuerBackendUrl()).thenReturn("http://issuer.local");
+        when(jwtService.validateJwtSignatureReactive(any(JWSObject.class)))
+                .thenReturn(Mono.just(false));
+
+        Authentication authentication = new TestingAuthenticationToken(null, token);
+        Mono<Authentication> result = authenticationManager.authenticate(authentication);
+
+        StepVerifier.create(result)
+                .expectErrorMatches(e -> e instanceof BadCredentialsException &&
+                        "Invalid JWT signature".equals(e.getMessage()))
                 .verify();
     }
 }

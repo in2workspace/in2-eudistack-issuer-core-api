@@ -62,6 +62,7 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
                 try{
                     String credentialType = credentialProcedure.getCredentialType();
                     log.info("Building JWT payload for credential signing for credential with type: {}", credentialType);
+                    log.debug("test: {}", credentialProcedure);
                     return switch (credentialType) {
                         case LABEL_CREDENTIAL_TYPE -> {
                             LabelCredential labelCredential = labelCredentialFactory
@@ -190,27 +191,28 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
         log.info("Retrying to sign credential...");
         return credentialProcedureRepository.findByProcedureId(UUID.fromString(procedureId))
                 .switchIfEmpty(Mono.error(new RuntimeException("Procedure not found")))
-                .flatMap(credentialProcedure -> switch (credentialProcedure.getCredentialType()) {
-                    case LABEL_CREDENTIAL_TYPE ->
-                            issuerFactory.createSimpleIssuer(procedureId, LABEL_CREDENTIAL)
-                                    .flatMap(issuer -> labelCredentialFactory.mapIssuer(procedureId, issuer))
-                                    .flatMap(bindCredential -> {
-                                        log.info("ProcessID: {} - Credential mapped and bind to the issuer: {}", procedureId, bindCredential);
-                                        return credentialProcedureService.updateDecodedCredentialByProcedureId(procedureId, bindCredential, JWT_VC);
-                                    });
+                .flatMap(credentialProcedure ->
+                    switch (credentialProcedure.getCredentialType()) {
+                        case LABEL_CREDENTIAL_TYPE ->
+                                issuerFactory.createSimpleIssuer(procedureId, LABEL_CREDENTIAL)
+                                        .flatMap(issuer -> labelCredentialFactory.mapIssuer(procedureId, issuer))
+                                        .flatMap(bindCredential -> {
+                                            log.info("ProcessID: {} - Credential mapped and bind to the issuer: {}", procedureId, bindCredential);
+                                            return credentialProcedureService.updateDecodedCredentialByProcedureId(procedureId, bindCredential, JWT_VC);
+                                        });
 
-                    case LEAR_CREDENTIAL_EMPLOYEE_CREDENTIAL_TYPE ->
-                            learCredentialEmployeeFactory.mapCredentialAndBindIssuerInToTheCredential(credentialProcedure.getCredentialDecoded(), procedureId)
-                                    .flatMap(bindCredential -> {
-                                        log.info("ProcessID: {} - Credential mapped and bind to the issuer: {}", procedureId, bindCredential);
-                                        return credentialProcedureService.updateDecodedCredentialByProcedureId(procedureId, bindCredential, JWT_VC);
-                                    });
+                        case LEAR_CREDENTIAL_EMPLOYEE_CREDENTIAL_TYPE ->
+                                learCredentialEmployeeFactory.mapCredentialAndBindIssuerInToTheCredential(credentialProcedure.getCredentialDecoded(), procedureId)
+                                        .flatMap(bindCredential -> {
+                                            log.info("ProcessID: {} - Credential mapped and bind to the issuer: {}", procedureId, bindCredential);
+                                            return credentialProcedureService.updateDecodedCredentialByProcedureId(procedureId, bindCredential, JWT_VC);
+                                        });
 
-                    default -> {
-                        log.error("Unknown credential type: {}", credentialProcedure.getCredentialType());
-                        yield Mono.error(new IllegalArgumentException("Unsupported credential type: " + credentialProcedure.getCredentialType()));
-                    }
-                })
+                        default -> {
+                            log.error("Unknown credential type: {}", credentialProcedure.getCredentialType());
+                            yield Mono.error(new IllegalArgumentException("Unsupported credential type: " + credentialProcedure.getCredentialType()));
+                        }
+                    })
                 .then(this.signAndUpdateCredentialByProcedureId(authorizationHeader, procedureId, JWT_VC))
                 .flatMap(signedVc ->
                         credentialProcedureService.updateCredentialProcedureCredentialStatusToValidByProcedureId(procedureId)

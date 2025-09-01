@@ -7,37 +7,46 @@ public class EndpointsConstants {
     }
 
     // Management Endpoints
-    public static final String SWAGGER_UI_PATH = "/swagger-ui/**";
-    public static final String SWAGGER_RESOURCES_PATH = "/swagger-resources/**";
-    public static final String SWAGGER_API_DOCS_PATH = "/api-docs/**";
-    public static final String SWAGGER_SPRING_UI_PATH = "/spring-ui/**";
-    public static final String SWAGGER_WEBJARS_PATH = "/webjars/swagger-ui/**";
-    public static final String HEALTH_PATH = "/health";
-    public static final String PROMETHEUS_PATH = "/prometheus";
+    public static final String ACTUATOR_BASE_PATH =  "/actuator";
+    public static final String ACTUATOR_PATH =  ACTUATOR_BASE_PATH+"/**";
+    public static final String SPRINGDOC_BASE_PATH = "/springdoc";
+    public static final String SPRINGDOC_PATH = SPRINGDOC_BASE_PATH+"/**";
+    public static final String BACKOFFICE_BASE_PATH = "/backoffice/v1";
+    public static final String OID4VCI_BASE_PATH = "/oid4vci/v1";
+    public static final String WELL_KNOWN_BASE_PATH ="/.well-known";
+    public static final String VCI_BASE_PATH = "/vci/v1";
 
     // VCI API Endpoints
-    public static final String VCI_ISSUANCES_PATH = "/vci/v1/issuances";
+    public static final String VCI_PATH = VCI_BASE_PATH+"/**";
+    public static final String VCI_ISSUANCES_PATH = VCI_BASE_PATH+"/issuances";
 
     // OIDC4VCI Endpoints
-    public static final String OID4VCI_CREDENTIAL_OFFER_PATH = "/oid4vci/v1/credential-offer";
-    public static final String OID4VCI_CREDENTIAL_PATH = "/oid4vci/v1/credential";
-    public static final String OID4VCI_DEFERRED_CREDENTIAL_PATH = "/oid4vci/v1/deferred-credential";
+    public static final String CORS_OID4VCI_PATH = "/oid4vci/**";
+    public static final String OID4VCI_CREDENTIAL_OFFER_PATH = OID4VCI_BASE_PATH + "/credential-offer";
+    public static final String OID4VCI_CREDENTIAL_PATH = OID4VCI_BASE_PATH + "/credential";
+    public static final String OID4VCI_DEFERRED_CREDENTIAL_PATH = OID4VCI_BASE_PATH + "/deferred-credential";
+
+    public static final String CORS_CREDENTIAL_OFFER_PATH = OID4VCI_BASE_PATH + "/credential-offer/**";
 
     // Well-Known Endpoints
-    public static final String CREDENTIAL_ISSUER_METADATA_WELL_KNOWN_PATH = "/.well-known/openid-credential-issuer";
-    public static final String AUTHORIZATION_SERVER_METADATA_WELL_KNOWN_PATH = "/.well-known/openid-configuration";
+    public static final String WELL_KNOWN_PATH = WELL_KNOWN_BASE_PATH + "/**";
+    public static final String CREDENTIAL_ISSUER_METADATA_WELL_KNOWN_PATH = WELL_KNOWN_BASE_PATH + "/openid-credential-issuer";
+    public static final String AUTHORIZATION_SERVER_METADATA_WELL_KNOWN_PATH = WELL_KNOWN_BASE_PATH + "/openid-configuration";
 
-    // OIDC Endpoints
+    // oauth Endpoints
+    public static final String OAUTH_PATH ="/oauth/**";
     public static final String OAUTH_TOKEN_PATH = "/oauth/token";
 
-    // CORS Configuration
-    public static final String CORS_OID4VCI_PATH = "/oid4vci/**";
-    public static final String CORS_CREDENTIAL_OFFER_PATH = "/oid4vci/v1/credential-offer/**";
-    public static final String STATUS_CREDENTIALS = "/backoffice/v1/credentials/status/**";
+    //backoffice Endpoints
+    public static final String BACKOFFICE_PATH = "/backoffice/**";
+    public static final String BACKOFFICE_STATUS_CREDENTIALS = BACKOFFICE_BASE_PATH+"/credentials/status/**";
+    public static final String BACKOFFICE_RETRY_SIGN_CREDENTIALS = BACKOFFICE_BASE_PATH+"/retry-sign-credential/{id}";
+    public static final String BACKOFFICE_DEFERRED_CREDENTIALS = BACKOFFICE_BASE_PATH + "/deferred-credentials";
+    public static final String BACKOFFICE_ISSUANCE = BACKOFFICE_BASE_PATH+"/issuances";
 
     // todo: remove these constants if not needed
     public static final String TRUST_FRAMEWORK_ISSUER = "/issuer";
-    public static final String DEFERRED_CREDENTIALS = "/api/v1/deferred-credentials";
+
 
 
 }

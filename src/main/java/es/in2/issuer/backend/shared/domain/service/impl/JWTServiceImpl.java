@@ -88,7 +88,9 @@ public class JWTServiceImpl implements JWTService {
     @Override
     public Mono<Boolean> validateJwtSignatureReactive(JWSObject jwsObject) {
         String kid = jwsObject.getHeader().getKeyID();
+        log.debug("validateJwtSignatureReactive - kid: {}", kid);
         String encodedPublicKey = extractEncodedPublicKey(kid);
+        log.debug("validateJwtSignatureReactive - encodedPublicKey: {}", encodedPublicKey);
         return decodePublicKeyIntoBytes(encodedPublicKey)
                 .flatMap(publicKeyBytes -> validateJwtSignature(jwsObject.getParsedString(), publicKeyBytes));
     }
@@ -103,7 +105,8 @@ public class JWTServiceImpl implements JWTService {
         } else if (kid.contains(prefix)) {
             encodedPublicKey = kid.substring(kid.indexOf(prefix) + prefix.length());
         } else {
-            throw new IllegalArgumentException("Formato de 'kid' no válido");
+            log.error("❌ 'kid' format not correct");
+            throw new IllegalArgumentException("'kid' format not correct");
         }
 
         return encodedPublicKey;
@@ -113,6 +116,7 @@ public class JWTServiceImpl implements JWTService {
     private Mono<Boolean> validateJwtSignature(String jwtString, byte[] publicKeyBytes) {
         return Mono.fromCallable(() -> {
             try {
+                log.debug("validateJwtSignature");
                 // Set the curve as secp256r1
                 ECCurve curve = new SecP256R1Curve();
                 BigInteger x = new BigInteger(1, Arrays.copyOfRange(publicKeyBytes, 1, publicKeyBytes.length));
@@ -170,8 +174,8 @@ public class JWTServiceImpl implements JWTService {
         try {
             return SignedJWT.parse(jwt);
         } catch (ParseException e) {
-            log.error("Error al parsear el JWTs: {}", e.getMessage());
-            throw new JWTParsingException("Error al parsear el JWTs");
+            log.error("Error when parsing JWTs: {}", e.getMessage());
+            throw new JWTParsingException("Error when parsing JWTs");
         }
     }
 
