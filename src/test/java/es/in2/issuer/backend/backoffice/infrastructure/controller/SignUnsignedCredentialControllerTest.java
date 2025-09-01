@@ -1,6 +1,5 @@
 package es.in2.issuer.backend.backoffice.infrastructure.controller;
 
-import es.in2.issuer.backend.backoffice.infrastructure.controller.SignUnsignedCredentialController;
 import es.in2.issuer.backend.shared.application.workflow.CredentialSignerWorkflow;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -10,6 +9,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpHeaders;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.core.publisher.Mono;
+
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -28,33 +29,43 @@ class SignUnsignedCredentialControllerTest {
 
     @Test
     void testSignUnsignedCredential_Success() {
+        // given
         String authorizationHeader = "Bearer token";
         String procedureId = "d290f1ee-6c54-4b01-90e6-d701748f0851";
 
-        when(credentialSignerWorkflow.retrySignUnsignedCredential(authorizationHeader, procedureId))
+        when(credentialSignerWorkflow.retrySignUnsignedCredential(eq(authorizationHeader), eq(procedureId)))
                 .thenReturn(Mono.empty());
 
+        // when + then
         webTestClient.post()
-                .uri("/api/v1/retry-sign-credential/" + procedureId)
+                .uri("/backoffice/v1/retry-sign-credential/" + procedureId) // <-- ruta correcta
                 .header(HttpHeaders.AUTHORIZATION, authorizationHeader)
                 .exchange()
-                .expectStatus().isCreated();
+                .expectStatus().isCreated(); // 201 segons @ResponseStatus(HttpStatus.CREATED)
 
-        verify(credentialSignerWorkflow).retrySignUnsignedCredential(authorizationHeader, procedureId);
+        verify(credentialSignerWorkflow, times(1))
+                .retrySignUnsignedCredential(eq(authorizationHeader), eq(procedureId));
+        verifyNoMoreInteractions(credentialSignerWorkflow);
     }
 
     @Test
     void testSignUnsignedCredential_ErrorFromWorkflow() {
+        // given
         String authorizationHeader = "Bearer token";
         String procedureId = "d290f1ee-6c54-4b01-90e6-d701748f0851";
 
-        when(credentialSignerWorkflow.retrySignUnsignedCredential(authorizationHeader, procedureId))
+        when(credentialSignerWorkflow.retrySignUnsignedCredential(eq(authorizationHeader), eq(procedureId)))
                 .thenReturn(Mono.error(new RuntimeException("Simulated error")));
 
+        // when + then
         webTestClient.post()
-                .uri("/api/v1/retry-sign-credential/" + procedureId)
+                .uri("/backoffice/v1/retry-sign-credential/" + procedureId) // <-- ruta correcta
                 .header(HttpHeaders.AUTHORIZATION, authorizationHeader)
                 .exchange()
                 .expectStatus().is5xxServerError();
+
+        verify(credentialSignerWorkflow, times(1))
+                .retrySignUnsignedCredential(eq(authorizationHeader), eq(procedureId));
+        verifyNoMoreInteractions(credentialSignerWorkflow);
     }
 }

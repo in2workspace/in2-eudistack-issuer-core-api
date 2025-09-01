@@ -25,6 +25,8 @@ public class GlobalExceptionHandler {
 
     private final ErrorResponseFactory errors;
 
+    //todo add handler for RemoteSignatureException
+
     @ExceptionHandler(CredentialTypeUnsupportedException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public Mono<GlobalErrorMessage> handleCredentialTypeUnsupported(
