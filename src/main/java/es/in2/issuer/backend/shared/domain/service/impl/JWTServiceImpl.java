@@ -174,7 +174,7 @@ public class JWTServiceImpl implements JWTService {
         try {
             return SignedJWT.parse(jwt);
         } catch (ParseException e) {
-            log.error("Error al parsear el JWTs: {}", e.getMessage());
+            log.error("Error when parsing JWTs: {}", e.getMessage());
             throw new JWTParsingException("Error on parse el JWTs");
         }
     }
