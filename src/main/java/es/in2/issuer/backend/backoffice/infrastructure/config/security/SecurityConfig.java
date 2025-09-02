@@ -130,6 +130,7 @@ public class SecurityConfig {
                                 ACTUATOR_PATH,
                                 SPRINGDOC_PATH
                         ).permitAll()
+                        .pathMatchers(HttpMethod.GET, BACKOFFICE_STATUS_CREDENTIALS).permitAll()
                         .pathMatchers(HttpMethod.GET, BACKOFFICE_PATH).authenticated()
                         .pathMatchers(HttpMethod.POST, BACKOFFICE_PATH ).authenticated()
                         .pathMatchers(HttpMethod.PUT, BACKOFFICE_PATH).authenticated()
