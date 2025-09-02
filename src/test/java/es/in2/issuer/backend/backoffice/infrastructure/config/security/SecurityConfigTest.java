@@ -49,8 +49,8 @@ class SecurityConfigTest {
     void customAuthenticationWebFilter_shouldCreateFilterWithBearerConverter() {
         AuthenticationWebFilter filter = securityConfig.customAuthenticationWebFilter(entryPoint);
         assertNotNull(filter);
-        // We can’t easily inspect the internal matcher/converter, but the mere fact of constructing it
-        // without exceptions validates that the manager and the failure handler have been wired up.
+        // No podem inspeccionar fàcilment el matcher/converter interns, però el simple fet de construir-lo
+        // sense excepcions valida que s’ha cablejat el manager i el failure handler.
     }
 
     @Test
@@ -58,6 +58,7 @@ class SecurityConfigTest {
         // Given
         when(publicCORSConfig.publicCorsConfigurationSource()).thenReturn(minimalCorsSource());
 
+        // ServerHttpSecurity factory estàtica per WebFlux
         ServerHttpSecurity http = ServerHttpSecurity.http();
 
         // When
@@ -66,6 +67,8 @@ class SecurityConfigTest {
         // Then
         assertNotNull(chain);
         verify(publicCORSConfig, times(1)).publicCorsConfigurationSource();
+        // S’afegeix també el customAuthenticationWebFilter com a filtre d’auth
+        // i s’estableixen entryPoint/deniedHandler a exceptionHandling sense excepcions.
     }
 
     @Test
@@ -81,6 +84,7 @@ class SecurityConfigTest {
         // Then
         assertNotNull(chain);
         verify(internalCORSConfig, times(1)).defaultCorsConfigurationSource();
+        // El jwtDecoder s’injecta al config del resource server; si hi hagués cap problema, petaria al build().
     }
 
     private UrlBasedCorsConfigurationSource minimalCorsSource() {

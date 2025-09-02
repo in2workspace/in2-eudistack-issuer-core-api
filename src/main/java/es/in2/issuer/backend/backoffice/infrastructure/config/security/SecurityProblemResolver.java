@@ -9,15 +9,13 @@ import org.springframework.stereotype.Component;
 
 import java.util.Map;
 
-import static es.in2.issuer.backend.backoffice.domain.util.Constants.AUTHENTICATION_FAILED;
-
 @Slf4j
 @Component
 public class SecurityProblemResolver {
 
     private static final ProblemSpec DEFAULT_AUTH_SPEC =
             new ProblemSpec(SecurityErrorTypes.DEFAULT_AUTH.getCode(), "Unauthorized",
-                    HttpStatus.UNAUTHORIZED, AUTHENTICATION_FAILED);
+                    HttpStatus.UNAUTHORIZED, "Authentication failed");
 
     private static final ProblemSpec DEFAULT_ACCESS_SPEC =
             new ProblemSpec(SecurityErrorTypes.DEFAULT_ACCESS.getCode(), "Forbidden",
@@ -31,7 +29,7 @@ public class SecurityProblemResolver {
 
             Map.entry(AuthenticationServiceException.class,
                     new ProblemSpec(SecurityErrorTypes.DEFAULT_AUTH.getCode(),
-                            "Authentication service error", HttpStatus.UNAUTHORIZED, AUTHENTICATION_FAILED)),
+                            "Authentication service error", HttpStatus.UNAUTHORIZED, "Authentication failed")),
 
             Map.entry(InsufficientAuthenticationException.class,
                     new ProblemSpec(SecurityErrorTypes.DEFAULT_AUTH.getCode(),
@@ -39,20 +37,20 @@ public class SecurityProblemResolver {
 
             Map.entry(UsernameNotFoundException.class,
                     new ProblemSpec(SecurityErrorTypes.DEFAULT_AUTH.getCode(),
-                            "User not found", HttpStatus.UNAUTHORIZED, AUTHENTICATION_FAILED)),
+                            "User not found", HttpStatus.UNAUTHORIZED, "Authentication failed")),
 
             Map.entry(DisabledException.class,
                     new ProblemSpec(SecurityErrorTypes.DEFAULT_AUTH.getCode(),
-                            "User disabled", HttpStatus.UNAUTHORIZED, AUTHENTICATION_FAILED)),
+                            "User disabled", HttpStatus.UNAUTHORIZED, "Authentication failed")),
             Map.entry(LockedException.class,
                     new ProblemSpec(SecurityErrorTypes.DEFAULT_AUTH.getCode(),
-                            "User locked", HttpStatus.UNAUTHORIZED, AUTHENTICATION_FAILED)),
+                            "User locked", HttpStatus.UNAUTHORIZED, "Authentication failed")),
             Map.entry(AccountExpiredException.class,
                     new ProblemSpec(SecurityErrorTypes.DEFAULT_AUTH.getCode(),
-                            "Account expired", HttpStatus.UNAUTHORIZED, AUTHENTICATION_FAILED)),
+                            "Account expired", HttpStatus.UNAUTHORIZED, "Authentication failed")),
             Map.entry(CredentialsExpiredException.class,
                     new ProblemSpec(SecurityErrorTypes.DEFAULT_AUTH.getCode(),
-                            "Credentials expired", HttpStatus.UNAUTHORIZED, AUTHENTICATION_FAILED)),
+                            "Credentials expired", HttpStatus.UNAUTHORIZED, "Authentication failed")),
             // 403
             Map.entry(AccessDeniedException.class,
                     new ProblemSpec(SecurityErrorTypes.DEFAULT_ACCESS.getCode(),
