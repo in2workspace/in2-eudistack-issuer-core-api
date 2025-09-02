@@ -17,7 +17,7 @@ public class SecurityProblemResolver {
 
     private static final ProblemSpec DEFAULT_AUTH_SPEC =
             new ProblemSpec(SecurityErrorTypes.DEFAULT_AUTH.getCode(), "Unauthorized",
-                    HttpStatus.UNTHORIZED, AUTHENTICATION_FAILED);
+                    HttpStatus.UNAUTHORIZED, AUTHENTICATION_FAILED);
 
     private static final ProblemSpec DEFAULT_ACCESS_SPEC =
             new ProblemSpec(SecurityErrorTypes.DEFAULT_ACCESS.getCode(), "Forbidden",
