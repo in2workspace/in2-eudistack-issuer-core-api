@@ -63,8 +63,6 @@ public class VerifierServiceImpl implements VerifierService {
     }
 
     private Mono<Void> parseAndValidateJwt(String accessToken, boolean checkExpiration) {
-        log.info("parseAndValidateJWT");
-        log.info(accessToken);
         return getWellKnownInfo()
                 .flatMap(metadata -> fetchJWKSet(metadata.jwksUri()))
                 .flatMap(jwkSet -> {

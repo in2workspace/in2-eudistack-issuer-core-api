@@ -70,8 +70,7 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
                         return Mono.just(issuer);
 
                     } catch (ParseException e) {
-                        // aquest sí que passarà pel onErrorMap de sota
-                        return Mono.error(e);
+                       return Mono.error(e);
                     }
                 })
                 .onErrorMap(ParseException.class, e -> {
