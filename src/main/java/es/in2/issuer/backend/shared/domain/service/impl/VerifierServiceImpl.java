@@ -8,6 +8,7 @@ import com.nimbusds.jose.crypto.RSASSAVerifier;
 import com.nimbusds.jose.jwk.*;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
+import es.in2.issuer.backend.shared.domain.exception.JWTParsingException;
 import es.in2.issuer.backend.shared.domain.exception.JWTVerificationException;
 import es.in2.issuer.backend.shared.domain.exception.TokenFetchException;
 import es.in2.issuer.backend.shared.domain.exception.WellKnownInfoFetchException;
@@ -62,15 +63,20 @@ public class VerifierServiceImpl implements VerifierService {
     }
 
     private Mono<Void> parseAndValidateJwt(String accessToken, boolean checkExpiration) {
+        log.info("parseAndValidateJWT");
+        log.info(accessToken);
         return getWellKnownInfo()
                 .flatMap(metadata -> fetchJWKSet(metadata.jwksUri()))
                 .flatMap(jwkSet -> {
                     try {
+                        //todo usar jwtservice.parseJWT?
                         SignedJWT signedJWT = SignedJWT.parse(accessToken);
                         JWTClaimsSet claims = signedJWT.getJWTClaimsSet();
 
                         // Validate the issuer
                         if (!appConfig.getVerifierUrl().equals(claims.getIssuer())) {
+                            log.info(appConfig.getVerifierUrl());
+                            log.info(claims.getIssuer());
                             return Mono.error(new JWTVerificationException("Invalid issuer"));
                         }
 
@@ -88,7 +94,7 @@ public class VerifierServiceImpl implements VerifierService {
                         return Mono.empty(); // Valid token
                     } catch (ParseException | JOSEException e) {
                         log.error("Error parsing or verifying JWT", e);
-                        return Mono.error(new JWTVerificationException("Error parsing or verifying JWT"));
+                        return Mono.error(new JWTParsingException("Error parsing or verifying JWT (custom nou ParseAuthenticationException)"));
                     }
                 });
     }

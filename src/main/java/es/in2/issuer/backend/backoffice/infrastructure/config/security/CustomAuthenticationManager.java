@@ -10,9 +10,11 @@ import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.ReactiveAuthenticationManager;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import reactor.core.publisher.Mono;
@@ -83,7 +85,9 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
                         log.debug("❌ Token from unknown issuer");
                         return Mono.error(new BadCredentialsException("Unknown token issuer: " + issuer));
                     }
-                });
+                })
+                .onErrorMap(e -> (e instanceof AuthenticationException) ? e
+                        : new AuthenticationServiceException(e.getMessage(), e));
     }
 
     private Mono<Jwt> parseAndValidateJwt(String token, boolean validateVcClaim) {
@@ -136,7 +140,7 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
         try {
             vcNode = objectMapper.readTree(vcJson);
         } catch (Exception e) {
-            log.error("❌ Error parsing 'vc' claim. {}", e);
+            log.error("❌ Error parsing 'vc' claim.", e);
             throw new BadCredentialsException("Error parsing 'vc' claim", e);
         }
         JsonNode typeNode = vcNode.get("type");
