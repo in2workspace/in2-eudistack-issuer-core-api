@@ -50,7 +50,7 @@ class ProblemAccessDeniedHandlerTest {
                 HttpStatus.FORBIDDEN,
                 "Access denied"
         );
-        when(resolver.resolve(same(ex), argThat(b -> !b))).thenReturn(spec);
+        when(resolver.resolve(eq(ex), eq(false))).thenReturn(spec);
 
         MockServerHttpRequest request = MockServerHttpRequest.get("/api/secure").build();
         MockServerWebExchange exchange = MockServerWebExchange.from(request);
@@ -58,21 +58,16 @@ class ProblemAccessDeniedHandlerTest {
         GlobalErrorMessage body = new GlobalErrorMessage(
                 spec.type(), spec.title(), spec.status().value(), "nope", "inst-abc"
         );
-        when(errorResponseFactory.handleWithNow(
-                same(ex),
-                any(ServerHttpRequest.class),
-                argThat(s -> s.equals(spec.type())),
-                argThat(s -> s.equals(spec.title())),
-                argThat(status -> status == spec.status()),
-                argThat(s -> s.equals(spec.fallbackDetail()))
-        )).thenReturn(body);
+        when(errorResponseFactory.handleWithNow(eq(ex), any(ServerHttpRequest.class),
+                eq(spec.type()), eq(spec.title()), eq(spec.status()), eq(spec.fallbackDetail())))
+                .thenReturn(body);
 
         byte[] serialized = ("{\"type\":\"" + spec.type() + "\"," +
                 "\"title\":\"" + spec.title() + "\"," +
                 "\"status\":" + spec.status().value() + "," +
                 "\"detail\":\"nope\",\"instance\":\"inst-abc\"}")
                 .getBytes(StandardCharsets.UTF_8);
-        when(objectMapper.writeValueAsBytes(same(body))).thenReturn(serialized);
+        when(objectMapper.writeValueAsBytes(eq(body))).thenReturn(serialized);
 
         // when
         Mono<Void> result = handler.handle(exchange, ex);
@@ -96,14 +91,8 @@ class ProblemAccessDeniedHandlerTest {
         verify(resolver).resolve(ex, false);
 
         ArgumentCaptor<ServerHttpRequest> reqCaptor = ArgumentCaptor.forClass(ServerHttpRequest.class);
-        verify(errorResponseFactory).handleWithNow(
-                same(ex),
-                reqCaptor.capture(),
-                argThat(s -> s.equals(spec.type())),
-                argThat(s -> s.equals(spec.title())),
-                argThat(status -> status == spec.status()),
-                argThat(s -> s.equals(spec.fallbackDetail()))
-        );
+        verify(errorResponseFactory).handleWithNow(eq(ex), reqCaptor.capture(),
+                eq(spec.type()), eq(spec.title()), eq(spec.status()), eq(spec.fallbackDetail()));
         assertThat(reqCaptor.getValue().getPath().value()).isEqualTo("/api/secure");
     }
 
@@ -117,7 +106,7 @@ class ProblemAccessDeniedHandlerTest {
                 HttpStatus.FORBIDDEN,
                 "Access denied"
         );
-        when(resolver.resolve(same(ex), argThat(b -> !b))).thenReturn(spec);
+        when(resolver.resolve(eq(ex), eq(false))).thenReturn(spec);
 
         MockServerHttpRequest request = MockServerHttpRequest.get("/only-admin").build();
         MockServerWebExchange exchange = MockServerWebExchange.from(request);
@@ -125,14 +114,9 @@ class ProblemAccessDeniedHandlerTest {
         GlobalErrorMessage body = new GlobalErrorMessage(
                 spec.type(), spec.title(), spec.status().value(), "denied", "inst-999"
         );
-        when(errorResponseFactory.handleWithNow(
-                same(ex),
-                any(ServerHttpRequest.class),
-                anyString(),
-                anyString(),
-                any(HttpStatus.class),
-                anyString()
-        )).thenReturn(body);
+        when(errorResponseFactory.handleWithNow(eq(ex), any(ServerHttpRequest.class),
+                anyString(), anyString(), any(HttpStatus.class), anyString()))
+                .thenReturn(body);
 
         when(objectMapper.writeValueAsBytes(any())).thenThrow(new RuntimeException("serialize boom"));
 
@@ -157,13 +141,7 @@ class ProblemAccessDeniedHandlerTest {
         assertThat(responseBody).isEqualTo("{\"title\":\"Forbidden\",\"status\":403}");
 
         verify(resolver).resolve(ex, false);
-        verify(errorResponseFactory).handleWithNow(
-                same(ex),
-                any(ServerHttpRequest.class),
-                argThat(s -> s.equals(spec.type())),
-                argThat(s -> s.equals(spec.title())),
-                argThat(status -> status == spec.status()),
-                argThat(s -> s.equals(spec.fallbackDetail()))
-        );
+        verify(errorResponseFactory).handleWithNow(eq(ex), any(ServerHttpRequest.class),
+                eq(spec.type()), eq(spec.title()), eq(spec.status()), eq(spec.fallbackDetail()));
     }
 }
