@@ -40,55 +40,83 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
     @Override
     public Mono<Authentication> authenticate(Authentication authentication) {
         log.debug("🔐 CustomAuthenticationManager - authenticate - start");
-        String token = authentication.getCredentials().toString();
+        final String token = String.valueOf(authentication.getCredentials());
 
+        return extractIssuer(token)
+                .flatMap(issuer -> routeByIssuer(issuer, token))
+                .onErrorMap(e -> (e instanceof AuthenticationException)
+                        ? e
+                        : new AuthenticationServiceException(e.getMessage(), e));
+    }
+
+    private Mono<String> extractIssuer(String token) {
         return Mono.fromCallable(() -> {
                     try {
                         return SignedJWT.parse(token);
                     } catch (ParseException e) {
-                            log.error("❌ Failed to parse JWT", e);
-                            throw new BadCredentialsException("Invalid JWT token format", e);
+                        log.error("❌ Failed to parse JWT", e);
+                        throw new BadCredentialsException("Invalid JWT token format", e);
                     }
                 })
                 .flatMap(signedJWT -> {
-                    String issuer;
                     try {
-                        issuer = signedJWT.getJWTClaimsSet().getIssuer();
+                        String issuer = signedJWT.getJWTClaimsSet().getIssuer();
                         log.debug("🔐 CustomAuthenticationManager - Issuer - {}", issuer);
-                    } catch (ParseException e) {
-                        log.error("❌ Unable to parse JWT claims", e);
-                        return Mono.error(new BadCredentialsException("Unable to parse JWT claims", e));
-                    }
 
-                    if (issuer == null) {
-                        log.error("❌ Missing issuer (iss) claim");
-                        return Mono.error(new BadCredentialsException("Missing issuer (iss) claim"));
-                    }
-                    if (issuer.equals(appConfig.getVerifierUrl())) {
-                        log.debug("✅ Token from Verifier - {}", appConfig.getVerifierUrl());
-                        return verifierService.verifyToken(token)
-                                .then(parseAndValidateJwt(token, Boolean.TRUE))
-                                .map(jwt -> new JwtAuthenticationToken(jwt, Collections.emptyList()));
-                    } else if (issuer.equals(appConfig.getIssuerBackendUrl())) {
-                        log.debug("✅ Token from Credential Issuer - {}",appConfig.getIssuerBackendUrl());
-                        return Mono.fromCallable(() -> JWSObject.parse(token))
-                                .flatMap(jwsObject -> jwtService.validateJwtSignatureReactive(jwsObject)
-                                        .flatMap(isValid -> {
-                                            if (!Boolean.TRUE.equals(isValid)) {
-                                                log.error("❌ Invalid JWT signature");
-                                                return Mono.error(new BadCredentialsException("Invalid JWT signature"));
-                                            }
-                                            return parseAndValidateJwt(token, Boolean.FALSE)
-                                                    .map(jwt -> (Authentication) new JwtAuthenticationToken(jwt, Collections.emptyList()));
-                                        }));
-                    } else {
-                        log.debug("❌ Token from unknown issuer");
-                        return Mono.error(new BadCredentialsException("Unknown token issuer: " + issuer));
+                        if (issuer == null) {
+                            log.error("❌ Missing issuer (iss) claim");
+                            return Mono.error(new BadCredentialsException("Missing issuer (iss) claim"));
+                        }
+                        return Mono.just(issuer);
+
+                    } catch (ParseException e) {
+                        // aquest sí que passarà pel onErrorMap de sota
+                        return Mono.error(e);
                     }
                 })
-                .onErrorMap(e -> (e instanceof AuthenticationException) ? e
-                        : new AuthenticationServiceException(e.getMessage(), e));
+                .onErrorMap(ParseException.class, e -> {
+                    log.error("❌ Unable to parse JWT claims", e);
+                    return new BadCredentialsException("Unable to parse JWT claims", e);
+                });
     }
+
+
+    private Mono<Authentication> routeByIssuer(String issuer, String token) {
+        if (issuer.equals(appConfig.getVerifierUrl())) {
+            log.debug("✅ Token from Verifier - {}", appConfig.getVerifierUrl());
+            return handleVerifierToken(token);
+        }
+        if (issuer.equals(appConfig.getIssuerBackendUrl())) {
+            log.debug("✅ Token from Credential Issuer - {}", appConfig.getIssuerBackendUrl());
+            return handleIssuerBackendToken(token);
+        }
+        log.debug("❌ Token from unknown issuer");
+        return Mono.error(new BadCredentialsException("Unknown token issuer: " + issuer));
+    }
+
+    private Mono<Authentication> handleVerifierToken(String token) {
+        return verifierService.verifyToken(token)
+                .then(parseAndValidateJwt(token, Boolean.TRUE))
+                .map(jwt -> new JwtAuthenticationToken(jwt, Collections.emptyList()));
+    }
+
+    private Mono<Authentication> handleIssuerBackendToken(String token) {
+        return Mono.fromCallable(() -> JWSObject.parse(token))
+                .flatMap(jwtService::validateJwtSignatureReactive)
+                .flatMap(isValid -> {
+                    if (!Boolean.TRUE.equals(isValid)) {
+                        log.error("❌ Invalid JWT signature");
+                        return Mono.error(new BadCredentialsException("Invalid JWT signature"));
+                    }
+                    return parseAndValidateJwt(token, Boolean.FALSE)
+                            .map(jwt -> (Authentication) new JwtAuthenticationToken(jwt, Collections.emptyList()));
+                })
+                .onErrorMap(ParseException.class, e -> {
+                    log.error("❌ Failed to parse JWS", e);
+                    return new BadCredentialsException("Invalid JWS token format", e);
+                });
+    }
+
 
     private Mono<Jwt> parseAndValidateJwt(String token, boolean validateVcClaim) {
         return Mono.fromCallable(() -> {
