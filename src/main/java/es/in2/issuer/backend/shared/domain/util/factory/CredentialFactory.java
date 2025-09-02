@@ -34,7 +34,7 @@ public class CredentialFactory {
                     .doOnSuccess(learCredentialEmployee -> log.info("ProcessID: {} - LEARCredentialEmployee mapped: {}", processId, credential));
         } else if (preSubmittedCredentialRequest.schema().equals(LABEL_CREDENTIAL)) {
             return labelCredentialFactory.mapAndBuildLabelCredential(credential, operationMode, email)
-                    .doOnSuccess(verifiableCertification -> log.info("ProcessID: {} - Label Credential mapped: {}", processId, credential));
+                    .doOnSuccess(verifiableCertification -> log.info("ProcessID   : {} - Label Credential mapped: {}", processId, credential));
         } else if(preSubmittedCredentialRequest.schema().equals(LEAR_CREDENTIAL_MACHINE)) {
             return learCredentialMachineFactory.mapAndBuildLEARCredentialMachine(credential, operationMode, email)
                     .doOnSuccess(learCredentialEmployee -> log.info("ProcessID: {} - LEARCredentialMachine mapped: {}", processId, credential));
