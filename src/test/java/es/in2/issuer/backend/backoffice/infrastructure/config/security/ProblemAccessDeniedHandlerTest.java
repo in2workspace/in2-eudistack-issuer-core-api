@@ -50,7 +50,7 @@ class ProblemAccessDeniedHandlerTest {
                 HttpStatus.FORBIDDEN,
                 "Access denied"
         );
-        when(resolver.resolve(eq(ex), eq(false))).thenReturn(spec);
+        when(resolver.resolve(ex, eq(false))).thenReturn(spec);
 
         MockServerHttpRequest request = MockServerHttpRequest.get("/api/secure").build();
         MockServerWebExchange exchange = MockServerWebExchange.from(request);
@@ -67,7 +67,7 @@ class ProblemAccessDeniedHandlerTest {
                 "\"status\":" + spec.status().value() + "," +
                 "\"detail\":\"nope\",\"instance\":\"inst-abc\"}")
                 .getBytes(StandardCharsets.UTF_8);
-        when(objectMapper.writeValueAsBytes(eq(body))).thenReturn(serialized);
+        when(objectMapper.writeValueAsBytes(body)).thenReturn(serialized);
 
         // when
         Mono<Void> result = handler.handle(exchange, ex);
@@ -106,7 +106,7 @@ class ProblemAccessDeniedHandlerTest {
                 HttpStatus.FORBIDDEN,
                 "Access denied"
         );
-        when(resolver.resolve(eq(ex), eq(false))).thenReturn(spec);
+        when(resolver.resolve(ex, eq(false))).thenReturn(spec);
 
         MockServerHttpRequest request = MockServerHttpRequest.get("/only-admin").build();
         MockServerWebExchange exchange = MockServerWebExchange.from(request);
