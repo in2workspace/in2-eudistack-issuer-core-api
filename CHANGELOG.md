@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Revoke and expired credential notification.
 - Handle error when sending PIN and when serializing credential.
 
+
 ### Changed
 - Adapt endpoints to oid4vci.
 - Refactor SecurityConfig credential issuer filters.
