@@ -50,7 +50,7 @@ class ProblemAuthenticationEntryPointTest {
                 HttpStatus.UNAUTHORIZED,
                 "Invalid token"
         );
-        when(resolver.resolve(eq(ex), eq(true))).thenReturn(spec);
+        when(resolver.resolve(same(ex), anyBoolean())).thenReturn(spec);
 
         MockServerHttpRequest request = MockServerHttpRequest.get("/api/test").build();
         MockServerWebExchange exchange = MockServerWebExchange.from(request);
@@ -58,13 +58,18 @@ class ProblemAuthenticationEntryPointTest {
         GlobalErrorMessage gem = new GlobalErrorMessage(
                 spec.type(), spec.title(), spec.status().value(), "bad token", "instance-123"
         );
-        when(errorResponseFactory.handleWithNow(eq(ex), any(ServerHttpRequest.class),
-                eq(spec.type()), eq(spec.title()), eq(spec.status()), eq(spec.fallbackDetail())))
-                .thenReturn(gem);
+        when(errorResponseFactory.handleWithNow(
+                same(ex),
+                any(ServerHttpRequest.class),
+                argThat(s -> s.equals(spec.type())),
+                argThat(s -> s.equals(spec.title())),
+                argThat(status -> status == spec.status()),
+                argThat(s -> s.equals(spec.fallbackDetail()))
+        )).thenReturn(gem);
 
         byte[] serialized = "{\"type\":\"auth.invalid_token\",\"title\":\"Invalid token\",\"status\":401,\"detail\":\"bad token\",\"instance\":\"instance-123\"}"
                 .getBytes(StandardCharsets.UTF_8);
-        when(objectMapper.writeValueAsBytes(eq(gem))).thenReturn(serialized);
+        when(objectMapper.writeValueAsBytes(same(gem))).thenReturn(serialized);
 
         // when
         Mono<Void> result = entryPoint.commence(exchange, ex);
@@ -93,8 +98,14 @@ class ProblemAuthenticationEntryPointTest {
 
         // verify ErrorResponseFactory called with the right args
         ArgumentCaptor<ServerHttpRequest> reqCaptor = ArgumentCaptor.forClass(ServerHttpRequest.class);
-        verify(errorResponseFactory).handleWithNow(eq(ex), reqCaptor.capture(),
-                eq(spec.type()), eq(spec.title()), eq(spec.status()), eq(spec.fallbackDetail()));
+        verify(errorResponseFactory).handleWithNow(
+                same(ex),
+                reqCaptor.capture(),
+                argThat(s -> s.equals(spec.type())),
+                argThat(s -> s.equals(spec.title())),
+                argThat(status -> status == spec.status()),
+                argThat(s -> s.equals(spec.fallbackDetail()))
+        );
         assertThat(reqCaptor.getValue().getPath().value()).isEqualTo("/api/test");
     }
 
@@ -108,7 +119,7 @@ class ProblemAuthenticationEntryPointTest {
                 HttpStatus.UNAUTHORIZED,
                 "Authentication failed"
         );
-        when(resolver.resolve(eq(ex), eq(true))).thenReturn(spec);
+        when(resolver.resolve(same(ex), anyBoolean())).thenReturn(spec);
 
         MockServerHttpRequest request = MockServerHttpRequest.get("/login").build();
         MockServerWebExchange exchange = MockServerWebExchange.from(request);
@@ -116,9 +127,14 @@ class ProblemAuthenticationEntryPointTest {
         GlobalErrorMessage gem = new GlobalErrorMessage(
                 spec.type(), spec.title(), spec.status().value(), "oops", "inst-999"
         );
-        when(errorResponseFactory.handleWithNow(eq(ex), any(ServerHttpRequest.class),
-                anyString(), anyString(), any(HttpStatus.class), anyString()))
-                .thenReturn(gem);
+        when(errorResponseFactory.handleWithNow(
+                same(ex),
+                any(ServerHttpRequest.class),
+                anyString(),
+                anyString(),
+                any(HttpStatus.class),
+                anyString()
+        )).thenReturn(gem);
 
         // Force ObjectMapper to fail
         when(objectMapper.writeValueAsBytes(any())).thenThrow(new RuntimeException("marshalling error"));
@@ -146,7 +162,13 @@ class ProblemAuthenticationEntryPointTest {
         assertThat(body).isEqualTo("{\"title\":\"Unauthorized\",\"status\":401}");
 
         verify(resolver).resolve(ex, true);
-        verify(errorResponseFactory).handleWithNow(eq(ex), any(ServerHttpRequest.class),
-                eq(spec.type()), eq(spec.title()), eq(spec.status()), eq(spec.fallbackDetail()));
+        verify(errorResponseFactory).handleWithNow(
+                same(ex),
+                any(ServerHttpRequest.class),
+                argThat(s -> s.equals(spec.type())),
+                argThat(s -> s.equals(spec.title())),
+                argThat(status -> status == spec.status()),
+                argThat(s -> s.equals(spec.fallbackDetail()))
+        );
     }
 }
