@@ -606,6 +606,7 @@ class GlobalExceptionHandlerTest {
     // -------------------- handleCredentialSerializationException --------------------
 
     @Test
+
     void handleCredentialSerializationException() {
         var ex = new CredentialSerializationException("Credential serialization err");
         var type = GlobalErrorTypes.CREDENTIAL_SERIALIZATION.getCode();
@@ -630,5 +631,34 @@ class GlobalExceptionHandlerTest {
 
         verify(errors).handleWith(ex, request, type, title, st, fallback);
     }
+
+    // -------------------- handleJWTParsingExceptionTest --------------------
+  
+    @Test
+    void handleJWTParsingExceptionTest() {
+        var ex = new JWTParsingException("jwt parsing exception");
+        var type = GlobalErrorTypes.INVALID_JWT.getCode();
+        var title = "JWT parsing error";
+        var st = HttpStatus.INTERNAL_SERVER_ERROR;
+        var fallback = "The provided JWT is invalid or can't be parsed.";
+
+        var expected = new GlobalErrorMessage(
+                type,
+                title,
+                st.value(),
+                "jwt parsing exception",
+                UUID.randomUUID().toString()
+        );
+
+        when(errors.handleWith(ex, request, type, title, st, fallback))
+                .thenReturn(Mono.just(expected));
+
+        StepVerifier.create(handler.handleJWTParsingException(ex, request))
+                .assertNext(gem -> assertGem(gem, type, title, st, "jwt parsing exception"))
+                .verifyComplete();
+
+        verify(errors).handleWith(ex, request, type, title, st, fallback);
+    }
+
 
 }

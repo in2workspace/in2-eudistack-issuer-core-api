@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -40,7 +41,6 @@ class CustomAuthenticationManagerTest {
 
     @BeforeEach
     void setUp() {
-        // ObjectMapper real per evitar unnecessary stubbings
         authenticationManager = new CustomAuthenticationManager(
                 verifierService,
                 new ObjectMapper(),
@@ -98,7 +98,6 @@ class CustomAuthenticationManagerTest {
 
     @Test
     void authenticate_withMissingVcClaim_throwsBadCredentialsException() {
-        // Camí del Verifier: sí valida 'vc'
         String headerJson = "{\"alg\":\"RS256\",\"typ\":\"JWT\"}";
         String payloadJson = "{\"iss\":\"http://verifier.local\",\"iat\":1633036800,\"exp\":1633040400}";
         String token = buildToken(headerJson, payloadJson);
@@ -118,7 +117,6 @@ class CustomAuthenticationManagerTest {
 
     @Test
     void authenticate_withInvalidVcType_throwsBadCredentialsException() {
-        // Camí del Verifier: sí valida 'vc'
         String headerJson = "{\"alg\":\"RS256\",\"typ\":\"JWT\"}";
         String payloadJson = "{\"iss\":\"http://verifier.local\",\"iat\":1633036800,\"exp\":1633040400," +
                 "\"vc\":{\"type\":[\"SomeOtherType\"]}}";
@@ -139,7 +137,6 @@ class CustomAuthenticationManagerTest {
 
     @Test
     void authenticate_withInvalidPayloadDecoding_throwsBadCredentialsException() {
-        // Fa fallar el parse de claims a SignedJWT.getJWTClaimsSet() abans d'arribar al parse manual
         String headerJson = "{\"alg\":\"RS256\",\"typ\":\"JWT\"}";
         String header = base64UrlEncode(headerJson);
         String payload = "invalidPayload"; // no és base64url-JSON
@@ -173,18 +170,13 @@ class CustomAuthenticationManagerTest {
 
         StepVerifier.create(result)
                 .expectErrorSatisfies(e -> {
-                    // Acceptem ambdues formes: embolcallada o no
-                    if (e instanceof org.springframework.security.authentication.AuthenticationServiceException ase) {
-                        assert "Verification failed".equals(ase.getMessage());
-                        assert ase.getCause() == verifyException;
-                    } else {
-                        assert e instanceof RuntimeException;
-                        assert "Verification failed".equals(e.getMessage());
-                    }
+                    assert e instanceof AuthenticationServiceException;
+                    AuthenticationServiceException ase = (AuthenticationServiceException) e;
+                    assert "Verification failed".equals(ase.getMessage());
+                    assert ase.getCause() == verifyException;
                 })
                 .verify();
     }
-
 
     @Test
     void authenticate_withValidKeycloakToken_returnsAuthentication() {
@@ -208,8 +200,7 @@ class CustomAuthenticationManagerTest {
 
     @Test
     void authenticate_withKeycloakToken_missingVcClaim_returnsAuthentication() {
-        // IMPORTANT: el codi productiu NO valida 'vc' en el camí de Keycloak (validateVcClaim = false)
-        String headerJson = "{\"alg\":\"RS256\",\"typ\":\"JWT\"}";
+       String headerJson = "{\"alg\":\"RS256\",\"typ\":\"JWT\"}";
         String payloadJson = "{\"iss\":\"http://issuer.local\",\"iat\":1633036800,\"exp\":" +
                 (Instant.now().getEpochSecond() + 3600) + "}";
         String token = buildToken(headerJson, payloadJson);
@@ -228,7 +219,6 @@ class CustomAuthenticationManagerTest {
 
     @Test
     void authenticate_withKeycloakToken_invalidVcType_returnsAuthentication() {
-        // IMPORTANT: el codi productiu NO valida 'vc' en el camí de Keycloak (validateVcClaim = false)
         String headerJson = "{\"alg\":\"RS256\",\"typ\":\"JWT\"}";
         String payloadJson = "{\"iss\":\"http://issuer.local\",\"iat\":1633036800,\"exp\":" +
                 (Instant.now().getEpochSecond() + 3600) + ",\"vc\":{\"type\":[\"OtherType\"]}}";
