@@ -153,6 +153,8 @@ public class VerifierServiceImpl implements VerifierService {
 
     @Override
     public Mono<VerifierOauth2AccessToken> performTokenRequest(String body) {
+        log.info("performTokenRequest: body");
+        log.info(body);
         return getWellKnownInfo()
                 .doOnNext(metadata -> log.info("WellKnownInfo retornat: {}", metadata))
                 .flatMap(metadata -> oauth2VerifierWebClient.post()
