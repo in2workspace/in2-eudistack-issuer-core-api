@@ -34,6 +34,7 @@ public class M2MTokenServiceImpl implements M2MTokenService {
 
     @Override
     public Mono<VerifierOauth2AccessToken> getM2MToken() {
+        log.info("getM2MToken");
         return Mono.fromCallable(this::getM2MFormUrlEncodeBodyValue)
                 .flatMap(verifierService::performTokenRequest);
     }
@@ -45,10 +46,13 @@ public class M2MTokenServiceImpl implements M2MTokenService {
         parameters.put(OAuth2ParameterNames.CLIENT_ASSERTION_TYPE, CLIENT_ASSERTION_TYPE_VALUE);
         parameters.put(OAuth2ParameterNames.CLIENT_ASSERTION, createClientAssertion());
 
-        return parameters.entrySet()
+        String res =  parameters.entrySet()
                 .stream()
                 .map(entry -> entry.getKey() + "=" + entry.getValue())
                 .collect(Collectors.joining("&"));
+        log.info("getM2MFormUrlEncodeBodyValue");
+        log.info(res);
+        return res;
     }
 
 
