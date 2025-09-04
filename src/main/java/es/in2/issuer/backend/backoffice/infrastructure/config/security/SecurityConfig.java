@@ -122,19 +122,22 @@ public class SecurityConfig {
                 new ServerBearerTokenAuthenticationConverter() {
                     @Override
                     public Mono<Authentication> convert(ServerWebExchange exchange) {
-                        String auth = exchange.getRequest().getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
+                        String path   = exchange.getRequest().getPath().value();
+                        HttpMethod method = exchange.getRequest().getMethod();
+                        String auth   = exchange.getRequest().getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
+
                         if (auth != null && auth.startsWith("Bearer ")) {
                             String token = auth.substring(7);
                             String preview = token.length() > 16
                                     ? token.substring(0, 10) + "..." + token.substring(token.length() - 6)
                                     : "<short>";
-                            log.debug("Backoffice Authorization header present. tokenLength={}, preview={}",
-                                    token.length(), preview);
+                            log.debug("Backoffice [{} {}] - Authorization header present. tokenLength={}, preview={}",
+                                    method, path, token.length(), preview);
                         } else if (auth != null) {
-                            log.debug("Backoffice Authorization header present but not Bearer. valueStartsWith={}",
-                                    auth.substring(0, Math.min(auth.length(), 10)));
+                            log.debug("Backoffice [{} {}] - Authorization header present but not Bearer. valueStartsWith={}",
+                                    method, path, auth.substring(0, Math.min(auth.length(), 10)));
                         } else {
-                            log.debug("Backoffice Authorization header absent.");
+                            log.debug("Backoffice [{} {}] - Authorization header absent.", method, path);
                         }
                         return super.convert(exchange); // delega la conversió real
                     }
@@ -156,14 +159,16 @@ public class SecurityConfig {
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .authenticationEntryPoint(entryPoint)
-                        .bearerTokenConverter(loggingBearerConverter) // << afegit
+                        .bearerTokenConverter(loggingBearerConverter)
                         .jwt(jwt -> jwt.jwtDecoder(internalJwtDecoder))
                 )
                 .exceptionHandling(e -> e
                         .authenticationEntryPoint(entryPoint)
                         .accessDeniedHandler(deniedH)
                 );
+
         return http.build();
     }
+
 
 }
