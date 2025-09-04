@@ -6,6 +6,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.core.annotation.Order;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.ReactiveAuthenticationManager;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
@@ -16,6 +17,7 @@ import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder;
 import org.springframework.security.oauth2.server.resource.web.server.authentication.ServerBearerTokenAuthenticationConverter;
 import org.springframework.security.web.server.SecurityWebFilterChain;
 import org.springframework.security.web.server.authentication.AuthenticationWebFilter;
+import org.springframework.security.web.server.authentication.ServerAuthenticationConverter;
 import org.springframework.security.web.server.authentication.ServerAuthenticationEntryPointFailureHandler;
 import org.springframework.security.web.server.util.matcher.ServerWebExchangeMatchers;
 import org.springframework.web.server.ServerWebExchange;
@@ -116,23 +118,37 @@ public class SecurityConfig {
             ProblemAuthenticationEntryPoint entryPoint,
             ProblemAccessDeniedHandler deniedH) {
 
-        log.debug("backofficeFilterChain - inside");
+        ServerAuthenticationConverter loggingBearerConverter =
+                new ServerBearerTokenAuthenticationConverter() {
+                    @Override
+                    public Mono<Authentication> convert(ServerWebExchange exchange) {
+                        String auth = exchange.getRequest().getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
+                        if (auth != null && auth.startsWith("Bearer ")) {
+                            String token = auth.substring(7);
+                            String preview = token.length() > 16
+                                    ? token.substring(0, 10) + "..." + token.substring(token.length() - 6)
+                                    : "<short>";
+                            log.debug("Backoffice Authorization header present. tokenLength={}, preview={}",
+                                    token.length(), preview);
+                        } else if (auth != null) {
+                            log.debug("Backoffice Authorization header present but not Bearer. valueStartsWith={}",
+                                    auth.substring(0, Math.min(auth.length(), 10)));
+                        } else {
+                            log.debug("Backoffice Authorization header absent.");
+                        }
+                        return super.convert(exchange); // delega la conversió real
+                    }
+                };
 
         http
                 .securityMatcher(ServerWebExchangeMatchers.pathMatchers(
-                        BACKOFFICE_PATH,
-                        ACTUATOR_PATH,
-                        SPRINGDOC_PATH
-                ))
+                        BACKOFFICE_PATH, ACTUATOR_PATH, SPRINGDOC_PATH))
                 .cors(cors -> cors.configurationSource(internalCORSConfig.defaultCorsConfigurationSource()))
-                .authorizeExchange(exchange -> exchange
-                        .pathMatchers(HttpMethod.GET,
-                                ACTUATOR_PATH,
-                                SPRINGDOC_PATH
-                        ).permitAll()
+                .authorizeExchange(ex -> ex
+                        .pathMatchers(HttpMethod.GET, ACTUATOR_PATH, SPRINGDOC_PATH).permitAll()
                         .pathMatchers(HttpMethod.GET, BACKOFFICE_STATUS_CREDENTIALS).permitAll()
                         .pathMatchers(HttpMethod.GET, BACKOFFICE_PATH).authenticated()
-                        .pathMatchers(HttpMethod.POST, BACKOFFICE_PATH ).authenticated()
+                        .pathMatchers(HttpMethod.POST, BACKOFFICE_PATH).authenticated()
                         .pathMatchers(HttpMethod.PUT, BACKOFFICE_PATH).authenticated()
                         .pathMatchers(HttpMethod.DELETE, BACKOFFICE_PATH).authenticated()
                         .anyExchange().denyAll()
@@ -140,12 +156,13 @@ public class SecurityConfig {
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .authenticationEntryPoint(entryPoint)
-                        .jwt(jwt -> jwt.jwtDecoder(internalJwtDecoder)))
+                        .bearerTokenConverter(loggingBearerConverter) // << afegit
+                        .jwt(jwt -> jwt.jwtDecoder(internalJwtDecoder))
+                )
                 .exceptionHandling(e -> e
                         .authenticationEntryPoint(entryPoint)
                         .accessDeniedHandler(deniedH)
                 );
-        log.debug("backofficeFilterChain - build");
         return http.build();
     }
 
