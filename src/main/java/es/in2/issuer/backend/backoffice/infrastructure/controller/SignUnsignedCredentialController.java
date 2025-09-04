@@ -22,7 +22,7 @@ public class SignUnsignedCredentialController {
     public Mono<Void> signUnsignedCredential(
             @RequestHeader(HttpHeaders.AUTHORIZATION) String authorizationHeader,
             @PathVariable("procedure_id") String procedureId) {
-
+        log.info("SignUnsignedCredentialController");
         return credentialSignerWorkflow.retrySignUnsignedCredential(authorizationHeader, procedureId);
     }
 }

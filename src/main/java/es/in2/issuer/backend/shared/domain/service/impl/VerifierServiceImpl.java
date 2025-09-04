@@ -162,8 +162,8 @@ public class VerifierServiceImpl implements VerifierService {
                         .header(CONTENT_TYPE, CONTENT_TYPE_URL_ENCODED_FORM)
                         .bodyValue(body)
                         .retrieve()
-                        .bodyToMono(VerifierOauth2AccessToken.class)
-                        .onErrorMap(e -> new TokenFetchException("Error fetching the token", e)));
+                        .bodyToMono(VerifierOauth2AccessToken.class));
+//                        .onErrorMap(e -> new TokenFetchException("Error fetching the token", e)));
     }
 
 }
