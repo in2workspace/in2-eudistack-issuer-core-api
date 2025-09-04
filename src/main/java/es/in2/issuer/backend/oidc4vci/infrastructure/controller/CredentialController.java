@@ -29,6 +29,7 @@ public class CredentialController {
     public Mono<ResponseEntity<CredentialResponse>> createVerifiableCredential(
             @RequestHeader(HttpHeaders.AUTHORIZATION) String authorizationHeader,
             @RequestBody CredentialRequest credentialRequest) {
+        log.info("CredentialController.createVerifiableCredential");
         String processId = UUID.randomUUID().toString();
         return accessTokenService.getCleanBearerToken(authorizationHeader)
                 .flatMap(token ->

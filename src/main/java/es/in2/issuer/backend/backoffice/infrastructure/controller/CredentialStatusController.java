@@ -24,6 +24,7 @@ public class CredentialStatusController {
     @GetMapping("/{listId}")
     @ResponseStatus(HttpStatus.OK)
     public Flux<CredentialStatusResponse> getCredentialsByListId(@PathVariable int listId) {
+        log.info("CredentialStatusController.getCredentialsByListId");
         String processId = UUID.randomUUID().toString();
 
         return credentialStatusWorkflow.getCredentialsByListId(processId, listId)

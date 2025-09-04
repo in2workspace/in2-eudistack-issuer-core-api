@@ -31,6 +31,7 @@ public class CredentialOfferController {
         String processId = UUID.randomUUID().toString();
         ServerHttpResponse response = exchange.getResponse();
         response.getHeaders().add(HttpHeaders.CONTENT_LANGUAGE, ENGLISH);
+        log.info("CredentialOfferController");
         return credentialOfferWorkflow.getCredentialOfferById(processId, id)
                 .doFirst(() ->
                         log.info("Process ID: {} - Getting Credential Offer by its reference...", processId))

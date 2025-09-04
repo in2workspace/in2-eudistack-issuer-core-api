@@ -154,6 +154,7 @@ public class VerifierServiceImpl implements VerifierService {
     @Override
     public Mono<VerifierOauth2AccessToken> performTokenRequest(String body) {
         return getWellKnownInfo()
+                .doOnNext(metadata -> log.info("WellKnownInfo retornat: {}", metadata))
                 .flatMap(metadata -> oauth2VerifierWebClient.post()
                         .uri(metadata.tokenEndpoint())
                         .header(CONTENT_TYPE, CONTENT_TYPE_URL_ENCODED_FORM)
@@ -162,4 +163,5 @@ public class VerifierServiceImpl implements VerifierService {
                         .bodyToMono(VerifierOauth2AccessToken.class)
                         .onErrorMap(e -> new TokenFetchException("Error fetching the token", e)));
     }
+
 }

@@ -21,6 +21,7 @@ public class DeferredCredentialMetadataController {
     @PostMapping("/nonce")
     @ResponseStatus(HttpStatus.CREATED)
     public Mono<Void> bindAccessTokenByPreAuthorizedCode (@RequestBody AuthServerNonceRequest authServerNonceRequest) {
+        log.info("DeferredCredentialMetadataController.bindAccessTokenByPreAuthorizedCode");
         String processId = UUID.randomUUID().toString();
         return credentialIssuanceWorkflow.bindAccessTokenByPreAuthorizedCode(processId,authServerNonceRequest);
     }
