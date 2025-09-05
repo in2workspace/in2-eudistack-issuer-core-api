@@ -43,6 +43,7 @@ public record LEARCredentialMachine(
             public record Mandator(
                     @JsonProperty("id") String id,
                     @JsonProperty("organization") String organization,
+                    @JsonProperty("organizationIdentifier") String organizationIdentifier,
                     @JsonProperty("country") String country,
                     @JsonProperty("commonName") String commonName,
                     @JsonProperty("serialNumber") String serialNumber,
