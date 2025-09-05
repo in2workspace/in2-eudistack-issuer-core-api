@@ -236,18 +236,24 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
                                         try {
                                             log.info("getResponseUriByProcedureId: credential decoded");
                                             log.info(updatedCredentialProcedure.getCredentialDecoded());
-                                            JsonNode root = new ObjectMapper().readTree(updatedCredentialProcedure.getCredentialDecoded());
+//                                            JsonNode root = new ObjectMapper().readTree(updatedCredentialProcedure.getCredentialDecoded());
                                             log.info("getResponseUriByProcedureId: root");
-                                            log.info("root");
-                                            String productId = root.get("credentialSubject").get("product").get("productId").asText();
-                                            String companyEmail = root.get("credentialSubject").get("company").get("email").asText();
+                                            String email = updatedCredentialProcedure.getOwnerEmail();
+                                            String prodId = updatedCredentialProcedure.getCredentialId().toString();
+                                            log.info("email");
+                                            log.info(email);
+                                            log.info("prodId");
+                                            log.info(prodId);
+//                                            log.info("root");
+//                                            String productId = root.get("credentialSubject").get("product").get("productId").asText();
+//                                            String companyEmail = root.get("credentialSubject").get("company").get("email").asText();
 
                                             return m2mTokenService.getM2MToken()
                                                     .flatMap(m2mToken -> credentialDeliveryService.sendVcToResponseUri(
                                                             responseUri,
                                                             signedVc,
-                                                            productId,
-                                                            companyEmail,
+                                                            prodId,
+                                                            email,
                                                             m2mToken.accessToken()
                                                     ));
                                         } catch (Exception e) {
