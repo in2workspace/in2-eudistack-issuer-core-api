@@ -332,7 +332,6 @@ class CredentialSignerWorkflowImplTest {
         when(credentialProcedure.getCredentialDecoded()).thenReturn("decodedCredential");
         when(credentialProcedure.getCredentialType()).thenReturn(LEAR_CREDENTIAL_EMPLOYEE_CREDENTIAL_TYPE);
 
-
         when(credentialProcedureRepository.findByProcedureId(UUID.fromString(procedureId)))
                 .thenReturn(Mono.just(credentialProcedure));
         when(learCredentialEmployeeFactory.mapCredentialAndBindIssuerInToTheCredential(any(), eq(procedureId)))
