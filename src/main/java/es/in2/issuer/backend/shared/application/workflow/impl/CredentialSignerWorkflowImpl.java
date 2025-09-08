@@ -234,26 +234,15 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
                                     .switchIfEmpty(Mono.error(new IllegalStateException("Missing responseUri for procedureId: " + procedureId)))
                                     .flatMap(responseUri -> {
                                         try {
-                                            log.info("getResponseUriByProcedureId: credential decoded");
-                                            log.info(updatedCredentialProcedure.getCredentialDecoded());
-//                                            JsonNode root = new ObjectMapper().readTree(updatedCredentialProcedure.getCredentialDecoded());
-                                            log.info("getResponseUriByProcedureId: root");
-                                            String email = updatedCredentialProcedure.getOwnerEmail();
-                                            String prodId = updatedCredentialProcedure.getCredentialId().toString();
-                                            log.info("email");
-                                            log.info(email);
-                                            log.info("prodId");
-                                            log.info(prodId);
-//                                            log.info("root");
-//                                            String productId = root.get("credentialSubject").get("product").get("productId").asText();
-//                                            String companyEmail = root.get("credentialSubject").get("company").get("email").asText();
+                                            String companyEmail = updatedCredentialProcedure.getOwnerEmail();
+                                            String productId = updatedCredentialProcedure.getCredentialId().toString();
 
                                             return m2mTokenService.getM2MToken()
                                                     .flatMap(m2mToken -> credentialDeliveryService.sendVcToResponseUri(
                                                             responseUri,
                                                             signedVc,
-                                                            prodId,
-                                                            email,
+                                                            productId,
+                                                            companyEmail,
                                                             m2mToken.accessToken()
                                                     ));
                                         } catch (Exception e) {
