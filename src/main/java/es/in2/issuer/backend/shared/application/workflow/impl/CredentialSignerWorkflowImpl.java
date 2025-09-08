@@ -234,9 +234,8 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
                                     .switchIfEmpty(Mono.error(new IllegalStateException("Missing responseUri for procedureId: " + procedureId)))
                                     .flatMap(responseUri -> {
                                         try {
-                                            JsonNode root = new ObjectMapper().readTree(updatedCredentialProcedure.getCredentialDecoded());
-                                            String productId = root.get("credentialSubject").get("product").get("productId").asText();
-                                            String companyEmail = root.get("credentialSubject").get("company").get("email").asText();
+                                            String companyEmail = updatedCredentialProcedure.getOwnerEmail();
+                                            String productId = updatedCredentialProcedure.getCredentialId().toString();
 
                                             return m2mTokenService.getM2MToken()
                                                     .flatMap(m2mToken -> credentialDeliveryService.sendVcToResponseUri(
