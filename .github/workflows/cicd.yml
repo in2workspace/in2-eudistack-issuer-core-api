@@ -33,6 +33,6 @@ jobs:
       - name: Show
         run: |
           aws ecs update-service \
-          --cluster eudistack-dev-ecs-ew1 \
+          --cluster eudistack-dev-ew1-tfstate \
           --service eudistack-dev-ecs-ew1-wallet-service \
           --force-new-deployment
