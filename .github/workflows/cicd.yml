@@ -31,8 +31,6 @@ jobs:
       # Step 2: Setup Node.js environment
       # Installs Node.js 22 and configures npm cache for faster builds
       - name: Show
-        run: |
-          echo "Clusters: "
-          aws ecs list-clusters
+        run: |          
           echo "Services: "
           aws ecs list-services --cluster eudistack-dev-ecs-ew1
