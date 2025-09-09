@@ -72,7 +72,7 @@ public class IssuerFactory {
         return Mono.defer(() ->
                         remoteSignatureServiceImpl.validateCredentials()
                                 .flatMap(valid -> {
-                                    if (!valid) {
+                                    if (Boolean.FALSE.equals(valid)) {
                                         log.error("Credentials mismatch. Signature process aborted.");
                                         return Mono.error(new RemoteSignatureException("Credentials mismatch."));
                                     }

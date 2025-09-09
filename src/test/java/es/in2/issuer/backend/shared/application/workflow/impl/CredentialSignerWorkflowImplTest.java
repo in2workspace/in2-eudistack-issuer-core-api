@@ -412,11 +412,11 @@ class CredentialSignerWorkflowImplTest {
                 .thenReturn(Mono.just(verifierOauth2AccessToken));
         when(verifierOauth2AccessToken.accessToken()).thenReturn("access-token");
         when(credentialDeliveryService.sendVcToResponseUri(
-                eq("https://callback.example.com"),
-                eq("signedVc"),
-                eq(credentialId.toString()),
-                eq("foo@bar.com"),
-                eq("access-token")
+                "https://callback.example.com",
+                "signedVc",
+                credentialId.toString(),
+                "foo@bar.com",
+                "access-token"
         )).thenReturn(Mono.empty());
 
         // Execution

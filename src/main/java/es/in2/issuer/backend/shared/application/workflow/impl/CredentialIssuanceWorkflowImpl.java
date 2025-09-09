@@ -158,11 +158,10 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                     Mono<String> subjectDidMono = determineSubjectDid(proc, md, credentialRequest, token);
 
                     Mono<CredentialResponse> vcMono = subjectDidMono
-                            .flatMap(did -> {
-                                        return verifiableCredentialService.buildCredentialResponse(
+                            .flatMap(did ->
+                                        verifiableCredentialService.buildCredentialResponse(
                                                 processId, did, nonce, token
-                                        );
-                                    }
+                                        )
                             )
                             .switchIfEmpty(
                                     verifiableCredentialService.buildCredentialResponse(

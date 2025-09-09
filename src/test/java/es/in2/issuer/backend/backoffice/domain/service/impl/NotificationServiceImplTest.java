@@ -1,34 +1,26 @@
 package es.in2.issuer.backend.backoffice.domain.service.impl;
 
-import es.in2.issuer.backend.shared.domain.exception.EmailCommunicationException;
-import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum;
 import es.in2.issuer.backend.shared.domain.service.CredentialProcedureService;
 import es.in2.issuer.backend.shared.domain.service.DeferredCredentialMetadataService;
 import es.in2.issuer.backend.shared.domain.service.EmailService;
 import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import reactor.core.publisher.Mono;
-import reactor.test.StepVerifier;
-
-import static es.in2.issuer.backend.backoffice.domain.util.Constants.CREDENTIAL_ACTIVATION_EMAIL_SUBJECT;
-import static es.in2.issuer.backend.backoffice.domain.util.Constants.MAIL_ERROR_COMMUNICATION_EXCEPTION_MESSAGE;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class NotificationServiceImplTest {
 
-    private final String processId = "processId";
-    private final String procedureId = "procedureId";
-    private final String email = "test@example.com";
-    private final String user = "Jhon";
-    private final String knowledgebaseWalletUrl = "https://knowledgebaseUrl.com";
-    private final String organization = "organization";
+    //todo
+//    private final String processId = "processId";
+//    private final String procedureId = "procedureId";
+//    private final String email = "test@example.com";
+//    private final String user = "Jhon";
+//    private final String knowledgebaseWalletUrl = "https://knowledgebaseUrl.com";
+//    private final String organization = "organization";
     private final String issuerUiExternalDomain = "https://example.com";
 
     @Mock
@@ -47,6 +39,7 @@ class NotificationServiceImplTest {
         lenient().when(appConfig.getIssuerFrontendUrl()).thenReturn(issuerUiExternalDomain);
     }
 
+    //todo
 //    @Test
 //    void testSendNotification_DraftStatus() {
 //        String transactionCode = "transactionCode";

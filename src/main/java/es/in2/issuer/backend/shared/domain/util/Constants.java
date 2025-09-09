@@ -15,10 +15,11 @@ public final class Constants {
     public static final String LEAR_CREDENTIAL_MACHINE_TYPE = "LEAR_CREDENTIAL_MACHINE";
 
     public static final String GRANT_TYPE = "urn:ietf:params:oauth:grant-type:pre-authorized_code";
-    public static final List<String> LEAR_CREDENTIAL_EMPLOYEE_CONTEXT = List.of("https://www.w3.org/ns/credentials/v2", "https://www.dome-marketplace.eu/2025/credentials/learcredentialemployee/v2");
-    public static final List<String> LABEL_CREDENTIAL_CONTEXT = List.of("https://www.w3.org/ns/credentials/v2", "https://w3id.org/gaia-x/development#");
-    public static final List<String> CREDENTIAL_CONTEXT_LEAR_CREDENTIAL_EMPLOYEE = List.of("https://www.w3.org/ns/credentials/v2", "https://www.dome-marketplace.eu/2025/credentials/learcredentialemployee/v2");
-    public static final List<String> CREDENTIAL_CONTEXT_LEAR_CREDENTIAL_MACHINE = List.of("https://www.w3.org/ns/credentials/v2", "https://www.dome-marketplace.eu/2025/credentials/learcredentialmachine/v2");
+    public static final String CREDENTIALS_CONTEXT_V2 = "https://www.w3.org/ns/credentials/v2";
+    public static final List<String> LEAR_CREDENTIAL_EMPLOYEE_CONTEXT = List.of(CREDENTIALS_CONTEXT_V2, "https://www.dome-marketplace.eu/2025/credentials/learcredentialemployee/v2");
+    public static final List<String> LABEL_CREDENTIAL_CONTEXT = List.of(CREDENTIALS_CONTEXT_V2, "https://w3id.org/gaia-x/development#");
+    public static final List<String> CREDENTIAL_CONTEXT_LEAR_CREDENTIAL_EMPLOYEE = List.of(CREDENTIALS_CONTEXT_V2, "https://www.dome-marketplace.eu/2025/credentials/learcredentialemployee/v2");
+    public static final List<String> CREDENTIAL_CONTEXT_LEAR_CREDENTIAL_MACHINE = List.of(CREDENTIALS_CONTEXT_V2, "https://www.dome-marketplace.eu/2025/credentials/learcredentialmachine/v2");
     // EXPIRATION TIMES
     public static final Integer CREDENTIAL_OFFER_CACHE_EXPIRATION_TIME = 10;
     public static final Integer VERIFIABLE_CREDENTIAL_JWT_CACHE_EXPIRATION_TIME = 10;

@@ -18,7 +18,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
-import static com.tngtech.archunit.library.Architectures.layeredArchitecture;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @AnalyzeClasses(packages = "es.in2.issuer.backend")
@@ -29,6 +28,7 @@ class ArchUnitTest {
                     BASE_PACKAGE + ".shared.domain.util.Constants",
                     BASE_PACKAGE + ".shared.infrastructure.config.SwaggerConfig");
 
+//todo
 //    @ArchTest
 //    static final ArchRule packageDependenciesAreRespected = layeredArchitecture()
 //            .consideringOnlyDependenciesInLayers()

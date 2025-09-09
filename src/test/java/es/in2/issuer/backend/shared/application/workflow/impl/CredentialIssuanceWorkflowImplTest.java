@@ -7,12 +7,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import es.in2.issuer.backend.shared.application.workflow.CredentialSignerWorkflow;
 import es.in2.issuer.backend.shared.domain.exception.EmailCommunicationException;
 import es.in2.issuer.backend.shared.domain.exception.FormatUnsupportedException;
-import es.in2.issuer.backend.shared.domain.exception.InvalidOrMissingProofException;
 import es.in2.issuer.backend.shared.domain.model.dto.*;
-import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.Mandator;
-import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.Signer;
-import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.employee.LEARCredentialEmployee;
-import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum;
 import es.in2.issuer.backend.shared.domain.service.*;
 import es.in2.issuer.backend.shared.domain.util.factory.LEARCredentialEmployeeFactory;
 import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
@@ -27,11 +22,9 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import javax.naming.OperationNotSupportedException;
-import java.util.List;
 
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.*;
 import static es.in2.issuer.backend.shared.domain.util.Constants.JWT_VC_JSON;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -99,6 +92,7 @@ class CredentialIssuanceServiceImplTest {
                 .verify();
     }
 
+    //todo
 //    @Test
 //    void operationNotSupportedExceptionDueInvalidResponseUriTest() {
 //        String processId = "1234";
@@ -281,7 +275,7 @@ class CredentialIssuanceServiceImplTest {
                 .verify();
     }
 
-
+//todo
 //    @Test
 //    void completeWithdrawVerifiableCertificationProcessSuccess() throws JsonProcessingException {
 //        String processId = "1234";
@@ -330,6 +324,7 @@ class CredentialIssuanceServiceImplTest {
 //        JsonNode jsonNode = objectMapper.readTree(json);
 //        PreSubmittedCredentialRequest preSubmittedCredentialRequest = PreSubmittedCredentialRequest.builder().payload(jsonNode).schema("VerifiableCertification").format(JWT_VC_JSON).responseUri("https://example.com/1234").operationMode("S").build();
 //
+
 //        when(verifiableCredentialPolicyAuthorizationService.authorize(token, type, jsonNode, idToken)).thenReturn(Mono.empty());
 //        when(verifiableCredentialService.generateVc(processId, preSubmittedCredentialRequest.schema(),preSubmittedCredentialRequest)).thenReturn(Mono.just(procedureId));
 //        when(issuerApiClientTokenService.getClientToken()).thenReturn(Mono.just("internalToken"));

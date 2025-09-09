@@ -1,6 +1,5 @@
 package es.in2.issuer.backend.backoffice.domain.service.impl;
 
-import es.in2.issuer.backend.shared.domain.model.dto.Grants;
 import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -11,10 +10,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-import java.util.List;
-
-import static es.in2.issuer.backend.shared.domain.util.Constants.GRANT_TYPE;
-import static es.in2.issuer.backend.shared.domain.util.Constants.LEAR_CREDENTIAL_EMPLOYEE;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -31,6 +26,7 @@ class CredentialOfferServiceImplTest {
         when(appConfig.getIssuerBackendUrl()).thenReturn("https://example.com");
     }
 
+    //todo
 //    @Test
 //    void testBuildCustomCredentialOffer() {
 //        String credentialType = "type1";

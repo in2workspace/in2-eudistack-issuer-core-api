@@ -1,24 +1,5 @@
-//package es.in2.issuer.backend.oidc4vci.application.workflow;
-//
-//import es.in2.issuer.backend.oidc4vci.application.workflow.impl.PreAuthorizedCodeWorkflowImpl;
-//import es.in2.issuer.backend.oidc4vci.domain.service.PreAuthorizedCodeService;
-//import es.in2.issuer.backend.shared.domain.model.dto.PreAuthorizedCodeResponse;
-////import es.in2.issuer.backend.shared.objectmother.PreAuthorizedCodeResponseMother;
-//import org.junit.jupiter.api.Test;
-//import org.junit.jupiter.api.extension.ExtendWith;
-//import org.mockito.ArgumentCaptor;
-//import org.mockito.Captor;
-//import org.mockito.InjectMocks;
-//import org.mockito.Mock;
-//import org.mockito.junit.jupiter.MockitoExtension;
-//import reactor.core.publisher.Mono;
-//import reactor.test.StepVerifier;
-//
-//import java.util.UUID;
-//
-//import static org.assertj.core.api.Assertions.assertThat;
-//import static org.mockito.ArgumentMatchers.anyString;
-//import static org.mockito.Mockito.*;
+//todo
+package es.in2.issuer.backend.oidc4vci.application.workflow;
 //
 //@ExtendWith(MockitoExtension.class)
 //class PreAuthorizedCodeWorkflowTest {

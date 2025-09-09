@@ -1,29 +1,14 @@
 package es.in2.issuer.backend.backoffice.application.workflow.impl;
 
-import es.in2.issuer.backend.backoffice.domain.model.dtos.CredentialOfferUriResponse;
 import es.in2.issuer.backend.backoffice.domain.service.impl.CredentialOfferServiceImpl;
 import es.in2.issuer.backend.oidc4vci.application.workflow.PreAuthorizedCodeWorkflow;
-import es.in2.issuer.backend.shared.domain.model.dto.CredentialOffer;
-import es.in2.issuer.backend.shared.domain.model.dto.CredentialOfferData;
-import es.in2.issuer.backend.shared.domain.model.dto.PreAuthorizedCodeResponse;
-import es.in2.issuer.backend.shared.domain.model.entities.CredentialProcedure;
 import es.in2.issuer.backend.shared.domain.repository.CredentialOfferCacheRepository;
 import es.in2.issuer.backend.shared.domain.service.CredentialProcedureService;
 import es.in2.issuer.backend.shared.domain.service.DeferredCredentialMetadataService;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import reactor.core.publisher.Mono;
-import reactor.test.StepVerifier;
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
-
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class ActivationCodeWorkflowImplTest {
@@ -46,6 +31,7 @@ class ActivationCodeWorkflowImplTest {
     @InjectMocks
     private ActivationCodeWorkflowImpl credentialOfferIssuanceService;
 
+    //todo
 //    @Test
 //    void testBuildCredentialOfferUri() {
 //        String processId = "1234";
