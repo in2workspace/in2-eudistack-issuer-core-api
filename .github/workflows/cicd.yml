@@ -19,7 +19,7 @@ jobs:
     environment: stg
 
     env:
-      FARGATE_APP_NAME: wallet
+      FARGATE_APP_NAME: issuer
       ENVIRONMENT: stg
 
     steps:
