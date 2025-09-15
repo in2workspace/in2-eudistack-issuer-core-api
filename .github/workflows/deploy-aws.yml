@@ -1,0 +1,40 @@
+# GitHub Actions workflow for deploying DOME Issuer API to AWS Fargate
+# This workflow updates the ECS service running on Fargate
+# Triggered on pushes to the main branch
+name: Deploy to AWS Fargate
+on:
+  push:
+    branches:
+      - main
+
+# Required permissions for the workflow
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    name: Deploy to AWS Fargate
+    runs-on: ubuntu-latest
+    environment: stg
+
+    env:
+      FARGATE_APP_NAME: issuer
+      ENVIRONMENT: stg
+
+    steps:
+      # Step 1: Configure AWS CLI credentials
+      # Sets up AWS authentication using stored secrets for API access
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region:            ${{ secrets.AWS_REGION }}
+
+      # Step 2: Update service
+      - name: Update service
+        run: |
+          aws ecs update-service \
+          --cluster eudistack-${{ env.ENVIRONMENT }}-ecs-ew1 \
+          --service eudistack-${{ env.ENVIRONMENT }}-ecs-ew1-${{ env.FARGATE_APP_NAME }}-service \
+          --force-new-deployment
