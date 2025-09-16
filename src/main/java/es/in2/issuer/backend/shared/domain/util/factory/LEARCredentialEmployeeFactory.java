@@ -154,7 +154,6 @@ public class LEARCredentialEmployeeFactory {
                 .firstName(baseCredentialSubject.mandate().mandatee().firstName())
                 .lastName(baseCredentialSubject.mandate().mandatee().lastName())
                 .email(baseCredentialSubject.mandate().mandatee().email())
-                .nationality(baseCredentialSubject.mandate().mandatee().nationality())
                 .build();
     }
 
@@ -206,7 +205,6 @@ public class LEARCredentialEmployeeFactory {
                         .email(baseMandatee.email())
                         .firstName(baseMandatee.firstName())
                         .lastName(baseMandatee.lastName())
-                        .nationality(baseMandatee.nationality())
                         .build();
 
         return Mono.just(LEARCredentialEmployee.builder()

@@ -84,7 +84,6 @@ class LEARCredentialEmployeeFactoryTest {
         when(mandatee.email()).thenReturn("email");
         when(mandatee.firstName()).thenReturn("firstName");
         when(mandatee.lastName()).thenReturn("lastName");
-        when(mandatee.nationality()).thenReturn("nationality");
         when(mandate.power()).thenReturn(List.of(Power.builder().build()));
         when(objectMapper.writeValueAsString(any(LEARCredentialEmployee.class))).thenReturn(expectedString);
 

@@ -38,7 +38,6 @@ class LEARCredentialEmployeeTest {
                         .firstName("John")
                         .lastName("Doe")
                         .mobilePhone("+123456789")
-                        .nationality("US")
                         .build();
 
         Mandator mandator =
@@ -131,7 +130,6 @@ class LEARCredentialEmployeeTest {
                                 .firstName("John")
                                 .lastName("Doe")
                                 .mobilePhone("+123456789")
-                                .nationality("US")
                                 .build())
                         .mandator(Mandator.builder()
                                 .commonName("MandatorCommonName")
