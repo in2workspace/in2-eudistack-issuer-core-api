@@ -58,7 +58,7 @@ public class LabelCredentialFactory {
         return buildCredentialStatus()
                 .map(credentialStatus -> LabelCredential.builder()
                 .context(LABEL_CREDENTIAL_CONTEXT)
-                .id(UUID.randomUUID().toString())
+                .id("urn:uuid:" + UUID.randomUUID())
                 .type(LABEL_CREDENTIAL_TYPES)
                 .credentialSubject(credential.credentialSubject())
                 .validFrom(credential.validFrom())
