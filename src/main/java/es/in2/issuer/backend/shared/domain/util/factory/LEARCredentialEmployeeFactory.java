@@ -70,7 +70,7 @@ public class LEARCredentialEmployeeFactory {
             LEARCredentialEmployee employee;
             if (learCredential.contains("https://trust-framework.dome-marketplace.eu/credentials/learcredentialemployee/v1")) {
                 employee = objectMapper.readValue(learCredential, LEARCredentialEmployee.class);
-            } else if (learCredential.contains("https://www.dome-marketplace.eu/2025/credentials/learcredentialemployee/v2")) {
+            } else if (learCredential.contains(CREDENTIALS_EUDISTACK_LEAR_CREDENTIAL_EMPLOYEE_CONTEXT)) {
                 JsonNode learCredentialEmployee = objectMapper.readTree(learCredential);
                 learCredentialEmployee.get("credentialSubject").get("mandate").get("power").forEach(power -> {
                     ((ObjectNode) power).remove("tmf_function");
