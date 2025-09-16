@@ -70,6 +70,10 @@ public class LEARCredentialMachineFactory {
     }
 
     private Mono<LEARCredentialMachine> buildFinalLearCredentialMachine(LEARCredentialMachine.CredentialSubject baseCredentialSubject) {
+        log.info("buildFinalLearCredentialMachine");
+
+
+
         Instant currentTime = Instant.now();
         String validFrom = currentTime.toString();
         String validUntil = currentTime.plus(365, ChronoUnit.DAYS).toString();

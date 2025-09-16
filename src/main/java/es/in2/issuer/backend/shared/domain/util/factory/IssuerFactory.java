@@ -56,7 +56,6 @@ public class IssuerFactory {
                 .organization(defaultSignerConfig.getOrganization())
                 .country(defaultSignerConfig.getCountry())
                 .commonName(defaultSignerConfig.getCommonName())
-                .emailAddress(defaultSignerConfig.getEmail())
                 .serialNumber(defaultSignerConfig.getSerialNumber())
                 .build();
     }
@@ -76,11 +75,9 @@ public class IssuerFactory {
                                         log.error("Credentials mismatch. Signature process aborted.");
                                         return Mono.error(new RemoteSignatureException("Credentials mismatch."));
                                     }
-                                    return getMail(procedureId, credentialType)
-                                            .flatMap(mail -> remoteSignatureServiceImpl.requestAccessToken(null, SIGNATURE_REMOTE_SCOPE_SERVICE)
+                                    return remoteSignatureServiceImpl.requestAccessToken(null, SIGNATURE_REMOTE_SCOPE_SERVICE)
                                                     .flatMap(token -> remoteSignatureServiceImpl.requestCertificateInfo(token, remoteSignatureConfig.getRemoteSignatureCredentialId()))
-                                                    .flatMap(certInfo -> remoteSignatureServiceImpl.extractIssuerFromCertificateInfo(certInfo, mail))
-                                            );
+                                                    .flatMap(certInfo -> remoteSignatureServiceImpl.extractIssuerFromCertificateInfo(certInfo));
                                 })
                 )
                 .retryWhen(Retry.backoff(3, Duration.ofSeconds(1))
@@ -94,20 +91,5 @@ public class IssuerFactory {
                     return remoteSignatureServiceImpl.handlePostRecoverError(procedureId)
                             .then(Mono.empty());
                 });
-    }
-
-    private Mono<String> getMail(String procedureId, String credentialType) {
-        return switch (credentialType) {
-            case LEAR_CREDENTIAL_EMPLOYEE ->
-                    remoteSignatureServiceImpl.getMandatorMail(procedureId);
-            case LABEL_CREDENTIAL ->
-                    Mono.just(defaultSignerConfig.getEmail());
-            case LEAR_CREDENTIAL_MACHINE ->
-                    remoteSignatureServiceImpl.getMandatorMailLearCredentialMachine(procedureId);
-            default -> {
-                log.error("Unsupported credentialType: {}", credentialType);
-                yield Mono.error(new RemoteSignatureException("Unsupported credentialType: " + credentialType));
-            }
-        };
     }
 }

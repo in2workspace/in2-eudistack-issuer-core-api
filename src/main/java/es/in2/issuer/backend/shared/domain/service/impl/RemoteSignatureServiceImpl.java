@@ -321,7 +321,7 @@ public class RemoteSignatureServiceImpl implements RemoteSignatureService {
                 .doOnError(error -> log.error("Error sending credential to sign: {}", error.getMessage()));
     }
 
-    public Mono<DetailedIssuer> extractIssuerFromCertificateInfo(String certificateInfo, String emailAdress) {
+    public Mono<DetailedIssuer> extractIssuerFromCertificateInfo(String certificateInfo) {
         try {
             log.info("Starting extraction of issuer from certificate info");
             JsonNode certificateInfoNode = objectMapper.readTree(certificateInfo);
@@ -364,7 +364,6 @@ public class RemoteSignatureServiceImpl implements RemoteSignatureService {
                                 .organization(dnAttributes.get("O"))
                                 .country(dnAttributes.get("C"))
                                 .commonName(dnAttributes.get("CN"))
-                                .emailAddress(emailAdress)
                                 .serialNumber(serialNumber)
                                 .build();
                         return Mono.just(detailedIssuer);
