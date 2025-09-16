@@ -7,6 +7,7 @@ import lombok.Builder;
 @Builder
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record Mandator(
+        @JsonProperty("id") String id,
         @JsonProperty("commonName") String commonName,
         @JsonProperty("country") String country,
         @JsonProperty("emailAddress") String emailAddress,
