@@ -75,7 +75,6 @@ public class LEARCredentialEmployeeFactory {
                 employee = objectMapper.readValue(learCredential, LEARCredentialEmployee.class);
             } else if (
                     learCredential.contains("https://www.dome-marketplace.eu/2025/credentials/learcredentialemployee/v2")
-                            || learCredential.contains(CREDENTIALS_EUDISTACK_LEAR_CREDENTIAL_EMPLOYEE_CONTEXT)
             ) {
                 JsonNode learCredentialEmployee = objectMapper.readTree(learCredential);
                 learCredentialEmployee.get("credentialSubject").get("mandate").get("power").forEach(power -> {
@@ -85,6 +84,8 @@ public class LEARCredentialEmployeeFactory {
                     ((ObjectNode) power).remove("tmf_action");
                 });
                 employee = objectMapper.readValue(learCredentialEmployee.toString(), LEARCredentialEmployee.class);
+            } else if(learCredential.contains(CREDENTIALS_EUDISTACK_LEAR_CREDENTIAL_EMPLOYEE_CONTEXT)){
+                employee = objectMapper.readValue(learCredential, LEARCredentialEmployee.class);
             } else {
                 throw new InvalidCredentialFormatException("Invalid credential format");
             }
