@@ -41,6 +41,7 @@ public record LEARCredentialEmployee(
             @Builder
             public record Mandatee(
                     @JsonProperty("id") String id,
+                    @JsonProperty("employeeId") String employeeId,
                     @JsonProperty("email") String email,
                     // To keep compatibility with the v1 credential we keep the old name
                     @JsonProperty("firstName") @JsonAlias("first_name") String firstName,
