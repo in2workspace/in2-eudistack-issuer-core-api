@@ -157,10 +157,11 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
                                     if (mandateNode.has(SIGNER)) {
                                         yield Mono.just(mandateNode.get(SIGNER).get(EMAIL_ADDRESS).asText());
                                     } else {
-                                        yield Mono.just(vcNode.get(ISSUER).get(EMAIL_ADDRESS).asText());
+                                        // todo
+                                        yield Mono.just(vcNode.get(ISSUER).get(EMAIL).asText());
                                     }
                                 } else {
-                                    JsonNode mandatorEmailNode = credential.get(CREDENTIAL_SUBJECT).get(MANDATE).get(MANDATOR).get(EMAIL_ADDRESS);
+                                    JsonNode mandatorEmailNode = credential.get(CREDENTIAL_SUBJECT).get(MANDATE).get(MANDATOR).get("email");
                                     String email = mandatorEmailNode.asText();
                                     yield Mono.just(email.equals("jesus.ruiz@in2.es") ? "domesupport@in2.es" : email);
                                 }

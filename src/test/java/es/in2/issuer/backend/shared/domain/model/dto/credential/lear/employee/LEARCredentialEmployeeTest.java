@@ -44,7 +44,7 @@ class LEARCredentialEmployeeTest {
                 Mandator.builder()
                         .commonName("MandatorCommonName")
                         .country("US")
-                        .emailAddress("mandator@example.com")
+                        .email("mandator@example.com")
                         .organization("MandatorOrg")
                         .organizationIdentifier("Org123")
                         .serialNumber("SN123")
@@ -134,7 +134,7 @@ class LEARCredentialEmployeeTest {
                         .mandator(Mandator.builder()
                                 .commonName("MandatorCommonName")
                                 .country("US")
-                                .emailAddress("mandator@example.com")
+                                .email("mandator@example.com")
                                 .organization("MandatorOrg")
                                 .organizationIdentifier("Org123")
                                 .serialNumber("SN123")
@@ -167,7 +167,6 @@ class LEARCredentialEmployeeTest {
                 .organization("IssuerOrg")
                 .country("US")
                 .commonName("IssuerCommonName")
-                .emailAddress("example@example.com")
                 .serialNumber("IssuerSN123")
                 .build();
 

@@ -388,7 +388,7 @@ class VerifiableCredentialPolicyAuthorizationServiceImplTest {
                         .serialNumber(learCredential.credentialSubject().mandate().mandator().serialNumber())
                         .country(learCredential.credentialSubject().mandate().mandator().country())
                         .commonName(learCredential.credentialSubject().mandate().mandator().commonName())
-                        .emailAddress(learCredential.credentialSubject().mandate().mandator().emailAddress())
+                        .email(learCredential.credentialSubject().mandate().mandator().email())
                         .build())
                 .power(Collections.singletonList(
                         Power.builder()
@@ -438,7 +438,7 @@ class VerifiableCredentialPolicyAuthorizationServiceImplTest {
                         .serialNumber(learCredential.credentialSubject().mandate().mandator().serialNumber())
                         .country(learCredential.credentialSubject().mandate().mandator().country())
                         .commonName(learCredential.credentialSubject().mandate().mandator().commonName())
-                        .emailAddress(learCredential.credentialSubject().mandate().mandator().emailAddress())
+                        .email(learCredential.credentialSubject().mandate().mandator().email())
                         .build())
                 .power(Collections.singletonList(
                         Power.builder()
@@ -706,7 +706,7 @@ class VerifiableCredentialPolicyAuthorizationServiceImplTest {
                 .organizationIdentifier("OTHER_ORGANIZATION")
                 .commonName("SomeOtherOrganization")
                 .country("ES")
-                .emailAddress("someaddres@example.com")
+                .email("someaddres@example.com")
                 .serialNumber("123456")
                 .build();
         LEARCredentialEmployee.CredentialSubject.Mandate.Mandatee mandatee = LEARCredentialEmployee.CredentialSubject.Mandate.Mandatee.builder()

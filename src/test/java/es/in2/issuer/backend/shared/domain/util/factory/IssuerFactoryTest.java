@@ -58,7 +58,6 @@ class IssuerFactoryTest {
                     assertEquals("MyOrg", issuer.organization());
                     assertEquals("ES", issuer.country());
                     assertEquals("CN", issuer.commonName());
-                    assertEquals("a@b.c", issuer.emailAddress());
                     assertEquals("SN123", issuer.serialNumber());
                 })
                 .verifyComplete();
@@ -93,7 +92,6 @@ class IssuerFactoryTest {
 //
 //        DetailedIssuer expected = DetailedIssuer.builder()
 //                .id("id1").organizationIdentifier("org1").organization("o")
-//                .country("c").commonName("cn").emailAddress("e").serialNumber("sn")
 //                .build();
 //        when(remoteSignatureConfig.getRemoteSignatureCredentialId()).thenReturn("cred-id");
 //
@@ -118,10 +116,9 @@ class IssuerFactoryTest {
         when(defaultSignerConfig.getEmail()).thenReturn("vc@mail");
         DetailedIssuer expectedVC = DetailedIssuer.builder()
                 .id("id2").organizationIdentifier("org2").organization("o2")
-                .country("c2").commonName("cn2").emailAddress("e2").serialNumber("sn2")
                 .build();
         when(remoteSignatureConfig.getRemoteSignatureCredentialId()).thenReturn("vc-cred");
-        when(remoteSignatureServiceImpl.extractIssuerFromCertificateInfo("vc-cert", "vc@mail"))
+        when(remoteSignatureServiceImpl.extractIssuerFromCertificateInfo("vc-cert"))
                 .thenReturn(Mono.just(expectedVC));
 
         StepVerifier.create(issuerFactory.createDetailedIssuer(procedureId, verifiableType))
