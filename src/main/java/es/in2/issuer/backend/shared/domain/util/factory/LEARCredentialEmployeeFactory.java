@@ -159,6 +159,7 @@ public class LEARCredentialEmployeeFactory {
             LEARCredentialEmployee.CredentialSubject baseCredentialSubject) {
         return LEARCredentialEmployee.CredentialSubject.Mandate.Mandatee.builder()
                 .firstName(baseCredentialSubject.mandate().mandatee().firstName())
+                .employeeId(baseCredentialSubject.mandate().mandatee().employeeId())
                 .lastName(baseCredentialSubject.mandate().mandatee().lastName())
                 .email(baseCredentialSubject.mandate().mandatee().email())
                 .build();
@@ -210,6 +211,7 @@ public class LEARCredentialEmployeeFactory {
                 LEARCredentialEmployee.CredentialSubject.Mandate.Mandatee.builder()
                         .id(mandateeId)
                         .email(baseMandatee.email())
+                        .employeeId(baseMandatee.employeeId())
                         .firstName(baseMandatee.firstName())
                         .lastName(baseMandatee.lastName())
                         .build();
