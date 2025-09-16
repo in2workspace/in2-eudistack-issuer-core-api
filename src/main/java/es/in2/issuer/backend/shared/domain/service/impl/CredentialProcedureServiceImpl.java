@@ -155,10 +155,10 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
                                     JsonNode vcNode = credential.get(VC);
                                     JsonNode mandateNode = vcNode.get(CREDENTIAL_SUBJECT).get(MANDATE);
                                     if (mandateNode.has(SIGNER)) {
+//                                        todo remove signer references
                                         yield Mono.just(mandateNode.get(SIGNER).get(EMAIL_ADDRESS).asText());
                                     } else {
-                                        // todo
-                                        yield Mono.just(vcNode.get(ISSUER).get(EMAIL).asText());
+                                        yield Mono.just(vcNode.get(MANDATOR).get(EMAIL).asText());
                                     }
                                 } else {
                                     JsonNode mandatorEmailNode = credential.get(CREDENTIAL_SUBJECT).get(MANDATE).get(MANDATOR).get("email");
