@@ -71,7 +71,6 @@ class LEARCredentialEmployeeTest {
 
         LEARCredentialEmployee.CredentialSubject.Mandate mandate =
                 LEARCredentialEmployee.CredentialSubject.Mandate.builder()
-                        .id("mandate-id")
                         .lifeSpan(lifeSpan)
                         .mandatee(mandatee)
                         .mandator(mandator)
@@ -107,7 +106,6 @@ class LEARCredentialEmployeeTest {
         assertEquals("2024-01-01T00:00:00Z", employee.validFrom());
         assertEquals("2025-01-01T00:00:00Z", employee.validUntil());
         // Verify some nested fields
-        assertEquals("mandate-id", employee.credentialSubject().mandate().id());
         assertEquals("John", employee.credentialSubject().mandate().mandatee().firstName());
         assertEquals("MandatorOrg", employee.credentialSubject().mandate().mandator().organization());
         assertEquals("action-value", employee.credentialSubject().mandate().power().get(0).action());
@@ -119,7 +117,6 @@ class LEARCredentialEmployeeTest {
         // Build nested objects for the credentialSubject property
         LEARCredentialEmployee.CredentialSubject.Mandate mandate =
                 LEARCredentialEmployee.CredentialSubject.Mandate.builder()
-                        .id("mandate-id")
                         .lifeSpan(LifeSpan.builder()
                                 .startDateTime("2024-01-01T00:00:00Z")
                                 .endDateTime("2025-01-01T00:00:00Z")

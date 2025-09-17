@@ -69,6 +69,8 @@ public class LEARCredentialEmployeeFactory {
         //todo
         log.info("mapStringToLEARCredentialEmployee");
         log.info(learCredential);
+        log.info("employee v3 context");
+        log.info(CREDENTIALS_EUDISTACK_LEAR_CREDENTIAL_EMPLOYEE_CONTEXT);
         try {
             LEARCredentialEmployee employee;
             if (learCredential.contains("https://trust-framework.dome-marketplace.eu/credentials/learcredentialemployee/v1")) {
@@ -146,6 +148,7 @@ public class LEARCredentialEmployeeFactory {
             LEARCredentialEmployee.CredentialSubject baseCredentialSubject) {
         return baseCredentialSubject.mandate().power().stream()
                 .map(power -> Power.builder()
+//                        todo
                         .id(UUID.randomUUID().toString())
                         .type(power.type())
                         .domain(power.domain())
@@ -170,7 +173,6 @@ public class LEARCredentialEmployeeFactory {
             LEARCredentialEmployee.CredentialSubject.Mandate.Mandatee mandatee,
             List<Power> populatedPowers) {
         return LEARCredentialEmployee.CredentialSubject.Mandate.builder()
-                .id(UUID.randomUUID().toString())
                 .mandator(baseCredentialSubject.mandate().mandator())
                 .mandatee(mandatee)
                 .power(populatedPowers)
@@ -228,7 +230,6 @@ public class LEARCredentialEmployeeFactory {
                         LEARCredentialEmployee.CredentialSubject.builder()
                                 .mandate(
                                         LEARCredentialEmployee.CredentialSubject.Mandate.builder()
-                                                .id(decodedCredential.credentialSubject().mandate().id())
                                                 .mandator(decodedCredential.credentialSubject().mandate().mandator())
                                                 .mandatee(updatedMandatee)
                                                 .power(decodedCredential.credentialSubject().mandate().power())

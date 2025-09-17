@@ -78,7 +78,6 @@ class LEARCredentialEmployeeFactoryTest {
         when(learCredentialEmployeeJwtPayload.learCredentialEmployee()).thenReturn(learCredentialEmployee);
         when(learCredentialEmployeeJwtPayload.learCredentialEmployee().credentialSubject()).thenReturn(credentialSubject);
         when(credentialSubject.mandate()).thenReturn(mandate);
-        when(mandate.id()).thenReturn("mandateeId");
         when(mandate.mandator()).thenReturn(mandator);
         when(mandate.mandatee()).thenReturn(mandatee);
         when(mandatee.email()).thenReturn("email");

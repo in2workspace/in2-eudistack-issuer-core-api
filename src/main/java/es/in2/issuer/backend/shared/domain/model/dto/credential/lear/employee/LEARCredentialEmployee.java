@@ -30,7 +30,6 @@ public record LEARCredentialEmployee(
     ) {
         @Builder
         public record Mandate(
-                @JsonProperty("id") String id,
                 @JsonProperty("life_span") LifeSpan lifeSpan,
                 @JsonProperty("mandatee") Mandatee mandatee,
                 @JsonProperty("mandator") Mandator mandator,
