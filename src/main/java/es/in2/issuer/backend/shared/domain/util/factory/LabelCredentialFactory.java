@@ -169,10 +169,14 @@ public class LabelCredentialFactory {
 
 
     private Mono<CredentialProcedureCreationRequest> buildCredentialProcedureCreationRequest(String decodedCredential, LabelCredential labelCredentialDecoded, String operationMode, String email) {
+        String urn = labelCredentialDecoded.id();
+        String uuidString = urn.replace("urn:uuid:", "");
+        String credentialUuid = UUID.fromString(uuidString).toString();
+
         return accessTokenService.getOrganizationIdFromCurrentSession()
                 .flatMap(organizationId ->
                         Mono.just(CredentialProcedureCreationRequest.builder()
-                                .credentialId(labelCredentialDecoded.id())
+                                .credentialId(credentialUuid)
                                 .organizationIdentifier(organizationId)
                                 .credentialDecoded(decodedCredential)
                                 .credentialType(CredentialType.LABEL_CREDENTIAL)
