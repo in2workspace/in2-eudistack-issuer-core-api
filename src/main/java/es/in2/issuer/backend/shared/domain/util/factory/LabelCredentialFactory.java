@@ -123,7 +123,7 @@ public class LabelCredentialFactory {
     public Mono<LabelCredentialJwtPayload> buildLabelCredentialJwtPayload(LabelCredential credential) {
         return Mono.just(
                 LabelCredentialJwtPayload.builder()
-                        .JwtId(UUID.randomUUID().toString())
+                        .JwtId("urn:uuid:" + UUID.randomUUID())
                         .credential(credential)
                         .expirationTime(parseDateToUnixTime(credential.validUntil()))
                         .issuedAt(parseDateToUnixTime(credential.validFrom()))
