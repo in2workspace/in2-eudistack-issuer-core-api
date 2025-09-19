@@ -188,24 +188,25 @@ public class EmailServiceImpl implements EmailService {
     }
 
     @Override
-    public Mono<Void> notifyIfCredentialStatusChanges(CredentialProcedure credential, String expectedStatus) {
-        if (!credential.getCredentialStatus().toString().equalsIgnoreCase(expectedStatus)) {
+    public Mono<Void> notifyIfCredentialStatusChanges(CredentialProcedure credentialProcedure, String expectedStatus) {
+        if (!credentialProcedure.getCredentialStatus().toString().equalsIgnoreCase(expectedStatus)) {
             return Mono.empty();
         }
         return credentialProcedureService
-                .getEmailCredentialOfferInfoByProcedureId(credential.getProcedureId().toString())
+                .getEmailCredentialOfferInfoByProcedureId(credentialProcedure.getProcedureId().toString())
                 .flatMap(info ->
                         sendCredentialRevokedOrExpiredNotificationEmail(
                                 info.email(),
                                 info.user(),
                                 info.organization(),
-                                credential.getCredentialId().toString(),
-                                credential.getCredentialType(),
+//                                todo should be credential id, obtenir de procedure
+                                credentialProcedure.getProcedureId().toString(),
+                                credentialProcedure.getCredentialType(),
                                 expectedStatus
                         )
                 )
                 .onErrorMap(e -> new EmailCommunicationException(MAIL_ERROR_COMMUNICATION_EXCEPTION_MESSAGE))
-                .doOnError(e -> log.error("Error sending '{}' email for credential {}", expectedStatus, credential.getCredentialId()));
+                .doOnError(e -> log.error("Error sending '{}' email for credential procedure {}", expectedStatus, credentialProcedure.getProcedureId().toString()));
     }
 
     private Mono<Void> sendCredentialRevokedOrExpiredNotificationEmail(String to,String user,String organization,String credentialId,String type,String credentialStatus){

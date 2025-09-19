@@ -98,16 +98,16 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
             })
             .flatMap(signedCredential -> {
                 log.info("Update Signed Credential");
-                return updateSignedCredential(signedCredential)
+                return updateSignedCredential(signedCredential, procedureId)
                         .thenReturn(signedCredential);
             })
             .doOnSuccess(x -> log.info("Credential Signed and updated successfully."));
     }
 
-    private Mono<Void> updateSignedCredential(String signedCredential) {
+    private Mono<Void> updateSignedCredential(String signedCredential, String procedureId) {
         List<SignedCredentials.SignedCredential> credentials = List.of(SignedCredentials.SignedCredential.builder().credential(signedCredential).build());
         SignedCredentials signedCredentials = new SignedCredentials(credentials);
-        return deferredCredentialWorkflow.updateSignedCredentials(signedCredentials);
+        return deferredCredentialWorkflow.updateSignedCredentials(signedCredentials, procedureId);
     }
 
     private Mono<String> signCredentialOnRequestedFormat(String unsignedCredential, String format, String token, String procedureId) {

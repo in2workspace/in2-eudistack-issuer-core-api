@@ -28,7 +28,7 @@ public class CredentialStatusAuthorizationServiceImpl implements CredentialStatu
     private final CredentialProcedureRepository credentialProcedureRepository;
 
     @Override
-    public Mono<Void> authorize(String processId, String token, String credentialId) {
+    public Mono<Void> authorize(String processId, String token, String credentialProcedureId) {
         return Mono.fromCallable(() -> jwtService.parseJWT(token))
                 .flatMap(signedJWT -> {
                     Payload payload = signedJWT.getPayload();
@@ -54,7 +54,7 @@ public class CredentialStatusAuthorizationServiceImpl implements CredentialStatu
                                     .mandator()
                                     .organizationIdentifier();
 
-                    return credentialProcedureRepository.findByCredentialId(UUID.fromString(credentialId))
+                    return credentialProcedureRepository.findById(UUID.fromString(credentialProcedureId))
                             .flatMap(credential -> {
                                 String credentialOrganizationIdentifier = credential.getOrganizationIdentifier();
                                 if (userOrganizationIdentifier.equals(IN2_ORGANIZATION_IDENTIFIER) ||

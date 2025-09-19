@@ -39,7 +39,6 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
     @Override
     public Mono<String> createCredentialProcedure(CredentialProcedureCreationRequest credentialProcedureCreationRequest) {
         CredentialProcedure credentialProcedure = CredentialProcedure.builder()
-                .credentialId(UUID.fromString(credentialProcedureCreationRequest.credentialId()))
                 .credentialStatus(CredentialStatusEnum.DRAFT)
                 .credentialDecoded(credentialProcedureCreationRequest.credentialDecoded())
                 .organizationIdentifier(credentialProcedureCreationRequest.organizationIdentifier())
@@ -123,11 +122,6 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
     public Mono<String> getDecodedCredentialByProcedureId(String procedureId) {
         return credentialProcedureRepository.findById(UUID.fromString(procedureId))
                 .flatMap(credentialProcedure -> Mono.just(credentialProcedure.getCredentialDecoded()));
-    }
-
-    @Override
-    public Mono<CredentialProcedure> getCredentialByCredentialId(String credentialId) {
-        return credentialProcedureRepository.findByCredentialId(UUID.fromString(credentialId));
     }
 
     @Override
@@ -218,9 +212,9 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
     }
 
     @Override
-    public Mono<String> updatedEncodedCredentialByCredentialId(String encodedCredential, String
-            credentialId) {
-        return getCredentialByCredentialId(credentialId)
+    public Mono<String> updatedEncodedCredentialByCredentialProcedureId(String encodedCredential, String
+            credentialProcedureId) {
+        return getCredentialProcedureById(credentialProcedureId)
                 .flatMap(credentialProcedure -> {
                     credentialProcedure.setCredentialEncoded(encodedCredential);
                     return credentialProcedureRepository.save(credentialProcedure)

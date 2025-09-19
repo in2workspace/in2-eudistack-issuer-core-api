@@ -81,8 +81,6 @@ class CredentialStatusAuthorizationServiceImplTest {
                 .thenReturn(VC_CLAIM);
         when(learCredentialEmployeeFactory.mapStringToLEARCredentialEmployee(VC_CLAIM))
                 .thenReturn(learCredentialEmployee);
-        when(credentialProcedureRepository.findByCredentialId(UUID.fromString(CREDENTIAL_ID)))
-                .thenReturn(Mono.just(credentialProcedure));
 
         StepVerifier
                 .create(authorizationService.authorize(PROCESS_ID, TOKEN, CREDENTIAL_ID))
@@ -91,7 +89,6 @@ class CredentialStatusAuthorizationServiceImplTest {
         verify(jwtService).parseJWT(TOKEN);
         verify(jwtClaimsSet).getClaim(ROLE);
         verify(jwtService).getClaimFromPayload(payload, VC);
-        verify(credentialProcedureRepository).findByCredentialId(UUID.fromString(CREDENTIAL_ID));
     }
 
     @Test
@@ -123,8 +120,6 @@ class CredentialStatusAuthorizationServiceImplTest {
                 .thenReturn(VC_CLAIM);
         when(learCredentialEmployeeFactory.mapStringToLEARCredentialEmployee(VC_CLAIM))
                 .thenReturn(learCredentialEmployee);
-        when(credentialProcedureRepository.findByCredentialId(UUID.fromString(CREDENTIAL_ID)))
-                .thenReturn(Mono.just(credentialProcedure));
 
         StepVerifier
                 .create(authorizationService.authorize(PROCESS_ID, TOKEN, CREDENTIAL_ID))
@@ -133,7 +128,6 @@ class CredentialStatusAuthorizationServiceImplTest {
         verify(jwtService).parseJWT(TOKEN);
         verify(jwtClaimsSet).getClaim(ROLE);
         verify(jwtService).getClaimFromPayload(payload, VC);
-        verify(credentialProcedureRepository).findByCredentialId(UUID.fromString(CREDENTIAL_ID));
     }
 
     @Test
@@ -190,8 +184,6 @@ class CredentialStatusAuthorizationServiceImplTest {
                 .thenReturn(VC_CLAIM);
         when(learCredentialEmployeeFactory.mapStringToLEARCredentialEmployee(VC_CLAIM))
                 .thenReturn(learCredentialEmployee);
-        when(credentialProcedureRepository.findByCredentialId(UUID.fromString(CREDENTIAL_ID)))
-                .thenReturn(Mono.just(credentialProcedure));
 
         StepVerifier
                 .create(authorizationService.authorize(PROCESS_ID, TOKEN, CREDENTIAL_ID))
@@ -201,6 +193,5 @@ class CredentialStatusAuthorizationServiceImplTest {
         verify(jwtService).parseJWT(TOKEN);
         verify(jwtClaimsSet).getClaim(ROLE);
         verify(jwtService).getClaimFromPayload(payload, VC);
-        verify(credentialProcedureRepository).findByCredentialId(UUID.fromString(CREDENTIAL_ID));
     }
 }

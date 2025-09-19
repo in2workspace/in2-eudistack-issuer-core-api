@@ -53,7 +53,6 @@ class CredentialProcedureServiceImplTest {
         Timestamp expectedValidUntil = new Timestamp(Instant.now().toEpochMilli() + 1000);
 
         CredentialProcedureCreationRequest request = CredentialProcedureCreationRequest.builder()
-                .credentialId(credentialId)
                 .organizationIdentifier(organizationIdentifier)
                 .credentialDecoded(credentialDecoded)
                 .subject(expectedSubject)
@@ -63,7 +62,6 @@ class CredentialProcedureServiceImplTest {
 
         CredentialProcedure savedCredentialProcedure = CredentialProcedure.builder()
                 .procedureId(UUID.fromString(expectedProcedureId))
-                .credentialId(UUID.fromString(credentialId))
                 .credentialStatus(CredentialStatusEnum.DRAFT)
                 .credentialDecoded(credentialDecoded)
                 .organizationIdentifier(organizationIdentifier)
@@ -535,25 +533,22 @@ class CredentialProcedureServiceImplTest {
 
         CredentialProcedure existingCredentialProcedure = new CredentialProcedure();
         existingCredentialProcedure.setProcedureId(procedureId);
-        existingCredentialProcedure.setCredentialId(UUID.fromString(credentialId));
         existingCredentialProcedure.setCredentialEncoded("oldEncodedCredential");
         existingCredentialProcedure.setCredentialStatus(CredentialStatusEnum.ISSUED);
 
         // When
-        when(credentialProcedureRepository.findByCredentialId(any(UUID.class)))
-                .thenReturn(Mono.just(existingCredentialProcedure));
         when(credentialProcedureRepository.save(any(CredentialProcedure.class)))
                 .thenReturn(Mono.just(existingCredentialProcedure));
 
         // Execute
-        Mono<String> result = credentialProcedureService.updatedEncodedCredentialByCredentialId(newEncodedCredential, credentialId);
+        Mono<String> result = credentialProcedureService.updatedEncodedCredentialByCredentialProcedureId(newEncodedCredential, credentialId);
 
         // Then
         StepVerifier.create(result)
                 .expectNext(procedureId.toString())
                 .verifyComplete();
 
-        verify(credentialProcedureRepository, times(1)).findByCredentialId(UUID.fromString(credentialId));
+
         verify(credentialProcedureRepository, times(1)).save(existingCredentialProcedure);
 
         assert existingCredentialProcedure.getCredentialEncoded().equals(newEncodedCredential);
@@ -623,7 +618,6 @@ class CredentialProcedureServiceImplTest {
         UUID uuidCredentialId = UUID.fromString(credentialId);
 
         CredentialProcedure credentialProcedure = new CredentialProcedure();
-        credentialProcedure.setCredentialId(uuidCredentialId);
         credentialProcedure.setCredentialStatus(CredentialStatusEnum.VALID);
 
         // When

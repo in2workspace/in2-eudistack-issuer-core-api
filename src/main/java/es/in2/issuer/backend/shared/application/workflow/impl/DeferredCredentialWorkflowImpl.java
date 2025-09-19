@@ -40,22 +40,21 @@ public class DeferredCredentialWorkflowImpl implements DeferredCredentialWorkflo
     }
 
     @Override
-    public Mono<Void> updateSignedCredentials(SignedCredentials signedCredentials) {
+    public Mono<Void> updateSignedCredentials(SignedCredentials signedCredentials, String procedureId) {
         return Flux.fromIterable(signedCredentials.credentials())
-                .flatMap(sc -> processCredential(sc.credential()))
+                .flatMap(sc -> processCredential(sc.credential(), procedureId))
                 .then();
     }
 
-    private Mono<Void> processCredential(String jwt) {
+    private Mono<Void> processCredential(String jwt, String procedureId) {
         try {
             SignedJWT signedJWT = SignedJWT.parse(jwt);
             String payload = signedJWT.getPayload().toString();
             log.debug("Credential payload: {}", payload);
             JsonNode credentialNode = objectMapper.readTree(payload);
-            String credentialId = credentialNode.get(VC).get("id").asText();
 
             return credentialProcedureService
-                    .updatedEncodedCredentialByCredentialId(jwt, credentialId)
+                    .updatedEncodedCredentialByCredentialProcedureId(jwt, procedureId)
                     .flatMap(procId ->
                             deferredCredentialMetadataService.updateVcByProcedureId(jwt, procId)
                                     .then(deferredCredentialMetadataService.getOperationModeByProcedureId(procId))

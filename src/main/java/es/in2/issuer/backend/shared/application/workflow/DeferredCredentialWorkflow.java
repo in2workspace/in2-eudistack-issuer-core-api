@@ -8,6 +8,6 @@ public interface DeferredCredentialWorkflow {
 
     Mono<PendingCredentials> getPendingCredentialsByOrganizationId(String organizationId);
 
-    Mono<Void> updateSignedCredentials(SignedCredentials signedCredentials);
+    Mono<Void> updateSignedCredentials(SignedCredentials signedCredentials, String procedureId);
 
 }

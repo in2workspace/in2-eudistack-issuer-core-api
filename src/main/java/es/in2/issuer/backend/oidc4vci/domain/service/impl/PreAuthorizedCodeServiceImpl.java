@@ -1,7 +1,7 @@
 package es.in2.issuer.backend.oidc4vci.domain.service.impl;
 
 import es.in2.issuer.backend.oidc4vci.domain.service.PreAuthorizedCodeService;
-import es.in2.issuer.backend.shared.domain.model.dto.CredentialIdAndTxCode;
+import es.in2.issuer.backend.shared.domain.model.dto.CredentialProcedureIdAndTxCode;
 import es.in2.issuer.backend.shared.domain.model.dto.Grants;
 import es.in2.issuer.backend.shared.domain.model.dto.PreAuthorizedCodeResponse;
 import es.in2.issuer.backend.shared.infrastructure.repository.CacheStore;
@@ -13,7 +13,6 @@ import reactor.core.publisher.Mono;
 import reactor.util.function.Tuple2;
 
 import java.security.SecureRandom;
-import java.util.UUID;
 
 import static es.in2.issuer.backend.oidc4vci.domain.util.Constants.*;
 import static es.in2.issuer.backend.shared.domain.util.Utils.generateCustomNonce;
@@ -23,13 +22,13 @@ import static es.in2.issuer.backend.shared.domain.util.Utils.generateCustomNonce
 @RequiredArgsConstructor
 public class PreAuthorizedCodeServiceImpl implements PreAuthorizedCodeService {
     private final SecureRandom random;
-    private final CacheStore<CredentialIdAndTxCode> credentialIdAndTxCodeByPreAuthorizedCodeCacheStore;
+    private final CacheStore<CredentialProcedureIdAndTxCode> credentialProcedureIdAndTxCodeByPreAuthorizedCodeCacheStore;
 
     @Override
-    public Mono<PreAuthorizedCodeResponse> generatePreAuthorizedCode(String processId, Mono<UUID> credentialIdMono) {
+    public Mono<PreAuthorizedCodeResponse> generatePreAuthorizedCode(String processId, Mono<String> credentialProcedureIdMono) {
         return generateCodes()
                 .doFirst(() -> log.debug("ProcessId: {} AuthServer: Generating PreAuthorizedCode response", processId))
-                .flatMap(tuple -> storeInCache(processId, credentialIdMono, tuple))
+                .flatMap(tuple -> storeInCache(processId, credentialProcedureIdMono, tuple))
                 .doOnSuccess(preAuthorizedCodeResponse ->
                         log.debug(
                                 "ProcessId: {} AuthServer: Generated PreAuthorizedCode response successfully",
@@ -40,14 +39,14 @@ public class PreAuthorizedCodeServiceImpl implements PreAuthorizedCodeService {
         return Mono.zip(generatePreAuthorizedCode(), generateTxCode());
     }
 
-    private @NotNull Mono<PreAuthorizedCodeResponse> storeInCache(String processId, Mono<UUID> credentialIdMono, Tuple2<String, String> codes) {
+    private @NotNull Mono<PreAuthorizedCodeResponse> storeInCache(String processId, Mono<String> credentialProcedureIdMono, Tuple2<String, String> codes) {
         String preAuthorizedCode = codes.getT1();
         String txCode = codes.getT2();
 
-        return credentialIdMono
-                .flatMap(credentialId ->
-                        credentialIdAndTxCodeByPreAuthorizedCodeCacheStore
-                                .add(preAuthorizedCode, new CredentialIdAndTxCode(credentialId, txCode))
+        return credentialProcedureIdMono
+                .flatMap(credentialProcedureId ->
+                        credentialProcedureIdAndTxCodeByPreAuthorizedCodeCacheStore
+                                .add(preAuthorizedCode, new CredentialProcedureIdAndTxCode(credentialProcedureId, txCode))
                                 .doOnSuccess(preAuthorizedCodeSaved ->
                                         log.debug(
                                                 "ProcessId: {} AuthServer: Saved TxCode and CredentialId by " +
