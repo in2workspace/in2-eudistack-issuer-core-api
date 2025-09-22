@@ -68,7 +68,7 @@ class CredentialsStatusControllerTest {
         when(credentialStatusWorkflow.revokeCredential(
                 anyString(),
                 eq(bearerToken),
-                eq(request.credentialId()),
+                eq(request.procedureId()),
                 eq(request.listId())))
                 .thenReturn(Mono.empty());
 

@@ -91,9 +91,6 @@ class CredentialStatusWorkflowImplTest {
         when(credentialStatusAuthorizationService.authorize("processId", bearerToken, credentialId))
                 .thenReturn(Mono.empty());
 
-        when(credentialProcedureService.getCredentialByCredentialId(credentialId))
-                .thenReturn(Mono.just(credentialProcedure));
-
         when(objectMapper.readTree(decodedCredential)).thenReturn(root);
 
         when(credentialStatusService.revokeCredential(eq(listId), any(CredentialStatus.class)))
@@ -130,7 +127,7 @@ class CredentialStatusWorkflowImplTest {
             """);
         cp.setCredentialStatus(CredentialStatusEnum.VALID);
         cp.setProcedureId(UUID.randomUUID());
-        cp.setCredentialId(UUID.randomUUID());
+//        cp.setCredentialId(UUID.randomUUID());
         cp.setCredentialType("LEARCredentialEmployee");
 
         ObjectMapper real = new ObjectMapper();
@@ -138,7 +135,7 @@ class CredentialStatusWorkflowImplTest {
 
         when(accessTokenService.getCleanBearerToken(bearerToken)).thenReturn(Mono.just(bearerToken));
         when(credentialStatusAuthorizationService.authorize(processId, bearerToken, credentialId)).thenReturn(Mono.empty());
-        when(credentialProcedureService.getCredentialByCredentialId(credentialId)).thenReturn(Mono.just(cp));
+//        when(credentialProcedureService.getCredentialByCredentialId(credentialId)).thenReturn(Mono.just(cp));
         when(objectMapper.readTree(cp.getCredentialDecoded())).thenReturn(root);
 
         when(credentialStatusService.revokeCredential(eq(listId), any(CredentialStatus.class))).thenReturn(Mono.empty());

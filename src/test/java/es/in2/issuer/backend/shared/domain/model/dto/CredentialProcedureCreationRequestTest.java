@@ -24,7 +24,7 @@ class CredentialProcedureCreationRequestTest {
 
         // Act
         CredentialProcedureCreationRequest request = new CredentialProcedureCreationRequest(
-                expectedCredentialId,
+//                expectedCredentialId,
                 expectedOrganizationIdentifier,
                 expectedCredentialDecoded,
                 expectedCredentialType,
@@ -36,7 +36,7 @@ class CredentialProcedureCreationRequestTest {
         );
 
         // Assert
-        assertEquals(expectedCredentialId, request.credentialId());
+//        assertEquals(expectedCredentialId, request.procedureId());
         assertEquals(expectedOrganizationIdentifier, request.organizationIdentifier());
         assertEquals(expectedCredentialDecoded, request.credentialDecoded());
     }
@@ -50,13 +50,13 @@ class CredentialProcedureCreationRequestTest {
 
         // Act
         CredentialProcedureCreationRequest request = CredentialProcedureCreationRequest.builder()
-                .credentialId(newCredentialId)
+//                .credentialId(newCredentialId)
                 .organizationIdentifier(newOrganizationIdentifier)
                 .credentialDecoded(newCredentialDecoded)
                 .build();
 
         // Assert
-        assertEquals(newCredentialId, request.credentialId());
+//        assertEquals(newCredentialId, request.credentialId());
         assertEquals(newOrganizationIdentifier, request.organizationIdentifier());
         assertEquals(newCredentialDecoded, request.credentialDecoded());
     }
@@ -77,7 +77,7 @@ class CredentialProcedureCreationRequestTest {
         String expectedOwnerEmail2 = "user@example2.com";
 
         CredentialProcedureCreationRequest request1 = new CredentialProcedureCreationRequest(
-                expectedCredentialId,
+//                expectedCredentialId,
                 expectedOrganizationIdentifier,
                 expectedCredentialDecoded,
                 expectedCredentialType1,
@@ -88,7 +88,7 @@ class CredentialProcedureCreationRequestTest {
                 expectedOwnerEmail1
         );
         CredentialProcedureCreationRequest request2 = new CredentialProcedureCreationRequest(
-                expectedCredentialId,
+//                expectedCredentialId,
                 expectedOrganizationIdentifier,
                 expectedCredentialDecoded,
                 expectedCredentialType2,

@@ -179,7 +179,7 @@ class EmailServiceImplTest {
                 .thenReturn("htmlContent");
 
         CredentialProcedure credential = mock(CredentialProcedure.class);
-        when(credential.getCredentialId()).thenReturn(UUID.fromString("123e4567-e89b-12d3-a456-426614174000"));
+//        when(credential.getCredentialId()).thenReturn(UUID.fromString("123e4567-e89b-12d3-a456-426614174000"));
         when(credential.getCredentialType()).thenReturn("LEARCredentialEmployee");
         when(credential.getCredentialStatus()).thenReturn(CredentialStatusEnum.EXPIRED);
 
@@ -215,7 +215,7 @@ class EmailServiceImplTest {
         CredentialProcedure credential = mock(CredentialProcedure.class);
         when(credential.getProcedureId()).thenReturn(UUID.randomUUID());
 
-        when(credential.getCredentialId()).thenReturn(UUID.fromString("123e4567-e89b-12d3-a456-426614174000"));
+//        when(credential.getCredentialId()).thenReturn(UUID.fromString("123e4567-e89b-12d3-a456-426614174000"));
         when(credential.getCredentialType()).thenReturn("LEARCredentialEmployee");
 
         when(credential.getCredentialStatus()).thenReturn(CredentialStatusEnum.EXPIRED);

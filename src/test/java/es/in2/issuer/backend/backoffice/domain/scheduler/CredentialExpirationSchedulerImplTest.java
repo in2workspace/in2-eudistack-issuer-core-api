@@ -41,7 +41,7 @@ class CredentialExpirationSchedulerImplTest {
     @Test
     void shouldExpireCredentialsWhenValidUntilHasPassed() {
         CredentialProcedure credential = new CredentialProcedure();
-        credential.setCredentialId(UUID.randomUUID());
+//        credential.setCredentialId(UUID.randomUUID());
         credential.setProcedureId(UUID.randomUUID());
         credential.setCredentialType("LEARCredentialEmployee");
         credential.setCredentialStatus(CredentialStatusEnum.VALID);
@@ -70,7 +70,7 @@ class CredentialExpirationSchedulerImplTest {
     @Test
     void shouldSendEmailWhenCredentialExpires() {
         CredentialProcedure credential = new CredentialProcedure();
-        credential.setCredentialId(UUID.randomUUID());
+//        credential.setCredentialId(UUID.randomUUID());
         credential.setProcedureId(UUID.randomUUID());
         credential.setCredentialType("LEARCredentialEmployee");
         credential.setCredentialStatus(CredentialStatusEnum.VALID);
@@ -100,7 +100,7 @@ class CredentialExpirationSchedulerImplTest {
     @Test
     void shouldNotExpireCredentialsIfValidUntilHasNotPassed() {
         CredentialProcedure credential = new CredentialProcedure();
-        credential.setCredentialId(UUID.randomUUID());
+//        credential.setCredentialId(UUID.randomUUID());
         credential.setCredentialStatus(CredentialStatusEnum.VALID);
         credential.setValidUntil(Timestamp.from(Instant.now().plusSeconds(60)));
 
