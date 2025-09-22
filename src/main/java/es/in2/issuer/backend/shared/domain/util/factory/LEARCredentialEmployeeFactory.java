@@ -117,7 +117,7 @@ public class LEARCredentialEmployeeFactory {
         LEARCredentialEmployee.CredentialSubject.Mandate mandate = createMandate(baseCredentialSubject, mandatee, populatedPowers);
         LEARCredentialEmployee.CredentialSubject credentialSubject = createCredentialSubject(mandate);
 
-        String credentialId = UUID.randomUUID().toString();
+        String credentialId = "urn:uuid:" + UUID.randomUUID();
 
         return buildCredentialStatus()
                 .map(credentialStatus -> LEARCredentialEmployee.builder()
@@ -279,7 +279,6 @@ public class LEARCredentialEmployeeFactory {
                 .flatMap(organizationId ->
                         Mono.just(
                                 CredentialProcedureCreationRequest.builder()
-                                        .credentialId(credentialDecoded.id())
                                         .organizationIdentifier(organizationId)
                                         .credentialDecoded(decodedCredential)
                                         .credentialType(CredentialType.LEAR_CREDENTIAL_EMPLOYEE)

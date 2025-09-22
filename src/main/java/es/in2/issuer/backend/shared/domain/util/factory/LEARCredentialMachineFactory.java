@@ -78,7 +78,7 @@ public class LEARCredentialMachineFactory {
         String validFrom = currentTime.toString();
         String validUntil = currentTime.plus(365, ChronoUnit.DAYS).toString();
 
-        String credentialId = UUID.randomUUID().toString();
+        String credentialId = "urn:uuid:" + UUID.randomUUID();
         return buildCredentialStatus()
                 .map(credentialStatus -> LEARCredentialMachine.builder()
                 .context(CREDENTIAL_CONTEXT_LEAR_CREDENTIAL_MACHINE)
