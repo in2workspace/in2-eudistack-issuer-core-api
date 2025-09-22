@@ -24,8 +24,7 @@ import reactor.core.scheduler.Schedulers;
 
 import java.io.InputStream;
 
-import static es.in2.issuer.backend.backoffice.domain.util.Constants.MAIL_ERROR_COMMUNICATION_EXCEPTION_MESSAGE;
-import static es.in2.issuer.backend.backoffice.domain.util.Constants.UTF_8;
+import static es.in2.issuer.backend.backoffice.domain.util.Constants.*;
 
 @Slf4j
 @Service
@@ -192,18 +191,24 @@ public class EmailServiceImpl implements EmailService {
         if (!credentialProcedure.getCredentialStatus().toString().equalsIgnoreCase(expectedStatus)) {
             return Mono.empty();
         }
+
         return credentialProcedureService
-                .getEmailCredentialOfferInfoByProcedureId(credentialProcedure.getProcedureId().toString())
-                .flatMap(info ->
-                        sendCredentialRevokedOrExpiredNotificationEmail(
-                                info.email(),
-                                info.user(),
-                                info.organization(),
-                                credentialProcedure.getProcedureId().toString(),
-                                credentialProcedure.getCredentialType(),
-                                expectedStatus
-                        )
+                .getCredentialId(credentialProcedure)
+                .flatMap(credentialId ->
+                        credentialProcedureService
+                                .getEmailCredentialOfferInfoByProcedureId(credentialProcedure.getProcedureId().toString())
+                                .flatMap(info ->
+                                        sendCredentialRevokedOrExpiredNotificationEmail(
+                                                info.email(),
+                                                info.user(),
+                                                info.organization(),
+                                                credentialId,
+                                                credentialProcedure.getCredentialType(),
+                                                expectedStatus
+                                        )
+                                )
                 )
+                //todo don't pass procedure id, pass credential id instead
                 .onErrorMap(e -> new EmailCommunicationException(MAIL_ERROR_COMMUNICATION_EXCEPTION_MESSAGE))
                 .doOnError(e -> log.error("Error sending '{}' email for credential procedure {}", expectedStatus, credentialProcedure.getProcedureId().toString()));
     }

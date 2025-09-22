@@ -89,6 +89,13 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
         });
     }
 
+    public Mono<String> getCredentialId(CredentialProcedure credentialProcedure) {
+        return getCredentialNode(credentialProcedure)
+                .map(node -> node.path(VC).path(ID).asText())
+                .doOnNext(credentialId -> log.debug("Extracted credentialId: {}", credentialId));
+    }
+
+
     private Optional<String> extractCredentialType(JsonNode typeNode) {
         if (typeNode == null || !typeNode.isArray()) {
             throw new MissingCredentialTypeException("The credential type is missing");

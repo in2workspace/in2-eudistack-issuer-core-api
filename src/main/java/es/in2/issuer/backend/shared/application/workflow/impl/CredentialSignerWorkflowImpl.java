@@ -236,16 +236,19 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
                                         try {
                                             String companyEmail = updatedCredentialProcedure.getOwnerEmail();
                                             //todo use credential id
-                                            String productId = updatedCredentialProcedure.getProcedureId().toString();
 
-                                            return m2mTokenService.getM2MToken()
-                                                    .flatMap(m2mToken -> credentialDeliveryService.sendVcToResponseUri(
-                                                            responseUri,
-                                                            signedVc,
-                                                            productId,
-                                                            companyEmail,
-                                                            m2mToken.accessToken()
-                                                    ));
+                                            return credentialProcedureService.getCredentialId(updatedCredentialProcedure)
+                                                    .doOnNext(credentialId -> log.debug("Using credentialId for delivery: {}", credentialId))
+                                                    .flatMap(credentialId ->
+                                                        m2mTokenService.getM2MToken()
+                                                                .flatMap(m2mToken -> credentialDeliveryService.sendVcToResponseUri(
+                                                                        responseUri,
+                                                                        signedVc,
+                                                                        credentialId,
+                                                                        companyEmail,
+                                                                        m2mToken.accessToken()
+                                                                ))
+                                            );
                                         } catch (Exception e) {
                                             log.error("Error extracting productId or companyEmail from credential", e);
                                             return Mono.error(new RuntimeException("Failed to prepare signed VC for delivery", e));

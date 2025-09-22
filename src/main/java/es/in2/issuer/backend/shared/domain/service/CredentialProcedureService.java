@@ -1,5 +1,6 @@
 package es.in2.issuer.backend.shared.domain.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import es.in2.issuer.backend.shared.domain.model.dto.CredentialDetails;
 import es.in2.issuer.backend.shared.domain.model.dto.CredentialProcedureCreationRequest;
 import es.in2.issuer.backend.shared.domain.model.dto.CredentialProcedures;
@@ -38,6 +39,8 @@ public interface CredentialProcedureService {
     Mono<String> updatedEncodedCredentialByCredentialProcedureId(String encodedCredential, String credentialProcedureId);
 
     Mono<CredentialProcedure> getCredentialProcedureById(String procedureId);
+    Mono<JsonNode> getCredentialNode(CredentialProcedure credentialProcedure);
+    Mono<String> getCredentialId(CredentialProcedure credentialProcedure);
 
     Mono<Void> updateFormatByProcedureId(String procedureId, String format);
     Mono<CredentialOfferEmailNotificationInfo> getEmailCredentialOfferInfoByProcedureId(String procedureId);
