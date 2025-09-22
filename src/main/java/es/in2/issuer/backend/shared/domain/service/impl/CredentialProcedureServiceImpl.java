@@ -82,6 +82,9 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
 
             try {
                 JsonNode credential = objectMapper.readTree(credentialProcedure.getCredentialDecoded());
+                //todo remove
+                log.info("getCredentialNode: parsed node for procedureId {} -> {}",
+                        credentialProcedure.getProcedureId(), credential.toPrettyString());
                 return Mono.just(credential);
             } catch (JsonProcessingException e) {
                 return Mono.error(new ParseCredentialJsonException("Error parsing credential JSON"));

@@ -80,7 +80,7 @@ public class CredentialStatusWorkflowImpl implements CredentialStatusWorkflow {
         return credentialStatusService.revokeCredential(listId, credentialStatus)
                 .then(credentialProcedureService.updateCredentialProcedureCredentialStatusToRevoke(credentialProcedure))
                 .doFirst(() -> log.debug(
-                        "Process ID: {} - Revoking Credential with ID: {}",
+                        "Process ID: {} - Revoking Credential with Procedure ID: {}",
                         processId,
                         credentialProcedureId))
                 .then(emailService.notifyIfCredentialStatusChanges(credentialProcedure, REVOKED.toString()))
