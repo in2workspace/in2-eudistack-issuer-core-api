@@ -13,7 +13,7 @@ class CredentialProcedureTest {
     @Test
     void testCredentialProcedure() {
         UUID procedureId = UUID.randomUUID();
-        UUID credentialId = UUID.randomUUID();
+        String credentialId = UUID.randomUUID().toString();
         String credentialFormat = "testFormat";
         String credentialDecoded = "testDecoded";
         String credentialEncoded = "testEncoded";
@@ -49,7 +49,7 @@ class CredentialProcedureTest {
     void testSettersAndGetters() {
         CredentialProcedure credentialProcedure = new CredentialProcedure();
         UUID procedureId = UUID.randomUUID();
-        UUID credentialId = UUID.randomUUID();
+        String credentialId = UUID.randomUUID().toString();
         String credentialFormat = "format";
         String credentialDecoded = "decoded";
         String credentialEncoded = "encoded";

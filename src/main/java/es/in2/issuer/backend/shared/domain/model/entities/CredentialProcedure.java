@@ -23,7 +23,7 @@ public class CredentialProcedure {
     private UUID procedureId;
 
     @Column("credential_id")
-    private UUID credentialId;
+    private String credentialId;
 
     @Column("credential_format")
     private String credentialFormat;
