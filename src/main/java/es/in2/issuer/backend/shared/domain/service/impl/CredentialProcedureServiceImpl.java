@@ -39,7 +39,6 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
     @Override
     public Mono<String> createCredentialProcedure(CredentialProcedureCreationRequest credentialProcedureCreationRequest) {
         CredentialProcedure credentialProcedure = CredentialProcedure.builder()
-                .credentialId(credentialProcedureCreationRequest.credentialId())
                 .credentialStatus(CredentialStatusEnum.DRAFT)
                 .credentialDecoded(credentialProcedureCreationRequest.credentialDecoded())
                 .organizationIdentifier(credentialProcedureCreationRequest.organizationIdentifier())

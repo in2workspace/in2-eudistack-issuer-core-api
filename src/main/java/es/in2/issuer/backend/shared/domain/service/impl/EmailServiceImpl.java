@@ -199,7 +199,7 @@ public class EmailServiceImpl implements EmailService {
                                 info.email(),
                                 info.user(),
                                 info.organization(),
-                                credentialProcedure.getCredentialId().toString(),
+                                credentialProcedure.getProcedureId().toString(),
                                 credentialProcedure.getCredentialType(),
                                 expectedStatus
                         )

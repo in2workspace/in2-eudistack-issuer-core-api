@@ -173,7 +173,6 @@ public class LabelCredentialFactory {
         return accessTokenService.getOrganizationIdFromCurrentSession()
                 .flatMap(organizationId ->
                         Mono.just(CredentialProcedureCreationRequest.builder()
-                                .credentialId(labelCredentialDecoded.id())
                                 .organizationIdentifier(organizationId)
                                 .credentialDecoded(decodedCredential)
                                 .credentialType(CredentialType.LABEL_CREDENTIAL)
