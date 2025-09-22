@@ -52,7 +52,6 @@ class LEARCredentialEmployeeTest {
 
         Power power =
                 Power.builder()
-                        .id("power-id")
                         .action("action-value")
                         .domain("domain-value")
                         .function("function-value")
@@ -137,7 +136,6 @@ class LEARCredentialEmployeeTest {
                                 .serialNumber("SN123")
                                 .build())
                         .power(List.of(Power.builder()
-                                .id("power-id")
                                 .action("action-value")
                                 .domain("domain-value")
                                 .function("function-value")

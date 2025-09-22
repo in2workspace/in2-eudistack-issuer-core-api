@@ -148,8 +148,6 @@ public class LEARCredentialEmployeeFactory {
             LEARCredentialEmployee.CredentialSubject baseCredentialSubject) {
         return baseCredentialSubject.mandate().power().stream()
                 .map(power -> Power.builder()
-//                        todo
-                        .id(UUID.randomUUID().toString())
                         .type(power.type())
                         .domain(power.domain())
                         .function(power.function())
