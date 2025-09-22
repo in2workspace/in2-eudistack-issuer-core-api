@@ -94,9 +94,23 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
 
     public Mono<String> getCredentialId(CredentialProcedure credentialProcedure) {
         return getCredentialNode(credentialProcedure)
-                .map(node -> node.path(VC).path(ID).asText())
-                .doOnNext(credentialId -> log.debug("Extracted credentialId: {}", credentialId));
+                .map(node -> {
+                    String credentialId = node.path(VC).path(ID).asText(null);
+
+                    if (credentialId == null || credentialId.isBlank()) {
+                        credentialId = node.path(ID).asText(null);
+                    }
+
+                    return credentialId;
+                })
+                .doOnNext(credentialId -> log.debug(
+                        "getCredentialId: extracted '{}' for procedureId {}",
+                        credentialId, credentialProcedure.getProcedureId()))
+                .filter(id -> id != null && !id.isBlank())
+                .switchIfEmpty(Mono.error(new ParseCredentialJsonException(
+                        "Missing credential id (expected vc.id or id)")));
     }
+
 
 
     private Optional<String> extractCredentialType(JsonNode typeNode) {
