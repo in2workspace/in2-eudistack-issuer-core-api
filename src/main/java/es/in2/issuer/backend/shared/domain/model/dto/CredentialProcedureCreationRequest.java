@@ -7,6 +7,7 @@ import java.sql.Timestamp;
 
 @Builder
 public record CredentialProcedureCreationRequest(
+        String credentialId,
         String organizationIdentifier,
         String credentialDecoded,
         CredentialType credentialType,

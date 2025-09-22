@@ -22,6 +22,9 @@ public class CredentialProcedure {
     @Column("procedure_id")
     private UUID procedureId;
 
+    @Column("credential_id")
+    private UUID credentialId;
+
     @Column("credential_format")
     private String credentialFormat;
 

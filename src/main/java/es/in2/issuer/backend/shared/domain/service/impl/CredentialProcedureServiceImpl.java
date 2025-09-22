@@ -39,6 +39,7 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
     @Override
     public Mono<String> createCredentialProcedure(CredentialProcedureCreationRequest credentialProcedureCreationRequest) {
         CredentialProcedure credentialProcedure = CredentialProcedure.builder()
+                .credentialId(UUID.fromString(credentialProcedureCreationRequest.credentialId()))
                 .credentialStatus(CredentialStatusEnum.DRAFT)
                 .credentialDecoded(credentialProcedureCreationRequest.credentialDecoded())
                 .organizationIdentifier(credentialProcedureCreationRequest.organizationIdentifier())
@@ -72,6 +73,21 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
         } catch (JsonProcessingException e) {
             return Mono.error(new ParseCredentialJsonException("Error parsing credential"));
         }
+    }
+
+    public Mono<JsonNode> getCredentialNode(CredentialProcedure credentialProcedure) {
+        return Mono.defer(() -> {
+            if (credentialProcedure == null || credentialProcedure.getCredentialDecoded() == null) {
+                return Mono.error(new ParseCredentialJsonException("CredentialProcedure or credentialDecoded is null"));
+            }
+
+            try {
+                JsonNode credential = objectMapper.readTree(credentialProcedure.getCredentialDecoded());
+                return Mono.just(credential);
+            } catch (JsonProcessingException e) {
+                return Mono.error(new ParseCredentialJsonException("Error parsing credential JSON"));
+            }
+        });
     }
 
     private Optional<String> extractCredentialType(JsonNode typeNode) {
