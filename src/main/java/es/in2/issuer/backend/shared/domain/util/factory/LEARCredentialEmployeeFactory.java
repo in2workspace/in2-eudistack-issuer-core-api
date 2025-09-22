@@ -87,7 +87,14 @@ public class LEARCredentialEmployeeFactory {
                 });
                 employee = objectMapper.readValue(learCredentialEmployee.toString(), LEARCredentialEmployee.class);
             } else if(learCredential.contains(CREDENTIALS_EUDISTACK_LEAR_CREDENTIAL_EMPLOYEE_CONTEXT)){
-                employee = objectMapper.readValue(learCredential, LEARCredentialEmployee.class);
+                JsonNode learCredentialEmployee = objectMapper.readTree(learCredential);
+                learCredentialEmployee.get("credentialSubject").get("mandate").get("power").forEach(power -> {
+                    ((ObjectNode) power).remove("tmf_function");
+                    ((ObjectNode) power).remove("tmf_type");
+                    ((ObjectNode) power).remove("tmf_domain");
+                    ((ObjectNode) power).remove("tmf_action");
+                });
+                employee = objectMapper.readValue(learCredentialEmployee.toString(), LEARCredentialEmployee.class);
             } else {
                 throw new InvalidCredentialFormatException("Invalid credential format");
             }
