@@ -199,8 +199,7 @@ public class EmailServiceImpl implements EmailService {
                                 info.email(),
                                 info.user(),
                                 info.organization(),
-//                                todo should be credential id, obtenir de procedure
-                                credentialProcedure.getProcedureId().toString(),
+                                credentialProcedure.getCredentialId().toString(),
                                 credentialProcedure.getCredentialType(),
                                 expectedStatus
                         )

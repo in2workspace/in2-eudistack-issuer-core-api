@@ -235,8 +235,8 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
                                     .flatMap(responseUri -> {
                                         try {
                                             String companyEmail = updatedCredentialProcedure.getOwnerEmail();
-//                                            todo should be credential id
-                                            String productId = updatedCredentialProcedure.getProcedureId().toString();
+//
+                                            String productId = updatedCredentialProcedure.getCredentialId().toString();
 
                                             return m2mTokenService.getM2MToken()
                                                     .flatMap(m2mToken -> credentialDeliveryService.sendVcToResponseUri(

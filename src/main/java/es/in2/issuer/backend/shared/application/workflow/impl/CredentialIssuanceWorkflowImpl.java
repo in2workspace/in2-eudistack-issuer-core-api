@@ -275,8 +275,7 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                                 if (deferred.getResponseUri() != null && !deferred.getResponseUri().isBlank()) {
                                     log.info("Sending VC to response URI: {}", deferred.getResponseUri());
                                     return m2mTokenService.getM2MToken()
-//                                            todo procedure id is being sent instead of credential id
-                                            .flatMap(tokenResponse -> credentialDeliveryService.sendVcToResponseUri(deferred.getResponseUri(), decoded, credentialProcedure.getProcedureId().toString(),credentialProcedure.getOwnerEmail(),tokenResponse.accessToken()));
+                                            .flatMap(tokenResponse -> credentialDeliveryService.sendVcToResponseUri(deferred.getResponseUri(), decoded, credentialProcedure.getCredentialId().toString(),credentialProcedure.getOwnerEmail(),tokenResponse.accessToken()));
                                 }
 
                                 return Mono.empty();
