@@ -30,7 +30,6 @@ public record LEARCredentialEmployee(
     ) {
         @Builder
         public record Mandate(
-                @JsonProperty("id") String id,
                 @JsonProperty("life_span") LifeSpan lifeSpan,
                 @JsonProperty("mandatee") Mandatee mandatee,
                 @JsonProperty("mandator") Mandator mandator,
@@ -41,13 +40,13 @@ public record LEARCredentialEmployee(
             @Builder
             public record Mandatee(
                     @JsonProperty("id") String id,
+                    @JsonProperty("employeeId") String employeeId,
                     @JsonProperty("email") String email,
                     // To keep compatibility with the v1 credential we keep the old name
                     @JsonProperty("firstName") @JsonAlias("first_name") String firstName,
                     // To keep compatibility with the v1 credential we keep the old name
                     @JsonProperty("lastName") @JsonAlias("last_name") String lastName,
-                    @JsonProperty("mobile_phone") String mobilePhone,
-                    @JsonProperty("nationality") String nationality
+                    @JsonProperty("mobile_phone") String mobilePhone
             ) { }
         }
     }

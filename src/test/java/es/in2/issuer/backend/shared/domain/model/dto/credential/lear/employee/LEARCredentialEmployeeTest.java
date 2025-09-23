@@ -38,14 +38,13 @@ class LEARCredentialEmployeeTest {
                         .firstName("John")
                         .lastName("Doe")
                         .mobilePhone("+123456789")
-                        .nationality("US")
                         .build();
 
         Mandator mandator =
                 Mandator.builder()
                         .commonName("MandatorCommonName")
                         .country("US")
-                        .emailAddress("mandator@example.com")
+                        .email("mandator@example.com")
                         .organization("MandatorOrg")
                         .organizationIdentifier("Org123")
                         .serialNumber("SN123")
@@ -53,7 +52,6 @@ class LEARCredentialEmployeeTest {
 
         Power power =
                 Power.builder()
-                        .id("power-id")
                         .action("action-value")
                         .domain("domain-value")
                         .function("function-value")
@@ -72,7 +70,6 @@ class LEARCredentialEmployeeTest {
 
         LEARCredentialEmployee.CredentialSubject.Mandate mandate =
                 LEARCredentialEmployee.CredentialSubject.Mandate.builder()
-                        .id("mandate-id")
                         .lifeSpan(lifeSpan)
                         .mandatee(mandatee)
                         .mandator(mandator)
@@ -108,7 +105,6 @@ class LEARCredentialEmployeeTest {
         assertEquals("2024-01-01T00:00:00Z", employee.validFrom());
         assertEquals("2025-01-01T00:00:00Z", employee.validUntil());
         // Verify some nested fields
-        assertEquals("mandate-id", employee.credentialSubject().mandate().id());
         assertEquals("John", employee.credentialSubject().mandate().mandatee().firstName());
         assertEquals("MandatorOrg", employee.credentialSubject().mandate().mandator().organization());
         assertEquals("action-value", employee.credentialSubject().mandate().power().get(0).action());
@@ -120,7 +116,6 @@ class LEARCredentialEmployeeTest {
         // Build nested objects for the credentialSubject property
         LEARCredentialEmployee.CredentialSubject.Mandate mandate =
                 LEARCredentialEmployee.CredentialSubject.Mandate.builder()
-                        .id("mandate-id")
                         .lifeSpan(LifeSpan.builder()
                                 .startDateTime("2024-01-01T00:00:00Z")
                                 .endDateTime("2025-01-01T00:00:00Z")
@@ -131,18 +126,16 @@ class LEARCredentialEmployeeTest {
                                 .firstName("John")
                                 .lastName("Doe")
                                 .mobilePhone("+123456789")
-                                .nationality("US")
                                 .build())
                         .mandator(Mandator.builder()
                                 .commonName("MandatorCommonName")
                                 .country("US")
-                                .emailAddress("mandator@example.com")
+                                .email("mandator@example.com")
                                 .organization("MandatorOrg")
                                 .organizationIdentifier("Org123")
                                 .serialNumber("SN123")
                                 .build())
                         .power(List.of(Power.builder()
-                                .id("power-id")
                                 .action("action-value")
                                 .domain("domain-value")
                                 .function("function-value")
@@ -169,7 +162,6 @@ class LEARCredentialEmployeeTest {
                 .organization("IssuerOrg")
                 .country("US")
                 .commonName("IssuerCommonName")
-                .emailAddress("example@example.com")
                 .serialNumber("IssuerSN123")
                 .build();
 

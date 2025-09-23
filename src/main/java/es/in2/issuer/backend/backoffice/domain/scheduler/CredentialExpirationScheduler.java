@@ -29,10 +29,10 @@ public class CredentialExpirationScheduler {
     public Mono<Void> checkAndExpireCredentials() {
         log.info("Scheduled Task - Executing checkAndExpireCredentials at: {}", Instant.now());
         return credentialProcedureRepository.findAll()
-                .flatMap(credential -> isExpiredAndNotAlreadyMarked(credential)
+                .flatMap(credentialProcedure -> isExpiredAndNotAlreadyMarked(credentialProcedure)
                         .filter(Boolean::booleanValue)
-                        .flatMap(expired -> expireCredential(credential)
-                                .then(emailService.notifyIfCredentialStatusChanges(credential, EXPIRED.toString()))))
+                        .flatMap(expired -> expireCredential(credentialProcedure)
+                                .then(emailService.notifyIfCredentialStatusChanges(credentialProcedure, EXPIRED.toString()))))
                 .then();
     }
 
@@ -50,8 +50,8 @@ public class CredentialExpirationScheduler {
         if (credentialProcedure.getCredentialStatus() != CredentialStatusEnum.EXPIRED) {
             credentialProcedure.setCredentialStatus(CredentialStatusEnum.EXPIRED);
             credentialProcedure.setUpdatedAt(Timestamp.from(Instant.now()));
-            log.info("Expiring credential with ID: {} - New state: {}",
-                    credentialProcedure.getCredentialId(),
+            log.info("Expiring credential in credential procedure with ID: {} - New state: {}",
+                    credentialProcedure.getProcedureId(),
                     credentialProcedure.getCredentialStatus());
             return credentialProcedureRepository.save(credentialProcedure);
         }

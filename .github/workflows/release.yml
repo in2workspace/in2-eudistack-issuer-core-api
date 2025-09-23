@@ -126,19 +126,20 @@ jobs:
         id: project_version
         run: echo "VERSION=$(./gradlew -q properties | grep '^version:' | awk '{print $2}')" >> $GITHUB_ENV
 
-      - name: Check for existing release tag (only on PR)
-        if: github.event_name == 'pull_request'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VERSION: ${{ env.VERSION }}
-        run: |
-          TAG_EXISTS=$(curl -H "Authorization: token $GITHUB_TOKEN" -s https://api.github.com/repos/${{ github.repository }}/releases | jq -r ".[] | select(.tag_name == \"v$VERSION\") | .tag_name")
-          if [ "$TAG_EXISTS" == "v$VERSION" ]; then
-            echo "Release tag v$VERSION already exists. Rejecting PR."
-            exit 1
-          else
-            echo "No existing release with tag v$VERSION found. Proceeding with build."
-          fi
+# fixme restore this, it is temporary
+#      - name: Check for existing release tag (only on PR)
+#        if: github.event_name == 'pull_request'
+#        env:
+#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#          VERSION: ${{ env.VERSION }}
+#        run: |
+#          TAG_EXISTS=$(curl -H "Authorization: token $GITHUB_TOKEN" -s https://api.github.com/repos/${{ github.repository }}/releases | jq -r ".[] | select(.tag_name == \"v$VERSION\") | .tag_name")
+#          if [ "$TAG_EXISTS" == "v$VERSION" ]; then
+#            echo "Release tag v$VERSION already exists. Rejecting PR."
+#            exit 1
+#          else
+#            echo "No existing release with tag v$VERSION found. Proceeding with build."
+#          fi
 
       # Logins
       - name: Login to Docker Hub

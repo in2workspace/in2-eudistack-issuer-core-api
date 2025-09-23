@@ -113,7 +113,6 @@ class DeferredCredentialWorkflowImplTest {
 //                                "mandator": {
 //                                    "commonName": "IN2",
 //                                    "country": "ES",
-//                                    "emailAddress": "rrhh@in2.es",
 //                                    "organization": "IN2, Ingeniería de la Información, S.L.",
 //                                    "organizationIdentifier": "VATES-B60645900",
 //                                    "serialNumber": "B60645900"

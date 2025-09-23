@@ -721,14 +721,13 @@ class RemoteSignatureServiceImplTest {
         JsonNode certificateInfoNode = realObjectMapper.readTree(certificateInfo);
 
         when(objectMapper.readTree(certificateInfo)).thenReturn(certificateInfoNode);
-        StepVerifier.create(remoteSignatureService.extractIssuerFromCertificateInfo(certificateInfo, "john@example.com"))
+        StepVerifier.create(remoteSignatureService.extractIssuerFromCertificateInfo(certificateInfo))
                 .assertNext(issuer -> {
                     Assertions.assertEquals("did:elsi:org", issuer.id());
                     Assertions.assertEquals("org", issuer.organizationIdentifier());
                     Assertions.assertEquals("Company", issuer.organization());
                     Assertions.assertEquals("US", issuer.country());
                     Assertions.assertEquals("John Doe", issuer.commonName());
-                    Assertions.assertEquals("john@example.com", issuer.emailAddress());
                     Assertions.assertEquals("12345", issuer.serialNumber());
                 })
                 .verifyComplete();
@@ -741,7 +740,7 @@ class RemoteSignatureServiceImplTest {
         when(objectMapper.readTree(certificateInfo)).thenThrow(new JsonProcessingException("JSON parse error") {
         });
 
-        StepVerifier.create(remoteSignatureService.extractIssuerFromCertificateInfo(certificateInfo, "procedureId"))
+        StepVerifier.create(remoteSignatureService.extractIssuerFromCertificateInfo(certificateInfo))
                 .expectErrorMessage("Error parsing certificate info")
                 .verify();
     }
@@ -755,7 +754,7 @@ class RemoteSignatureServiceImplTest {
 
         when(objectMapper.readTree(certificateInfo)).thenReturn(certificateInfoNode);
 
-        StepVerifier.create(remoteSignatureService.extractIssuerFromCertificateInfo(certificateInfo, "procedureId"))
+        StepVerifier.create(remoteSignatureService.extractIssuerFromCertificateInfo(certificateInfo))
                 .expectErrorSatisfies(throwable -> {
                     Assertions.assertInstanceOf(RuntimeException.class, throwable);
                     Assertions.assertEquals("Error parsing subjectDN", throwable.getMessage());
@@ -772,7 +771,7 @@ class RemoteSignatureServiceImplTest {
 
         when(objectMapper.readTree(certificateInfo)).thenReturn(certificateInfoNode);
 
-        StepVerifier.create(remoteSignatureService.extractIssuerFromCertificateInfo(certificateInfo, "procedureId"))
+        StepVerifier.create(remoteSignatureService.extractIssuerFromCertificateInfo(certificateInfo))
                 .expectErrorSatisfies(throwable -> {
                     Assertions.assertInstanceOf(OrganizationIdentifierNotFoundException.class, throwable);
                     Assertions.assertEquals("organizationIdentifier not found in the certificate.", throwable.getMessage());
@@ -801,14 +800,13 @@ class RemoteSignatureServiceImplTest {
             mockedFactory.when(() -> CertificateFactory.getInstance("X.509")).thenReturn(mockCf);
             when(mockCf.generateCertificate(any(InputStream.class))).thenReturn(mockCert);
 
-            StepVerifier.create(remoteSignatureService.extractIssuerFromCertificateInfo(certificateInfo, "john@example.com"))
+            StepVerifier.create(remoteSignatureService.extractIssuerFromCertificateInfo(certificateInfo))
                     .assertNext(issuer -> {
                         Assertions.assertEquals("did:elsi:TESTVAT", issuer.id());
                         Assertions.assertEquals("TESTVAT", issuer.organizationIdentifier());
                         Assertions.assertEquals("Company", issuer.organization());
                         Assertions.assertEquals("US", issuer.country());
                         Assertions.assertEquals("John Doe", issuer.commonName());
-                        Assertions.assertEquals("john@example.com", issuer.emailAddress());
                         Assertions.assertEquals("12345", issuer.serialNumber());
                     })
                     .verifyComplete();

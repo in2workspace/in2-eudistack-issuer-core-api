@@ -42,7 +42,7 @@ public class ActivationCodeWorkflowImpl implements ActivationCodeWorkflow {
                 .flatMap(procedureId ->
                         credentialProcedureService.getCredentialProcedureById(procedureId)
                                 .flatMap(credentialProcedure ->
-                                        preAuthorizedCodeWorkflow.generatePreAuthorizedCode(Mono.just(credentialProcedure.getCredentialId()))
+                                        preAuthorizedCodeWorkflow.generatePreAuthorizedCode(Mono.just(procedureId))
                                                 .flatMap(preAuthorizedCodeResponse ->
                                                         deferredCredentialMetadataService.updateAuthServerNonceByTransactionCode(
                                                                         transactionCode,

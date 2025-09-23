@@ -70,7 +70,9 @@ public class LEARCredentialEmployeeFactory {
             LEARCredentialEmployee employee;
             if (learCredential.contains("https://trust-framework.dome-marketplace.eu/credentials/learcredentialemployee/v1")) {
                 employee = objectMapper.readValue(learCredential, LEARCredentialEmployee.class);
-            } else if (learCredential.contains("https://www.dome-marketplace.eu/2025/credentials/learcredentialemployee/v2")) {
+            } else if (
+                    learCredential.contains("https://www.dome-marketplace.eu/2025/credentials/learcredentialemployee/v2")
+            ) {
                 JsonNode learCredentialEmployee = objectMapper.readTree(learCredential);
                 learCredentialEmployee.get("credentialSubject").get("mandate").get("power").forEach(power -> {
                     ((ObjectNode) power).remove("tmf_function");
@@ -79,6 +81,8 @@ public class LEARCredentialEmployeeFactory {
                     ((ObjectNode) power).remove("tmf_action");
                 });
                 employee = objectMapper.readValue(learCredentialEmployee.toString(), LEARCredentialEmployee.class);
+            } else if(learCredential.contains(CREDENTIALS_EUDISTACK_LEAR_CREDENTIAL_EMPLOYEE_CONTEXT)){
+                                employee = objectMapper.readValue(learCredential, LEARCredentialEmployee.class);
             } else {
                 throw new InvalidCredentialFormatException("Invalid credential format");
             }
@@ -108,7 +112,7 @@ public class LEARCredentialEmployeeFactory {
         LEARCredentialEmployee.CredentialSubject.Mandate mandate = createMandate(baseCredentialSubject, mandatee, populatedPowers);
         LEARCredentialEmployee.CredentialSubject credentialSubject = createCredentialSubject(mandate);
 
-        String credentialId = UUID.randomUUID().toString();
+        String credentialId = "urn:uuid:" + UUID.randomUUID();
 
         return buildCredentialStatus()
                 .map(credentialStatus -> LEARCredentialEmployee.builder()
@@ -139,7 +143,6 @@ public class LEARCredentialEmployeeFactory {
             LEARCredentialEmployee.CredentialSubject baseCredentialSubject) {
         return baseCredentialSubject.mandate().power().stream()
                 .map(power -> Power.builder()
-                        .id(UUID.randomUUID().toString())
                         .type(power.type())
                         .domain(power.domain())
                         .function(power.function())
@@ -152,9 +155,9 @@ public class LEARCredentialEmployeeFactory {
             LEARCredentialEmployee.CredentialSubject baseCredentialSubject) {
         return LEARCredentialEmployee.CredentialSubject.Mandate.Mandatee.builder()
                 .firstName(baseCredentialSubject.mandate().mandatee().firstName())
+                .employeeId(baseCredentialSubject.mandate().mandatee().employeeId())
                 .lastName(baseCredentialSubject.mandate().mandatee().lastName())
                 .email(baseCredentialSubject.mandate().mandatee().email())
-                .nationality(baseCredentialSubject.mandate().mandatee().nationality())
                 .build();
     }
 
@@ -163,7 +166,6 @@ public class LEARCredentialEmployeeFactory {
             LEARCredentialEmployee.CredentialSubject.Mandate.Mandatee mandatee,
             List<Power> populatedPowers) {
         return LEARCredentialEmployee.CredentialSubject.Mandate.builder()
-                .id(UUID.randomUUID().toString())
                 .mandator(baseCredentialSubject.mandate().mandator())
                 .mandatee(mandatee)
                 .power(populatedPowers)
@@ -204,9 +206,9 @@ public class LEARCredentialEmployeeFactory {
                 LEARCredentialEmployee.CredentialSubject.Mandate.Mandatee.builder()
                         .id(mandateeId)
                         .email(baseMandatee.email())
+                        .employeeId(baseMandatee.employeeId())
                         .firstName(baseMandatee.firstName())
                         .lastName(baseMandatee.lastName())
-                        .nationality(baseMandatee.nationality())
                         .build();
 
         return Mono.just(LEARCredentialEmployee.builder()
@@ -221,7 +223,6 @@ public class LEARCredentialEmployeeFactory {
                         LEARCredentialEmployee.CredentialSubject.builder()
                                 .mandate(
                                         LEARCredentialEmployee.CredentialSubject.Mandate.builder()
-                                                .id(decodedCredential.credentialSubject().mandate().id())
                                                 .mandator(decodedCredential.credentialSubject().mandate().mandator())
                                                 .mandatee(updatedMandatee)
                                                 .power(decodedCredential.credentialSubject().mandate().power())
@@ -271,7 +272,6 @@ public class LEARCredentialEmployeeFactory {
                 .flatMap(organizationId ->
                         Mono.just(
                                 CredentialProcedureCreationRequest.builder()
-                                        .credentialId(credentialDecoded.id())
                                         .organizationIdentifier(organizationId)
                                         .credentialDecoded(decodedCredential)
                                         .credentialType(CredentialType.LEAR_CREDENTIAL_EMPLOYEE)

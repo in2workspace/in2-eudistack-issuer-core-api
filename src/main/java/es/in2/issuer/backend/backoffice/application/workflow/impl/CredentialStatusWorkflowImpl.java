@@ -45,10 +45,10 @@ public class CredentialStatusWorkflowImpl implements CredentialStatusWorkflow {
     }
 
     @Override
-    public Mono<Void> revokeCredential(String processId, String bearerToken, String credentialId, int listId) {
+    public Mono<Void> revokeCredential(String processId, String bearerToken, String credentialProcedureId, int listId) {
         return accessTokenService.getCleanBearerToken(bearerToken)
-                .flatMap(token -> credentialStatusAuthorizationService.authorize(processId, token, credentialId)
-                        .then(credentialProcedureService.getCredentialByCredentialId(credentialId))
+                .flatMap(token -> credentialStatusAuthorizationService.authorize(processId, token, credentialProcedureId)
+                        .then(credentialProcedureService.getCredentialProcedureById(credentialProcedureId))
                 )
                 .flatMap(credential -> validateStatus(credential.getCredentialStatus())
                         .thenReturn(credential)
@@ -62,7 +62,7 @@ public class CredentialStatusWorkflowImpl implements CredentialStatusWorkflow {
                         return Mono.error(new JsonParseException("Error processing credential status json"));
                     }
                     CredentialStatus credentialStatus = mapToCredentialStatus(credentialStatusNode);
-                    return revokeAndUpdateCredentialStatus(credential, processId, credentialId, listId, credentialStatus);
+                    return revokeAndUpdateCredentialStatus(credential, processId, credentialProcedureId, listId, credentialStatus);
                 }));
 
     }
@@ -76,19 +76,19 @@ public class CredentialStatusWorkflowImpl implements CredentialStatusWorkflow {
                 .build();
     }
 
-    private Mono<Void> revokeAndUpdateCredentialStatus(CredentialProcedure credentialProcedure, String processId, String credentialId, int listId, CredentialStatus credentialStatus) {
+    private Mono<Void> revokeAndUpdateCredentialStatus(CredentialProcedure credentialProcedure, String processId, String credentialProcedureId, int listId, CredentialStatus credentialStatus) {
         return credentialStatusService.revokeCredential(listId, credentialStatus)
                 .then(credentialProcedureService.updateCredentialProcedureCredentialStatusToRevoke(credentialProcedure))
                 .doFirst(() -> log.debug(
-                        "Process ID: {} - Revoking Credential with ID: {}",
+                        "Process ID: {} - Revoking Credential with Procedure ID: {}",
                         processId,
-                        credentialId))
+                        credentialProcedureId))
                 .then(emailService.notifyIfCredentialStatusChanges(credentialProcedure, REVOKED.toString()))
                 .doOnSuccess(
                         aVoid -> log.debug(
                         "Process ID: {} - Credential with ID: {} revoked successfully.",
                         processId,
-                        credentialId));
+                                credentialProcedureId));
     }
 
     private Mono<Void> validateStatus(CredentialStatusEnum credentialStatus) {

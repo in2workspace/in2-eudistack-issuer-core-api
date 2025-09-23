@@ -8,12 +8,11 @@ import es.in2.issuer.backend.shared.domain.exception.InvalidCredentialFormatExce
 import es.in2.issuer.backend.shared.domain.model.dto.CredentialProcedureCreationRequest;
 import es.in2.issuer.backend.shared.domain.model.dto.LEARCredentialMachineJwtPayload;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.CredentialStatus;
-import es.in2.issuer.backend.shared.domain.model.dto.credential.SimpleIssuer;
+import es.in2.issuer.backend.shared.domain.model.dto.credential.DetailedIssuer;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.machine.LEARCredentialMachine;
 import es.in2.issuer.backend.shared.domain.model.enums.CredentialType;
 import es.in2.issuer.backend.shared.domain.service.AccessTokenService;
 import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
-import es.in2.issuer.backend.shared.infrastructure.config.properties.CorsProperties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -71,11 +70,12 @@ public class LEARCredentialMachineFactory {
     }
 
     private Mono<LEARCredentialMachine> buildFinalLearCredentialMachine(LEARCredentialMachine.CredentialSubject baseCredentialSubject) {
+
         Instant currentTime = Instant.now();
         String validFrom = currentTime.toString();
         String validUntil = currentTime.plus(365, ChronoUnit.DAYS).toString();
 
-        String credentialId = UUID.randomUUID().toString();
+        String credentialId = "urn:uuid:" + UUID.randomUUID();
         return buildCredentialStatus()
                 .map(credentialStatus -> LEARCredentialMachine.builder()
                 .context(CREDENTIAL_CONTEXT_LEAR_CREDENTIAL_MACHINE)
@@ -114,7 +114,6 @@ public class LEARCredentialMachineFactory {
                 .flatMap(organizationId ->
                         Mono.just(
                                 CredentialProcedureCreationRequest.builder()
-                                        .credentialId(credentialDecoded.id())
                                         .organizationIdentifier(organizationId)
                                         .credentialDecoded(decodedCredential)
                                         .credentialType(CredentialType.LEAR_CREDENTIAL_MACHINE)
@@ -141,15 +140,12 @@ public class LEARCredentialMachineFactory {
             String procedureId) {
         LEARCredentialMachine learCredentialMachine = mapStringToLEARCredentialMachine(decodedCredentialString);
 
-        return issuerFactory.createSimpleIssuer(procedureId, LEAR_CREDENTIAL_MACHINE)
+        return issuerFactory.createDetailedIssuer(procedureId, LEAR_CREDENTIAL_MACHINE)
                 .flatMap(issuer -> bindIssuer(learCredentialMachine, issuer))
                 .flatMap(this::convertLEARCredentialMachineInToString);
     }
 
-    public Mono<LEARCredentialMachine> bindIssuer(LEARCredentialMachine learCredentialMachine, SimpleIssuer issuer) {
-        SimpleIssuer issuerCred = SimpleIssuer.builder()
-                .id(issuer.id())
-                .build();
+    public Mono<LEARCredentialMachine> bindIssuer(LEARCredentialMachine learCredentialMachine, DetailedIssuer issuer) {
 
         return Mono.just(LEARCredentialMachine.builder()
                 .context(learCredentialMachine.context())
@@ -157,7 +153,7 @@ public class LEARCredentialMachineFactory {
                 .type(learCredentialMachine.type())
                 .name(learCredentialMachine.name())
                 .description(learCredentialMachine.description())
-                .issuer(issuerCred)
+                .issuer(issuer)
                 .validFrom(learCredentialMachine.validFrom())
                 .validUntil(learCredentialMachine.validUntil())
                 .credentialSubject(learCredentialMachine.credentialSubject())

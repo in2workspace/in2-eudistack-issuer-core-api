@@ -321,7 +321,7 @@ public class RemoteSignatureServiceImpl implements RemoteSignatureService {
                 .doOnError(error -> log.error("Error sending credential to sign: {}", error.getMessage()));
     }
 
-    public Mono<DetailedIssuer> extractIssuerFromCertificateInfo(String certificateInfo, String emailAdress) {
+    public Mono<DetailedIssuer> extractIssuerFromCertificateInfo(String certificateInfo) {
         try {
             log.info("Starting extraction of issuer from certificate info");
             JsonNode certificateInfoNode = objectMapper.readTree(certificateInfo);
@@ -364,7 +364,6 @@ public class RemoteSignatureServiceImpl implements RemoteSignatureService {
                                 .organization(dnAttributes.get("O"))
                                 .country(dnAttributes.get("C"))
                                 .commonName(dnAttributes.get("CN"))
-                                .emailAddress(emailAdress)
                                 .serialNumber(serialNumber)
                                 .build();
                         return Mono.just(detailedIssuer);
@@ -405,10 +404,10 @@ public class RemoteSignatureServiceImpl implements RemoteSignatureService {
                 .flatMap(credentialProcedure -> {
                     try {
                         JsonNode credential = objectMapper.readTree(credentialProcedure.getCredentialDecoded());
-                        if (credential.get(CREDENTIAL_SUBJECT).get(MANDATE).get(MANDATOR).get(EMAIL_ADDRESS).asText().equals("jesus.ruiz@in2.es")) {
+                        if (credential.get(CREDENTIAL_SUBJECT).get(MANDATE).get(MANDATOR).get(EMAIL).asText().equals("jesus.ruiz@in2.es")) {
                             return Mono.just("domesupport@in2.es");
                         } else {
-                            return Mono.just(credential.get(CREDENTIAL_SUBJECT).get(MANDATE).get(MANDATOR).get(EMAIL_ADDRESS).asText());
+                            return Mono.just(credential.get(CREDENTIAL_SUBJECT).get(MANDATE).get(MANDATOR).get(EMAIL).asText());
                         }
                     } catch (JsonProcessingException e) {
                         return Mono.error(new RuntimeException());

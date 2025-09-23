@@ -132,7 +132,7 @@ class CredentialIssuanceServiceImplTest {
                     "mandator": {
                         "commonName": "IN2",
                         "country": "ES",
-                        "emailAddress": "rrhh@in2.es",
+                        "email": "rrhh@in2.es",
                         "organization": "IN2, Ingeniería de la Información, S.L.",
                         "organizationIdentifier": "VATES-B26246436",
                         "serialNumber": "3424320"
@@ -206,7 +206,7 @@ class CredentialIssuanceServiceImplTest {
                     "mandator": {
                         "commonName": "IN2",
                         "country": "ES",
-                        "emailAddress": "rrhh@in2.es",
+                        "email": "rrhh@in2.es",
                         "organization": "IN2, Ingeniería de la Información, S.L.",
                         "organizationIdentifier": "VATES-B26246436",
                         "serialNumber": "3424320"

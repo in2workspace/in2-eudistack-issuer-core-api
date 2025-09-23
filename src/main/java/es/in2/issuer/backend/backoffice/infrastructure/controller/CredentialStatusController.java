@@ -44,7 +44,7 @@ public class CredentialStatusController {
         return credentialStatusWorkflow.revokeCredential(
                         processId,
                         bearerToken,
-                        revokeCredentialRequest.credentialId(),
+                        revokeCredentialRequest.procedureId(),
                         revokeCredentialRequest.listId())
                 .doFirst(() -> log.info("Process ID: {} - Revoking Credential...", processId))
                 .doOnSuccess(result -> log.info("Process ID: {} - Credential revoked successfully.", processId));

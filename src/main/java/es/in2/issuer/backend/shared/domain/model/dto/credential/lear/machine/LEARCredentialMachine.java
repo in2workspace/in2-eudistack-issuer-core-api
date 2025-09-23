@@ -34,7 +34,6 @@ public record LEARCredentialMachine(
     ) {
         @Builder
         public record Mandate(
-                @JsonProperty("id") String id,
                 @JsonProperty("mandator") Mandator mandator,
                 @JsonProperty("mandatee") Mandatee mandatee,
                 @JsonProperty("power") List<Power> power

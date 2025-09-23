@@ -11,7 +11,6 @@ public record DetailedIssuer(
         @JsonProperty("organization") String organization,
         @JsonProperty("country") String country,
         @JsonProperty("commonName") String commonName,
-        @JsonProperty("emailAddress") String emailAddress,
         @JsonProperty("serialNumber") String serialNumber
 ) implements Issuer {
     @Override

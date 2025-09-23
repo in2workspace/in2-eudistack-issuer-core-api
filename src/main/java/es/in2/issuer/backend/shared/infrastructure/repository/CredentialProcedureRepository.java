@@ -18,6 +18,5 @@ public interface CredentialProcedureRepository extends ReactiveCrudRepository<Cr
     Mono<CredentialProcedure> findByProcedureIdAndOrganizationIdentifier(UUID procedureId, String organizationIdentifier);
     @Query("SELECT credential_status FROM issuer.credential_procedure WHERE procedure_id = :procedureId")
     Mono<String> findCredentialStatusByProcedureId(UUID procedureId);
-    Mono<CredentialProcedure> findByCredentialId(UUID credentialId);
     Mono<CredentialProcedure> findByProcedureId(UUID procedureId);
 }

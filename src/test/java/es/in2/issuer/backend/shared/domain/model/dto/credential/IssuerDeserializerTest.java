@@ -38,7 +38,6 @@ class IssuerDeserializerTest {
                 "\"organization\": \"Organization\"," +
                 "\"country\": \"Country\"," +
                 "\"commonName\": \"Common Name\"," +
-                "\"emailAddress\": \"issuer@example.com\"," +
                 "\"serialNumber\": \"SN123\"" +
                 "}";
         ObjectMapper mapper = getObjectMapperWithIssuerModule();
@@ -51,7 +50,6 @@ class IssuerDeserializerTest {
         assertEquals("Organization", detailedIssuer.organization());
         assertEquals("Country", detailedIssuer.country());
         assertEquals("Common Name", detailedIssuer.commonName());
-        assertEquals("issuer@example.com", detailedIssuer.emailAddress());
         assertEquals("SN123", detailedIssuer.serialNumber());
     }
 

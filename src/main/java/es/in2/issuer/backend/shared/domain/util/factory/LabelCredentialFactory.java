@@ -58,7 +58,7 @@ public class LabelCredentialFactory {
         return buildCredentialStatus()
                 .map(credentialStatus -> LabelCredential.builder()
                 .context(LABEL_CREDENTIAL_CONTEXT)
-                .id(UUID.randomUUID().toString())
+                .id("urn:uuid:" + UUID.randomUUID())
                 .type(LABEL_CREDENTIAL_TYPES)
                 .credentialSubject(credential.credentialSubject())
                 .validFrom(credential.validFrom())
@@ -123,7 +123,7 @@ public class LabelCredentialFactory {
     public Mono<LabelCredentialJwtPayload> buildLabelCredentialJwtPayload(LabelCredential credential) {
         return Mono.just(
                 LabelCredentialJwtPayload.builder()
-                        .JwtId(UUID.randomUUID().toString())
+                        .JwtId("urn:uuid:" + UUID.randomUUID())
                         .credential(credential)
                         .expirationTime(parseDateToUnixTime(credential.validUntil()))
                         .issuedAt(parseDateToUnixTime(credential.validFrom()))
@@ -169,10 +169,10 @@ public class LabelCredentialFactory {
 
 
     private Mono<CredentialProcedureCreationRequest> buildCredentialProcedureCreationRequest(String decodedCredential, LabelCredential labelCredentialDecoded, String operationMode, String email) {
+
         return accessTokenService.getOrganizationIdFromCurrentSession()
                 .flatMap(organizationId ->
                         Mono.just(CredentialProcedureCreationRequest.builder()
-                                .credentialId(labelCredentialDecoded.id())
                                 .organizationIdentifier(organizationId)
                                 .credentialDecoded(decodedCredential)
                                 .credentialType(CredentialType.LABEL_CREDENTIAL)

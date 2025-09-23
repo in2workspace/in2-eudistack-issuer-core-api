@@ -1,5 +1,6 @@
 package es.in2.issuer.backend.shared.domain.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import es.in2.issuer.backend.shared.domain.model.dto.CredentialDetails;
 import es.in2.issuer.backend.shared.domain.model.dto.CredentialProcedureCreationRequest;
 import es.in2.issuer.backend.shared.domain.model.dto.CredentialProcedures;
@@ -21,8 +22,6 @@ public interface CredentialProcedureService {
 
     Mono<String> getDecodedCredentialByProcedureId(String procedureId);
 
-    Mono<CredentialProcedure> getCredentialByCredentialId(String credentialId);
-
     Mono<String> getOperationModeByProcedureId(String procedureId);
 
     Mono<String> getSignerEmailFromDecodedCredentialByProcedureId(String procedureId);
@@ -37,9 +36,11 @@ public interface CredentialProcedureService {
 
     Mono<Void> updateCredentialProcedureCredentialStatusToRevoke(CredentialProcedure credentialProcedure);
 
-    Mono<String> updatedEncodedCredentialByCredentialId(String encodedCredential, String credentialId);
+    Mono<String> updatedEncodedCredentialByCredentialProcedureId(String encodedCredential, String credentialProcedureId);
 
     Mono<CredentialProcedure> getCredentialProcedureById(String procedureId);
+    Mono<JsonNode> getCredentialNode(CredentialProcedure credentialProcedure);
+    Mono<String> getCredentialId(CredentialProcedure credentialProcedure);
 
     Mono<Void> updateFormatByProcedureId(String procedureId, String format);
     Mono<CredentialOfferEmailNotificationInfo> getEmailCredentialOfferInfoByProcedureId(String procedureId);

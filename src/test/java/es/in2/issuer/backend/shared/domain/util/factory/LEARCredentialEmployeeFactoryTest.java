@@ -78,13 +78,11 @@ class LEARCredentialEmployeeFactoryTest {
         when(learCredentialEmployeeJwtPayload.learCredentialEmployee()).thenReturn(learCredentialEmployee);
         when(learCredentialEmployeeJwtPayload.learCredentialEmployee().credentialSubject()).thenReturn(credentialSubject);
         when(credentialSubject.mandate()).thenReturn(mandate);
-        when(mandate.id()).thenReturn("mandateeId");
         when(mandate.mandator()).thenReturn(mandator);
         when(mandate.mandatee()).thenReturn(mandatee);
         when(mandatee.email()).thenReturn("email");
         when(mandatee.firstName()).thenReturn("firstName");
         when(mandatee.lastName()).thenReturn("lastName");
-        when(mandatee.nationality()).thenReturn("nationality");
         when(mandate.power()).thenReturn(List.of(Power.builder().build()));
         when(objectMapper.writeValueAsString(any(LEARCredentialEmployee.class))).thenReturn(expectedString);
 

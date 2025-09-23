@@ -13,7 +13,7 @@ class CredentialProcedureTest {
     @Test
     void testCredentialProcedure() {
         UUID procedureId = UUID.randomUUID();
-        UUID credentialId = UUID.randomUUID();
+        String credentialId = UUID.randomUUID().toString();
         String credentialFormat = "testFormat";
         String credentialDecoded = "testDecoded";
         String credentialEncoded = "testEncoded";
@@ -24,7 +24,6 @@ class CredentialProcedureTest {
 
         CredentialProcedure credentialProcedure = CredentialProcedure.builder()
                 .procedureId(procedureId)
-                .credentialId(credentialId)
                 .credentialFormat(credentialFormat)
                 .credentialDecoded(credentialDecoded)
                 .credentialEncoded(credentialEncoded)
@@ -35,7 +34,6 @@ class CredentialProcedureTest {
                 .build();
 
         assertEquals(procedureId, credentialProcedure.getProcedureId());
-        assertEquals(credentialId, credentialProcedure.getCredentialId());
         assertEquals(credentialFormat, credentialProcedure.getCredentialFormat());
         assertEquals(credentialDecoded, credentialProcedure.getCredentialDecoded());
         assertEquals(credentialEncoded, credentialProcedure.getCredentialEncoded());
@@ -49,7 +47,7 @@ class CredentialProcedureTest {
     void testSettersAndGetters() {
         CredentialProcedure credentialProcedure = new CredentialProcedure();
         UUID procedureId = UUID.randomUUID();
-        UUID credentialId = UUID.randomUUID();
+        String credentialId = UUID.randomUUID().toString();
         String credentialFormat = "format";
         String credentialDecoded = "decoded";
         String credentialEncoded = "encoded";
@@ -59,7 +57,6 @@ class CredentialProcedureTest {
         Timestamp validUntil = new Timestamp(System.currentTimeMillis() + 1000);
 
         credentialProcedure.setProcedureId(procedureId);
-        credentialProcedure.setCredentialId(credentialId);
         credentialProcedure.setCredentialFormat(credentialFormat);
         credentialProcedure.setCredentialDecoded(credentialDecoded);
         credentialProcedure.setCredentialEncoded(credentialEncoded);
@@ -69,7 +66,6 @@ class CredentialProcedureTest {
         credentialProcedure.setValidUntil(validUntil);
 
         assertEquals(procedureId, credentialProcedure.getProcedureId());
-        assertEquals(credentialId, credentialProcedure.getCredentialId());
         assertEquals(credentialFormat, credentialProcedure.getCredentialFormat());
         assertEquals(credentialDecoded, credentialProcedure.getCredentialDecoded());
         assertEquals(credentialEncoded, credentialProcedure.getCredentialEncoded());
