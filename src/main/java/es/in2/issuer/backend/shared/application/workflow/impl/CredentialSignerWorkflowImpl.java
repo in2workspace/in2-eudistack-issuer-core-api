@@ -235,7 +235,6 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
                                     .flatMap(responseUri -> {
                                         try {
                                             String companyEmail = updatedCredentialProcedure.getOwnerEmail();
-                                            //todo use credential id
 
                                             return credentialProcedureService.getCredentialId(updatedCredentialProcedure)
                                                     .doOnNext(credentialId -> log.debug("Using credentialId for delivery: {}", credentialId))

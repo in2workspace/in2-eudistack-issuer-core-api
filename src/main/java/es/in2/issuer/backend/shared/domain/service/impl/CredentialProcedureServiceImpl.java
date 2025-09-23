@@ -82,9 +82,6 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
 
             try {
                 JsonNode credential = objectMapper.readTree(credentialProcedure.getCredentialDecoded());
-                //todo remove
-                log.info("getCredentialNode: parsed node for procedureId {} -> {}",
-                        credentialProcedure.getProcedureId(), credential.toPrettyString());
                 return Mono.just(credential);
             } catch (JsonProcessingException e) {
                 return Mono.error(new ParseCredentialJsonException("Error parsing credential JSON"));
@@ -103,9 +100,6 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
 
                     return credentialId;
                 })
-                .doOnNext(credentialId -> log.debug(
-                        "getCredentialId: extracted '{}' for procedureId {}",
-                        credentialId, credentialProcedure.getProcedureId()))
                 .filter(id -> id != null && !id.isBlank())
                 .switchIfEmpty(Mono.error(new ParseCredentialJsonException(
                         "Missing credential id (expected vc.id or id)")));
@@ -195,7 +189,7 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
                                         yield Mono.just(mandateNode.get(MANDATOR).get(EMAIL).asText());
                                     }
                                 } else {
-                                    JsonNode mandatorEmailNode = credential.get(CREDENTIAL_SUBJECT).get(MANDATE).get(MANDATOR).get("email");
+                                    JsonNode mandatorEmailNode = credential.get(CREDENTIAL_SUBJECT).get(MANDATE).get(MANDATOR).get(EMAIL);
                                     String email = mandatorEmailNode.asText();
                                     yield Mono.just(email.equals("jesus.ruiz@in2.es") ? "domesupport@in2.es" : email);
                                 }

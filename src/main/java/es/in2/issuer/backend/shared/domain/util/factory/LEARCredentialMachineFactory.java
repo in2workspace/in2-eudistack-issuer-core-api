@@ -70,9 +70,6 @@ public class LEARCredentialMachineFactory {
     }
 
     private Mono<LEARCredentialMachine> buildFinalLearCredentialMachine(LEARCredentialMachine.CredentialSubject baseCredentialSubject) {
-        log.info("buildFinalLearCredentialMachine");
-
-
 
         Instant currentTime = Instant.now();
         String validFrom = currentTime.toString();
@@ -149,7 +146,6 @@ public class LEARCredentialMachineFactory {
     }
 
     public Mono<LEARCredentialMachine> bindIssuer(LEARCredentialMachine learCredentialMachine, DetailedIssuer issuer) {
-        log.debug("🔐: bindIssuer (LEARCredentialMachine)");
 
         return Mono.just(LEARCredentialMachine.builder()
                 .context(learCredentialMachine.context())

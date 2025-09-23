@@ -66,11 +66,6 @@ public class LEARCredentialEmployeeFactory {
 
     //TODO Fix if else cuando se tenga la estructura final de los credenciales en el marketplace
     public LEARCredentialEmployee mapStringToLEARCredentialEmployee(String learCredential) {
-        //todo
-        log.info("mapStringToLEARCredentialEmployee");
-        log.info(learCredential);
-        log.info("employee v3 context");
-        log.info(CREDENTIALS_EUDISTACK_LEAR_CREDENTIAL_EMPLOYEE_CONTEXT);
         try {
             LEARCredentialEmployee employee;
             if (learCredential.contains("https://trust-framework.dome-marketplace.eu/credentials/learcredentialemployee/v1")) {
