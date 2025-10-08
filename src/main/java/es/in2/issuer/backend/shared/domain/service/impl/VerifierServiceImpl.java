@@ -92,7 +92,7 @@ public class VerifierServiceImpl implements VerifierService {
                         return Mono.empty(); // Valid token
                     } catch (ParseException | JOSEException e) {
                         log.error("Error parsing or verifying JWT", e);
-                        return Mono.error(new JWTParsingException("Error parsing or verifying JWT (custom nou ParseAuthenticationException)"));
+                        return Mono.error(new JWTParsingException("Error parsing or verifying JWT"));
                     }
                 });
     }
