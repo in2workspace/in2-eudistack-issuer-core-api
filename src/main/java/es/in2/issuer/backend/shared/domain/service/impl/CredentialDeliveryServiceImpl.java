@@ -29,6 +29,8 @@ public class CredentialDeliveryServiceImpl implements CredentialDeliveryService 
                 .encodedVc(encodedVc)
                 .build();
         log.debug("Sending the VC: {} to response_uri: {} to email {}", encodedVc, responseUri, email);
+        //todo remove
+        log.debug("bearer token: {}", bearerToken);
 
         return webClient.commonWebClient()
                 .patch()
