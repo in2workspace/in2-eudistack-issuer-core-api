@@ -118,7 +118,10 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                 yield new CredentialOfferEmailNotificationInfo(email, user, org);
             }
             case LEAR_CREDENTIAL_MACHINE -> {
-                String email = payload.get(MANDATOR).get(EMAIL).asText();
+                if(preSubmittedCredentialDataRequest.credentialOwnerEmail() == null || preSubmittedCredentialDataRequest.credentialOwnerEmail().isBlank()) {
+                    throw new MissingEmailOwnerException("Email owner email is required for gx:LabelCredential schema");
+                }
+                String email = preSubmittedCredentialDataRequest.credentialOwnerEmail();
                 String org = payload.get(MANDATOR).get(ORGANIZATION).asText();
                 String name = payload.get(MANDATOR).get(COMMON_NAME).asText();
                 yield new CredentialOfferEmailNotificationInfo(email, name, org);
