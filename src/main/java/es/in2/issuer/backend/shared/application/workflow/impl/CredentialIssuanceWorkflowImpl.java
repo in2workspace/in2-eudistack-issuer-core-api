@@ -270,18 +270,24 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                                 Mono<Void> upd = !CredentialStatusEnum.PEND_SIGNATURE.toString().equals(status)
                                         ? credentialProcedureService.updateCredentialProcedureCredentialStatusToValidByProcedureId(id)
                                         : Mono.empty();
-                                return upd.then(credentialProcedureService.getDecodedCredentialByProcedureId(id));
+                                return upd.then(credentialProcedureService.getDecodedCredentialByProcedureId(id)
+                                        .zipWith(credentialProcedureService.getCredentialProcedureById(id)));
                             })
-                            .flatMap(decoded -> {
+                            .flatMap(tuple -> {
+                                String decoded = tuple.getT1();
+                                CredentialProcedure updatedCredentialProcedure = tuple.getT2();
+
                                 CredentialType typeEnum = CredentialType.valueOf(credentialProcedure.getCredentialType());
                                 if (typeEnum == CredentialType.LEAR_CREDENTIAL_EMPLOYEE) {
                                     return getMandatorOrganizationIdentifier(processId, decoded);
                                 }
 
                                 if (deferred.getResponseUri() != null && !deferred.getResponseUri().isBlank()) {
-                                    String encodedCredential = credentialProcedure.getCredentialEncoded();
-                                    log.info("credentialProcedure: {}", credentialProcedure);
-                                    log.info("encodedCredential: {}", encodedCredential);
+                                    String encodedCredential = updatedCredentialProcedure.getCredentialEncoded();
+                                    if (encodedCredential == null || encodedCredential.isBlank()) {
+                                        return Mono.error(new IllegalStateException("Encoded credential not found for procedureId: " + updatedCredentialProcedure.getProcedureId()));
+                                    }
+
                                     log.info("Sending VC to response URI: {}", deferred.getResponseUri());
                                     return credentialProcedureService.getCredentialId(credentialProcedure)
                                             .doOnNext(credentialId -> log.debug("Using credentialId for delivery: {}", credentialId))
