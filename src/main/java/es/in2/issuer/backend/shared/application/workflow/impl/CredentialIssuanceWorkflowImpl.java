@@ -121,6 +121,7 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                 String email;
                 if(preSubmittedCredentialDataRequest.credentialOwnerEmail() == null || preSubmittedCredentialDataRequest.credentialOwnerEmail().isBlank()) {
                     email = payload.get(MANDATOR).get(EMAIL).asText();
+                    log.debug("No credential owner email found in presubmitted data. Using mandator email: {}", payload.get(MANDATOR).get(EMAIL).asText());
                 } else {
                     email = preSubmittedCredentialDataRequest.credentialOwnerEmail();
                 }
