@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v2.1.0](https://github.com/in2workspace/in2-issuer-api/releases/tag/v2.1.0)
+### Changed
+- If LEARCredentialMachine issuance presubmitted data contains credential_owner_email, use it to send the credential offer, instead of mandator email.
+
+### Fixed
+- When sending Label Credential to VC URI, send it encoded.
+
 ## [v2.0.0](https://github.com/in2workspace/in2-issuer-api/releases/tag/v2.0.0)
 ### Added
 - Label credential issuance.
