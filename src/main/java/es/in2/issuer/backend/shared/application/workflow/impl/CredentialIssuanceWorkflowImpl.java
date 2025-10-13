@@ -279,6 +279,7 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                                 }
 
                                 if (deferred.getResponseUri() != null && !deferred.getResponseUri().isBlank()) {
+                                    String encodedCredential = credentialProcedure.getCredentialEncoded();
                                     log.info("Sending VC to response URI: {}", deferred.getResponseUri());
                                     return credentialProcedureService.getCredentialId(credentialProcedure)
                                             .doOnNext(credentialId -> log.debug("Using credentialId for delivery: {}", credentialId))
@@ -287,7 +288,7 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                                                             .flatMap(tokenResponse ->
                                                                     credentialDeliveryService.sendVcToResponseUri(
                                                                             deferred.getResponseUri(),
-                                                                            decoded,
+                                                                            encodedCredential,
                                                                             credentialId,
                                                                             credentialProcedure.getOwnerEmail(),
                                                                             tokenResponse.accessToken()
