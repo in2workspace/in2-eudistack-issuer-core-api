@@ -1,6 +1,15 @@
 package es.in2.issuer.backend.shared.application.workflow.impl;
 
 
+import es.in2.issuer.backend.oidc4vci.domain.model.CredentialIssuerMetadata;
+import es.in2.issuer.backend.shared.domain.model.dto.VerifierOauth2AccessToken;
+import es.in2.issuer.backend.shared.domain.model.entities.CredentialProcedure;
+import org.mockito.ArgumentCaptor;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
+import java.util.*;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -8,6 +17,9 @@ import es.in2.issuer.backend.shared.application.workflow.CredentialSignerWorkflo
 import es.in2.issuer.backend.shared.domain.exception.EmailCommunicationException;
 import es.in2.issuer.backend.shared.domain.exception.FormatUnsupportedException;
 import es.in2.issuer.backend.shared.domain.model.dto.*;
+import es.in2.issuer.backend.shared.domain.model.entities.DeferredCredentialMetadata;
+import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum;
+import es.in2.issuer.backend.shared.domain.model.enums.CredentialType;
 import es.in2.issuer.backend.shared.domain.service.*;
 import es.in2.issuer.backend.shared.domain.util.factory.LEARCredentialEmployeeFactory;
 import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
@@ -15,6 +27,7 @@ import es.in2.issuer.backend.shared.infrastructure.config.WebClientConfig;
 import es.in2.issuer.backend.shared.infrastructure.config.security.service.VerifiableCredentialPolicyAuthorizationService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -71,6 +84,9 @@ class CredentialIssuanceServiceImplTest {
     @Mock
     private M2MTokenService m2MTokenService;
 
+    @Mock
+    private CredentialIssuerMetadataService credentialIssuerMetadataService;
+
     @InjectMocks
     private CredentialIssuanceWorkflowImpl verifiableCredentialIssuanceWorkflow;
 
@@ -92,7 +108,7 @@ class CredentialIssuanceServiceImplTest {
                 .verify();
     }
 
-    //todo
+    // TODO
 //    @Test
 //    void operationNotSupportedExceptionDueInvalidResponseUriTest() {
 //        String processId = "1234";
@@ -258,7 +274,7 @@ class CredentialIssuanceServiceImplTest {
         when(appConfig.getIssuerFrontendUrl()).thenReturn(issuerUiExternalDomain);
         when(appConfig.getKnowledgebaseWalletUrl()).thenReturn(knowledgebaseWalletUrl);
 
-        // Simulación de fallo en el envío del email
+        // Simulated failure when sending the email
         when(emailService.sendCredentialActivationEmail(
                 "example@in2.es",
                 "Activate your new credential",
@@ -275,7 +291,7 @@ class CredentialIssuanceServiceImplTest {
                 .verify();
     }
 
-//todo
+// TODO
 //    @Test
 //    void completeWithdrawVerifiableCertificationProcessSuccess() throws JsonProcessingException {
 //        String processId = "1234";
@@ -520,6 +536,214 @@ class CredentialIssuanceServiceImplTest {
 //                .expectError(IllegalArgumentException.class)
 //                .verify();
 //    }
+
+    @Test
+    void completeWithdrawLEARMachineProcessUsesOwnerEmailWhenProvided() throws Exception {
+        // given
+        String processId = "1234";
+        String schema = "LEARCredentialMachine";
+        String token = "token";
+        String idToken = null;
+
+        // owner email comes from the request and must take precedence over mandator.email
+        String ownerEmail = "owner.override@in2.es";
+        String mandatorEmail = "mandator@in2.es";
+        String name = "Robot 3000";
+        String org  = "IN2 Machines";
+        String knowledgebaseWalletUrl = "https://knowledgebase.com";
+        String issuerUiExternalDomain = "https://issuer.example.com";
+        String transactionCode = "tx-ABCD";
+
+        String json = """
+    {
+      "mandator": {
+        "email": "%s",
+        "commonName": "%s",
+        "organization": "%s"
+      }
+    }
+    """.formatted(mandatorEmail, name, org);
+
+        ObjectMapper om = new ObjectMapper();
+        JsonNode payload = om.readTree(json);
+
+        PreSubmittedCredentialDataRequest req =
+                PreSubmittedCredentialDataRequest.builder()
+                        .payload(payload)
+                        .schema(schema)
+                        .format(JWT_VC_JSON)
+                        .operationMode("S")
+                        .credentialOwnerEmail(ownerEmail) // <- important for the test
+                        .build();
+
+        when(verifiableCredentialPolicyAuthorizationService.authorize(token, schema, payload, idToken))
+                .thenReturn(Mono.empty());
+
+        when(verifiableCredentialService.generateVc(processId, req, ownerEmail))
+                .thenReturn(Mono.just(transactionCode));
+
+        when(appConfig.getIssuerFrontendUrl()).thenReturn(issuerUiExternalDomain);
+        when(appConfig.getKnowledgebaseWalletUrl()).thenReturn(knowledgebaseWalletUrl);
+
+        when(emailService.sendCredentialActivationEmail(
+                ownerEmail,
+                "Activate your new credential",
+                issuerUiExternalDomain + "/credential-offer?transaction_code=" + transactionCode,
+                knowledgebaseWalletUrl,
+                name,
+                org
+        )).thenReturn(Mono.empty());
+
+        // when / then
+        StepVerifier.create(verifiableCredentialIssuanceWorkflow.execute(processId, req, token, idToken))
+                .verifyComplete();
+
+        // and we explicitly verify that ownerEmail was used
+        verify(emailService).sendCredentialActivationEmail(
+                eq(ownerEmail),
+                anyString(),
+                contains(transactionCode),
+                eq(knowledgebaseWalletUrl),
+                eq(name),
+                eq(org)
+        );
+    }
+
+    @Test
+    void generateVerifiableCredentialResponse_UsesEncodedCredentialOnDelivery() {
+        // --- Minimal setup so the flow reaches the send to responseUri with ENCODED ---
+        String processId = "p-1";
+        String nonce = "nonce123";
+        String token = buildDummyJwtWithJti(nonce); // simple compact JWS that Nimbus can parse
+
+        // Deferred -> points to our procedureId and has a responseUri
+        String procedureId = "proc-99";
+        String responseUri = "https://wallet.example.com/callback";
+
+        // CredentialProcedure mock
+        CredentialProcedure proc = mock(CredentialProcedure.class);
+        when(proc.getOperationMode()).thenReturn("S"); // SYNC
+        when(proc.getCredentialType()).thenReturn(CredentialType.LEAR_CREDENTIAL_MACHINE.name());
+        when(proc.getOwnerEmail()).thenReturn("owner@in2.es");
+        when(proc.getCredentialEncoded()).thenReturn("ENCODED_JWT_VALUE"); // <- what we want to be sent
+
+        // Deferred metadata mock
+        DeferredCredentialMetadata deferred = mock(DeferredCredentialMetadata.class);
+        when(deferred.getProcedureId()).thenReturn(java.util.UUID.randomUUID());
+        when(deferred.getResponseUri()).thenReturn(responseUri);
+
+// ---- Metadata mock configuration without deep stubs ----
+        CredentialIssuerMetadata metadata = mock(CredentialIssuerMetadata.class);
+
+// Note: it's a final record; this requires mock-maker-inline.
+// If you don't have it, see the "without mocks" alternative below.
+        CredentialIssuerMetadata.CredentialConfiguration cfg =
+                mock(CredentialIssuerMetadata.CredentialConfiguration.class);
+
+        CredentialIssuerMetadata.CredentialConfiguration.CredentialDefinition def =
+                mock(CredentialIssuerMetadata.CredentialConfiguration.CredentialDefinition.class);
+
+        String typeId = CredentialType.LEAR_CREDENTIAL_MACHINE.getTypeId();
+
+// return value of credentialDefinition()
+        when(cfg.credentialDefinition()).thenReturn(def);
+
+// type() returns Set<String>
+        when(def.type()).thenReturn(Set.of(typeId));
+
+// cryptographicBindingMethodsSupported() returns Set<String>
+        when(cfg.cryptographicBindingMethodsSupported()).thenReturn(Collections.emptySet());
+
+// map of configs
+        Map<String, CredentialIssuerMetadata.CredentialConfiguration> map = new HashMap<>();
+        map.put("cfg1", cfg);
+        when(metadata.credentialConfigurationsSupported()).thenReturn(map);
+// ---- end of configuration ----
+
+
+        // Service chains
+        when(deferredCredentialMetadataService.getDeferredCredentialMetadataByAuthServerNonce(nonce))
+                .thenReturn(Mono.just(deferred));
+
+        when(credentialProcedureService.getCredentialProcedureById(anyString()))
+                .thenReturn(Mono.just(proc));
+
+        when(credentialIssuerMetadataService.getCredentialIssuerMetadata(processId))
+                .thenReturn(Mono.just(metadata));
+
+        // buildCredentialResponse doesn't need a subject DID (config without proof), it will go through the null branch
+        CredentialResponse cr = CredentialResponse.builder()
+                .credentials(List.of(CredentialResponse.Credential.builder().credential("whatever").build()))
+                .transactionId("t-1")
+                .build();
+        when(verifiableCredentialService.buildCredentialResponse(eq(processId), isNull(), eq(nonce), eq(token)))
+                .thenReturn(Mono.just(cr));
+
+        // In SYNC: status and decoded are queried (the decoded is not used unless it's employee)
+        when(deferredCredentialMetadataService.getProcedureIdByAuthServerNonce(nonce))
+                .thenReturn(Mono.just(procedureId));
+
+        when(credentialProcedureService.getCredentialStatusByProcedureId(procedureId))
+                .thenReturn(Mono.just(CredentialStatusEnum.DRAFT.toString()));
+
+        when(credentialProcedureService.updateCredentialProcedureCredentialStatusToValidByProcedureId(procedureId))
+                .thenReturn(Mono.empty());
+
+        when(credentialProcedureService.getDecodedCredentialByProcedureId(procedureId))
+                .thenReturn(Mono.just("DECODED_SHOULD_NOT_BE_USED"));
+
+        // getCredentialId for sending
+        when(credentialProcedureService.getCredentialId(proc)).thenReturn(Mono.just("cred-777"));
+
+        // M2M token for sending
+        when(m2MTokenService.getM2MToken())
+                .thenReturn(Mono.just(new VerifierOauth2AccessToken("access-token-value", "", "")));
+
+        // capture the parameters passed to the send call
+        ArgumentCaptor<String> responseUriCap = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<String> encodedCap = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<String> credIdCap = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<String> ownerEmailCap = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<String> accessTokenCap = ArgumentCaptor.forClass(String.class);
+
+        when(credentialDeliveryService.sendVcToResponseUri(
+                responseUriCap.capture(),
+                encodedCap.capture(),
+                credIdCap.capture(),
+                ownerEmailCap.capture(),
+                accessTokenCap.capture()
+        )).thenReturn(Mono.empty());
+
+        // when
+        StepVerifier.create(
+                        verifiableCredentialIssuanceWorkflow.generateVerifiableCredentialResponse(processId,
+                                CredentialRequest.builder()
+                                        .credentialConfigurationId(JWT_VC_JSON)
+                                        .build(),
+                                token)
+                )
+                .expectNext(cr)
+                .verifyComplete();
+
+        // then: the ENCODED was used (not the decoded)
+        assert responseUriCap.getValue().equals(responseUri);
+        assert encodedCap.getValue().equals("ENCODED_JWT_VALUE");
+        assert credIdCap.getValue().equals("cred-777");
+        assert ownerEmailCap.getValue().equals("owner@in2.es");
+        assert accessTokenCap.getValue().equals("access-token-value");
+    }
+
+    /** Helper: minimal compact JWT with "jti" in the payload that Nimbus can parse without validating the signature */
+    private static String buildDummyJwtWithJti(String jti) {
+        String h = java.util.Base64.getUrlEncoder().withoutPadding()
+                .encodeToString("{\"alg\":\"HS256\"}".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        String p = java.util.Base64.getUrlEncoder().withoutPadding()
+                .encodeToString(("{\"jti\":\"" + jti + "\"}").getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        // dummy signature
+        String s = "sig";
+        return h + "." + p + "." + s;
+    }
+
 
 
     @Test
