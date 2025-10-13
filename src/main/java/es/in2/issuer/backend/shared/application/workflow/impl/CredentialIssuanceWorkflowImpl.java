@@ -118,7 +118,13 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                 yield new CredentialOfferEmailNotificationInfo(email, user, org);
             }
             case LEAR_CREDENTIAL_MACHINE -> {
-                String email = payload.get(MANDATOR).get(EMAIL).asText();
+                String email;
+                if(preSubmittedCredentialDataRequest.credentialOwnerEmail() == null || preSubmittedCredentialDataRequest.credentialOwnerEmail().isBlank()) {
+                    email = payload.get(MANDATOR).get(EMAIL).asText();
+                    log.debug("No credential owner email found in presubmitted data. Using mandator email: {}", payload.get(MANDATOR).get(EMAIL).asText());
+                } else {
+                    email = preSubmittedCredentialDataRequest.credentialOwnerEmail();
+                }
                 String org = payload.get(MANDATOR).get(ORGANIZATION).asText();
                 String name = payload.get(MANDATOR).get(COMMON_NAME).asText();
                 yield new CredentialOfferEmailNotificationInfo(email, name, org);
@@ -264,15 +270,24 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                                 Mono<Void> upd = !CredentialStatusEnum.PEND_SIGNATURE.toString().equals(status)
                                         ? credentialProcedureService.updateCredentialProcedureCredentialStatusToValidByProcedureId(id)
                                         : Mono.empty();
-                                return upd.then(credentialProcedureService.getDecodedCredentialByProcedureId(id));
+                                return upd.then(credentialProcedureService.getDecodedCredentialByProcedureId(id)
+                                        .zipWith(credentialProcedureService.getCredentialProcedureById(id)));
                             })
-                            .flatMap(decoded -> {
+                            .flatMap(tuple -> {
+                                String decoded = tuple.getT1();
+                                CredentialProcedure updatedCredentialProcedure = tuple.getT2();
+
                                 CredentialType typeEnum = CredentialType.valueOf(credentialProcedure.getCredentialType());
                                 if (typeEnum == CredentialType.LEAR_CREDENTIAL_EMPLOYEE) {
                                     return getMandatorOrganizationIdentifier(processId, decoded);
                                 }
 
                                 if (deferred.getResponseUri() != null && !deferred.getResponseUri().isBlank()) {
+                                    String encodedCredential = updatedCredentialProcedure.getCredentialEncoded();
+                                    if (encodedCredential == null || encodedCredential.isBlank()) {
+                                        return Mono.error(new IllegalStateException("Encoded credential not found for procedureId: " + updatedCredentialProcedure.getProcedureId()));
+                                    }
+
                                     log.info("Sending VC to response URI: {}", deferred.getResponseUri());
                                     return credentialProcedureService.getCredentialId(credentialProcedure)
                                             .doOnNext(credentialId -> log.debug("Using credentialId for delivery: {}", credentialId))
@@ -281,7 +296,7 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                                                             .flatMap(tokenResponse ->
                                                                     credentialDeliveryService.sendVcToResponseUri(
                                                                             deferred.getResponseUri(),
-                                                                            decoded,
+                                                                            encodedCredential,
                                                                             credentialId,
                                                                             credentialProcedure.getOwnerEmail(),
                                                                             tokenResponse.accessToken()
