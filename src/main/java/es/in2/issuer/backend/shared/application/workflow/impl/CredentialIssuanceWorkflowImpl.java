@@ -280,6 +280,8 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
 
                                 if (deferred.getResponseUri() != null && !deferred.getResponseUri().isBlank()) {
                                     String encodedCredential = credentialProcedure.getCredentialEncoded();
+                                    log.info("credentialProcedure: {}", credentialProcedure);
+                                    log.info("encodedCredential: {}", encodedCredential);
                                     log.info("Sending VC to response URI: {}", deferred.getResponseUri());
                                     return credentialProcedureService.getCredentialId(credentialProcedure)
                                             .doOnNext(credentialId -> log.debug("Using credentialId for delivery: {}", credentialId))
