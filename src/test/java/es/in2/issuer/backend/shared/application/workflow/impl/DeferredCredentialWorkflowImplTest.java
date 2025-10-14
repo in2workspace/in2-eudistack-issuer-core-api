@@ -2,7 +2,9 @@ package es.in2.issuer.backend.shared.application.workflow.impl;
 
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import es.in2.issuer.backend.shared.domain.model.dto.CredentialOfferEmailNotificationInfo;
 import es.in2.issuer.backend.shared.domain.model.dto.PendingCredentials;
+import es.in2.issuer.backend.shared.domain.model.dto.SignedCredentials;
 import es.in2.issuer.backend.shared.domain.service.CredentialProcedureService;
 import es.in2.issuer.backend.shared.domain.service.DeferredCredentialMetadataService;
 import es.in2.issuer.backend.shared.domain.service.EmailService;
@@ -13,10 +15,12 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import java.util.List;
 
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 
@@ -57,6 +61,43 @@ class DeferredCredentialWorkflowImplTest {
                 .expectNext(expectedPendingCredentials)
                 .verifyComplete();
     }
+
+    @Test
+    void updateSignedCredentials_shouldCallGetCredentialOfferEmailInfo_whenModeIsAsync() throws Exception {
+        // given
+        String procedureId = "1234";
+        String jwt = "eyJhbGciOiJIUzI1NiJ9.eyJ2YyI6eyJpZCI6Im15SWQifX0.signature";
+
+        SignedCredentials.SignedCredential signedCredential =
+                SignedCredentials.SignedCredential.builder()
+                        .credential(jwt)
+                        .build();
+
+        SignedCredentials signedCredentials =
+                SignedCredentials.builder()
+                        .credentials(List.of(signedCredential))
+                        .build();
+
+        // Mockem la part de parsejar el JWT i el JSON
+        when(credentialProcedureService.updatedEncodedCredentialByCredentialProcedureId(jwt, procedureId))
+                .thenReturn(Mono.just(procedureId));
+
+        when(deferredCredentialMetadataService.updateVcByProcedureId(jwt, procedureId))
+                .thenReturn(Mono.empty());
+
+        when(deferredCredentialMetadataService.getOperationModeByProcedureId(procedureId))
+                .thenReturn(Mono.just("ASYNC"));
+
+        // Simulem la resposta del servei d'email info
+        CredentialOfferEmailNotificationInfo mockEmailInfo = new CredentialOfferEmailNotificationInfo(
+                "test@example.com",
+                "IN2 Org"
+        );
+        // when + then
+        StepVerifier.create(deferredCredentialWorkflow.updateSignedCredentials(signedCredentials, procedureId))
+                .verifyComplete();
+    }
+
 
     //todo
 //    @Test
