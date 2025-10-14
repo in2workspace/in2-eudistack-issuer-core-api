@@ -186,7 +186,7 @@ class EmailServiceImplTest {
 //
 //        UUID procedureId = UUID.randomUUID();
 //        when(credential.getProcedureId()).thenReturn(procedureId);
-//        when(credentialProcedureService.getEmailCredentialOfferInfoByProcedureId(procedureId.toString()))
+//        when(credentialProcedureService.getCredentialOfferEmailInfoByProcedureId(procedureId.toString()))
 //                .thenReturn(Mono.just(new CredentialOfferEmailNotificationInfo("to@example.com", "John Doe", "ACME Corp")));
 //
 //        Mono<Void> result = emailService.notifyIfCredentialStatusChanges(credential, "EXPIRED");
@@ -220,7 +220,7 @@ class EmailServiceImplTest {
 //
 //        when(credential.getCredentialStatus()).thenReturn(CredentialStatusEnum.EXPIRED);
 //
-//        when(credentialProcedureService.getEmailCredentialOfferInfoByProcedureId(anyString()))
+//        when(credentialProcedureService.getCredentialOfferEmailInfoByProcedureId(anyString()))
 //                .thenReturn(Mono.just(new CredentialOfferEmailNotificationInfo("to@example.com", "John Doe", "ACME Corp")));
 //
 //        Mono<Void> result = emailService.notifyIfCredentialStatusChanges(credential, "EXPIRED");

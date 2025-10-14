@@ -192,7 +192,7 @@ public class EmailServiceImpl implements EmailService {
                 .getCredentialId(credentialProcedure)
                 .flatMap(credentialId ->
                         credentialProcedureService
-                                .getEmailCredentialOfferInfoByProcedureId(credentialProcedure.getProcedureId().toString())
+                                .getCredentialOfferEmailInfoByProcedureId(credentialProcedure.getProcedureId().toString())
                                 .flatMap(info ->
                                         sendCredentialRevokedOrExpiredNotificationEmail(
                                                 info.email(),

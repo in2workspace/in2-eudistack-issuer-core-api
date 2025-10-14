@@ -316,7 +316,7 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
     }
 
     @Override
-    public Mono<CredentialOfferEmailNotificationInfo> getEmailCredentialOfferInfoByProcedureId(String
+    public Mono<CredentialOfferEmailNotificationInfo> getCredentialOfferEmailInfoByProcedureId(String
                                                                                                        procedureId) {
         return credentialProcedureRepository
                 .findByProcedureId(UUID.fromString(procedureId))
@@ -353,10 +353,7 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
                                         String org = mandator
                                                 .get(ORGANIZATION)
                                                 .asText();
-                                        //todo o owner_email
-                                        String email = mandator
-                                                .get(EMAIL)
-                                                .asText();
+                                        String email = credentialProcedure.getOwnerEmail();
                                         return new CredentialOfferEmailNotificationInfo(
                                                 email,
                                                 org

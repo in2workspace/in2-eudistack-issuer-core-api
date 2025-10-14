@@ -59,7 +59,7 @@ public class DeferredCredentialWorkflowImpl implements DeferredCredentialWorkflo
                             deferredCredentialMetadataService.updateVcByProcedureId(jwt, procId)
                                     .then(deferredCredentialMetadataService.getOperationModeByProcedureId(procId))
                                     .filter(ASYNC::equals)
-                                    .flatMap(mode -> credentialProcedureService.getEmailCredentialOfferInfoByProcedureId(procId)
+                                    .flatMap(mode -> credentialProcedureService.getCredentialOfferEmailInfoByProcedureId(procId)
                                             .flatMap( emailInfo -> emailService.sendCredentialSignedNotification(
                                             emailInfo.email(),
                                             "Credential Ready",

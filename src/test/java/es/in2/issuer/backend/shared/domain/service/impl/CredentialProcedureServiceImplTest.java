@@ -731,7 +731,7 @@ class CredentialProcedureServiceImplTest {
     }
 
     @Test
-    void getEmailCredentialOfferInfoByProcedureId_shouldReturnInfoForLearCredentialMachine() throws Exception {
+    void getCredentialOfferEmailInfoByProcedureId_shouldReturnInfoForLearCredentialMachine() throws Exception {
         String procedureId = UUID.randomUUID().toString();
 
         String credentialDecoded = """
@@ -761,7 +761,7 @@ class CredentialProcedureServiceImplTest {
                 .thenReturn(credentialNode);
 
         Mono<CredentialOfferEmailNotificationInfo> result =
-                credentialProcedureService.getEmailCredentialOfferInfoByProcedureId(procedureId);
+                credentialProcedureService.getCredentialOfferEmailInfoByProcedureId(procedureId);
 
         StepVerifier.create(result)
                 .assertNext(info -> {
@@ -774,7 +774,7 @@ class CredentialProcedureServiceImplTest {
     }
 
     @Test
-    void getEmailCredentialOfferInfoByProcedureId_shouldMapJsonErrorForLearCredentialMachine() throws Exception {
+    void getCredentialOfferEmailInfoByProcedureId_shouldMapJsonErrorForLearCredentialMachine() throws Exception {
         // Given
         String procedureId = UUID.randomUUID().toString();
         String malformedJson = "{ \"credentialSubject\": { \"mandate\": { \"mandator\": { \"email\": ";
@@ -792,7 +792,7 @@ class CredentialProcedureServiceImplTest {
 
         // Execute
         Mono<CredentialOfferEmailNotificationInfo> result =
-                credentialProcedureService.getEmailCredentialOfferInfoByProcedureId(procedureId);
+                credentialProcedureService.getCredentialOfferEmailInfoByProcedureId(procedureId);
 
         // Then
         StepVerifier.create(result)
