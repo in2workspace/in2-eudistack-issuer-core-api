@@ -57,7 +57,7 @@ public class EmailServiceImpl implements EmailService {
     }
 
     @Override
-    public Mono<Void> sendCredentialActivationEmail(String to, String subject, String link, String knowledgebaseWalletUrl, String user, String organization) {
+    public Mono<Void> sendCredentialActivationEmail(String to, String subject, String link, String knowledgebaseWalletUrl, String organization) {
         return Mono.fromCallable(() -> {
             MimeMessage mimeMessage = javaMailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, UTF_8);
@@ -73,7 +73,6 @@ public class EmailServiceImpl implements EmailService {
 
             Context context = new Context();
             context.setVariable("link", link);
-            context.setVariable("user", user);
             context.setVariable("organization", organization);
             context.setVariable("knowledgebaseWalletUrl", knowledgebaseWalletUrl);
             context.setVariable("imageResourceName", "cid:" + imageResourceName);
@@ -129,9 +128,7 @@ public class EmailServiceImpl implements EmailService {
         }).subscribeOn(Schedulers.boundedElastic()).then();
     }
     @Override
-    public Mono<Void> sendCredentialSignedNotification(String to, String subject, String firstName, String additionalInfo) {
-        firstName = firstName.replace("\"", "");
-        final String finalName = firstName;
+    public Mono<Void> sendCredentialSignedNotification(String to, String subject, String additionalInfo) {
         return Mono.fromCallable(() -> {
             MimeMessage mimeMessage = javaMailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
@@ -140,7 +137,6 @@ public class EmailServiceImpl implements EmailService {
             helper.setSubject(subject);
 
             Context context = new Context();
-            context.setVariable("name", finalName);
             context.setVariable("additionalInfo", additionalInfo);
             String htmlContent = templateEngine.process("credential-signed-notification", context);
             helper.setText(htmlContent, true);
@@ -200,7 +196,6 @@ public class EmailServiceImpl implements EmailService {
                                 .flatMap(info ->
                                         sendCredentialRevokedOrExpiredNotificationEmail(
                                                 info.email(),
-                                                info.user(),
                                                 info.organization(),
                                                 credentialId,
                                                 credentialProcedure.getCredentialType(),
@@ -213,7 +208,7 @@ public class EmailServiceImpl implements EmailService {
                 .doOnError(e -> log.error("Error sending '{}' email for credential procedure {}", expectedStatus, credentialProcedure.getProcedureId().toString()));
     }
 
-    private Mono<Void> sendCredentialRevokedOrExpiredNotificationEmail(String to,String user,String organization,String credentialId,String type,String credentialStatus){
+    private Mono<Void> sendCredentialRevokedOrExpiredNotificationEmail(String to,String organization,String credentialId,String type,String credentialStatus){
         return Mono.fromCallable(() -> {
             try {
                 MimeMessage mimeMessage = javaMailSender.createMimeMessage();
@@ -222,7 +217,7 @@ public class EmailServiceImpl implements EmailService {
                 helper.setFrom(mailProperties.getUsername());
                 helper.setTo(to);
 
-                Context context = buildEmailContext(user, organization, credentialId, type, credentialStatus);
+                Context context = buildEmailContext(organization, credentialId, type, credentialStatus);
 
                 switch (credentialStatus) {
                     case "REVOKED" -> {
@@ -248,9 +243,8 @@ public class EmailServiceImpl implements EmailService {
         }).subscribeOn(Schedulers.boundedElastic()).then();
     }
 
-    private Context buildEmailContext(String user, String organization, String credentialId, String type, String credentialStatus) {
+    private Context buildEmailContext(String organization, String credentialId, String type, String credentialStatus) {
         Context context = new Context();
-        context.setVariable("user", user);
         context.setVariable("organization", organization);
         context.setVariable("credentialId", credentialId);
         context.setVariable("type", type);

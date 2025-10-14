@@ -38,13 +38,12 @@ public class NotificationServiceImpl implements NotificationService {
                                                                 "Activate your new credential",
                                                                 appConfig.getIssuerFrontendUrl() + "/credential-offer?transaction_code=" + newTransactionCode,
                                                                 appConfig.getKnowledgebaseWalletUrl(),
-                                                                emailCredentialOfferInfo.user(),
                                                                 emailCredentialOfferInfo.organization()
                                                         ))
                                                         .onErrorMap(exception ->
                                                                 new EmailCommunicationException(MAIL_ERROR_COMMUNICATION_EXCEPTION_MESSAGE));
                                             } else if (credentialProcedure.getCredentialStatus().toString().equals(PEND_DOWNLOAD.toString())) {
-                                                return emailService.sendCredentialSignedNotification(credentialProcedure.getOwnerEmail(), "Credential Ready", emailCredentialOfferInfo.user(), "You can now use it with your wallet.");
+                                                return emailService.sendCredentialSignedNotification(credentialProcedure.getOwnerEmail(), "Credential Ready", "You can now use it with your wallet.");
                                             } else {
                                                 return Mono.empty();
                                             }
