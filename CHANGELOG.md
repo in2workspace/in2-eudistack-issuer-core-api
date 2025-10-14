@@ -6,7 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [v2.1.0](https://github.com/in2workspace/in2-issuer-api/releases/tag/v2.1.0)
 ### Changed
-- If LEARCredentialMachine issuance presubmitted data contains credential_owner_email, use it to send the credential offer, instead of mandator email.
+- If LEARCredentialMachine issuance presubmitted data contains credential_owner_email, use it as owner email.
+- Don't include name in emails.
 
 ### Fixed
 - When sending Label Credential to VC URI, send it encoded.
