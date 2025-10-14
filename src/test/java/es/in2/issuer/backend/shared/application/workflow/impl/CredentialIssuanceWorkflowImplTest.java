@@ -853,7 +853,6 @@ class CredentialIssuanceServiceImplTest {
         String token = "token";
         String idToken = null;
         String expectedEmail = "machine.owner@in2.es";
-        String expectedName  = "Robot 3000";
         String expectedOrg   = "IN2 Machines";
 
         String json = """

@@ -1,8 +1,6 @@
 package es.in2.issuer.backend.backoffice.domain.service.impl;
 
-import es.in2.issuer.backend.backoffice.domain.service.impl.NotificationServiceImpl;
 import es.in2.issuer.backend.shared.domain.exception.EmailCommunicationException;
-import es.in2.issuer.backend.shared.domain.model.dto.EmailCredentialOfferInfo;
 import es.in2.issuer.backend.shared.domain.service.CredentialProcedureService;
 import es.in2.issuer.backend.shared.domain.service.DeferredCredentialMetadataService;
 import es.in2.issuer.backend.shared.domain.service.EmailService;
@@ -58,55 +56,12 @@ class NotificationServiceImplTest {
         lenient().when(appConfig.getKnowledgebaseWalletUrl()).thenReturn(knowledgebaseWalletUrl);
     }
 
-    // --------- HELPERS
-
-    /** Crea un mock de CredentialProcedure amb status i (opcionalment) ownerEmail */
-    private Object mockCredentialProcedureWithStatusAndOwner(Object statusEnum, String ownerEmailOrNull) throws Exception {
-        // TODO substitueix Object pel tipus real CredentialProcedure
-        var credentialProcedure = mock(Class.forName("es.in2.issuer.backend.shared.domain.model.entities.CredentialProcedure"));
-        // getCredentialStatus() retorna l'enum (DRAFT/WITHDRAWN/PEND_DOWNLOAD)
-        when(credentialProcedure.getClass().getMethod("getCredentialStatus").invoke(credentialProcedure))
-                .thenReturn(null); // placeholder per evitar warning en reflexió
-        // com que l'anterior línia amb reflexió és farragosa, fem stubbing amb Mockito via lenient Answer:
-        // (més simple: fem un spy d'interfície/classe real si la tens accessible)
-
-        // --- Alternativa robusta sense reflexió: usa Mockito 'when' amb cast al tipus real ---
-        // CredentialProcedure cp = (CredentialProcedure) credentialProcedure;
-        // when(cp.getCredentialStatus()).thenReturn((CredentialStatusEnum) statusEnum);
-        // if (ownerEmailOrNull != null) when(cp.getOwnerEmail()).thenReturn(ownerEmailOrNull);
-
-        // Perquè aquest test compili sense el tipus real, creem un "stub" via doAnswer:
-        doAnswer(inv -> statusEnum).when(credentialProcedure).getClass().getMethod("getCredentialStatus").invoke(credentialProcedure);
-
-        if (ownerEmailOrNull != null) {
-            try {
-                doAnswer(inv -> ownerEmailOrNull).when(credentialProcedure).getClass().getMethod("getOwnerEmail").invoke(credentialProcedure);
-            } catch (NoSuchMethodException ignored) {
-                // si el model no té getOwnerEmail(), elimina aquesta part i ajusta el test
-            }
-        }
-
-        return credentialProcedure;
-    }
-
-    /** Construeix l'EmailCredentialOfferInfo (record amb email() i organization()) */
-    private Object buildEmailOfferInfo(String email, String org) throws Exception {
-        // TODO substitueix pel constructor real del teu record/DTO:
-        // return new EmailCredentialOfferInfo(email, org);
-
-        // Si el tipus exacte és desconegut aquí, fem un mock i el stubegem:
-        var emailInfo = mock(Class.forName("es.in2.issuer.backend.shared.domain.model.dto.EmailCredentialOfferInfo"));
-        when(emailInfo.getClass().getMethod("email").invoke(emailInfo)).thenReturn(email);
-        when(emailInfo.getClass().getMethod("organization").invoke(emailInfo)).thenReturn(org);
-        return emailInfo;
-    }
 
     // --------- TESTS
 
     @Test
-    void sendNotification_whenDraft_sendsActivationEmail() throws Exception {
+    void sendNotification_whenDraft_sendsActivationEmail(){
         // arrange
-        // CredentialProcedure amb status DRAFT
         CredentialProcedure credentialProcedure = mock(CredentialProcedure.class);
         when(credentialProcedure.getCredentialStatus()).thenReturn(DRAFT);
 
@@ -119,11 +74,11 @@ class NotificationServiceImplTest {
         when(deferredCredentialMetadataService.updateTransactionCodeInDeferredCredentialMetadata(procedureId))
                 .thenReturn(Mono.just(transactionCode));
         when(emailService.sendCredentialActivationEmail(
-                eq(mandateeEmail),
-                eq("Activate your new credential"),
-                eq(issuerUiExternalDomain + "/credential-offer?transaction_code=" + transactionCode),
-                eq(knowledgebaseWalletUrl),
-                eq(organization)
+                mandateeEmail,
+                "Activate your new credential",
+                issuerUiExternalDomain + "/credential-offer?transaction_code=" + transactionCode,
+                knowledgebaseWalletUrl,
+                organization
         )).thenReturn(Mono.empty());
 
         // act
@@ -151,11 +106,11 @@ class NotificationServiceImplTest {
         when(deferredCredentialMetadataService.updateTransactionCodeInDeferredCredentialMetadata(procedureId))
                 .thenReturn(Mono.just(transactionCode));
         when(emailService.sendCredentialActivationEmail(
-                eq(mandateeEmail),
-                eq("Activate your new credential"),
-                eq(issuerUiExternalDomain + "/credential-offer?transaction_code=" + transactionCode),
-                eq(knowledgebaseWalletUrl),
-                eq(organization)
+                mandateeEmail,
+                "Activate your new credential",
+                issuerUiExternalDomain + "/credential-offer?transaction_code=" + transactionCode,
+                knowledgebaseWalletUrl,
+                organization
         )).thenReturn(Mono.empty());
 
         // act
@@ -210,10 +165,10 @@ class NotificationServiceImplTest {
         when(credentialProcedureService.getCredentialOfferEmailInfoByProcedureId(procedureId))
                 .thenReturn(Mono.just(emailInfo));
         when(emailService.sendCredentialSignedNotification(
-                eq(ownerEmail),
-                eq("Credential Ready"),
-                eq("You can now use it with your wallet.")
-        )).thenReturn(Mono.empty());
+                ownerEmail,
+                "Credential Ready",
+                "You can now use it with your wallet.")
+        ).thenReturn(Mono.empty());
 
         // act
         var result = notificationService.sendNotification(processId, procedureId);
@@ -223,9 +178,9 @@ class NotificationServiceImplTest {
 
         verify(emailService, times(1))
                 .sendCredentialSignedNotification(
-                        eq(ownerEmail),
-                        eq("Credential Ready"),
-                        eq("You can now use it with your wallet.")
+                        ownerEmail,
+                        "Credential Ready",
+                        "You can now use it with your wallet."
                 );
         verifyNoMoreInteractions(emailService);
     }
