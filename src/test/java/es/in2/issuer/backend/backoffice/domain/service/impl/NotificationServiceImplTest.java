@@ -55,7 +55,7 @@ class NotificationServiceImplTest {
 //                .thenReturn(Mono.just(transactionCode));
 //        when(appConfig.getKnowledgebaseWalletUrl()).thenReturn(knowledgebaseWalletUrl);
 //        when(emailService.sendCredentialActivationEmail(email, "Activate your new credential",
-//                issuerUiExternalDomain + "/credential-offer?transaction_code=" + transactionCode,knowledgebaseWalletUrl, user,organization))
+//                issuerUiExternalDomain + "/credential-offer?transaction_code=" + transactionCode,knowledgebaseWalletUrl,organization))
 //                .thenReturn(Mono.empty());
 //
 //        Mono<Void> result = notificationService.sendNotification(processId, procedureId);
@@ -63,7 +63,7 @@ class NotificationServiceImplTest {
 //        StepVerifier.create(result)
 //                .verifyComplete();
 //
-//        verify(emailService, times(1)).sendCredentialActivationEmail(anyString(), anyString(), anyString(), anyString(), anyString(), anyString());
+//        verify(emailService, times(1)).sendCredentialActivationEmail(anyString(), anyString(), anyString(), anyString(), anyString());
 //    }
 //
 //    @Test

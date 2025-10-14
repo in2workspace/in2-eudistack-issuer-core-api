@@ -65,7 +65,7 @@ class EmailServiceImplTest {
         when(templateEngine.process(eq("activate-credential-email"), any(Context.class))).thenReturn("htmlContent");
         when(mailProperties.getUsername()).thenReturn("user@example.com");
 
-        Mono<Void> result = emailService.sendCredentialActivationEmail("to@example.com", "subject", "link", "knowledgebaseUrl","user","organization");
+        Mono<Void> result = emailService.sendCredentialActivationEmail("to@example.com", "subject", "link", "knowledgebaseUrl","organization");
 
         StepVerifier.create(result)
                 .verifyComplete();
@@ -95,7 +95,7 @@ class EmailServiceImplTest {
         when(templateEngine.process(eq("credential-signed-notification"), any(Context.class))).thenReturn("htmlContent");
         when(mailProperties.getUsername()).thenReturn("user@example.com");
 
-        Mono<Void> result = emailService.sendCredentialSignedNotification("to@example.com", "subject", "\"John\"", "additionalInfo");
+        Mono<Void> result = emailService.sendCredentialSignedNotification("to@example.com", "subject", "additionalInfo");
 
         StepVerifier.create(result)
                 .verifyComplete();

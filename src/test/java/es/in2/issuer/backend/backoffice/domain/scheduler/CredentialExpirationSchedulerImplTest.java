@@ -82,7 +82,7 @@ class CredentialExpirationSchedulerImplTest {
 
         when(credentialProcedureService.getCredentialOfferEmailInfoByProcedureId(credential.getProcedureId().toString()))
                 .thenReturn(Mono.just(new CredentialOfferEmailNotificationInfo(
-                        "to@mail", "userX", "orgY")));
+                        "to@mail", "orgY")));
 
         when(emailService.notifyIfCredentialStatusChanges(
                 any(), anyString()
