@@ -201,7 +201,7 @@ class CredentialIssuanceServiceImplTest {
         when(verifiableCredentialService.generateVc(processId, preSubmittedCredentialDataRequest, expectedEmail)).thenReturn(Mono.just(transactionCode));
         when(appConfig.getIssuerFrontendUrl()).thenReturn(issuerUiExternalDomain);
         when(appConfig.getKnowledgebaseWalletUrl()).thenReturn(knowledgebaseWalletUrl);
-        when(emailService.sendCredentialActivationEmail("example@in2.es", "Activate your new credential", issuerUiExternalDomain + "/credential-offer?transaction_code=" + transactionCode, knowledgebaseWalletUrl, "Jhon Doe", "IN2, Ingeniería de la Información, S.L.")).thenReturn(Mono.empty());
+        when(emailService.sendCredentialActivationEmail("example@in2.es", "Activate your new credential", issuerUiExternalDomain + "/credential-offer?transaction_code=" + transactionCode, knowledgebaseWalletUrl, "IN2, Ingeniería de la Información, S.L.")).thenReturn(Mono.empty());
         StepVerifier.create(verifiableCredentialIssuanceWorkflow.execute(processId, preSubmittedCredentialDataRequest, token, idToken))
                 .verifyComplete();
     }
@@ -287,7 +287,6 @@ class CredentialIssuanceServiceImplTest {
                 "Activate your new credential",
                 issuerUiExternalDomain + "/credential-offer?transaction_code=" + transactionCode,
                 knowledgebaseWalletUrl,
-                "Jhon Doe",
                 "IN2, Ingeniería de la Información, S.L."))
                 .thenReturn(Mono.error(new RuntimeException("Email sending failed")));
 
@@ -597,7 +596,6 @@ class CredentialIssuanceServiceImplTest {
                 "Activate your new credential",
                 issuerUiExternalDomain + "/credential-offer?transaction_code=" + transactionCode,
                 knowledgebaseWalletUrl,
-                name,
                 org
         )).thenReturn(Mono.empty());
 
@@ -611,7 +609,6 @@ class CredentialIssuanceServiceImplTest {
                 anyString(),
                 contains(transactionCode),
                 eq(knowledgebaseWalletUrl),
-                eq(name),
                 eq(org)
         );
     }
@@ -856,7 +853,6 @@ class CredentialIssuanceServiceImplTest {
         String token = "token";
         String idToken = null;
         String expectedEmail = "machine.owner@in2.es";
-        String expectedName  = "Robot 3000";
         String expectedOrg   = "IN2 Machines";
 
         String json = """
@@ -898,7 +894,6 @@ class CredentialIssuanceServiceImplTest {
                 "Activate your new credential",
                 issuerUiExternalDomain + "/credential-offer?transaction_code=" + transactionCode,
                 knowledgebaseWalletUrl,
-                expectedName,
                 expectedOrg
         )).thenReturn(Mono.empty());
 

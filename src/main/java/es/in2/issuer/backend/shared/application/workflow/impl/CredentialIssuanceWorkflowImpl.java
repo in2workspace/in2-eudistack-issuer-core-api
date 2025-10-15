@@ -88,7 +88,6 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                         CREDENTIAL_ACTIVATION_EMAIL_SUBJECT,
                         credentialOfferUrl,
                         appConfig.getKnowledgebaseWalletUrl(),
-                        info.user(),
                         info.organization()
                 )
                 .onErrorMap(ex -> new EmailCommunicationException(MAIL_ERROR_COMMUNICATION_EXCEPTION_MESSAGE));
@@ -112,10 +111,8 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
         return switch (schema) {
             case LEAR_CREDENTIAL_EMPLOYEE -> {
                 String email = payload.get(MANDATEE).get(EMAIL).asText();
-                String user  = payload.get(MANDATEE).get(FIRST_NAME).asText()
-                        + " " + payload.get(MANDATEE).get(LAST_NAME).asText();
                 String org   = payload.get(MANDATOR).get(ORGANIZATION).asText();
-                yield new CredentialOfferEmailNotificationInfo(email, user, org);
+                yield new CredentialOfferEmailNotificationInfo(email, org);
             }
             case LEAR_CREDENTIAL_MACHINE -> {
                 String email;
@@ -126,15 +123,14 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                     email = preSubmittedCredentialDataRequest.credentialOwnerEmail();
                 }
                 String org = payload.get(MANDATOR).get(ORGANIZATION).asText();
-                String name = payload.get(MANDATOR).get(COMMON_NAME).asText();
-                yield new CredentialOfferEmailNotificationInfo(email, name, org);
+                yield new CredentialOfferEmailNotificationInfo(email, org);
             }
             case LABEL_CREDENTIAL -> {
                     if(preSubmittedCredentialDataRequest.credentialOwnerEmail() == null || preSubmittedCredentialDataRequest.credentialOwnerEmail().isBlank()) {
                         throw new MissingEmailOwnerException("Email owner email is required for gx:LabelCredential schema");
                     }
                     String email = preSubmittedCredentialDataRequest.credentialOwnerEmail();
-                yield new CredentialOfferEmailNotificationInfo(email, DEFAULT_USER_NAME, DEFAULT_ORGANIZATION_NAME);
+                yield new CredentialOfferEmailNotificationInfo(email, DEFAULT_ORGANIZATION_NAME);
             }
             default -> throw new FormatUnsupportedException(
                     "Unknown schema: " + schema

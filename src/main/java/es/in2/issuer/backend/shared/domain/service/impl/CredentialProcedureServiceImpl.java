@@ -316,7 +316,7 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
     }
 
     @Override
-    public Mono<CredentialOfferEmailNotificationInfo> getEmailCredentialOfferInfoByProcedureId(String
+    public Mono<CredentialOfferEmailNotificationInfo> getCredentialOfferEmailInfoByProcedureId(String
                                                                                                        procedureId) {
         return credentialProcedureRepository
                 .findByProcedureId(UUID.fromString(procedureId))
@@ -326,7 +326,6 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
                                             objectMapper.readTree(credentialProcedure.getCredentialDecoded())
                                     )
                                     .map(credential -> {
-                                        String user = credentialProcedure.getSubject();
                                         String org = credential
                                                 .get(CREDENTIAL_SUBJECT)
                                                 .get(MANDATE)
@@ -335,7 +334,6 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
                                                 .asText();
                                         return new CredentialOfferEmailNotificationInfo(
                                                 credentialProcedure.getOwnerEmail(),
-                                                user,
                                                 org
                                         );
                                     })
@@ -352,18 +350,12 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
                                                 .get(CREDENTIAL_SUBJECT)
                                                 .get(MANDATE)
                                                 .get(MANDATOR);
-                                        String user = mandator
-                                                .get(COMMON_NAME)
-                                                .asText();
                                         String org = mandator
                                                 .get(ORGANIZATION)
                                                 .asText();
-                                        String email = mandator
-                                                .get(EMAIL)
-                                                .asText();
+                                        String email = credentialProcedure.getOwnerEmail();
                                         return new CredentialOfferEmailNotificationInfo(
                                                 email,
-                                                user,
                                                 org
                                         );
                                     })
@@ -375,7 +367,6 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
                             case LABEL_CREDENTIAL_TYPE -> Mono.just(
                                     new CredentialOfferEmailNotificationInfo(
                                             credentialProcedure.getOwnerEmail(),
-                                            DEFAULT_USER_NAME,
                                             DEFAULT_ORGANIZATION_NAME
                                     )
                             );

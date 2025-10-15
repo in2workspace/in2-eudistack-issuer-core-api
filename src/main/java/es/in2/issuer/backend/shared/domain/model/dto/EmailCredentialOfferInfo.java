@@ -5,7 +5,6 @@ import lombok.Builder;
 @Builder
 public record EmailCredentialOfferInfo(
         String email,
-        String user,
         String organization
 ) {
 }

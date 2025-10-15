@@ -43,5 +43,5 @@ public interface CredentialProcedureService {
     Mono<String> getCredentialId(CredentialProcedure credentialProcedure);
 
     Mono<Void> updateFormatByProcedureId(String procedureId, String format);
-    Mono<CredentialOfferEmailNotificationInfo> getEmailCredentialOfferInfoByProcedureId(String procedureId);
+    Mono<CredentialOfferEmailNotificationInfo> getCredentialOfferEmailInfoByProcedureId(String procedureId);
 }
