@@ -69,7 +69,7 @@ public class Constants {
     public static final String AUTH_DATA = "authData";
     public static final String AUTH_DATA_ID = "id";
     public static final String AUTH_DATA_VALUE = "value";
-    public static final String CREDENTIAL_ACTIVATION_EMAIL_SUBJECT = "Activate your new credential";
+    public static final String CREDENTIAL_ACTIVATION_EMAIL_SUBJECT = "email.activation.subject";
     public static final String ERROR_LOG_FORMAT = "[Error Instance ID: {}] Path: {}, Status: {}, Title: {}, Message: {}";
     public static final String OPTIONS = "OPTIONS";
     // ERROR MESSAGES

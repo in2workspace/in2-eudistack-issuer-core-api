@@ -13,6 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
+import static es.in2.issuer.backend.backoffice.domain.util.Constants.CREDENTIAL_ACTIVATION_EMAIL_SUBJECT;
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.MAIL_ERROR_COMMUNICATION_EXCEPTION_MESSAGE;
 import static es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum.*;
 
@@ -37,7 +38,7 @@ public class NotificationServiceImpl implements NotificationService {
                                                 return deferredCredentialMetadataService.updateTransactionCodeInDeferredCredentialMetadata(procedureId)
                                                         .flatMap(newTransactionCode -> emailService.sendCredentialActivationEmail(
                                                                 emailCredentialOfferInfo.email(),
-                                                                "email.activation.subject",
+                                                                CREDENTIAL_ACTIVATION_EMAIL_SUBJECT,
                                                                 appConfig.getIssuerFrontendUrl() + "/credential-offer?transaction_code=" + newTransactionCode,
                                                                 appConfig.getKnowledgebaseWalletUrl(),
                                                                 emailCredentialOfferInfo.organization()
