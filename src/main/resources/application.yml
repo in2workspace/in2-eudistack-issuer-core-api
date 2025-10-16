@@ -36,6 +36,8 @@ spring:
       starttls.enable: true
       # Specifies the trusted mail server that will be used to send the emails (REQUIRED)
       ssl.trust:
+  messages:
+    basename: messages/messages
 
 # Spring Logging Configuration
 logging:
