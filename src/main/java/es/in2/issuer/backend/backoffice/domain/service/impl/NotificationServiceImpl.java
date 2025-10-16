@@ -13,8 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
-import static es.in2.issuer.backend.backoffice.domain.util.Constants.CREDENTIAL_ACTIVATION_EMAIL_SUBJECT;
-import static es.in2.issuer.backend.backoffice.domain.util.Constants.MAIL_ERROR_COMMUNICATION_EXCEPTION_MESSAGE;
+import static es.in2.issuer.backend.backoffice.domain.util.Constants.*;
 import static es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum.*;
 
 @Slf4j
@@ -46,7 +45,7 @@ public class NotificationServiceImpl implements NotificationService {
                                                         .onErrorMap(exception ->
                                                                 new EmailCommunicationException(MAIL_ERROR_COMMUNICATION_EXCEPTION_MESSAGE));
                                             } else if (credentialProcedure.getCredentialStatus().toString().equals(PEND_DOWNLOAD.toString())) {
-                                                return emailService.sendCredentialSignedNotification(credentialProcedure.getOwnerEmail(), "Credential Ready", "You can now use it with your wallet.");
+                                                return emailService.sendCredentialSignedNotification(credentialProcedure.getOwnerEmail(), CREDENTIAL_READY, "You can now use it with your wallet.");
                                             } else {
                                                 return Mono.empty();
                                             }

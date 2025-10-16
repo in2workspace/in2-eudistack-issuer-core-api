@@ -258,7 +258,7 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
         return switch (operationMode) {
             case ASYNC -> deferredCredentialMetadataService.getProcedureIdByAuthServerNonce(nonce)
                     .flatMap(credentialProcedureService::getSignerEmailFromDecodedCredentialByProcedureId)
-                    .flatMap(email -> emailService.sendPendingCredentialNotification(email, "Pending Credential")
+                    .flatMap(email -> emailService.sendPendingCredentialNotification(email, "email.pending-credential")
                             .thenReturn(cr));
             case SYNC -> deferredCredentialMetadataService.getProcedureIdByAuthServerNonce(nonce)
                     .flatMap(id -> credentialProcedureService.getCredentialStatusByProcedureId(id)

@@ -62,7 +62,7 @@ public class DeferredCredentialWorkflowImpl implements DeferredCredentialWorkflo
                                     .flatMap(mode -> credentialProcedureService.getCredentialOfferEmailInfoByProcedureId(procId)
                                             .flatMap( emailInfo -> emailService.sendCredentialSignedNotification(
                                             emailInfo.email(),
-                                            "Credential Ready",
+                                            CREDENTIAL_READY,
                                             emailInfo.organization()
                                     )))
                     );

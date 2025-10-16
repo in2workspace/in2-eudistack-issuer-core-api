@@ -23,7 +23,7 @@ public class CredentialOfferWorkflowImpl implements CredentialOfferWorkflow {
                 .flatMap(credentialOfferData -> emailService
                     .sendTxCodeNotification(
                         credentialOfferData.credentialOwnerEmail(),
-                        "Pin Code",
+                        "email.pin-code",
                         credentialOfferData.pin())
                     .then(Mono.just(credentialOfferData.credentialOffer()))
                 );

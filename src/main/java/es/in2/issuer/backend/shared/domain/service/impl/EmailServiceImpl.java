@@ -45,7 +45,7 @@ public class EmailServiceImpl implements EmailService {
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, UTF_8);
             helper.setFrom(mailProperties.getUsername());
             helper.setTo(to);
-            helper.setSubject(subject);
+            helper.setSubject(translationService.translate(subject));
 
             Context context = new Context();
             context.setVariable("pin", pin);
@@ -102,7 +102,7 @@ public class EmailServiceImpl implements EmailService {
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, UTF_8);
             helper.setFrom(mailProperties.getUsername());
             helper.setTo(to);
-            helper.setSubject(subject);
+            helper.setSubject(translationService.translate(subject));
 
             Context context = new Context();
             String htmlContent = templateEngine.process("credential-pending-notification", context);
@@ -119,7 +119,7 @@ public class EmailServiceImpl implements EmailService {
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, UTF_8);
             helper.setFrom(mailProperties.getUsername());
             helper.setTo(to);
-            helper.setSubject(subject);
+            helper.setSubject(translationService.translate(subject));
 
             Context context = new Context();
             context.setVariable("id", id);
@@ -138,7 +138,7 @@ public class EmailServiceImpl implements EmailService {
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
             helper.setFrom(mailProperties.getUsername());
             helper.setTo(to);
-            helper.setSubject(subject);
+            helper.setSubject(translationService.translate(subject));
 
             Context context = new Context();
             context.setVariable("additionalInfo", additionalInfo);
@@ -157,7 +157,7 @@ public class EmailServiceImpl implements EmailService {
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, UTF_8);
             helper.setFrom(mailProperties.getUsername());
             helper.setTo(to);
-            helper.setSubject("Certification Submission to Marketplace Unsuccessful");
+            helper.setSubject(translationService.translate("email.unsuccessful-submission"));
 
             Context context = new Context();
             context.setVariable("productId", productId);
@@ -177,7 +177,7 @@ public class EmailServiceImpl implements EmailService {
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, UTF_8);
             helper.setFrom(mailProperties.getUsername());
             helper.setTo(to);
-            helper.setSubject("Missing Documents for Certification: " + productId);
+            helper.setSubject(translationService.translate("email.missing-documents-certification") + productId);
 
             helper.setText(htmlContent, true);
 
@@ -212,7 +212,7 @@ public class EmailServiceImpl implements EmailService {
                 .doOnError(e -> log.error("Error sending '{}' email for credential procedure {}", expectedStatus, credentialProcedure.getProcedureId().toString()));
     }
 
-    private Mono<Void> sendCredentialRevokedOrExpiredNotificationEmail(String to,String organization,String credentialId,String type,String credentialStatus){
+    private Mono<Void> sendCredentialRevokedOrExpiredNotificationEmail(String to, String organization, String credentialId, String type, String credentialStatus){
         return Mono.fromCallable(() -> {
             try {
                 MimeMessage mimeMessage = javaMailSender.createMimeMessage();
@@ -225,11 +225,11 @@ public class EmailServiceImpl implements EmailService {
 
                 switch (credentialStatus) {
                     case "REVOKED" -> {
-                        helper.setSubject("Revoked Credential");
+                        helper.setSubject("email.revoked.subject");
                         context.setVariable("title", "Your Credential Has Been Revoked");
                     }
                     case "EXPIRED" -> {
-                        helper.setSubject("Expired Credential");
+                        helper.setSubject("email.expired.subject");
                         context.setVariable("title", "Your Credential Has Expired");
                     }
                     default -> helper.setSubject("Credential Notification");
