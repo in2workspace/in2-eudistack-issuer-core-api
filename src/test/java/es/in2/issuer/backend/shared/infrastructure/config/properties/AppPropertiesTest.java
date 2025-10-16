@@ -16,7 +16,8 @@ class AppPropertiesTest {
                 knowledgeBase,
                 "https://verifier-url.com",
                 "configSource",
-                "https://wallet-frontend-url.com"
+                "https://wallet-frontend-url.com",
+                "es"
         );
 
         assertEquals("https://app-url.com", appProperties.url());

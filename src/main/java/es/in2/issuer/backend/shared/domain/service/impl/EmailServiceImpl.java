@@ -4,6 +4,8 @@ import es.in2.issuer.backend.shared.domain.exception.EmailCommunicationException
 import es.in2.issuer.backend.shared.domain.model.entities.CredentialProcedure;
 import es.in2.issuer.backend.shared.domain.service.CredentialProcedureService;
 import es.in2.issuer.backend.shared.domain.service.EmailService;
+import es.in2.issuer.backend.shared.domain.service.TranslationService;
+import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
@@ -34,6 +36,7 @@ public class EmailServiceImpl implements EmailService {
     private final TemplateEngine templateEngine;
     private final MailProperties mailProperties;
     private final CredentialProcedureService credentialProcedureService;
+    private final TranslationService translationService;
 
     @Override
     public Mono<Void> sendTxCodeNotification(String to, String subject, String pin) {
@@ -77,7 +80,7 @@ public class EmailServiceImpl implements EmailService {
             context.setVariable("knowledgebaseWalletUrl", knowledgebaseWalletUrl);
             context.setVariable("imageResourceName", "cid:" + imageResourceName);
 
-            String htmlContent = templateEngine.process("activate-credential-email", context);
+            String htmlContent = templateEngine.process("activate-credential-email-" + translationService.getLocale(), context);
             helper.setText(htmlContent, true);
 
             final InputStreamSource imageSource = new ByteArrayResource(imageBytes);

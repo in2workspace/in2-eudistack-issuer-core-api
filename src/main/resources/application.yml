@@ -129,6 +129,8 @@ app:
   config-source:  yaml
   # The URL of the wallet service (REQUIRED)
   wallet-url:
+  # Default language for visible texts (OPTIONAL)
+  default-lang: en
 
 azure:
   endpoint: "https://myappconfig.azconfig.io"

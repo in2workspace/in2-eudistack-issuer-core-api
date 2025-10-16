@@ -16,7 +16,8 @@ public record AppProperties(
         @NotNull KnowledgeBase knowledgeBase,
         @NotBlank @URL String verifierUrl,
         @NotBlank String configSource,
-        @NotBlank @URL String walletUrl
+        @NotBlank @URL String walletUrl,
+        @NotBlank String defaultLang
 ) {
 
     @ConstructorBinding
@@ -27,7 +28,8 @@ public record AppProperties(
             KnowledgeBase knowledgeBase,
             String verifierUrl,
             String configSource,
-            String walletUrl
+            String walletUrl,
+            String defaultLang
     ) {
         this.url = url;
         this.issuerFrontendUrl = issuerFrontendUrl;
@@ -36,6 +38,7 @@ public record AppProperties(
         this.verifierUrl = verifierUrl;
         this.configSource = configSource;
         this.walletUrl = walletUrl;
+        this.defaultLang = defaultLang;
     }
 
     @Validated
