@@ -61,12 +61,13 @@ public class EmailServiceImpl implements EmailService {
 
     @Override
     public Mono<Void> sendCredentialActivationEmail(String to, String subject, String link, String knowledgebaseWalletUrl, String organization) {
+        log.info("sendCredentialActivationEmail subject: {}", subject);
         return Mono.fromCallable(() -> {
             MimeMessage mimeMessage = javaMailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, UTF_8);
             helper.setFrom(mailProperties.getUsername());
             helper.setTo(to);
-            helper.setSubject(subject);
+            helper.setSubject(translationService.translate(subject));
 
             ClassPathResource imgResource = new ClassPathResource("static/images/qr-wallet.png");
             String imageResourceName = imgResource.getFilename();

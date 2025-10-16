@@ -45,6 +45,9 @@ public class TranslationServiceImpl implements TranslationService {
     public String translate(String code, Object... args) {
         var locale = Locale.forLanguageTag(getLocale());
         try {
+            log.info("code: {}", code);
+            log.info("args: {}", args);
+            log.info("locale: {}", locale);
             return messageSource.getMessage(code, args, locale);
         } catch (NoSuchMessageException e) {
             log.warn("Message code '{}' not found for locale {}. Falling back to code.", code, locale);
