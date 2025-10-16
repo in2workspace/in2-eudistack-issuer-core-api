@@ -49,7 +49,7 @@ public class EmailServiceImpl implements EmailService {
 
             Context context = new Context();
             context.setVariable("pin", pin);
-            String htmlContent = templateEngine.process("pin-email", context);
+            String htmlContent = templateEngine.process("pin-email-" + translationService.getLocale(), context);
             helper.setText(htmlContent, true);
 
             javaMailSender.send(mimeMessage);
@@ -105,7 +105,7 @@ public class EmailServiceImpl implements EmailService {
             helper.setSubject(translationService.translate(subject));
 
             Context context = new Context();
-            String htmlContent = templateEngine.process("credential-pending-notification", context);
+            String htmlContent = templateEngine.process("credential-pending-notification-" + translationService.getLocale(), context);
             helper.setText(htmlContent, true);
 
             javaMailSender.send(mimeMessage);
@@ -124,7 +124,7 @@ public class EmailServiceImpl implements EmailService {
             Context context = new Context();
             context.setVariable("id", id);
             context.setVariable("domain", domain);
-            String htmlContent = templateEngine.process("credential-pending-signature-notification", context);
+            String htmlContent = templateEngine.process("credential-pending-signature-notification-" + translationService.getLocale(), context);
             helper.setText(htmlContent, true);
 
             javaMailSender.send(mimeMessage);
@@ -142,7 +142,7 @@ public class EmailServiceImpl implements EmailService {
 
             Context context = new Context();
             context.setVariable("additionalInfo", additionalInfo);
-            String htmlContent = templateEngine.process("credential-signed-notification", context);
+            String htmlContent = templateEngine.process("credential-signed-notification-"  + translationService.getLocale(), context);
             helper.setText(htmlContent, true);
 
             javaMailSender.send(mimeMessage);
@@ -162,7 +162,7 @@ public class EmailServiceImpl implements EmailService {
             Context context = new Context();
             context.setVariable("productId", productId);
             context.setVariable("guideUrl", guideUrl);
-            String htmlContent = templateEngine.process("response-uri-failed", context);
+            String htmlContent = templateEngine.process("response-uri-failed-" + translationService.getLocale(), context);
             helper.setText(htmlContent, true);
 
             javaMailSender.send(mimeMessage);
@@ -235,7 +235,7 @@ public class EmailServiceImpl implements EmailService {
                     default -> helper.setSubject("Credential Notification");
 
                 }
-                String htmlContent = templateEngine.process("revoked-expired-credential-email", context);
+                String htmlContent = templateEngine.process("revoked-expired-credential-email-"  + translationService.getLocale(), context);
                 helper.setText(htmlContent, true);
 
                 javaMailSender.send(mimeMessage);
