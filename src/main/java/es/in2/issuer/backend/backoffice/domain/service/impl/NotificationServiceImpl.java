@@ -25,7 +25,6 @@ public class NotificationServiceImpl implements NotificationService {
     private final EmailService emailService;
     private final CredentialProcedureService credentialProcedureService;
     private final DeferredCredentialMetadataService deferredCredentialMetadataService;
-    private final TranslationService translationService;
 
     @Override
     public Mono<Void> sendNotification(String processId, String procedureId) {

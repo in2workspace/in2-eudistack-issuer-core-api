@@ -40,7 +40,7 @@ import static es.in2.issuer.backend.shared.domain.util.Constants.JWT_VC_JSON;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class CredentialIssuanceServiceImplTest {
+class CredentialIssuanceWorkflowImplTest {
 
     @Mock
     private CredentialDeliveryService credentialDeliveryService;
@@ -201,7 +201,7 @@ class CredentialIssuanceServiceImplTest {
         when(verifiableCredentialService.generateVc(processId, preSubmittedCredentialDataRequest, expectedEmail)).thenReturn(Mono.just(transactionCode));
         when(appConfig.getIssuerFrontendUrl()).thenReturn(issuerUiExternalDomain);
         when(appConfig.getKnowledgebaseWalletUrl()).thenReturn(knowledgebaseWalletUrl);
-        when(emailService.sendCredentialActivationEmail("example@in2.es", "Activate your new credential", issuerUiExternalDomain + "/credential-offer?transaction_code=" + transactionCode, knowledgebaseWalletUrl, "IN2, Ingeniería de la Información, S.L.")).thenReturn(Mono.empty());
+        when(emailService.sendCredentialActivationEmail("example@in2.es", "email.activation.subject", issuerUiExternalDomain + "/credential-offer?transaction_code=" + transactionCode, knowledgebaseWalletUrl, "IN2, Ingeniería de la Información, S.L.")).thenReturn(Mono.empty());
         StepVerifier.create(verifiableCredentialIssuanceWorkflow.execute(processId, preSubmittedCredentialDataRequest, token, idToken))
                 .verifyComplete();
     }
@@ -284,7 +284,7 @@ class CredentialIssuanceServiceImplTest {
         // Simulated failure when sending the email
         when(emailService.sendCredentialActivationEmail(
                 "example@in2.es",
-                "Activate your new credential",
+                "email.activation.subject",
                 issuerUiExternalDomain + "/credential-offer?transaction_code=" + transactionCode,
                 knowledgebaseWalletUrl,
                 "IN2, Ingeniería de la Información, S.L."))
@@ -593,7 +593,7 @@ class CredentialIssuanceServiceImplTest {
 
         when(emailService.sendCredentialActivationEmail(
                 ownerEmail,
-                "Activate your new credential",
+                "email.activation.subject",
                 issuerUiExternalDomain + "/credential-offer?transaction_code=" + transactionCode,
                 knowledgebaseWalletUrl,
                 org
@@ -891,7 +891,7 @@ class CredentialIssuanceServiceImplTest {
 
         when(emailService.sendCredentialActivationEmail(
                 expectedEmail,
-                "Activate your new credential",
+                "email.activation.subject",
                 issuerUiExternalDomain + "/credential-offer?transaction_code=" + transactionCode,
                 knowledgebaseWalletUrl,
                 expectedOrg

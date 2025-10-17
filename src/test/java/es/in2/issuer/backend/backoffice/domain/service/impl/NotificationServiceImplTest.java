@@ -14,7 +14,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-import static es.in2.issuer.backend.backoffice.domain.util.Constants.MAIL_ERROR_COMMUNICATION_EXCEPTION_MESSAGE;
+import static es.in2.issuer.backend.backoffice.domain.util.Constants.*;
 import static es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum.DRAFT;
 import static es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum.PEND_DOWNLOAD;
 import static es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum.WITHDRAWN;
@@ -75,7 +75,7 @@ class NotificationServiceImplTest {
                 .thenReturn(Mono.just(transactionCode));
         when(emailService.sendCredentialActivationEmail(
                 mandateeEmail,
-                "Activate your new credential",
+                CREDENTIAL_ACTIVATION_EMAIL_SUBJECT,
                 issuerUiExternalDomain + "/credential-offer?transaction_code=" + transactionCode,
                 knowledgebaseWalletUrl,
                 organization
@@ -107,7 +107,7 @@ class NotificationServiceImplTest {
                 .thenReturn(Mono.just(transactionCode));
         when(emailService.sendCredentialActivationEmail(
                 mandateeEmail,
-                "Activate your new credential",
+                CREDENTIAL_ACTIVATION_EMAIL_SUBJECT,
                 issuerUiExternalDomain + "/credential-offer?transaction_code=" + transactionCode,
                 knowledgebaseWalletUrl,
                 organization
@@ -166,7 +166,7 @@ class NotificationServiceImplTest {
                 .thenReturn(Mono.just(emailInfo));
         when(emailService.sendCredentialSignedNotification(
                 ownerEmail,
-                "Credential Ready",
+                CREDENTIAL_READY,
                 "You can now use it with your wallet.")
         ).thenReturn(Mono.empty());
 
@@ -179,7 +179,7 @@ class NotificationServiceImplTest {
         verify(emailService, times(1))
                 .sendCredentialSignedNotification(
                         ownerEmail,
-                        "Credential Ready",
+                        CREDENTIAL_READY,
                         "You can now use it with your wallet."
                 );
         verifyNoMoreInteractions(emailService);
@@ -202,7 +202,7 @@ class NotificationServiceImplTest {
 //        when(deferredCredentialMetadataService.updateTransactionCodeInDeferredCredentialMetadata(procedureId))
 //                .thenReturn(Mono.just(transactionCode));
 //        when(appConfig.getKnowledgebaseWalletUrl()).thenReturn(knowledgebaseWalletUrl);
-//        when(emailService.sendCredentialActivationEmail(email, "Activate your new credential",
+//        when(emailService.sendCredentialActivationEmail(email, CREDENTIAL_ACTIVATION_EMAIL_SUBJECT,
 //                issuerUiExternalDomain + "/credential-offer?transaction_code=" + transactionCode,knowledgebaseWalletUrl,organization))
 //                .thenReturn(Mono.empty());
 //
@@ -258,7 +258,7 @@ class NotificationServiceImplTest {
 //                .thenReturn(Mono.just(user));
 //        when(credentialProcedureService.getMandatorOrganizationFromDecodedCredentialByProcedureId(procedureId))
 //                .thenReturn(Mono.just(organization));
-//        when(emailService.sendCredentialSignedNotification(email, "Credential Ready", user, "You can now use it with your wallet."))
+//        when(emailService.sendCredentialSignedNotification(email, CREDENTIAL_READY, user, "You can now use it with your wallet."))
 //                .thenReturn(Mono.empty());
 //
 //        Mono<Void> result = notificationService.sendNotification(processId, procedureId);

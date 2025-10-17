@@ -4,8 +4,10 @@ import es.in2.issuer.backend.shared.domain.model.dto.CredentialOfferEmailNotific
 import es.in2.issuer.backend.shared.domain.model.entities.CredentialProcedure;
 import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum;
 import es.in2.issuer.backend.shared.domain.service.CredentialProcedureService;
+import es.in2.issuer.backend.shared.domain.service.TranslationService;
 import jakarta.mail.internet.MimeMessage;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -21,38 +23,39 @@ import reactor.test.StepVerifier;
 
 import java.util.UUID;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class EmailServiceImplTest {
 
-    @Mock
-    private JavaMailSender javaMailSender;
-
-    @Mock
-    private TemplateEngine templateEngine;
-
-    @Mock
-    private MailProperties mailProperties;
-
-    @Mock
-    private CredentialProcedureService credentialProcedureService;
+    @Mock private JavaMailSender javaMailSender;
+    @Mock private TemplateEngine templateEngine;
+    @Mock private MailProperties mailProperties;
+    @Mock private CredentialProcedureService credentialProcedureService;
+    @Mock private TranslationService translationService;
 
     @InjectMocks
     private EmailServiceImpl emailService;
+
+    @BeforeEach
+    void setUpLenient() {
+        // lenient because some tests short-circuit before these are called
+        lenient().when(mailProperties.getUsername()).thenReturn("user@example.com");
+        lenient().when(translationService.getLocale()).thenReturn("en");
+        // Pass-through translation (may not be used in every test)
+        lenient().when(translationService.translate(any(String.class)))
+                .thenAnswer(inv -> inv.getArgument(0));
+    }
 
     @Test
     void testSendTxCodeNotification() {
         MimeMessage mimeMessage = mock(MimeMessage.class);
         when(javaMailSender.createMimeMessage()).thenReturn(mimeMessage);
-        when(templateEngine.process(eq("pin-email"), any(Context.class))).thenReturn("htmlContent");
-        when(mailProperties.getUsername()).thenReturn("user@example.com");
+        // Template now includes locale suffix
+        when(templateEngine.process(eq("pin-email-en"), any(Context.class))).thenReturn("htmlContent");
 
-        Mono<Void> result = emailService.sendTxCodeNotification("to@example.com", "subject", "1234");
-
-        StepVerifier.create(result)
+        StepVerifier.create(emailService.sendTxCodeNotification("to@example.com", "subject.key", "1234"))
                 .verifyComplete();
 
         verify(javaMailSender).send(mimeMessage);
@@ -62,13 +65,11 @@ class EmailServiceImplTest {
     void testSendCredentialActivationEmail() {
         MimeMessage mimeMessage = mock(MimeMessage.class);
         when(javaMailSender.createMimeMessage()).thenReturn(mimeMessage);
-        when(templateEngine.process(eq("activate-credential-email"), any(Context.class))).thenReturn("htmlContent");
-        when(mailProperties.getUsername()).thenReturn("user@example.com");
+        when(templateEngine.process(eq("activate-credential-email-en"), any(Context.class))).thenReturn("htmlContent");
 
-        Mono<Void> result = emailService.sendCredentialActivationEmail("to@example.com", "subject", "link", "knowledgebaseUrl","organization");
-
-        StepVerifier.create(result)
-                .verifyComplete();
+        StepVerifier.create(
+                emailService.sendCredentialActivationEmail("to@example.com", "subject.key", "link", "knowledgebaseUrl","organization")
+        ).verifyComplete();
 
         verify(javaMailSender).send(mimeMessage);
     }
@@ -77,27 +78,9 @@ class EmailServiceImplTest {
     void testSendPendingCredentialNotification() {
         MimeMessage mimeMessage = mock(MimeMessage.class);
         when(javaMailSender.createMimeMessage()).thenReturn(mimeMessage);
-        when(templateEngine.process(eq("credential-pending-notification"), any(Context.class))).thenReturn("htmlContent");
-        when(mailProperties.getUsername()).thenReturn("user@example.com");
+        when(templateEngine.process(eq("credential-pending-notification-en"), any(Context.class))).thenReturn("htmlContent");
 
-        Mono<Void> result = emailService.sendPendingCredentialNotification("to@example.com", "subject");
-
-        StepVerifier.create(result)
-                .verifyComplete();
-
-        verify(javaMailSender).send(mimeMessage);
-    }
-
-    @Test
-    void testSendCredentialSignedNotification() {
-        MimeMessage mimeMessage = mock(MimeMessage.class);
-        when(javaMailSender.createMimeMessage()).thenReturn(mimeMessage);
-        when(templateEngine.process(eq("credential-signed-notification"), any(Context.class))).thenReturn("htmlContent");
-        when(mailProperties.getUsername()).thenReturn("user@example.com");
-
-        Mono<Void> result = emailService.sendCredentialSignedNotification("to@example.com", "subject", "additionalInfo");
-
-        StepVerifier.create(result)
+        StepVerifier.create(emailService.sendPendingCredentialNotification("to@example.com", "subject.key"))
                 .verifyComplete();
 
         verify(javaMailSender).send(mimeMessage);
@@ -107,12 +90,21 @@ class EmailServiceImplTest {
     void testSendPendingSignatureCredentialNotification(){
         MimeMessage mimeMessage = mock(MimeMessage.class);
         when(javaMailSender.createMimeMessage()).thenReturn(mimeMessage);
-        when(templateEngine.process(eq("credential-pending-signature-notification"), any(Context.class))).thenReturn("htmlContent");
-        when(mailProperties.getUsername()).thenReturn("user@example.com");
+        when(templateEngine.process(eq("credential-pending-signature-notification-en"), any(Context.class))).thenReturn("htmlContent");
 
-        Mono<Void> result = emailService.sendPendingSignatureCredentialNotification("to@example.com", "subject", "\"John\"", "domain");
+        StepVerifier.create(emailService.sendPendingSignatureCredentialNotification("to@example.com", "subject.key", "\"John\"", "domain"))
+                .verifyComplete();
 
-        StepVerifier.create(result)
+        verify(javaMailSender).send(mimeMessage);
+    }
+
+    @Test
+    void testSendCredentialSignedNotification() {
+        MimeMessage mimeMessage = mock(MimeMessage.class);
+        when(javaMailSender.createMimeMessage()).thenReturn(mimeMessage);
+        when(templateEngine.process(eq("credential-signed-notification-en"), any(Context.class))).thenReturn("htmlContent");
+
+        StepVerifier.create(emailService.sendCredentialSignedNotification("to@example.com", "subject.key", "additionalInfo"))
                 .verifyComplete();
 
         verify(javaMailSender).send(mimeMessage);
@@ -122,12 +114,9 @@ class EmailServiceImplTest {
     void sendResponseUriFailed_sendsEmailSuccessfully(){
         MimeMessage mimeMessage = mock(MimeMessage.class);
         when(javaMailSender.createMimeMessage()).thenReturn(mimeMessage);
-        when(templateEngine.process(eq("response-uri-failed"), any(Context.class))).thenReturn("htmlContent");
-        when(mailProperties.getUsername()).thenReturn("user@example.com");
+        when(templateEngine.process(eq("response-uri-failed-en"), any(Context.class))).thenReturn("htmlContent");
 
-        Mono<Void> result = emailService.sendResponseUriFailed("to@example.com", "productId", "guideUrl");
-
-        StepVerifier.create(result)
+        StepVerifier.create(emailService.sendResponseUriFailed("to@example.com", "productId", "guideUrl"))
                 .verifyComplete();
 
         verify(javaMailSender).send(mimeMessage);
@@ -137,10 +126,8 @@ class EmailServiceImplTest {
     void sendResponseUriFailed_handlesException(){
         when(javaMailSender.createMimeMessage()).thenThrow(new RuntimeException("Mail server error"));
 
-        Mono<Void> result = emailService.sendResponseUriFailed("to@example.com", "productId", "guideUrl");
-
-        StepVerifier.create(result)
-                .expectError(RuntimeException.class)
+        StepVerifier.create(emailService.sendResponseUriFailed("to@example.com", "productId", "guideUrl"))
+                .expectError(RuntimeException.class) // service does not map this one
                 .verify();
     }
 
@@ -148,11 +135,8 @@ class EmailServiceImplTest {
     void sendResponseUriAcceptedWithHtml_sendsEmailSuccessfully() {
         MimeMessage mimeMessage = mock(MimeMessage.class);
         when(javaMailSender.createMimeMessage()).thenReturn(mimeMessage);
-        when(mailProperties.getUsername()).thenReturn("user@example.com");
 
-        Mono<Void> result = emailService.sendResponseUriAcceptedWithHtml("to@example.com", "productId", "htmlContent");
-
-        StepVerifier.create(result)
+        StepVerifier.create(emailService.sendResponseUriAcceptedWithHtml("to@example.com", "productId", "htmlContent"))
                 .verifyComplete();
 
         verify(javaMailSender).send(mimeMessage);
@@ -162,10 +146,8 @@ class EmailServiceImplTest {
     void sendResponseUriAcceptedWithHtml_handlesException() {
         when(javaMailSender.createMimeMessage()).thenThrow(new RuntimeException("Mail server error"));
 
-        Mono<Void> result = emailService.sendResponseUriAcceptedWithHtml("to@example.com", "productId", "htmlContent");
-
-        StepVerifier.create(result)
-                .expectError(RuntimeException.class)
+        StepVerifier.create(emailService.sendResponseUriAcceptedWithHtml("to@example.com", "productId", "htmlContent"))
+                .expectError(RuntimeException.class) // service does not map this one
                 .verify();
     }
 
@@ -175,9 +157,8 @@ class EmailServiceImplTest {
         CredentialProcedure credential = mock(CredentialProcedure.class);
         when(credential.getCredentialStatus()).thenReturn(CredentialStatusEnum.REVOKED);
 
-        Mono<Void> result = emailService.notifyIfCredentialStatusChanges(credential, "EXPIRED");
-
-        StepVerifier.create(result).verifyComplete();
+        StepVerifier.create(emailService.notifyIfCredentialStatusChanges(credential, "EXPIRED"))
+                .verifyComplete();
 
         // No email or credential service should be invoked
         verifyNoInteractions(javaMailSender, templateEngine, credentialProcedureService);
@@ -187,8 +168,8 @@ class EmailServiceImplTest {
     void notifyIfCredentialStatusChanges_sendsExpiredEmail_andSetsTemplateVariables() {
         MimeMessage mimeMessage = mock(MimeMessage.class);
         when(javaMailSender.createMimeMessage()).thenReturn(mimeMessage);
-        when(mailProperties.getUsername()).thenReturn("sender@example.com");
-        when(templateEngine.process(eq("revoked-expired-credential-email"), any(Context.class)))
+        // Template now includes locale suffix
+        when(templateEngine.process(eq("revoked-expired-credential-email-en"), any(Context.class)))
                 .thenReturn("htmlContent");
 
         // Mocked credential
@@ -205,18 +186,17 @@ class EmailServiceImplTest {
                         "to@example.com", "ACME Corp"
                 )));
 
-        Mono<Void> result = emailService.notifyIfCredentialStatusChanges(credential, "EXPIRED");
-
-        StepVerifier.create(result).verifyComplete();
+        StepVerifier.create(emailService.notifyIfCredentialStatusChanges(credential, "EXPIRED"))
+                .verifyComplete();
 
         verify(javaMailSender).send(mimeMessage);
 
         // Capture the Context to check the added variables
         ArgumentCaptor<Context> ctxCaptor = ArgumentCaptor.forClass(Context.class);
-        verify(templateEngine).process(eq("revoked-expired-credential-email"), ctxCaptor.capture());
+        verify(templateEngine).process(eq("revoked-expired-credential-email-en"), ctxCaptor.capture());
         Context ctx = ctxCaptor.getValue();
 
-        // Subject/title for EXPIRED
+        // Subject/title for EXPIRED are set in the service (title is hardcoded English there)
         Assertions.assertEquals("Your Credential Has Expired", ctx.getVariable("title"));
         // Context variables built by buildEmailContext(...)
         Assertions.assertEquals("ACME Corp", ctx.getVariable("organization"));
@@ -229,8 +209,7 @@ class EmailServiceImplTest {
     void notifyIfCredentialStatusChanges_sendsRevokedEmail_andSetsRevokedTitle() {
         MimeMessage mimeMessage = mock(MimeMessage.class);
         when(javaMailSender.createMimeMessage()).thenReturn(mimeMessage);
-        when(mailProperties.getUsername()).thenReturn("sender@example.com");
-        when(templateEngine.process(eq("revoked-expired-credential-email"), any(Context.class)))
+        when(templateEngine.process(eq("revoked-expired-credential-email-en"), any(Context.class)))
                 .thenReturn("htmlContent");
 
         CredentialProcedure credential = mock(CredentialProcedure.class);
@@ -245,16 +224,16 @@ class EmailServiceImplTest {
                         "to@example.com", "Umbrella Inc"
                 )));
 
-        Mono<Void> result = emailService.notifyIfCredentialStatusChanges(credential, "REVOKED");
+        StepVerifier.create(emailService.notifyIfCredentialStatusChanges(credential, "REVOKED"))
+                .verifyComplete();
 
-        StepVerifier.create(result).verifyComplete();
         verify(javaMailSender).send(mimeMessage);
 
         ArgumentCaptor<Context> ctxCaptor = ArgumentCaptor.forClass(Context.class);
-        verify(templateEngine).process(eq("revoked-expired-credential-email"), ctxCaptor.capture());
+        verify(templateEngine).process(eq("revoked-expired-credential-email-en"), ctxCaptor.capture());
         Context ctx = ctxCaptor.getValue();
 
-        // Subject/title for REVOKED
+        // Subject/title for REVOKED (title is hardcoded English in service)
         Assertions.assertEquals("Your Credential Has Been Revoked", ctx.getVariable("title"));
         // Key variables
         Assertions.assertEquals("Umbrella Inc", ctx.getVariable("organization"));
@@ -265,19 +244,16 @@ class EmailServiceImplTest {
 
     @Test
     void notifyIfCredentialStatusChanges_mapsErrorsToEmailCommunicationException() {
-        // When getCredentialId(...) fails, it must be mapped to EmailCommunicationException
+        // When getCredentialId(...) fails, it should propagate as EmailCommunicationException per service mapping
         CredentialProcedure credential = mock(CredentialProcedure.class);
         when(credential.getCredentialStatus()).thenReturn(CredentialStatusEnum.EXPIRED);
-
-        // ⚠️ Avoid NPE: provide a non-null procedureId
+        // Avoid NPE: provide a non-null procedureId
         when(credential.getProcedureId()).thenReturn(UUID.randomUUID());
 
         when(credentialProcedureService.getCredentialId(credential))
                 .thenReturn(Mono.error(new RuntimeException("boom")));
 
-        Mono<Void> result = emailService.notifyIfCredentialStatusChanges(credential, "EXPIRED");
-
-        StepVerifier.create(result)
+        StepVerifier.create(emailService.notifyIfCredentialStatusChanges(credential, "EXPIRED"))
                 .expectError(es.in2.issuer.backend.shared.domain.exception.EmailCommunicationException.class)
                 .verify();
 
@@ -285,5 +261,4 @@ class EmailServiceImplTest {
         verify(credentialProcedureService, never()).getCredentialOfferEmailInfoByProcedureId(anyString());
         verifyNoInteractions(javaMailSender, templateEngine);
     }
-
 }

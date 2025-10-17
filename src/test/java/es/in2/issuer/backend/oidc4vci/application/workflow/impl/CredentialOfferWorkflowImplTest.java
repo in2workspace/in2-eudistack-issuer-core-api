@@ -7,16 +7,17 @@ import es.in2.issuer.backend.shared.domain.repository.CredentialOfferCacheReposi
 import es.in2.issuer.backend.shared.domain.service.EmailService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
 
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class CredentialOfferWorkflowImplTest {
@@ -33,10 +34,12 @@ class CredentialOfferWorkflowImplTest {
     @Test
     void testGetCredentialOffer() {
         // Arrange
+        // English comments as requested by the user
         String processId = "b731b463-7473-4f97-be7a-658ec0b5dbc9";
         String credentialOfferId = "e0e2c6ab-8fe7-4709-82f0-4a771aaee841";
         String credentialOwnerEmail = "employee1@example.com";
         String txCode = "1234";
+
         Grants grants = Grants.builder()
                 .preAuthorizedCode("oaKazRN8I0IbtZ0C7JuMn5")
                 .txCode(Grants.TxCode.builder()
@@ -45,29 +48,39 @@ class CredentialOfferWorkflowImplTest {
                         .description("Please provide the one-time code that was sent via e-mail")
                         .build())
                 .build();
+
         CredentialOffer credentialOffer = CredentialOffer.builder()
                 .credentialIssuer("https://credential-issuer.example.com")
                 .credentialConfigurationIds(List.of("LEARCredentialEmployee"))
                 .grants(Map.of("urn:ietf:params:oauth:grant-type:pre-authorized_code", grants))
                 .build();
+
         CredentialOfferData credentialOfferData = CredentialOfferData.builder()
                 .credentialOffer(credentialOffer)
                 .credentialOwnerEmail(credentialOwnerEmail)
                 .pin(txCode)
                 .build();
-        // Mocking the behavior of the dependencies
+
+        // Mock repository returns the offer data
         when(credentialOfferCacheRepository.findCredentialOfferById(credentialOfferId))
                 .thenReturn(Mono.just(credentialOfferData));
-        when(emailService.sendTxCodeNotification(credentialOwnerEmail, "Pin Code", txCode))
+
+        // IMPORTANT: match the template key used in the implementation ("email.pin-code")
+        when(emailService.sendTxCodeNotification(credentialOwnerEmail, "email.pin-code", txCode))
                 .thenReturn(Mono.empty());
-        when(credentialOfferCacheRepository.findCredentialOfferById(credentialOfferId))
-                .thenReturn(Mono.just(credentialOfferData));
-        when(emailService.sendTxCodeNotification(credentialOfferData.credentialOwnerEmail(), "Pin Code", credentialOfferData.pin()))
-                .thenReturn(Mono.empty());
+
         // Act
         Mono<CredentialOffer> result = credentialOfferWorkflow.getCredentialOfferById(processId, credentialOfferId);
-        // Assert
-        assertEquals(credentialOffer, result.block());
-    }
 
+        // Assert using StepVerifier (non-blocking)
+        StepVerifier.create(result)
+                .expectNext(credentialOffer) // same instance returned downstream
+                .verifyComplete();
+
+        // Verify interactions happen in the expected order
+        InOrder inOrder = inOrder(credentialOfferCacheRepository, emailService);
+        inOrder.verify(credentialOfferCacheRepository).findCredentialOfferById(credentialOfferId);
+        inOrder.verify(emailService).sendTxCodeNotification(credentialOwnerEmail, "email.pin-code", txCode);
+        inOrder.verifyNoMoreInteractions();
+    }
 }
