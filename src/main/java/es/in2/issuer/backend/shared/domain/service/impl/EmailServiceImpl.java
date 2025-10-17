@@ -49,7 +49,12 @@ public class EmailServiceImpl implements EmailService {
             helper.setTo(to);
 
             String translated = translationService.translate(subject);
+            log.info("translated subject: ");
+            log.info(translated);
             String encodedSubject = MimeUtility.encodeText(translated, StandardCharsets.UTF_8.name(), "B");
+
+            log.info("encoded subject: ");
+            log.info(encodedSubject);
             helper.setSubject(encodedSubject);
 
             Context context = new Context();
