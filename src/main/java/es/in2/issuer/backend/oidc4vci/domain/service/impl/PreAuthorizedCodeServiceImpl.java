@@ -4,6 +4,7 @@ import es.in2.issuer.backend.oidc4vci.domain.service.PreAuthorizedCodeService;
 import es.in2.issuer.backend.shared.domain.model.dto.CredentialProcedureIdAndTxCode;
 import es.in2.issuer.backend.shared.domain.model.dto.Grants;
 import es.in2.issuer.backend.shared.domain.model.dto.PreAuthorizedCodeResponse;
+import es.in2.issuer.backend.shared.domain.service.TranslationService;
 import es.in2.issuer.backend.shared.infrastructure.repository.CacheStore;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,6 +24,7 @@ import static es.in2.issuer.backend.shared.domain.util.Utils.generateCustomNonce
 public class PreAuthorizedCodeServiceImpl implements PreAuthorizedCodeService {
     private final SecureRandom random;
     private final CacheStore<CredentialProcedureIdAndTxCode> credentialProcedureIdAndTxCodeByPreAuthorizedCodeCacheStore;
+    private final TranslationService translationService;
 
     @Override
     public Mono<PreAuthorizedCodeResponse> generatePreAuthorizedCode(String processId, Mono<String> credentialProcedureIdMono) {
@@ -69,7 +71,8 @@ public class PreAuthorizedCodeServiceImpl implements PreAuthorizedCodeService {
     }
 
     private Mono<PreAuthorizedCodeResponse> buildPreAuthorizedCodeResponse(String preAuthorizedCode, String txCode) {
-        Grants.TxCode grantTxCode = new Grants.TxCode(TX_CODE_SIZE, TX_INPUT_MODE, TX_CODE_DESCRIPTION);
+        String txCodeDescription = translationService.translate(TX_CODE_DESCRIPTION);
+        Grants.TxCode grantTxCode = new Grants.TxCode(TX_CODE_SIZE, TX_INPUT_MODE, txCodeDescription);
         Grants grants = new Grants(preAuthorizedCode, grantTxCode);
         return Mono.just(new PreAuthorizedCodeResponse(grants, txCode));
     }
