@@ -141,7 +141,7 @@ public class EmailServiceImpl implements EmailService {
             helper.setSubject(translationService.translate(subject));
 
             Context context = new Context();
-            context.setVariable("additionalInfo", additionalInfo);
+            context.setVariable("additionalInfo", translationService.translate(additionalInfo));
             String htmlContent = templateEngine.process("credential-signed-notification-"  + translationService.getLocale(), context);
             helper.setText(htmlContent, true);
 
@@ -225,14 +225,14 @@ public class EmailServiceImpl implements EmailService {
 
                 switch (credentialStatus) {
                     case "REVOKED" -> {
-                        helper.setSubject("email.revoked.subject");
-                        context.setVariable("title", "Your Credential Has Been Revoked");
+                        helper.setSubject(translationService.translate("email.revoked.subject"));
+                        context.setVariable("title", translationService.translate("email.revoked.title"));
                     }
                     case "EXPIRED" -> {
-                        helper.setSubject("email.expired.subject");
-                        context.setVariable("title", "Your Credential Has Expired");
+                        helper.setSubject(translationService.translate("email.expired.subject"));
+                        context.setVariable("title", translationService.translate("email.expired.title"));
                     }
-                    default -> helper.setSubject("Credential Notification");
+                    default -> helper.setSubject(translationService.translate("email.default-status.subject"));
 
                 }
                 String htmlContent = templateEngine.process("revoked-expired-credential-email-"  + translationService.getLocale(), context);

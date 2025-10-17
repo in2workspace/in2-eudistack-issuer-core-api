@@ -6,6 +6,7 @@ import es.in2.issuer.backend.shared.domain.exception.EmailCommunicationException
 import es.in2.issuer.backend.shared.domain.service.CredentialProcedureService;
 import es.in2.issuer.backend.shared.domain.service.DeferredCredentialMetadataService;
 import es.in2.issuer.backend.shared.domain.service.EmailService;
+import es.in2.issuer.backend.shared.domain.service.TranslationService;
 import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,6 +25,7 @@ public class NotificationServiceImpl implements NotificationService {
     private final EmailService emailService;
     private final CredentialProcedureService credentialProcedureService;
     private final DeferredCredentialMetadataService deferredCredentialMetadataService;
+    private final TranslationService translationService;
 
     @Override
     public Mono<Void> sendNotification(String processId, String procedureId) {
@@ -43,7 +45,8 @@ public class NotificationServiceImpl implements NotificationService {
                                                         .onErrorMap(exception ->
                                                                 new EmailCommunicationException(MAIL_ERROR_COMMUNICATION_EXCEPTION_MESSAGE));
                                             } else if (credentialProcedure.getCredentialStatus().toString().equals(PEND_DOWNLOAD.toString())) {
-                                                return emailService.sendCredentialSignedNotification(credentialProcedure.getOwnerEmail(), CREDENTIAL_READY, "You can now use it with your wallet.");
+
+                                                return emailService.sendCredentialSignedNotification(credentialProcedure.getOwnerEmail(), CREDENTIAL_READY, "email.you-can-use-wallet");
                                             } else {
                                                 return Mono.empty();
                                             }

@@ -197,7 +197,7 @@ class EmailServiceImplTest {
         Context ctx = ctxCaptor.getValue();
 
         // Subject/title for EXPIRED are set in the service (title is hardcoded English there)
-        Assertions.assertEquals("Your Credential Has Expired", ctx.getVariable("title"));
+        Assertions.assertEquals("email.expired.title", ctx.getVariable("title"));
         // Context variables built by buildEmailContext(...)
         Assertions.assertEquals("ACME Corp", ctx.getVariable("organization"));
         Assertions.assertEquals("cred-123", ctx.getVariable("credentialId"));
@@ -234,7 +234,7 @@ class EmailServiceImplTest {
         Context ctx = ctxCaptor.getValue();
 
         // Subject/title for REVOKED (title is hardcoded English in service)
-        Assertions.assertEquals("Your Credential Has Been Revoked", ctx.getVariable("title"));
+        Assertions.assertEquals("email.revoked.title", ctx.getVariable("title"));
         // Key variables
         Assertions.assertEquals("Umbrella Inc", ctx.getVariable("organization"));
         Assertions.assertEquals("cred-999", ctx.getVariable("credentialId"));

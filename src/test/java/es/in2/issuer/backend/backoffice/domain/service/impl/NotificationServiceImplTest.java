@@ -167,7 +167,7 @@ class NotificationServiceImplTest {
         when(emailService.sendCredentialSignedNotification(
                 ownerEmail,
                 CREDENTIAL_READY,
-                "You can now use it with your wallet.")
+                "email.you-can-use-wallet")
         ).thenReturn(Mono.empty());
 
         // act
@@ -180,7 +180,7 @@ class NotificationServiceImplTest {
                 .sendCredentialSignedNotification(
                         ownerEmail,
                         CREDENTIAL_READY,
-                        "You can now use it with your wallet."
+                        "email.you-can-use-wallet"
                 );
         verifyNoMoreInteractions(emailService);
     }
