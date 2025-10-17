@@ -24,7 +24,6 @@ public class TranslationServiceImpl implements TranslationService {
     @Override
     public String getLocale() {
         String locale = appConfig.getDefaultLang();
-        log.info("Default lang from config: {}", locale);
 
         if (locale == null || locale.isBlank()) {
             log.warn("No default language configured. Using fallback: 'en'");
@@ -37,7 +36,6 @@ public class TranslationServiceImpl implements TranslationService {
             log.warn("Unsupported language '{}'. Falling back to 'en'", locale);
             return "en";
         }
-        log.info("Using locale: {}", locale);
         return locale;
     }
 
@@ -45,9 +43,6 @@ public class TranslationServiceImpl implements TranslationService {
     public String translate(String code, Object... args) {
         var locale = Locale.forLanguageTag(getLocale());
         try {
-            log.info("code: {}", code);
-            log.info("args: {}", args);
-            log.info("locale: {}", locale);
             return messageSource.getMessage(code, args, locale);
         } catch (NoSuchMessageException e) {
             log.warn("Message code '{}' not found for locale {}. Falling back to code.", code, locale);

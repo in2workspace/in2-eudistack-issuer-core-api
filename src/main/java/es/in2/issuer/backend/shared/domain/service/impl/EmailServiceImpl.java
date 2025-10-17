@@ -49,12 +49,8 @@ public class EmailServiceImpl implements EmailService {
             helper.setTo(to);
 
             String translated = translationService.translate(subject);
-            log.info("translated subject: ");
-            log.info(translated);
             String encodedSubject = MimeUtility.encodeText(translated, StandardCharsets.UTF_8.name(), "B");
 
-            log.info("encoded subject: ");
-            log.info(encodedSubject);
             helper.setSubject(encodedSubject);
 
             Context context = new Context();
@@ -71,7 +67,6 @@ public class EmailServiceImpl implements EmailService {
 
     @Override
     public Mono<Void> sendCredentialActivationEmail(String to, String subject, String link, String knowledgebaseWalletUrl, String organization) {
-        log.info("sendCredentialActivationEmail subject: {}", subject);
         return Mono.fromCallable(() -> {
             MimeMessage mimeMessage = javaMailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, UTF_8);
