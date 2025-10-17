@@ -85,17 +85,21 @@ class TranslationServiceImplTest {
         // Verify that MessageSource was called with the expected code, args, and locale
         verify(messageSource).getMessage(eq("greeting"), argsCaptor.capture(), localeCaptor.capture());
 
-        // Check args were propagated as-is
+        // Check args were propagated as-is (single chained assertion)
         Object[] passedArgs = argsCaptor.getValue();
-        assertThat(passedArgs).isNotNull();
-        assertThat(passedArgs).hasSize(1);
-        assertThat(passedArgs[0]).isEqualTo("Roger");
+        assertThat(passedArgs)
+                .isNotNull()
+                .hasSize(1)
+                .containsExactly("Roger");
 
-        // Check locale derived from getLocale() is Spanish
+        // Check locale derived from getLocale() is Spanish (single chained assertion)
         Locale passedLocale = localeCaptor.getValue();
-        assertThat(passedLocale).isNotNull();
-        assertThat(passedLocale.getLanguage()).isEqualTo("es");
+        assertThat(passedLocale)
+                .isNotNull()
+                .extracting(Locale::getLanguage)
+                .isEqualTo("es");
     }
+
 
     @Test
     @DisplayName("translate() falls back to code when message is missing")
