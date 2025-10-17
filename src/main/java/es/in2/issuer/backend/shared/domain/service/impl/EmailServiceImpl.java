@@ -8,6 +8,7 @@ import es.in2.issuer.backend.shared.domain.service.TranslationService;
 import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
+import jakarta.mail.internet.MimeUtility;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.mail.MailProperties;
@@ -25,6 +26,7 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.*;
 
@@ -45,7 +47,10 @@ public class EmailServiceImpl implements EmailService {
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, UTF_8);
             helper.setFrom(mailProperties.getUsername());
             helper.setTo(to);
-            helper.setSubject(translationService.translate(subject));
+
+            String translated = translationService.translate(subject);
+            String encodedSubject = MimeUtility.encodeText(translated, StandardCharsets.UTF_8.name(), "B");
+            helper.setSubject(encodedSubject);
 
             Context context = new Context();
             context.setVariable("pin", pin);
