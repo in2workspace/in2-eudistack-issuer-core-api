@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v2.1.1](https://github.com/in2workspace/in2-issuer-api/releases/tag/v2.1.1)
+### Added
+- Get default language from configuration, use it to translate messages (emails, PIN description).
+
 ## [v2.1.0](https://github.com/in2workspace/in2-issuer-api/releases/tag/v2.1.0)
 ### Changed
 - If LEARCredentialMachine issuance presubmitted data contains credential_owner_email, use it as owner email.
