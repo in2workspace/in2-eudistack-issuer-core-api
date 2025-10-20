@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tu código PIN</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 0;
+            color: #333;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border: 1px solid #ddd;
+        }
+        .header {
+            background-color: #224178;
+            color: #fff;
+            padding: 10px;
+            border-radius: 8px 8px 0 0;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        .content {
+            padding: 20px;
+            text-align: center;
+        }
+        .content p {
+            margin: 0 0 10px;
+        }
+        .pin {
+            display: inline-block;
+            padding: 10px 20px;
+            font-size: 32px;
+            color: #224178;
+            background-color: #dae4ed;
+            border-radius: 5px;
+            margin: 20px 0;
+            font-weight: bold;
+            letter-spacing: 2px;
+        }
+        .footer {
+            text-align: center;
+            padding: 10px;
+            font-size: 14px;
+            color: #777;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>Tu código PIN</h1>
+    </div>
+    <div class="content">
+        <p>Hola,</p>
+        <p>Tu código PIN es:</p>
+        <p><strong class="pin" th:text="${pin}">1234</strong></p>
+        <p>Por favor, introduce este código PIN en tu aplicación Wallet.</p>
+    </div>
+    <div class="footer">
+        <p>Si no has solicitado este PIN, por favor ignora este correo electrónico.</p>
+    </div>
+</div>
+</body>
+</html>

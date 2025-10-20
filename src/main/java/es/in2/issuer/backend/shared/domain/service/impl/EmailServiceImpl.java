@@ -4,8 +4,11 @@ import es.in2.issuer.backend.shared.domain.exception.EmailCommunicationException
 import es.in2.issuer.backend.shared.domain.model.entities.CredentialProcedure;
 import es.in2.issuer.backend.shared.domain.service.CredentialProcedureService;
 import es.in2.issuer.backend.shared.domain.service.EmailService;
+import es.in2.issuer.backend.shared.domain.service.TranslationService;
+import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
+import jakarta.mail.internet.MimeUtility;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.mail.MailProperties;
@@ -23,6 +26,7 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.*;
 
@@ -34,6 +38,7 @@ public class EmailServiceImpl implements EmailService {
     private final TemplateEngine templateEngine;
     private final MailProperties mailProperties;
     private final CredentialProcedureService credentialProcedureService;
+    private final TranslationService translationService;
 
     @Override
     public Mono<Void> sendTxCodeNotification(String to, String subject, String pin) {
@@ -42,11 +47,15 @@ public class EmailServiceImpl implements EmailService {
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, UTF_8);
             helper.setFrom(mailProperties.getUsername());
             helper.setTo(to);
-            helper.setSubject(subject);
+
+            String translated = translationService.translate(subject);
+            String encodedSubject = MimeUtility.encodeText(translated, StandardCharsets.UTF_8.name(), "B");
+
+            helper.setSubject(encodedSubject);
 
             Context context = new Context();
             context.setVariable("pin", pin);
-            String htmlContent = templateEngine.process("pin-email", context);
+            String htmlContent = templateEngine.process("pin-email-" + translationService.getLocale(), context);
             helper.setText(htmlContent, true);
 
             javaMailSender.send(mimeMessage);
@@ -63,7 +72,7 @@ public class EmailServiceImpl implements EmailService {
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, UTF_8);
             helper.setFrom(mailProperties.getUsername());
             helper.setTo(to);
-            helper.setSubject(subject);
+            helper.setSubject(translationService.translate(subject));
 
             ClassPathResource imgResource = new ClassPathResource("static/images/qr-wallet.png");
             String imageResourceName = imgResource.getFilename();
@@ -77,7 +86,7 @@ public class EmailServiceImpl implements EmailService {
             context.setVariable("knowledgebaseWalletUrl", knowledgebaseWalletUrl);
             context.setVariable("imageResourceName", "cid:" + imageResourceName);
 
-            String htmlContent = templateEngine.process("activate-credential-email", context);
+            String htmlContent = templateEngine.process("activate-credential-email-" + translationService.getLocale(), context);
             helper.setText(htmlContent, true);
 
             final InputStreamSource imageSource = new ByteArrayResource(imageBytes);
@@ -98,10 +107,10 @@ public class EmailServiceImpl implements EmailService {
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, UTF_8);
             helper.setFrom(mailProperties.getUsername());
             helper.setTo(to);
-            helper.setSubject(subject);
+            helper.setSubject(translationService.translate(subject));
 
             Context context = new Context();
-            String htmlContent = templateEngine.process("credential-pending-notification", context);
+            String htmlContent = templateEngine.process("credential-pending-notification-" + translationService.getLocale(), context);
             helper.setText(htmlContent, true);
 
             javaMailSender.send(mimeMessage);
@@ -115,12 +124,12 @@ public class EmailServiceImpl implements EmailService {
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, UTF_8);
             helper.setFrom(mailProperties.getUsername());
             helper.setTo(to);
-            helper.setSubject(subject);
+            helper.setSubject(translationService.translate(subject));
 
             Context context = new Context();
             context.setVariable("id", id);
             context.setVariable("domain", domain);
-            String htmlContent = templateEngine.process("credential-pending-signature-notification", context);
+            String htmlContent = templateEngine.process("credential-pending-signature-notification-" + translationService.getLocale(), context);
             helper.setText(htmlContent, true);
 
             javaMailSender.send(mimeMessage);
@@ -134,11 +143,11 @@ public class EmailServiceImpl implements EmailService {
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
             helper.setFrom(mailProperties.getUsername());
             helper.setTo(to);
-            helper.setSubject(subject);
+            helper.setSubject(translationService.translate(subject));
 
             Context context = new Context();
-            context.setVariable("additionalInfo", additionalInfo);
-            String htmlContent = templateEngine.process("credential-signed-notification", context);
+            context.setVariable("additionalInfo", translationService.translate(additionalInfo));
+            String htmlContent = templateEngine.process("credential-signed-notification-"  + translationService.getLocale(), context);
             helper.setText(htmlContent, true);
 
             javaMailSender.send(mimeMessage);
@@ -153,12 +162,12 @@ public class EmailServiceImpl implements EmailService {
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, UTF_8);
             helper.setFrom(mailProperties.getUsername());
             helper.setTo(to);
-            helper.setSubject("Certification Submission to Marketplace Unsuccessful");
+            helper.setSubject(translationService.translate("email.unsuccessful-submission"));
 
             Context context = new Context();
             context.setVariable("productId", productId);
             context.setVariable("guideUrl", guideUrl);
-            String htmlContent = templateEngine.process("response-uri-failed", context);
+            String htmlContent = templateEngine.process("response-uri-failed-" + translationService.getLocale(), context);
             helper.setText(htmlContent, true);
 
             javaMailSender.send(mimeMessage);
@@ -173,7 +182,7 @@ public class EmailServiceImpl implements EmailService {
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, UTF_8);
             helper.setFrom(mailProperties.getUsername());
             helper.setTo(to);
-            helper.setSubject("Missing Documents for Certification: " + productId);
+            helper.setSubject(translationService.translate("email.missing-documents-certification") + productId);
 
             helper.setText(htmlContent, true);
 
@@ -208,7 +217,7 @@ public class EmailServiceImpl implements EmailService {
                 .doOnError(e -> log.error("Error sending '{}' email for credential procedure {}", expectedStatus, credentialProcedure.getProcedureId().toString()));
     }
 
-    private Mono<Void> sendCredentialRevokedOrExpiredNotificationEmail(String to,String organization,String credentialId,String type,String credentialStatus){
+    private Mono<Void> sendCredentialRevokedOrExpiredNotificationEmail(String to, String organization, String credentialId, String type, String credentialStatus){
         return Mono.fromCallable(() -> {
             try {
                 MimeMessage mimeMessage = javaMailSender.createMimeMessage();
@@ -221,17 +230,17 @@ public class EmailServiceImpl implements EmailService {
 
                 switch (credentialStatus) {
                     case "REVOKED" -> {
-                        helper.setSubject("Revoked Credential");
-                        context.setVariable("title", "Your Credential Has Been Revoked");
+                        helper.setSubject(translationService.translate("email.revoked.subject"));
+                        context.setVariable("title", translationService.translate("email.revoked.title"));
                     }
                     case "EXPIRED" -> {
-                        helper.setSubject("Expired Credential");
-                        context.setVariable("title", "Your Credential Has Expired");
+                        helper.setSubject(translationService.translate("email.expired.subject"));
+                        context.setVariable("title", translationService.translate("email.expired.title"));
                     }
-                    default -> helper.setSubject("Credential Notification");
+                    default -> helper.setSubject(translationService.translate("email.default-status.subject"));
 
                 }
-                String htmlContent = templateEngine.process("revoked-expired-credential-email", context);
+                String htmlContent = templateEngine.process("revoked-expired-credential-email-"  + translationService.getLocale(), context);
                 helper.setText(htmlContent, true);
 
                 javaMailSender.send(mimeMessage);

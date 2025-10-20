@@ -79,4 +79,8 @@ public class AppConfig {
     public String getVerifierUrl() {
         return configAdapter.getConfiguration(appProperties.verifierUrl());
     }
+
+    public String getDefaultLang() {
+        return configAdapter.getConfiguration(appProperties.defaultLang());
+    }
 }

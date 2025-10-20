@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Envío de Certificación Fallido</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f9;
+      margin: 0;
+      padding: 0;
+      color: #333;
+      line-height: 1.6;
+    }
+    .container {
+      max-width: 600px;
+      margin: 20px auto;
+      padding: 20px;
+      background-color: #fff;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      border: 1px solid #ddd;
+    }
+    .header {
+      background-color: #224178;
+      color: #fff;
+      padding: 10px;
+      border-radius: 8px 8px 0 0;
+      text-align: center;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 24px;
+    }
+    .content {
+      padding: 20px;
+      text-align: center;
+    }
+    .content p {
+      margin: 0 0 10px;
+    }
+    .footer {
+      text-align: center;
+      padding: 10px;
+      font-size: 14px;
+      color: #777;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>El envío de la certificación al Marketplace ha fallado</h1>
+  </div>
+  <div class="content">
+    <p>
+      No se pudo enviar la certificación para el ID de credencial:
+      <span th:text="${productId}">PRODUCT ID</span>
+      al Marketplace.
+      <br/>
+      Para añadir la certificación manualmente a tus productos, por favor sigue esta guía:
+      <br/>
+      <a th:href="${guideUrl}" target="_blank">Haz clic aquí para ver la guía</a>
+    </p>
+  </div>
+  <div class="footer">
+    <p>Este es un mensaje automático. Por favor, no respondas a este correo.</p>
+  </div>
+</div>
+</body>
+</html>

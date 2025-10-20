@@ -6,13 +6,14 @@ import es.in2.issuer.backend.shared.domain.exception.EmailCommunicationException
 import es.in2.issuer.backend.shared.domain.service.CredentialProcedureService;
 import es.in2.issuer.backend.shared.domain.service.DeferredCredentialMetadataService;
 import es.in2.issuer.backend.shared.domain.service.EmailService;
+import es.in2.issuer.backend.shared.domain.service.TranslationService;
 import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
-import static es.in2.issuer.backend.backoffice.domain.util.Constants.MAIL_ERROR_COMMUNICATION_EXCEPTION_MESSAGE;
+import static es.in2.issuer.backend.backoffice.domain.util.Constants.*;
 import static es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum.*;
 
 @Slf4j
@@ -24,6 +25,7 @@ public class NotificationServiceImpl implements NotificationService {
     private final EmailService emailService;
     private final CredentialProcedureService credentialProcedureService;
     private final DeferredCredentialMetadataService deferredCredentialMetadataService;
+    private final TranslationService translationService;
 
     @Override
     public Mono<Void> sendNotification(String processId, String procedureId) {
@@ -35,7 +37,7 @@ public class NotificationServiceImpl implements NotificationService {
                                                 return deferredCredentialMetadataService.updateTransactionCodeInDeferredCredentialMetadata(procedureId)
                                                         .flatMap(newTransactionCode -> emailService.sendCredentialActivationEmail(
                                                                 emailCredentialOfferInfo.email(),
-                                                                "Activate your new credential",
+                                                                CREDENTIAL_ACTIVATION_EMAIL_SUBJECT,
                                                                 appConfig.getIssuerFrontendUrl() + "/credential-offer?transaction_code=" + newTransactionCode,
                                                                 appConfig.getKnowledgebaseWalletUrl(),
                                                                 emailCredentialOfferInfo.organization()
@@ -43,7 +45,8 @@ public class NotificationServiceImpl implements NotificationService {
                                                         .onErrorMap(exception ->
                                                                 new EmailCommunicationException(MAIL_ERROR_COMMUNICATION_EXCEPTION_MESSAGE));
                                             } else if (credentialProcedure.getCredentialStatus().toString().equals(PEND_DOWNLOAD.toString())) {
-                                                return emailService.sendCredentialSignedNotification(credentialProcedure.getOwnerEmail(), "Credential Ready", "You can now use it with your wallet.");
+
+                                                return emailService.sendCredentialSignedNotification(credentialProcedure.getOwnerEmail(), CREDENTIAL_READY, "email.you-can-use-wallet");
                                             } else {
                                                 return Mono.empty();
                                             }

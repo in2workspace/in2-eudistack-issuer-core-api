@@ -556,7 +556,7 @@ public class RemoteSignatureServiceImpl implements RemoteSignatureService {
                 .flatMap(signerEmail ->
                         emailService.sendPendingSignatureCredentialNotification(
                                 signerEmail,
-                                "Failed to sign credential, please activate manual signature.",
+                                "email.pending-credential-notification",
                                 procedureId,
                                 domain
                         )
