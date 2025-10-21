@@ -7,8 +7,6 @@ public final class Constants {
     }
 
     public static final int TX_CODE_SIZE = 4;
-    public static final String TX_CODE_DESCRIPTION =
-            "tx-code.description";
     public static final String TX_INPUT_MODE = "numeric";
     public static final long ACCESS_TOKEN_EXPIRATION_TIME_DAYS = 30L;
 }

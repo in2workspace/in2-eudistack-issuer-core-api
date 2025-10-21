@@ -71,8 +71,10 @@ public class PreAuthorizedCodeServiceImpl implements PreAuthorizedCodeService {
     }
 
     private Mono<PreAuthorizedCodeResponse> buildPreAuthorizedCodeResponse(String preAuthorizedCode, String txCode) {
-        String txCodeDescription = translationService.translate(TX_CODE_DESCRIPTION);
-        Grants.TxCode grantTxCode = new Grants.TxCode(TX_CODE_SIZE, TX_INPUT_MODE, txCodeDescription);
+        Grants.TxCode grantTxCode = Grants.TxCode.builder()
+                .length(TX_CODE_SIZE)
+                .inputMode(TX_INPUT_MODE)
+                .build();
         Grants grants = new Grants(preAuthorizedCode, grantTxCode);
         return Mono.just(new PreAuthorizedCodeResponse(grants, txCode));
     }

@@ -15,6 +15,7 @@ public record Grants(
     public record TxCode(
             @JsonProperty("length") int length,
             @JsonProperty("input_mode") String inputMode,
+            //todo consider removing this field
             @JsonProperty("description") String description
     ) {
     }
