@@ -1,6 +1,5 @@
-package es.in2.issuer.backend.oidc4vci.domain.service;
+package es.in2.issuer.backend.oidc4vci.domain.service.impl;
 
-import es.in2.issuer.backend.oidc4vci.domain.service.impl.PreAuthorizedCodeServiceImpl;
 import es.in2.issuer.backend.shared.domain.model.dto.CredentialProcedureIdAndTxCode;
 import es.in2.issuer.backend.shared.domain.model.dto.Grants;
 import es.in2.issuer.backend.shared.domain.model.dto.PreAuthorizedCodeResponse;
