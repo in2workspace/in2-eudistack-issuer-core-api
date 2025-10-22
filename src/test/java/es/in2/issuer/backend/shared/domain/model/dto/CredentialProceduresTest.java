@@ -18,8 +18,9 @@ class CredentialProceduresTest {
                 "John Doe",
                 "LEAR_CREDENTIAL_EMPLOYEE",
                 "In Progress",
-                Timestamp.valueOf("2023-01-01 12:00:00")
-        );
+                Timestamp.valueOf("2023-01-01 12:00:00"),
+                "email@owner.com"
+                );
         CredentialProcedures.CredentialProcedure credentialProcedure = new CredentialProcedures.CredentialProcedure(procedureBasicInfo);
         List<CredentialProcedures.CredentialProcedure> expectedCredentialProcedures = List.of(credentialProcedure);
 
@@ -38,7 +39,8 @@ class CredentialProceduresTest {
                 "Jane Doe",
                 "LEAR_CREDENTIAL_EMPLOYEE",
                 "Completed",
-                Timestamp.valueOf("2024-01-01 12:00:00")
+                Timestamp.valueOf("2024-01-01 12:00:00"),
+                "email@owner.com"
         );
         CredentialProcedures.CredentialProcedure credentialProcedure = new CredentialProcedures.CredentialProcedure(procedureBasicInfo);
         List<CredentialProcedures.CredentialProcedure> newCredentialProcedures = List.of(credentialProcedure);
@@ -60,7 +62,8 @@ class CredentialProceduresTest {
                 "John Doe",
                 "LEAR_CREDENTIAL_EMPLOYEE",
                 "In Progress",
-                Timestamp.valueOf("2023-01-01 12:00:00")
+                Timestamp.valueOf("2023-01-01 12:00:00"),
+                "email@owner.com"
         );
         CredentialProcedures.CredentialProcedure credentialProcedure = new CredentialProcedures.CredentialProcedure(procedureBasicInfo);
         List<CredentialProcedures.CredentialProcedure> expectedCredentialProcedures = List.of(credentialProcedure);
