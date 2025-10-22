@@ -71,7 +71,7 @@ class ProcedureBasicInfoTest {
         String expectedStatus = "In Progress";
         Timestamp timestamp = Timestamp.valueOf("2023-01-01 12:00:00");
         String expectedCredentialType = "LEAR_CREDENTIAL_EMPLOYEE";
-        String organizationIdentifier = "MY ORG";
+        String organization = "MY ORG";
 
         ProcedureBasicInfo procedureBasicInfo1 = new ProcedureBasicInfo(
                 uuid,
@@ -79,7 +79,7 @@ class ProcedureBasicInfoTest {
                 expectedCredentialType,
                 expectedStatus,
                 timestamp,
-                organizationIdentifier
+                organization
         );
         ProcedureBasicInfo procedureBasicInfo2 = new ProcedureBasicInfo(
                 uuid,
@@ -87,7 +87,7 @@ class ProcedureBasicInfoTest {
                 expectedCredentialType,
                 expectedStatus,
                 timestamp,
-                organizationIdentifier
+                organization
         );
 
         // Assert

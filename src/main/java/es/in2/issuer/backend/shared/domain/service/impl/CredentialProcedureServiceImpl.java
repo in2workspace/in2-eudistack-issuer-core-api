@@ -16,6 +16,7 @@ import es.in2.issuer.backend.shared.infrastructure.repository.CredentialProcedur
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -87,6 +88,18 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
                 return Mono.error(new ParseCredentialJsonException("Error parsing credential JSON"));
             }
         });
+    }
+
+    public JsonNode getCredentialNodeSync(CredentialProcedure credentialProcedure) throws ParseCredentialJsonException{
+        if (credentialProcedure == null || credentialProcedure.getCredentialDecoded() == null) {
+            throw new ParseCredentialJsonException("CredentialProcedure or credentialDecoded is null");
+        }
+
+        try {
+            return objectMapper.readTree(credentialProcedure.getCredentialDecoded());
+        } catch (JsonProcessingException e) {
+            throw new ParseCredentialJsonException("Error parsing credential JSON");
+        }
     }
 
     public Mono<String> getCredentialId(CredentialProcedure credentialProcedure) {
@@ -281,7 +294,13 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
     public Mono<CredentialProcedures> getAllProceduresBasicInfoByOrganizationId(String
                                                                                         organizationIdentifier) {
         return credentialProcedureRepository.findAllByOrganizationIdentifier(organizationIdentifier)
-                .map(this::toProcedureBasicInfo)
+                .map(cp -> {
+                    try {
+                        return toProcedureBasicInfo(cp);
+                    } catch (ParseCredentialJsonException e) {
+                        throw Exceptions.propagate(e);
+                    }
+                })
                 .map(procedureBasicInfo ->
                         CredentialProcedures.CredentialProcedure.builder()
                                 .credentialProcedure(procedureBasicInfo)
@@ -301,7 +320,13 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
     /** Reads all procedures across all orgs, ordered by updated_at DESC. */
     private Mono<CredentialProcedures> getAllProceduresBasicInfoForAllOrganizations() {
         return credentialProcedureRepository.findAllOrderByUpdatedDesc()
-                .map(this::toProcedureBasicInfo)
+                .map(cp -> {
+                    try {
+                        return toProcedureBasicInfo(cp);
+                    } catch (ParseCredentialJsonException e) {
+                        throw Exceptions.propagate(e);
+                    }
+                })
                 .map(procedureBasicInfo -> CredentialProcedures.CredentialProcedure.builder()
                         .credentialProcedure(procedureBasicInfo)
                         .build())
@@ -309,14 +334,22 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
                 .map(CredentialProcedures::new);
     }
 
-    private ProcedureBasicInfo toProcedureBasicInfo(CredentialProcedure cp) {
+    private ProcedureBasicInfo toProcedureBasicInfo(CredentialProcedure cp) throws ParseCredentialJsonException{
+        //here
+        String organization;
+        try {
+            JsonNode credentialJsonNode = getCredentialNodeSync(cp);
+            organization = credentialJsonNode.get(ORGANIZATION).asText();
+        }catch(Exception e){
+            throw new ParseCredentialJsonException("Error while getting organization identifier from credential procedure.");
+        }
         return ProcedureBasicInfo.builder()
                 .procedureId(cp.getProcedureId())
                 .subject(cp.getSubject())
                 .credentialType(cp.getCredentialType())
                 .status(String.valueOf(cp.getCredentialStatus()))
                 .updated(cp.getUpdatedAt())
-                .organizationIdentifier(cp.getOrganizationIdentifier())
+                .organization(organization)
                 .build();
     }
 

@@ -42,7 +42,7 @@ class CredentialProcedureControllerTest {
                 .subject("testFullName")
                 .status("testStatus")
                 .updated(new Timestamp(System.currentTimeMillis()))
-                .organizationIdentifier("id")
+                .organization("id")
                 .build();
 
         CredentialProcedures.CredentialProcedure credentialProcedure =
