@@ -677,11 +677,6 @@ class CredentialProcedureServiceImplTest {
         // When
         when(credentialProcedureRepository.findAllByOrganizationIdentifier(any(String.class)))
                 .thenReturn(Flux.fromIterable(procedures));
-        when(objectMapper.readTree(credentialDecoded1)).thenReturn(credentialNode1);
-        when(objectMapper.readTree(credentialDecoded2)).thenReturn(credentialNode2);
-
-        when(credentialProcedureRepository.findById(UUID.fromString("f1c19a93-b2c4-47b1-be88-18e9b64d1057"))).thenReturn(Mono.just(credentialProcedure1));
-        when(credentialProcedureRepository.findById(UUID.fromString("bc4ea3b1-a90d-4303-976f-62342092bac8"))).thenReturn(Mono.just(credentialProcedure2));
 
         // Execute
         Mono<CredentialProcedures> result = credentialProcedureService.getAllProceduresBasicInfoByOrganizationId(organizationIdentifier);

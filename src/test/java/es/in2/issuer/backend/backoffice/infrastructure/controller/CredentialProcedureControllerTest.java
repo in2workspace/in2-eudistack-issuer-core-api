@@ -42,7 +42,6 @@ class CredentialProcedureControllerTest {
                 .subject("testFullName")
                 .status("testStatus")
                 .updated(new Timestamp(System.currentTimeMillis()))
-                .ownerEmail("email")
                 .organizationIdentifier("id")
                 .build();
 

@@ -19,7 +19,6 @@ class CredentialProceduresTest {
                 "LEAR_CREDENTIAL_EMPLOYEE",
                 "In Progress",
                 Timestamp.valueOf("2023-01-01 12:00:00"),
-                "email@owner.com",
                 "or"
                 );
         CredentialProcedures.CredentialProcedure credentialProcedure = new CredentialProcedures.CredentialProcedure(procedureBasicInfo);
@@ -41,7 +40,6 @@ class CredentialProceduresTest {
                 "LEAR_CREDENTIAL_EMPLOYEE",
                 "Completed",
                 Timestamp.valueOf("2024-01-01 12:00:00"),
-                "email@owner.com",
                 "org"
         );
         CredentialProcedures.CredentialProcedure credentialProcedure = new CredentialProcedures.CredentialProcedure(procedureBasicInfo);
@@ -65,7 +63,6 @@ class CredentialProceduresTest {
                 "LEAR_CREDENTIAL_EMPLOYEE",
                 "In Progress",
                 Timestamp.valueOf("2023-01-01 12:00:00"),
-                "email@owner.com",
                 "org"
         );
         CredentialProcedures.CredentialProcedure credentialProcedure = new CredentialProcedures.CredentialProcedure(procedureBasicInfo);
