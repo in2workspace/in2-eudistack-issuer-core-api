@@ -91,6 +91,7 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
     }
 
     public JsonNode getCredentialNodeSync(CredentialProcedure credentialProcedure) throws ParseCredentialJsonException{
+        log.info("getCredentialNodeSync");
         if (credentialProcedure == null || credentialProcedure.getCredentialDecoded() == null) {
             throw new ParseCredentialJsonException("CredentialProcedure or credentialDecoded is null");
         }
@@ -335,13 +336,17 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
     }
 
     private ProcedureBasicInfo toProcedureBasicInfo(CredentialProcedure cp) throws ParseCredentialJsonException{
-        //here
-        String organization;
+        //todo here
+        String organization="";
         try {
             JsonNode credentialJsonNode = getCredentialNodeSync(cp);
-            organization = credentialJsonNode.get(ORGANIZATION).asText();
+            log.info("credentialJsonNode: {}", credentialJsonNode);
+            if(!cp.getCredentialType().equals(LABEL_CREDENTIAL)) {
+                organization = credentialJsonNode.get(CREDENTIAL_SUBJECT).get(MANDATOR).get(ORGANIZATION).asText();
+            }
+
         }catch(Exception e){
-            throw new ParseCredentialJsonException("Error while getting organization identifier from credential procedure.");
+            throw new ParseCredentialJsonException("Error while getting organization from credential procedure.");
         }
         return ProcedureBasicInfo.builder()
                 .procedureId(cp.getProcedureId())
