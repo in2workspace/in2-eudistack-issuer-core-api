@@ -66,6 +66,7 @@ public class CredentialStatusWorkflowImpl implements CredentialStatusWorkflow {
                 }));
 
     }
+
     private CredentialStatus mapToCredentialStatus(JsonNode credentialStatusNode) {
         return CredentialStatus.builder()
                 .id(credentialStatusNode.get("id").asText())

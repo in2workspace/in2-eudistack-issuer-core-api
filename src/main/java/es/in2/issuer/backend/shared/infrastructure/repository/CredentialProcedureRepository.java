@@ -15,6 +15,8 @@ public interface CredentialProcedureRepository extends ReactiveCrudRepository<Cr
     Flux<CredentialProcedure> findByCredentialStatusAndOrganizationIdentifier(CredentialStatusEnum credentialStatusEnum, String organizationIdentifier);
     @Query("SELECT * FROM issuer.credential_procedure WHERE organization_identifier = :organizationIdentifier ORDER BY updated_at DESC")
     Flux<CredentialProcedure> findAllByOrganizationIdentifier(String organizationIdentifier);
+    @Query("SELECT * FROM issuer.credential_procedure ORDER BY updated_at DESC")
+    Flux<CredentialProcedure> findAllOrderByUpdatedDesc();
     Mono<CredentialProcedure> findByProcedureIdAndOrganizationIdentifier(UUID procedureId, String organizationIdentifier);
     @Query("SELECT credential_status FROM issuer.credential_procedure WHERE procedure_id = :procedureId")
     Mono<String> findCredentialStatusByProcedureId(UUID procedureId);

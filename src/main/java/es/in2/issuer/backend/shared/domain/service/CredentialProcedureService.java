@@ -28,6 +28,8 @@ public interface CredentialProcedureService {
 
     Flux<String> getAllIssuedCredentialByOrganizationIdentifier(String organizationIdentifier);
 
+    Mono<CredentialProcedures> getAllProceduresVisibleFor(String organizationIdentifier);
+
     Mono<CredentialProcedures> getAllProceduresBasicInfoByOrganizationId(String organizationIdentifier);
 
     Mono<CredentialDetails> getProcedureDetailByProcedureIdAndOrganizationId(String organizationIdentifier, String procedureId);

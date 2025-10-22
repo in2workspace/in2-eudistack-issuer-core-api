@@ -281,22 +281,42 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
     public Mono<CredentialProcedures> getAllProceduresBasicInfoByOrganizationId(String
                                                                                         organizationIdentifier) {
         return credentialProcedureRepository.findAllByOrganizationIdentifier(organizationIdentifier)
-                .flatMap(credentialProcedure ->
-                        getCredentialTypeByProcedureId(String.valueOf(credentialProcedure.getProcedureId()))
-                                .flatMap(credentialType ->
-                                        Mono.just(ProcedureBasicInfo.builder()
-                                                .procedureId(credentialProcedure.getProcedureId())
-                                                .subject(credentialProcedure.getSubject())
-                                                .credentialType(credentialProcedure.getCredentialType())
-                                                .status(String.valueOf(credentialProcedure.getCredentialStatus()))
-                                                .updated(credentialProcedure.getUpdatedAt())
-                                                .build())))
+                .map(this::toProcedureBasicInfo)
                 .map(procedureBasicInfo ->
                         CredentialProcedures.CredentialProcedure.builder()
                                 .credentialProcedure(procedureBasicInfo)
                                 .build())
                 .collectList()
                 .map(CredentialProcedures::new);
+    }
+
+    @Override
+    public Mono<CredentialProcedures> getAllProceduresVisibleFor(String organizationIdentifier) {
+        if (IN2_ORGANIZATION_IDENTIFIER.equals(organizationIdentifier)) {
+            return getAllProceduresBasicInfoForAllOrganizations();
+        }
+        return getAllProceduresBasicInfoByOrganizationId(organizationIdentifier);
+    }
+
+    /** Reads all procedures across all orgs, ordered by updated_at DESC. */
+    private Mono<CredentialProcedures> getAllProceduresBasicInfoForAllOrganizations() {
+        return credentialProcedureRepository.findAllOrderByUpdatedDesc()
+                .map(this::toProcedureBasicInfo)
+                .map(procedureBasicInfo -> CredentialProcedures.CredentialProcedure.builder()
+                        .credentialProcedure(procedureBasicInfo)
+                        .build())
+                .collectList()
+                .map(CredentialProcedures::new);
+    }
+
+    private ProcedureBasicInfo toProcedureBasicInfo(CredentialProcedure cp) {
+        return ProcedureBasicInfo.builder()
+                .procedureId(cp.getProcedureId())
+                .subject(cp.getSubject())
+                .credentialType(cp.getCredentialType())
+                .status(String.valueOf(cp.getCredentialStatus()))
+                .updated(cp.getUpdatedAt())
+                .build();
     }
 
     @Override
