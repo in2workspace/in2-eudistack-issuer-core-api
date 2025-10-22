@@ -15,6 +15,7 @@ public record ProcedureBasicInfo(
         @JsonProperty("status") String status,
         @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'", timezone = "UTC")
         @JsonProperty("updated") Timestamp updated,
-        @JsonProperty("owner_email") String ownerEmail
+        @JsonProperty("owner_email") String ownerEmail,
+        @JsonProperty("organization_identifier") String organizationIdentifier
 ) {
 }

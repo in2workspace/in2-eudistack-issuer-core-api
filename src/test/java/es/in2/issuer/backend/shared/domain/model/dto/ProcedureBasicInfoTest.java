@@ -18,6 +18,7 @@ class ProcedureBasicInfoTest {
         String expectedCredentialType = "LEAR_CREDENTIAL_EMPLOYEE";
         Timestamp timestamp = Timestamp.valueOf("2023-01-01 12:00:00");
         String ownerEmail = "owner@email.com";
+        String organizationIdentifier = "ORG";
 
         // Act
         ProcedureBasicInfo procedureBasicInfo = new ProcedureBasicInfo(
@@ -26,7 +27,8 @@ class ProcedureBasicInfoTest {
                 expectedCredentialType,
                 expectedStatus,
                 timestamp,
-                ownerEmail
+                ownerEmail,
+                organizationIdentifier
         );
 
         // Assert
@@ -72,6 +74,7 @@ class ProcedureBasicInfoTest {
         Timestamp timestamp = Timestamp.valueOf("2023-01-01 12:00:00");
         String expectedCredentialType = "LEAR_CREDENTIAL_EMPLOYEE";
         String ownerEmail = "email@email.com";
+        String organizationIdentifier = "MY ORG";
 
         ProcedureBasicInfo procedureBasicInfo1 = new ProcedureBasicInfo(
                 uuid,
@@ -79,7 +82,8 @@ class ProcedureBasicInfoTest {
                 expectedCredentialType,
                 expectedStatus,
                 timestamp,
-                ownerEmail
+                ownerEmail,
+                organizationIdentifier
         );
         ProcedureBasicInfo procedureBasicInfo2 = new ProcedureBasicInfo(
                 uuid,
@@ -87,7 +91,8 @@ class ProcedureBasicInfoTest {
                 expectedCredentialType,
                 expectedStatus,
                 timestamp,
-                ownerEmail
+                ownerEmail,
+                organizationIdentifier
         );
 
         // Assert

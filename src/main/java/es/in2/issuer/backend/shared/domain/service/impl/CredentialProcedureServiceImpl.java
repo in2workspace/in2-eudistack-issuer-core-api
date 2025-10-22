@@ -317,6 +317,7 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
                 .status(String.valueOf(cp.getCredentialStatus()))
                 .updated(cp.getUpdatedAt())
                 .ownerEmail(cp.getOwnerEmail())
+                .organizationIdentifier(cp.getOrganizationIdentifier())
                 .build();
     }
 
