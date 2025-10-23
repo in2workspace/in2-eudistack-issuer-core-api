@@ -236,9 +236,15 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
     }
 
     @Override
-    public Mono<CredentialDetails> getProcedureDetailByProcedureIdAndOrganizationId(String
-                                                                                            organizationIdentifier, String procedureId) {
-        return credentialProcedureRepository.findByProcedureIdAndOrganizationIdentifier(UUID.fromString(procedureId), organizationIdentifier)
+    public Mono<CredentialDetails> getProcedureDetailByProcedureIdAndOrganizationId(String organizationIdentifier, String procedureId) {
+        Mono<CredentialProcedure> credentialProcedureMono;
+        if(IN2_ORGANIZATION_IDENTIFIER.equals(organizationIdentifier)){
+            log.info("User is admin.");
+            credentialProcedureMono = credentialProcedureRepository.findByProcedureId(UUID.fromString(procedureId));
+        }else{
+            credentialProcedureMono = credentialProcedureRepository.findByProcedureIdAndOrganizationIdentifier(UUID.fromString(procedureId), organizationIdentifier);
+        }
+        return credentialProcedureMono
                 .switchIfEmpty(Mono.error(new NoCredentialFoundException("No credential found for procedureId: " + procedureId)))
                 .flatMap(credentialProcedure -> {
                     try {
