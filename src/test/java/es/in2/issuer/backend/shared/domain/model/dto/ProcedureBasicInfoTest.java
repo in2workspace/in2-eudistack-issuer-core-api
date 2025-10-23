@@ -45,6 +45,7 @@ class ProcedureBasicInfoTest {
         String newStatus = "Completed";
         Timestamp timestamp = Timestamp.valueOf("2024-01-01 12:00:00");
         String newCredentialType = "VERIFIABLE_CERTIFICATION";
+        String orgId = "VATES-AAAAAA";
 
         // Act
         ProcedureBasicInfo procedureBasicInfo = ProcedureBasicInfo.builder()
@@ -53,6 +54,7 @@ class ProcedureBasicInfoTest {
                 .status(newStatus)
                 .updated(timestamp)
                 .credentialType(newCredentialType)
+                .organizationIdentifier(orgId)
                 .build();
 
         // Assert
@@ -71,7 +73,7 @@ class ProcedureBasicInfoTest {
         String expectedStatus = "In Progress";
         Timestamp timestamp = Timestamp.valueOf("2023-01-01 12:00:00");
         String expectedCredentialType = "LEAR_CREDENTIAL_EMPLOYEE";
-        String organization = "MY ORG";
+        String organizationIdentifier = "VATES-AAAAAA";
 
         ProcedureBasicInfo procedureBasicInfo1 = new ProcedureBasicInfo(
                 uuid,
@@ -79,15 +81,14 @@ class ProcedureBasicInfoTest {
                 expectedCredentialType,
                 expectedStatus,
                 timestamp,
-                organization
-        );
+                organizationIdentifier        );
         ProcedureBasicInfo procedureBasicInfo2 = new ProcedureBasicInfo(
                 uuid,
                 expectedFullName,
                 expectedCredentialType,
                 expectedStatus,
                 timestamp,
-                organization
+                organizationIdentifier
         );
 
         // Assert
