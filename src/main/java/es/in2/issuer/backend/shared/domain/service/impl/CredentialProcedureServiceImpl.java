@@ -238,6 +238,7 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
     @Override
     public Mono<CredentialDetails> getProcedureDetailByProcedureIdAndOrganizationId(String organizationIdentifier, String procedureId) {
         Mono<CredentialProcedure> credentialProcedureMono;
+        log.info("getProcedureDetailByProcedureIdAndOrganizationId");
         if(IN2_ORGANIZATION_IDENTIFIER.equals(organizationIdentifier)){
             log.info("User is admin.");
             credentialProcedureMono = credentialProcedureRepository.findByProcedureId(UUID.fromString(procedureId));
@@ -255,6 +256,7 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
                                 .operationMode(credentialProcedure.getOperationMode())
                                 .signatureMode(credentialProcedure.getSignatureMode())
                                 .credential(objectMapper.readTree(credentialProcedure.getCredentialDecoded()))
+                                .ownerEmail(credentialProcedure.getOwnerEmail())
                                 .build());
                     } catch (JsonProcessingException e) {
                         log.warn(PARSING_CREDENTIAL_ERROR_MESSAGE, e);

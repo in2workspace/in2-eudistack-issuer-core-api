@@ -11,6 +11,7 @@ public record CredentialDetails(
         @JsonProperty("lifeCycleStatus") String lifeCycleStatus,
         @JsonProperty("operation_mode") String operationMode,
         @JsonProperty("signature_mode") String signatureMode,
-        @JsonProperty("credential") JsonNode credential
+        @JsonProperty("credential") JsonNode credential,
+        @JsonProperty("ownerEmail") String ownerEmail
         ) {
 }

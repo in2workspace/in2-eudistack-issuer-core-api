@@ -20,6 +20,7 @@ class CredentialDetailsTest {
         String expectedCredentialStatus = "Valid";
         String expectedCredentialJson = "{\"key\": \"value\"}";
         JsonNode jsonNode = null;
+        String ownerEmail = "email";
         String expectedOperationMode = "operationMode";
         String expectedSignatureMode = "signatureMode";
         try {
@@ -29,7 +30,7 @@ class CredentialDetailsTest {
         }
 
         // Act
-        CredentialDetails credentialDetails = new CredentialDetails(uuid, expectedCredentialStatus, expectedOperationMode, expectedSignatureMode, jsonNode);
+        CredentialDetails credentialDetails = new CredentialDetails(uuid, expectedCredentialStatus, expectedOperationMode, expectedSignatureMode, jsonNode, ownerEmail);
 
         // Assert
         assertEquals(uuid, credentialDetails.procedureId());
@@ -65,11 +66,12 @@ class CredentialDetailsTest {
         UUID uuid = UUID.randomUUID();
         String expectedCredentialStatus = "Valid";
         JsonNode jsonNode = objectMapper.readTree("{\"key\": \"value\"}");
+        String ownerEmail = "email";
         String expectedOperationMode = "operationMode";
         String expectedSignatureMode = "signatureMode";
 
-        CredentialDetails credentialDetails = new CredentialDetails(uuid, expectedCredentialStatus, expectedOperationMode, expectedSignatureMode, jsonNode);
-        CredentialDetails credentialDetails2 = new CredentialDetails(uuid, expectedCredentialStatus, expectedOperationMode, expectedSignatureMode, jsonNode);
+        CredentialDetails credentialDetails = new CredentialDetails(uuid, expectedCredentialStatus, expectedOperationMode, expectedSignatureMode, jsonNode, ownerEmail);
+        CredentialDetails credentialDetails2 = new CredentialDetails(uuid, expectedCredentialStatus, expectedOperationMode, expectedSignatureMode, jsonNode, ownerEmail);
 
         // Assert
         assertEquals(credentialDetails, credentialDetails2);
