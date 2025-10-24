@@ -234,7 +234,7 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
                                     .switchIfEmpty(Mono.error(new IllegalStateException("Missing responseUri for procedureId: " + procedureId)))
                                     .flatMap(responseUri -> {
                                         try {
-                                            String companyEmail = updatedCredentialProcedure.getOwnerEmail();
+                                            String companyEmail = updatedCredentialProcedure.getSubjectEmail();
 
                                             return credentialProcedureService.getCredentialId(updatedCredentialProcedure)
                                                     .doOnNext(credentialId -> log.debug("Using credentialId for delivery: {}", credentialId))

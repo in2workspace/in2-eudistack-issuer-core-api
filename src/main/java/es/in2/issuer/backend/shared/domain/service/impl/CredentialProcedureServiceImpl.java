@@ -49,7 +49,7 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
                 .updatedAt(new Timestamp(Instant.now().toEpochMilli()))
                 .operationMode(credentialProcedureCreationRequest.operationMode())
                 .signatureMode("remote")
-                .ownerEmail(credentialProcedureCreationRequest.ownerEmail())
+                .subjectEmail(credentialProcedureCreationRequest.subjectEmail())
                 .build();
         return credentialProcedureRepository.save(credentialProcedure)
                 .map(savedCredentialProcedure -> savedCredentialProcedure.getProcedureId().toString())
@@ -256,7 +256,7 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
                                 .operationMode(credentialProcedure.getOperationMode())
                                 .signatureMode(credentialProcedure.getSignatureMode())
                                 .credential(objectMapper.readTree(credentialProcedure.getCredentialDecoded()))
-                                .ownerEmail(credentialProcedure.getOwnerEmail())
+                                .subjectEmail(credentialProcedure.getSubjectEmail())
                                 .build());
                     } catch (JsonProcessingException e) {
                         log.warn(PARSING_CREDENTIAL_ERROR_MESSAGE, e);
@@ -389,7 +389,7 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
                                                 .get(ORGANIZATION)
                                                 .asText();
                                         return new CredentialOfferEmailNotificationInfo(
-                                                credentialProcedure.getOwnerEmail(),
+                                                credentialProcedure.getSubjectEmail(),
                                                 org
                                         );
                                     })
@@ -409,7 +409,7 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
                                         String org = mandator
                                                 .get(ORGANIZATION)
                                                 .asText();
-                                        String email = credentialProcedure.getOwnerEmail();
+                                        String email = credentialProcedure.getSubjectEmail();
                                         return new CredentialOfferEmailNotificationInfo(
                                                 email,
                                                 org
@@ -422,7 +422,7 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
                                     );
                             case LABEL_CREDENTIAL_TYPE -> Mono.just(
                                     new CredentialOfferEmailNotificationInfo(
-                                            credentialProcedure.getOwnerEmail(),
+                                            credentialProcedure.getSubjectEmail(),
                                             DEFAULT_ORGANIZATION_NAME
                                     )
                             );

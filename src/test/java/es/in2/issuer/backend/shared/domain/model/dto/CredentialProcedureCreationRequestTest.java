@@ -20,7 +20,7 @@ class CredentialProcedureCreationRequestTest {
         Timestamp expectedValidUntil = new Timestamp(System.currentTimeMillis());
         String expectedOperationMode = "S";
         String expectedSignatureMode = "remote";
-        String expectedOwnerEmail = "user@example.com";
+        String expectedSubjectEmail = "user@example.com";
 
         // Act
         CredentialProcedureCreationRequest request = new CredentialProcedureCreationRequest(
@@ -31,7 +31,7 @@ class CredentialProcedureCreationRequestTest {
                 expectedValidUntil,
                 expectedOperationMode,
                 expectedSignatureMode,
-                expectedOwnerEmail
+                expectedSubjectEmail
         );
 
         // Assert
@@ -70,8 +70,8 @@ class CredentialProcedureCreationRequestTest {
         Timestamp expectedValidUntil = new Timestamp(System.currentTimeMillis());
         String expectedOperationMode = "S";
         String expectedSignatureMode = "remote";
-        String expectedOwnerEmail1 = "user@example.com";
-        String expectedOwnerEmail2 = "user@example2.com";
+        String expectedSubjectEmail1 = "user@example.com";
+        String expectedSubjectEmail2 = "user@example2.com";
 
         CredentialProcedureCreationRequest request1 = new CredentialProcedureCreationRequest(
                 expectedOrganizationIdentifier,
@@ -81,7 +81,7 @@ class CredentialProcedureCreationRequestTest {
                 expectedValidUntil,
                 expectedOperationMode,
                 expectedSignatureMode,
-                expectedOwnerEmail1
+                expectedSubjectEmail1
         );
         CredentialProcedureCreationRequest request2 = new CredentialProcedureCreationRequest(
                 expectedOrganizationIdentifier,
@@ -91,7 +91,7 @@ class CredentialProcedureCreationRequestTest {
                 expectedValidUntil,
                 expectedOperationMode,
                 expectedSignatureMode,
-                expectedOwnerEmail2
+                expectedSubjectEmail2
         );
 
         // Assert

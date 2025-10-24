@@ -116,20 +116,20 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
             }
             case LEAR_CREDENTIAL_MACHINE -> {
                 String email;
-                if(preSubmittedCredentialDataRequest.credentialOwnerEmail() == null || preSubmittedCredentialDataRequest.credentialOwnerEmail().isBlank()) {
+                if(preSubmittedCredentialDataRequest.credentialSubjectEmail() == null || preSubmittedCredentialDataRequest.credentialSubjectEmail().isBlank()) {
                     email = payload.get(MANDATOR).get(EMAIL).asText();
                     log.debug("No credential owner email found in presubmitted data. Using mandator email: {}", payload.get(MANDATOR).get(EMAIL).asText());
                 } else {
-                    email = preSubmittedCredentialDataRequest.credentialOwnerEmail();
+                    email = preSubmittedCredentialDataRequest.credentialSubjectEmail();
                 }
                 String org = payload.get(MANDATOR).get(ORGANIZATION).asText();
                 yield new CredentialOfferEmailNotificationInfo(email, org);
             }
             case LABEL_CREDENTIAL -> {
-                    if(preSubmittedCredentialDataRequest.credentialOwnerEmail() == null || preSubmittedCredentialDataRequest.credentialOwnerEmail().isBlank()) {
+                    if(preSubmittedCredentialDataRequest.credentialSubjectEmail() == null || preSubmittedCredentialDataRequest.credentialSubjectEmail().isBlank()) {
                         throw new MissingEmailOwnerException("Email owner email is required for gx:LabelCredential schema");
                     }
-                    String email = preSubmittedCredentialDataRequest.credentialOwnerEmail();
+                    String email = preSubmittedCredentialDataRequest.credentialSubjectEmail();
                 yield new CredentialOfferEmailNotificationInfo(email, DEFAULT_ORGANIZATION_NAME);
             }
             default -> throw new FormatUnsupportedException(
@@ -294,7 +294,7 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                                                                             deferred.getResponseUri(),
                                                                             encodedCredential,
                                                                             credentialId,
-                                                                            credentialProcedure.getOwnerEmail(),
+                                                                            credentialProcedure.getSubjectEmail(),
                                                                             tokenResponse.accessToken()
                                                                     )
                                                             )

@@ -22,7 +22,7 @@ public class CredentialOfferWorkflowImpl implements CredentialOfferWorkflow {
         return credentialOfferCacheRepository.findCredentialOfferById(id)
                 .flatMap(credentialOfferData -> emailService
                     .sendTxCodeNotification(
-                        credentialOfferData.credentialOwnerEmail(),
+                        credentialOfferData.credentialSubjectEmail(),
                         "email.pin-code",
                         credentialOfferData.pin())
                     .then(Mono.just(credentialOfferData.credentialOffer()))

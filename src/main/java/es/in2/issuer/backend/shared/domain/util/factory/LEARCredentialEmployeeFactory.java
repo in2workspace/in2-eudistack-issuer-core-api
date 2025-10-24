@@ -280,7 +280,7 @@ public class LEARCredentialEmployeeFactory {
                             credentialDecoded.credentialSubject().mandate().mandatee().lastName())
                     .validUntil(parseEpochSecondIntoTimestamp(parseDateToUnixTime(credentialDecoded.validUntil())))
                     .operationMode(operationMode)
-                    .ownerEmail(email)
+                    .subjectEmail(email)
                     .build()
             );
     }

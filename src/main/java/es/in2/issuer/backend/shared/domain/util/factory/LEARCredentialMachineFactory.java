@@ -119,7 +119,7 @@ public class LEARCredentialMachineFactory {
                 .subject(credentialDecoded.credentialSubject().mandate().mandatee().domain())
                 .validUntil(parseEpochSecondIntoTimestamp(parseDateToUnixTime(credentialDecoded.validUntil())))
                 .operationMode(operationMode)
-                .ownerEmail(email)
+                .subjectEmail(email)
                 .build()
         );
     }

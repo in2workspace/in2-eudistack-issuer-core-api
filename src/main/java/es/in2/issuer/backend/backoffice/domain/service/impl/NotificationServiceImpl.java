@@ -46,7 +46,7 @@ public class NotificationServiceImpl implements NotificationService {
                                                                 new EmailCommunicationException(MAIL_ERROR_COMMUNICATION_EXCEPTION_MESSAGE));
                                             } else if (credentialProcedure.getCredentialStatus().toString().equals(PEND_DOWNLOAD.toString())) {
 
-                                                return emailService.sendCredentialSignedNotification(credentialProcedure.getOwnerEmail(), CREDENTIAL_READY, "email.you-can-use-wallet");
+                                                return emailService.sendCredentialSignedNotification(credentialProcedure.getSubjectEmail(), CREDENTIAL_READY, "email.you-can-use-wallet");
                                             } else {
                                                 return Mono.empty();
                                             }

@@ -179,7 +179,7 @@ public class LabelCredentialFactory {
                                 .subject(labelCredentialDecoded.credentialSubject().id())
                                 .validUntil(parseEpochSecondIntoTimestamp(parseDateToUnixTime(labelCredentialDecoded.validUntil())))
                                 .operationMode(operationMode)
-                                .ownerEmail(email)
+                                .subjectEmail(email)
                                 .build()
                         )
                 );
