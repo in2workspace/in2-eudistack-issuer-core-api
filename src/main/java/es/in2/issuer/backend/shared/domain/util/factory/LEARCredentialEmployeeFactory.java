@@ -268,22 +268,21 @@ public class LEARCredentialEmployeeFactory {
     }
 
     private Mono<CredentialProcedureCreationRequest> buildCredentialProcedureCreationRequest(String decodedCredential, LEARCredentialEmployee credentialDecoded, String operationMode, String email) {
-        return accessTokenService.getOrganizationIdFromCurrentSession()
-                .flatMap(organizationId ->
-                        Mono.just(
-                                CredentialProcedureCreationRequest.builder()
-                                        .organizationIdentifier(organizationId)
-                                        .credentialDecoded(decodedCredential)
-                                        .credentialType(CredentialType.LEAR_CREDENTIAL_EMPLOYEE)
-                                        .subject(credentialDecoded.credentialSubject().mandate().mandatee().firstName() +
-                                                " " +
-                                                credentialDecoded.credentialSubject().mandate().mandatee().lastName())
-                                        .validUntil(parseEpochSecondIntoTimestamp(parseDateToUnixTime(credentialDecoded.validUntil())))
-                                        .operationMode(operationMode)
-                                        .ownerEmail(email)
-                                        .build()
-                        )
-                );
+        String mandatorOrgId = credentialDecoded.credentialSubject().mandate().mandator().organizationIdentifier();
+
+        return Mono.just(
+            CredentialProcedureCreationRequest.builder()
+                    .organizationIdentifier(mandatorOrgId)
+                    .credentialDecoded(decodedCredential)
+                    .credentialType(CredentialType.LEAR_CREDENTIAL_EMPLOYEE)
+                    .subject(credentialDecoded.credentialSubject().mandate().mandatee().firstName() +
+                            " " +
+                            credentialDecoded.credentialSubject().mandate().mandatee().lastName())
+                    .validUntil(parseEpochSecondIntoTimestamp(parseDateToUnixTime(credentialDecoded.validUntil())))
+                    .operationMode(operationMode)
+                    .ownerEmail(email)
+                    .build()
+            );
     }
 
     private Timestamp parseEpochSecondIntoTimestamp(Long unixEpochSeconds) {
