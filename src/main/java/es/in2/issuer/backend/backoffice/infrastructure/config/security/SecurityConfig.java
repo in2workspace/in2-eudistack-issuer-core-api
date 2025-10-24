@@ -110,7 +110,7 @@ public class SecurityConfig {
         }
 
         private static String extractNestedEmail(Jwt jwt) {
-            log.debug("extractNestedEmail: {}", jwt);
+            log.debug("extractNestedEmail: {}", jwt.getClaims());
             Map<String, Object> claims = jwt.getClaims();
             Map<String, Object> vc = asMap(claims.get("vc"));
             Map<String, Object> cs = asMap(vc.get("credentialSubject"));
@@ -118,6 +118,7 @@ public class SecurityConfig {
             Map<String, Object> mandate = asMap(cs.get("mandate"));
             Map<String, Object> mandatee = asMap(mandate.get("mandatee"));
             Object email = mandatee.get("email");
+            log.debug("email: {}", email);
             return (email instanceof String s && isLikelyEmail(s)) ? s : null;
         }
 
