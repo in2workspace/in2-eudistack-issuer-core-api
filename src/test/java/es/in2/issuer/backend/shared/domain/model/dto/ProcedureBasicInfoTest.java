@@ -3,6 +3,7 @@ package es.in2.issuer.backend.shared.domain.model.dto;
 import org.junit.jupiter.api.Test;
 
 import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -16,7 +17,7 @@ class ProcedureBasicInfoTest {
         String expectedSubject = "John Doe";
         String expectedStatus = "In Progress";
         String expectedCredentialType = "LEAR_CREDENTIAL_EMPLOYEE";
-        Timestamp timestamp = Timestamp.valueOf("2023-01-01 12:00:00");
+        Instant timestamp = Instant.parse("2023-01-01 12:00:00");
         String organizationIdentifier = "ORG";
 
         // Act
@@ -43,7 +44,7 @@ class ProcedureBasicInfoTest {
         UUID uuid = UUID.randomUUID();
         String newSubject = "Jane Doe";
         String newStatus = "Completed";
-        Timestamp timestamp = Timestamp.valueOf("2024-01-01 12:00:00");
+        Instant timestamp = Instant.parse("2024-01-01 12:00:00");
         String newCredentialType = "VERIFIABLE_CERTIFICATION";
         String orgId = "VATES-AAAAAA";
 
@@ -71,7 +72,7 @@ class ProcedureBasicInfoTest {
         UUID uuid = UUID.randomUUID();
         String expectedFullName = "John Doe";
         String expectedStatus = "In Progress";
-        Timestamp timestamp = Timestamp.valueOf("2023-01-01 12:00:00");
+        Instant timestamp = Instant.parse("2023-01-01 12:00:00");
         String expectedCredentialType = "LEAR_CREDENTIAL_EMPLOYEE";
         String organizationIdentifier = "VATES-AAAAAA";
 

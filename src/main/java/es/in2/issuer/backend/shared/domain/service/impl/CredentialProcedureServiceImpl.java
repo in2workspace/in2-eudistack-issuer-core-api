@@ -347,6 +347,7 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
                 .credentialType(cp.getCredentialType())
                 .status(String.valueOf(cp.getCredentialStatus()))
                 .organizationIdentifier(cp.getOrganizationIdentifier())
+                .updated(cp.getUpdatedAt())
                 .build();
     }
 

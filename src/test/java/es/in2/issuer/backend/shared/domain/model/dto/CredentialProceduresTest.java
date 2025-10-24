@@ -3,6 +3,7 @@ package es.in2.issuer.backend.shared.domain.model.dto;
 import org.junit.jupiter.api.Test;
 
 import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -18,7 +19,7 @@ class CredentialProceduresTest {
                 "John Doe",
                 "LEAR_CREDENTIAL_EMPLOYEE",
                 "In Progress",
-                Timestamp.valueOf("2023-01-01 12:00:00"),
+                Instant.parse("2023-01-01 12:00:00"),
                 "or"
                 );
         CredentialProcedures.CredentialProcedure credentialProcedure = new CredentialProcedures.CredentialProcedure(procedureBasicInfo);
@@ -39,7 +40,7 @@ class CredentialProceduresTest {
                 "Jane Doe",
                 "LEAR_CREDENTIAL_EMPLOYEE",
                 "Completed",
-                Timestamp.valueOf("2024-01-01 12:00:00"),
+                Instant.parse("2024-01-01 12:00:00"),
                 "org"
         );
         CredentialProcedures.CredentialProcedure credentialProcedure = new CredentialProcedures.CredentialProcedure(procedureBasicInfo);
@@ -62,7 +63,7 @@ class CredentialProceduresTest {
                 "John Doe",
                 "LEAR_CREDENTIAL_EMPLOYEE",
                 "In Progress",
-                Timestamp.valueOf("2023-01-01 12:00:00"),
+                Instant.parse("2023-01-01 12:00:00"),
                 "org"
         );
         CredentialProcedures.CredentialProcedure credentialProcedure = new CredentialProcedures.CredentialProcedure(procedureBasicInfo);
