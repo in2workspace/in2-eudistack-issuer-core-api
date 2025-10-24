@@ -58,7 +58,4 @@ public class CredentialProcedure {
 
     @Column("owner_email")
     private String ownerEmail;
-
-    @Column("on_behalf")
-    private String onBehalf;
 }

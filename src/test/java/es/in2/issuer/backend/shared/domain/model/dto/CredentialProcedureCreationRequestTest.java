@@ -21,7 +21,6 @@ class CredentialProcedureCreationRequestTest {
         String expectedOperationMode = "S";
         String expectedSignatureMode = "remote";
         String expectedOwnerEmail = "user@example.com";
-        String expectedOnBehalf = "user@example.com";
 
         // Act
         CredentialProcedureCreationRequest request = new CredentialProcedureCreationRequest(
@@ -32,8 +31,7 @@ class CredentialProcedureCreationRequestTest {
                 expectedValidUntil,
                 expectedOperationMode,
                 expectedSignatureMode,
-                expectedOwnerEmail,
-                expectedOnBehalf
+                expectedOwnerEmail
         );
 
         // Assert
@@ -74,8 +72,6 @@ class CredentialProcedureCreationRequestTest {
         String expectedSignatureMode = "remote";
         String expectedOwnerEmail1 = "user@example.com";
         String expectedOwnerEmail2 = "user@example2.com";
-        String expectedOnBehalf1 = "ORG ON BEHALF";
-        String expectedOnBehalf2 = "ORG ON BEHALF2";
 
         CredentialProcedureCreationRequest request1 = new CredentialProcedureCreationRequest(
                 expectedOrganizationIdentifier,
@@ -85,8 +81,7 @@ class CredentialProcedureCreationRequestTest {
                 expectedValidUntil,
                 expectedOperationMode,
                 expectedSignatureMode,
-                expectedOwnerEmail1,
-                expectedOnBehalf1
+                expectedOwnerEmail1
         );
         CredentialProcedureCreationRequest request2 = new CredentialProcedureCreationRequest(
                 expectedOrganizationIdentifier,
@@ -96,8 +91,7 @@ class CredentialProcedureCreationRequestTest {
                 expectedValidUntil,
                 expectedOperationMode,
                 expectedSignatureMode,
-                expectedOwnerEmail2,
-                expectedOnBehalf2
+                expectedOwnerEmail2
         );
 
         // Assert

@@ -27,7 +27,6 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
 
-import static es.in2.issuer.backend.backoffice.domain.util.Constants.IN2_ORGANIZATION_IDENTIFIER;
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.LEAR_CREDENTIAL_EMPLOYEE_DESCRIPTION;
 import static es.in2.issuer.backend.shared.domain.util.Constants.*;
 import static es.in2.issuer.backend.shared.domain.util.Utils.generateCustomNonce;
@@ -270,27 +269,21 @@ public class LEARCredentialEmployeeFactory {
 
     private Mono<CredentialProcedureCreationRequest> buildCredentialProcedureCreationRequest(String decodedCredential, LEARCredentialEmployee credentialDecoded, String operationMode, String email) {
         return accessTokenService.getOrganizationIdFromCurrentSession()
-                .flatMap(organizationId -> {
-                    String mandator = credentialDecoded.credentialSubject().mandate().mandator().organizationIdentifier();
-
-                    var builder = CredentialProcedureCreationRequest.builder()
-                                    .organizationIdentifier(organizationId)
-                                    .credentialDecoded(decodedCredential)
-                                    .credentialType(CredentialType.LEAR_CREDENTIAL_EMPLOYEE)
-                                    .subject(credentialDecoded.credentialSubject().mandate().mandatee().firstName() +
-                                            " " +
-                                            credentialDecoded.credentialSubject().mandate().mandatee().lastName())
-                                    .validUntil(parseEpochSecondIntoTimestamp(parseDateToUnixTime(credentialDecoded.validUntil())))
-                                    .operationMode(operationMode)
-                                    .ownerEmail(email);
-
-                    // When issuing on behalf, add onBehalf field
-                    if (organizationId.equals(IN2_ORGANIZATION_IDENTIFIER) && !organizationId.equals(mandator)) {
-                        log.info("Issuing LEAR Credential Employee on behalf of {} for {}: ", IN2_ORGANIZATION_IDENTIFIER, mandator);
-                        builder.onBehalf(IN2_ORGANIZATION_IDENTIFIER);
-                    }
-                    return Mono.just(builder.build());
-                });
+                .flatMap(organizationId ->
+                        Mono.just(
+                                CredentialProcedureCreationRequest.builder()
+                                        .organizationIdentifier(organizationId)
+                                        .credentialDecoded(decodedCredential)
+                                        .credentialType(CredentialType.LEAR_CREDENTIAL_EMPLOYEE)
+                                        .subject(credentialDecoded.credentialSubject().mandate().mandatee().firstName() +
+                                                " " +
+                                                credentialDecoded.credentialSubject().mandate().mandatee().lastName())
+                                        .validUntil(parseEpochSecondIntoTimestamp(parseDateToUnixTime(credentialDecoded.validUntil())))
+                                        .operationMode(operationMode)
+                                        .ownerEmail(email)
+                                        .build()
+                        )
+                );
     }
 
     private Timestamp parseEpochSecondIntoTimestamp(Long unixEpochSeconds) {
