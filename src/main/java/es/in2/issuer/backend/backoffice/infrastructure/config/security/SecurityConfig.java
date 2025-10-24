@@ -76,29 +76,58 @@ public class SecurityConfig {
         authenticationWebFilter.setAuthenticationFailureHandler(new ServerAuthenticationEntryPointFailureHandler(entryPoint));
         return authenticationWebFilter;
     }
-
     @Bean
     public Converter<Jwt, Mono<AbstractAuthenticationToken>> jwtAuthenticationConverter() {
-        JwtGrantedAuthoritiesConverter authoritiesConverter = new JwtGrantedAuthoritiesConverter();
-
-        return (Jwt jwt) -> {
-            String email = extractNestedEmail(jwt); // vc.credentialSubject.mandate.mandatee.email
-            String principal = (email != null) ? email : jwt.getSubject();
-            Collection<GrantedAuthority> auths = authoritiesConverter.convert(jwt);
-            return Mono.just(new JwtAuthenticationToken(jwt, auths, principal));
-        };
+        return new JwtToAuthConverter();
     }
 
-    private String extractNestedEmail(Jwt jwt) {
-        Map<String, Object> vc        = asMap(jwt.getClaim("vc"));
-        Map<String, Object> cs        = asMap(vc.get("credentialSubject"));
-        Map<String, Object> mandate   = asMap(cs.get("mandate"));
-        Map<String, Object> mandatee  = asMap(mandate.get("mandatee"));
-        Object email = mandatee.get("email");
-        return (email instanceof String s && s.contains("@")) ? s : null;
+    /**
+     * Explicit converter class so Spring can resolve <S, T> generic types.
+     * Avoid lambdas here: they erase generic info and break WebFluxConversionService bootstrapping.
+     */
+    static final class JwtToAuthConverter implements Converter<Jwt, Mono<AbstractAuthenticationToken>> {
+
+        private final JwtGrantedAuthoritiesConverter authoritiesConverter = new JwtGrantedAuthoritiesConverter();
+
+        @Override
+        public Mono<AbstractAuthenticationToken> convert(Jwt jwt) {
+            // Resolve principal (prefer nested email; fallback to sub)
+            String principal = resolvePrincipal(jwt);
+            // Map authorities from standard converter
+            var authorities = authoritiesConverter.convert(jwt);
+            return Mono.just(new JwtAuthenticationToken(jwt, authorities, principal));
+        }
+
+        private static String resolvePrincipal(Jwt jwt) {
+            // Try vc.credentialSubject.mandate.mandatee.email
+            String email = extractNestedEmail(jwt);
+            return (email != null) ? email : jwt.getSubject();
+        }
+
+        @SuppressWarnings("unchecked")
+        private static Map<String, Object> asMap(Object v) {
+            return (v instanceof Map<?, ?> m) ? (Map<String, Object>) m : Map.of();
+        }
+
+        private static String extractNestedEmail(Jwt jwt) {
+            log.debug("extractNestedEmail: {}", jwt);
+            Map<String, Object> claims = jwt.getClaims();
+            Map<String, Object> vc = asMap(claims.get("vc"));
+            Map<String, Object> cs = asMap(vc.get("credentialSubject"));
+            log.debug("credentialSubject: {}", cs);
+            Map<String, Object> mandate = asMap(cs.get("mandate"));
+            Map<String, Object> mandatee = asMap(mandate.get("mandatee"));
+            Object email = mandatee.get("email");
+            return (email instanceof String s && isLikelyEmail(s)) ? s : null;
+        }
+
+        private static boolean isLikelyEmail(String s) {
+            // Minimal sanity check
+            return s != null && s.contains("@") && s.indexOf('@') > 0 && s.indexOf('@') == s.lastIndexOf('@');
+        }
     }
 
-    @SuppressWarnings("unchecked")
+        @SuppressWarnings("unchecked")
     private Map<String, Object> asMap(Object v) {
         return (v instanceof Map<?, ?> m) ? (Map<String, Object>) m : Map.of();
     }
