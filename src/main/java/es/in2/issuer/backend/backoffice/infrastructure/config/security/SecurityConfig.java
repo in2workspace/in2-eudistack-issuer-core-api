@@ -7,12 +7,18 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.core.convert.converter.Converter;
+import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.authentication.ReactiveAuthenticationManager;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
 import org.springframework.security.config.web.server.SecurityWebFiltersOrder;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
+import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.oauth2.server.resource.web.server.authentication.ServerBearerTokenAuthenticationConverter;
 import org.springframework.security.web.server.SecurityWebFilterChain;
 import org.springframework.security.web.server.authentication.AuthenticationWebFilter;
@@ -20,6 +26,9 @@ import org.springframework.security.web.server.authentication.ServerAuthenticati
 import org.springframework.security.web.server.util.matcher.ServerWebExchangeMatchers;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
+
+import java.util.Collection;
+import java.util.Map;
 
 import static es.in2.issuer.backend.shared.domain.util.EndpointsConstants.*;
 
@@ -66,6 +75,32 @@ public class SecurityConfig {
         authenticationWebFilter.setServerAuthenticationConverter(bearerConverter);
         authenticationWebFilter.setAuthenticationFailureHandler(new ServerAuthenticationEntryPointFailureHandler(entryPoint));
         return authenticationWebFilter;
+    }
+
+    @Bean
+    public Converter<Jwt, Mono<AbstractAuthenticationToken>> jwtAuthenticationConverter() {
+        JwtGrantedAuthoritiesConverter authoritiesConverter = new JwtGrantedAuthoritiesConverter();
+
+        return (Jwt jwt) -> {
+            String email = extractNestedEmail(jwt); // vc.credentialSubject.mandate.mandatee.email
+            String principal = (email != null) ? email : jwt.getSubject();
+            Collection<GrantedAuthority> auths = authoritiesConverter.convert(jwt);
+            return Mono.just(new JwtAuthenticationToken(jwt, auths, principal));
+        };
+    }
+
+    private String extractNestedEmail(Jwt jwt) {
+        Map<String, Object> vc        = asMap(jwt.getClaim("vc"));
+        Map<String, Object> cs        = asMap(vc.get("credentialSubject"));
+        Map<String, Object> mandate   = asMap(cs.get("mandate"));
+        Map<String, Object> mandatee  = asMap(mandate.get("mandatee"));
+        Object email = mandatee.get("email");
+        return (email instanceof String s && s.contains("@")) ? s : null;
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> asMap(Object v) {
+        return (v instanceof Map<?, ?> m) ? (Map<String, Object>) m : Map.of();
     }
 
     @Bean
@@ -140,7 +175,11 @@ public class SecurityConfig {
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .authenticationEntryPoint(entryPoint)
-                        .jwt(jwt -> jwt.jwtDecoder(internalJwtDecoder)))
+                        .jwt(jwt -> jwt
+                                .jwtDecoder(internalJwtDecoder)
+                                .jwtAuthenticationConverter(jwtAuthenticationConverter())
+                        )
+                )
                 .exceptionHandling(e -> e
                         .authenticationEntryPoint(entryPoint)
                         .accessDeniedHandler(deniedH)

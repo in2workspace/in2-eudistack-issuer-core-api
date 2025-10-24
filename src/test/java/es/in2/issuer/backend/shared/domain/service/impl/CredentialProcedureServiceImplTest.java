@@ -65,7 +65,6 @@ class CredentialProcedureServiceImplTest {
                 .organizationIdentifier(organizationIdentifier)
                 .credentialType(expectedCredentialType)
                 .subject(expectedSubject)
-                .updatedAt(new Timestamp(Instant.now().toEpochMilli()))
                 .validUntil(expectedValidUntil)
                 .build();
 
@@ -197,7 +196,6 @@ class CredentialProcedureServiceImplTest {
         existingCredentialProcedure.setCredentialDecoded("{\"vc\":{\"type\":[\"OldCredentialType\"]}}");
         existingCredentialProcedure.setCredentialStatus(CredentialStatusEnum.DRAFT);
         existingCredentialProcedure.setCredentialFormat("old_format");
-        existingCredentialProcedure.setUpdatedAt(new Timestamp(Instant.now().toEpochMilli()));
 
         when(credentialProcedureRepository.findById(any(UUID.class)))
                 .thenReturn(Mono.just(existingCredentialProcedure));
@@ -216,7 +214,7 @@ class CredentialProcedureServiceImplTest {
         assert existingCredentialProcedure.getCredentialDecoded().equals(newCredential);
         assert existingCredentialProcedure.getCredentialFormat().equals(newFormat);
         assert existingCredentialProcedure.getCredentialStatus() == CredentialStatusEnum.ISSUED;
-        assert existingCredentialProcedure.getUpdatedAt().before(new Timestamp(Instant.now().toEpochMilli() + 1000));
+        assert existingCredentialProcedure.getUpdatedAt().isBefore(Instant.now().plusMillis(1000));
     }
 
     @Test

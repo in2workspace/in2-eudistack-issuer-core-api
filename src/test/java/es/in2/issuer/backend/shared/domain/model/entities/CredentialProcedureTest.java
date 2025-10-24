@@ -29,7 +29,6 @@ class CredentialProcedureTest {
                 .credentialEncoded(credentialEncoded)
                 .credentialStatus(credentialStatusEnum)
                 .organizationIdentifier(organizationIdentifier)
-                .updatedAt(timestamp)
                 .validUntil(validUntil)
                 .build();
 
@@ -62,7 +61,6 @@ class CredentialProcedureTest {
         credentialProcedure.setCredentialEncoded(credentialEncoded);
         credentialProcedure.setCredentialStatus(credentialStatusEnum);
         credentialProcedure.setOrganizationIdentifier(organizationIdentifier);
-        credentialProcedure.setUpdatedAt(timestamp);
         credentialProcedure.setValidUntil(validUntil);
 
         assertEquals(procedureId, credentialProcedure.getProcedureId());

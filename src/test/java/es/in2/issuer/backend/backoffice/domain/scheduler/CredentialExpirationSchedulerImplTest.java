@@ -61,7 +61,7 @@ class CredentialExpirationSchedulerImplTest {
         verify(credentialProcedureRepository, atLeastOnce()).save(argThat(updatedCredential -> {
             boolean statusCorrect = updatedCredential.getCredentialStatus() == CredentialStatusEnum.EXPIRED;
             boolean updatedAtNotNull = updatedCredential.getUpdatedAt() != null;
-            boolean updatedAtRecent = updatedCredential.getUpdatedAt().toInstant().isAfter(Instant.now().minusSeconds(10));
+            boolean updatedAtRecent = updatedCredential.getUpdatedAt().isAfter(Instant.now().minusSeconds(10));
             return statusCorrect && updatedAtNotNull && updatedAtRecent;
         }));
 

@@ -220,7 +220,6 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
                 )
                 .flatMap(signedVc -> credentialProcedureRepository.findByProcedureId(UUID.fromString(procedureId))
                         .flatMap(updatedCredentialProcedure -> {
-                            updatedCredentialProcedure.setUpdatedAt(Timestamp.from(Instant.now()));
                             return credentialProcedureRepository.save(updatedCredentialProcedure)
                                     .thenReturn(updatedCredentialProcedure);
                         })

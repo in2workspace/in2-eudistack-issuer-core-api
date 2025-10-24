@@ -46,7 +46,6 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
                 .credentialType(credentialProcedureCreationRequest.credentialType().toString())
                 .subject(credentialProcedureCreationRequest.subject())
                 .validUntil(credentialProcedureCreationRequest.validUntil())
-                .updatedAt(new Timestamp(Instant.now().toEpochMilli()))
                 .operationMode(credentialProcedureCreationRequest.operationMode())
                 .signatureMode("remote")
                 .subjectEmail(credentialProcedureCreationRequest.subjectEmail())
@@ -143,7 +142,6 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
                     credentialProcedure.setCredentialDecoded(credential);
                     credentialProcedure.setCredentialStatus(CredentialStatusEnum.ISSUED);
                     credentialProcedure.setCredentialFormat(format);
-                    credentialProcedure.setUpdatedAt(new Timestamp(Instant.now().toEpochMilli()));
 
                     return credentialProcedureRepository.save(credentialProcedure)
                             .doOnSuccess(result -> log.info(UPDATED_CREDENTIAL))
@@ -157,7 +155,6 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
                 .flatMap(credentialProcedure -> {
                     credentialProcedure.setCredentialDecoded(credential);
                     credentialProcedure.setCredentialStatus(CredentialStatusEnum.ISSUED);
-                    credentialProcedure.setUpdatedAt(new Timestamp(Instant.now().toEpochMilli()));
 
                     return credentialProcedureRepository.save(credentialProcedure)
                             .doOnSuccess(result -> log.info(UPDATED_CREDENTIAL))
@@ -293,7 +290,6 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
     public Mono<Void> updateCredentialProcedureCredentialStatusToRevoke(CredentialProcedure
                                                                                 credentialProcedure) {
         credentialProcedure.setCredentialStatus(CredentialStatusEnum.REVOKED);
-        credentialProcedure.setUpdatedAt(Timestamp.from(Instant.now()));
         return credentialProcedureRepository.save(credentialProcedure)
                 .doOnSuccess(result -> log.info(UPDATED_CREDENTIAL))
                 .then();
@@ -350,7 +346,6 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
                 .subject(cp.getSubject())
                 .credentialType(cp.getCredentialType())
                 .status(String.valueOf(cp.getCredentialStatus()))
-                .updated(cp.getUpdatedAt())
                 .organizationIdentifier(cp.getOrganizationIdentifier())
                 .build();
     }
