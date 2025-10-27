@@ -14,6 +14,7 @@ import org.springframework.security.authentication.AuthenticationServiceExceptio
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.ReactiveAuthenticationManager;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import reactor.core.publisher.Mono;
@@ -43,7 +44,7 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
 
         return extractIssuer(token)
                 .flatMap(issuer -> routeByIssuer(issuer, token))
-                .onErrorMap(e -> (e instanceof org.springframework.security.core.AuthenticationException)
+                .onErrorMap(e -> (e instanceof AuthenticationException)
                         ? e
                         : new AuthenticationServiceException(e.getMessage(), e));
     }
@@ -94,7 +95,6 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
     private Mono<Authentication> handleVerifierToken(String token) {
         return verifierService.verifyToken(token)
                 .then(parseAndValidateJwt(token, Boolean.TRUE))
-                // CHANGED: set principal to nested email (fallback to sub)
                 .map(jwt -> new JwtAuthenticationToken(jwt, Collections.emptyList(), resolvePrincipal(jwt)));
     }
 
@@ -107,7 +107,6 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
                         return Mono.error(new BadCredentialsException("Invalid JWT signature"));
                     }
                     return parseAndValidateJwt(token, Boolean.FALSE)
-                            // CHANGED: set principal to nested email (fallback to sub)
                             .map(jwt -> (Authentication) new JwtAuthenticationToken(jwt, Collections.emptyList(), resolvePrincipal(jwt)));
                 })
                 .onErrorMap(ParseException.class, e -> {
@@ -132,10 +131,8 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
             String payloadJson = new String(Base64.getUrlDecoder().decode(parts[1]), StandardCharsets.UTF_8);
             Map<String, Object> claims = objectMapper.readValue(payloadJson, Map.class);
 
-            // Validate 'vc' claim if required
-            if (validateVcClaim) {
-                validateVcClaim(claims);
-            }
+            // Validate 'vc' claim
+            if (validateVcClaim) validateVcClaim(claims);
 
             // Extract issuedAt and expiresAt times if present
             Instant issuedAt = claims.containsKey("iat") ? Instant.ofEpochSecond(((Number) claims.get("iat")).longValue()) : Instant.now();
@@ -180,8 +177,7 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
 
     // Principal resolution based on nested email; needed for auditing
     private String resolvePrincipal(Jwt jwt) {
-        // Try vc.credentialSubject.mandate.mandatee.email
-        String email = extractNestedEmail(jwt);
+        String email = extractMandateeEmail(jwt);
         if (email != null) {
             return email;
         }
@@ -189,11 +185,11 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
         return jwt.getSubject();
     }
 
-    private String extractNestedEmail(Jwt jwt) {
+    private String extractMandateeEmail(Jwt jwt) {
         Map<String, Object> claims = jwt.getClaims();
-        Map<String, Object> vc       = asMap(claims.get("vc"));
-        Map<String, Object> cs       = asMap(vc.get("credentialSubject"));
-        Map<String, Object> mandate  = asMap(cs.get("mandate"));
+        Map<String, Object> vc = asMap(claims.get("vc"));
+        Map<String, Object> cs = asMap(vc.get("credentialSubject"));
+        Map<String, Object> mandate = asMap(cs.get("mandate"));
         Map<String, Object> mandatee = asMap(mandate.get("mandatee"));
         Object email = mandatee.get("email");
         if (email instanceof String s && isLikelyEmail(s)) {
@@ -204,12 +200,10 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
 
     @SuppressWarnings("unchecked")
     private Map<String, Object> asMap(Object v) {
-        // Safe cast after instanceof check; returns empty map if null or not a map
         return (v instanceof Map<?, ?> m) ? (Map<String, Object>) m : Map.of();
     }
 
     private boolean isLikelyEmail(String s) {
-        // Minimal sanity check; adjust if you need stricter validation
         return s != null && s.contains("@")
                 && s.indexOf('@') > 0
                 && s.indexOf('@') == s.lastIndexOf('@');

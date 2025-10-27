@@ -81,10 +81,7 @@ public class SecurityConfig {
         return new JwtToAuthConverter();
     }
 
-    /**
-     * Explicit converter class so Spring can resolve <S, T> generic types.
-     * Avoid lambdas here: they erase generic info and break WebFluxConversionService bootstrapping.
-     */
+    // Explicit converter class so Spring can resolve <S, T> generic types.
     static final class JwtToAuthConverter implements Converter<Jwt, Mono<AbstractAuthenticationToken>> {
 
         private final JwtGrantedAuthoritiesConverter authoritiesConverter = new JwtGrantedAuthoritiesConverter();
