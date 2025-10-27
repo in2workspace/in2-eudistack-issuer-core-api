@@ -97,7 +97,7 @@ public class SecurityConfig {
 
         private static String resolvePrincipal(Jwt jwt) {
             // Try vc.credentialSubject.mandate.mandatee.email
-            String email = extractNestedEmail(jwt);
+            String email = extractMandateeEmail(jwt);
             return (email != null) ? email : jwt.getSubject();
         }
 
@@ -106,16 +106,13 @@ public class SecurityConfig {
             return (v instanceof Map<?, ?> m) ? (Map<String, Object>) m : Map.of();
         }
 
-        private static String extractNestedEmail(Jwt jwt) {
-            log.debug("extractNestedEmail: {}", jwt.getClaims());
+        private static String extractMandateeEmail(Jwt jwt) {
             Map<String, Object> claims = jwt.getClaims();
             Map<String, Object> vc = asMap(claims.get("vc"));
             Map<String, Object> cs = asMap(vc.get("credentialSubject"));
-            log.debug("credentialSubject: {}", cs);
             Map<String, Object> mandate = asMap(cs.get("mandate"));
             Map<String, Object> mandatee = asMap(mandate.get("mandatee"));
             Object email = mandatee.get("email");
-            log.debug("email: {}", email);
             return (email instanceof String s && isLikelyEmail(s)) ? s : null;
         }
 
@@ -123,11 +120,6 @@ public class SecurityConfig {
             // Minimal sanity check
             return s != null && s.contains("@") && s.indexOf('@') > 0 && s.indexOf('@') == s.lastIndexOf('@');
         }
-    }
-
-        @SuppressWarnings("unchecked")
-    private Map<String, Object> asMap(Object v) {
-        return (v instanceof Map<?, ?> m) ? (Map<String, Object>) m : Map.of();
     }
 
     @Bean
