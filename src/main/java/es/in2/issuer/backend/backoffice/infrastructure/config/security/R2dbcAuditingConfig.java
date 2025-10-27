@@ -1,4 +1,4 @@
-package es.in2.issuer.backend.shared.infrastructure.config;
+package es.in2.issuer.backend.backoffice.infrastructure.config.security;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
@@ -8,7 +8,6 @@ import org.springframework.data.r2dbc.config.EnableR2dbcAuditing;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.ReactiveSecurityContextHolder;
 import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.core.context.SecurityContextHolder;
 import reactor.core.publisher.Mono;
 
 @Slf4j

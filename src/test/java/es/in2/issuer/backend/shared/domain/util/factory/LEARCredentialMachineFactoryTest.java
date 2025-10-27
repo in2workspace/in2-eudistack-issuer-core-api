@@ -66,15 +66,16 @@ class LEARCredentialMachineFactoryTest {
         JsonNode jsonNode = objectMapper.readTree(json);
         LEARCredentialMachine.CredentialSubject.Mandate mockMandate = mock(LEARCredentialMachine.CredentialSubject.Mandate.class);
         LEARCredentialMachine.CredentialSubject.Mandate.Mandatee mockMandatee = mock(LEARCredentialMachine.CredentialSubject.Mandate.Mandatee.class);
-
+        LEARCredentialMachine.CredentialSubject.Mandate.Mandator mockMandator = mock(LEARCredentialMachine.CredentialSubject.Mandate.Mandator.class);
         when(appConfig.getIssuerBackendUrl())
                 .thenReturn("https://issuer-backend");
         when(objectMapper.convertValue(jsonNode, LEARCredentialMachine.CredentialSubject.Mandate.class))
                 .thenReturn(mockMandate);
         when(mockMandate.mandatee()).thenReturn(mockMandatee);
+        when(mockMandate.mandator()).thenReturn(mockMandator);
+        when(mockMandator.organizationIdentifier()).thenReturn("orgId");
 
         when(objectMapper.writeValueAsString(any(LEARCredentialMachine.class))).thenReturn(json);
-        when(accessTokenService.getOrganizationIdFromCurrentSession()).thenReturn(Mono.just("orgId"));
 
         // Act
         Mono<CredentialProcedureCreationRequest> result = learCredentialMachineFactory.mapAndBuildLEARCredentialMachine(jsonNode, "S", "");

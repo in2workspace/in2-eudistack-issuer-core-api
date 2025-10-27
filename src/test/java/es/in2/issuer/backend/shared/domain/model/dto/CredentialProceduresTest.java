@@ -19,7 +19,7 @@ class CredentialProceduresTest {
                 "John Doe",
                 "LEAR_CREDENTIAL_EMPLOYEE",
                 "In Progress",
-                Instant.parse("2023-01-01 12:00:00"),
+                Instant.parse("2023-01-01T12:00:00Z"),
                 "or"
                 );
         CredentialProcedures.CredentialProcedure credentialProcedure = new CredentialProcedures.CredentialProcedure(procedureBasicInfo);
@@ -40,7 +40,7 @@ class CredentialProceduresTest {
                 "Jane Doe",
                 "LEAR_CREDENTIAL_EMPLOYEE",
                 "Completed",
-                Instant.parse("2024-01-01 12:00:00"),
+                Instant.parse("2024-01-01T12:00:00Z"),
                 "org"
         );
         CredentialProcedures.CredentialProcedure credentialProcedure = new CredentialProcedures.CredentialProcedure(procedureBasicInfo);
@@ -63,7 +63,7 @@ class CredentialProceduresTest {
                 "John Doe",
                 "LEAR_CREDENTIAL_EMPLOYEE",
                 "In Progress",
-                Instant.parse("2023-01-01 12:00:00"),
+                Instant.parse("2023-01-01T12:00:00Z"),
                 "org"
         );
         CredentialProcedures.CredentialProcedure credentialProcedure = new CredentialProcedures.CredentialProcedure(procedureBasicInfo);

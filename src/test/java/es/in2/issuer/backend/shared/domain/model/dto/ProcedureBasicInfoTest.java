@@ -17,7 +17,7 @@ class ProcedureBasicInfoTest {
         String expectedSubject = "John Doe";
         String expectedStatus = "In Progress";
         String expectedCredentialType = "LEAR_CREDENTIAL_EMPLOYEE";
-        Instant timestamp = Instant.parse("2023-01-01 12:00:00");
+        Instant timestamp = Instant.parse("2023-01-01T12:00:00Z");
         String organizationIdentifier = "ORG";
 
         // Act
@@ -44,7 +44,7 @@ class ProcedureBasicInfoTest {
         UUID uuid = UUID.randomUUID();
         String newSubject = "Jane Doe";
         String newStatus = "Completed";
-        Instant timestamp = Instant.parse("2024-01-01 12:00:00");
+        Instant timestamp = Instant.parse("2024-01-01T12:00:00Z");
         String newCredentialType = "VERIFIABLE_CERTIFICATION";
         String orgId = "VATES-AAAAAA";
 
@@ -72,7 +72,7 @@ class ProcedureBasicInfoTest {
         UUID uuid = UUID.randomUUID();
         String expectedFullName = "John Doe";
         String expectedStatus = "In Progress";
-        Instant timestamp = Instant.parse("2023-01-01 12:00:00");
+        Instant timestamp = Instant.parse("2023-01-01T12:00:00Z");
         String expectedCredentialType = "LEAR_CREDENTIAL_EMPLOYEE";
         String organizationIdentifier = "VATES-AAAAAA";
 

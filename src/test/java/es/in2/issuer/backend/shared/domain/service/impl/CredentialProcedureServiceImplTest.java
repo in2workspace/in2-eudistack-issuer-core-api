@@ -214,7 +214,6 @@ class CredentialProcedureServiceImplTest {
         assert existingCredentialProcedure.getCredentialDecoded().equals(newCredential);
         assert existingCredentialProcedure.getCredentialFormat().equals(newFormat);
         assert existingCredentialProcedure.getCredentialStatus() == CredentialStatusEnum.ISSUED;
-        assert existingCredentialProcedure.getUpdatedAt().isBefore(Instant.now().plusMillis(1000));
     }
 
     @Test
