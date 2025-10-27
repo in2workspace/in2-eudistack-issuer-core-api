@@ -4,8 +4,11 @@ import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import es.in2.issuer.backend.shared.domain.exception.NoCredentialFoundException;
+import es.in2.issuer.backend.shared.domain.exception.ParseCredentialJsonException;
 import es.in2.issuer.backend.shared.domain.model.dto.CredentialDetails;
 import es.in2.issuer.backend.shared.domain.model.dto.CredentialProcedureCreationRequest;
+import es.in2.issuer.backend.shared.domain.model.dto.CredentialProcedures;
+import es.in2.issuer.backend.shared.domain.model.dto.ProcedureBasicInfo;
 import es.in2.issuer.backend.shared.domain.model.entities.CredentialProcedure;
 import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum;
 import es.in2.issuer.backend.shared.domain.model.enums.CredentialType;
@@ -25,6 +28,10 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
+import static org.hibernate.validator.internal.util.Contracts.assertNotNull;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -510,5 +517,277 @@ class CredentialProcedureServiceImplTest {
         StepVerifier.create(result)
                 .expectErrorMatches(JsonParseException.class::isInstance)
                 .verify();
+    }
+
+    @Test
+    void getCredentialNodeSync_shouldReturnJsonNode_whenInputIsValid() throws Exception {
+        // Given
+        String credentialDecoded = "{\"vc\":{\"type\":[\"VerifiableCredential\",\"Employee\"]}}";
+        CredentialProcedure cp = new CredentialProcedure();
+        cp.setCredentialDecoded(credentialDecoded);
+
+        JsonNode expectedNode = new ObjectMapper().readTree(credentialDecoded);
+        when(objectMapper.readTree(credentialDecoded)).thenReturn(expectedNode);
+
+        // When
+        JsonNode result = credentialProcedureService.getCredentialNodeSync(cp);
+
+        // Then
+        assertNotNull(result, "Returned JsonNode should not be null");
+        assertTrue(result.has("vc"), "Returned JsonNode should contain 'vc' field");
+        assertEquals(expectedNode, result); // simpler equality check
+        verify(objectMapper, times(1)).readTree(credentialDecoded);
+    }
+
+    @Test
+    void getCredentialNodeSync_shouldThrow_whenCredentialProcedureIsNull() {
+        ParseCredentialJsonException ex = assertThrows(
+                ParseCredentialJsonException.class,
+                () -> credentialProcedureService.getCredentialNodeSync(null)
+        );
+        assertEquals("CredentialProcedure or credentialDecoded is null", ex.getMessage());
+        // No need for verify here; Mockito can't throw checked exceptions
+    }
+
+    @Test
+    void getCredentialNodeSync_shouldThrow_whenCredentialDecodedIsNull() {
+        CredentialProcedure cp = new CredentialProcedure();
+        cp.setCredentialDecoded(null);
+
+        ParseCredentialJsonException ex = assertThrows(
+                ParseCredentialJsonException.class,
+                () -> credentialProcedureService.getCredentialNodeSync(cp)
+        );
+        assertEquals("CredentialProcedure or credentialDecoded is null", ex.getMessage());
+    }
+
+    @Test
+    void getCredentialNodeSync_shouldThrow_whenJsonIsInvalid() throws Exception {
+        String invalidJson = "{\"vc\":{\"type\":[\"VerifiableCredential\",\"Employee\"}";
+        CredentialProcedure cp = new CredentialProcedure();
+        cp.setCredentialDecoded(invalidJson);
+
+        // Mock exception from ObjectMapper
+        doThrow(new JsonParseException(null, "Malformed JSON"))
+                .when(objectMapper).readTree(invalidJson);
+
+        ParseCredentialJsonException ex = assertThrows(
+                ParseCredentialJsonException.class,
+                () -> credentialProcedureService.getCredentialNodeSync(cp)
+        );
+
+        assertEquals("Error parsing credential JSON", ex.getMessage());
+        verify(objectMapper, times(1)).readTree(invalidJson);
+    }
+
+    @Test
+    void getAllProceduresVisibleFor_admin_shouldReturnAllProceduresMapped() {
+        // Given (admin organization)
+        String adminOrg = IN2_ORGANIZATION_IDENTIFIER;
+
+        CredentialProcedure cp1 = new CredentialProcedure();
+        cp1.setProcedureId(UUID.randomUUID());
+        cp1.setSubject("Alice");
+        cp1.setCredentialType("TYPE_A");
+        cp1.setCredentialStatus(CredentialStatusEnum.DRAFT);
+        cp1.setOrganizationIdentifier("org-1");
+        cp1.setUpdatedAt(Instant.parse("2025-01-10T10:00:00Z"));
+
+        CredentialProcedure cp2 = new CredentialProcedure();
+        cp2.setProcedureId(UUID.randomUUID());
+        cp2.setSubject("Bob");
+        cp2.setCredentialType("TYPE_B");
+        cp2.setCredentialStatus(CredentialStatusEnum.ISSUED);
+        cp2.setOrganizationIdentifier("org-2");
+        cp2.setUpdatedAt(Instant.parse("2025-02-12T09:30:00Z"));
+
+        when(credentialProcedureRepository.findAllOrderByUpdatedDesc())
+                .thenReturn(Flux.fromIterable(List.of(cp2, cp1)));
+
+        // When
+        Mono<CredentialProcedures> mono = credentialProcedureService.getAllProceduresVisibleFor(adminOrg);
+
+        // Then
+        StepVerifier.create(mono)
+                .assertNext(result -> {
+                    List<CredentialProcedures.CredentialProcedure> list = result.credentialProcedures();
+                    assertNotNull(list);
+                    assertTrue(list.size() == 2, "Should contain 2 procedures");
+
+                    ProcedureBasicInfo first = list.get(0).credentialProcedure();
+                    ProcedureBasicInfo second = list.get(1).credentialProcedure();
+
+                    assertEquals(cp2.getProcedureId(), first.procedureId());
+                    assertEquals("Bob", first.subject());
+                    assertEquals("TYPE_B", first.credentialType());
+                    assertEquals(CredentialStatusEnum.ISSUED.name(), first.status());
+                    assertEquals("org-2", first.organizationIdentifier());
+                    assertEquals(cp2.getUpdatedAt(), first.updated());
+
+                    assertEquals(cp1.getProcedureId(), second.procedureId());
+                    assertEquals("Alice", second.subject());
+                    assertEquals("TYPE_A", second.credentialType());
+                    assertEquals(CredentialStatusEnum.DRAFT.name(), second.status());
+                    assertEquals("org-1", second.organizationIdentifier());
+                    assertEquals(cp1.getUpdatedAt(), second.updated());
+                })
+                .verifyComplete();
+
+        verify(credentialProcedureRepository, times(1)).findAllOrderByUpdatedDesc();
+    }
+
+    @Test
+    void getAllProceduresVisibleFor_regularOrg_shouldDelegateToOrgSpecificMethod() {
+        // Given (regular organization)
+        String orgId = "org-123";
+
+        CredentialProcedure cp = new CredentialProcedure();
+        cp.setProcedureId(UUID.randomUUID());
+        cp.setSubject("Carol");
+        cp.setCredentialType("TYPE_C");
+        cp.setCredentialStatus(CredentialStatusEnum.VALID);
+        cp.setOrganizationIdentifier(orgId);
+        cp.setUpdatedAt(Instant.parse("2025-03-01T08:00:00Z"));
+
+        ProcedureBasicInfo pbi = ProcedureBasicInfo.builder()
+                .procedureId(cp.getProcedureId())
+                .subject(cp.getSubject())
+                .credentialType(cp.getCredentialType())
+                .status(cp.getCredentialStatus().name())
+                .organizationIdentifier(cp.getOrganizationIdentifier())
+                .updated(cp.getUpdatedAt())
+                .build();
+
+        CredentialProcedures expected = new CredentialProcedures(
+                List.of(CredentialProcedures.CredentialProcedure.builder()
+                        .credentialProcedure(pbi)
+                        .build())
+        );
+
+
+        CredentialProcedureServiceImpl spyService = spy(credentialProcedureService);
+
+        doReturn(Mono.just(expected))
+                .when(spyService).getAllProceduresBasicInfoByOrganizationId(orgId);
+
+        // When
+        Mono<CredentialProcedures> mono = spyService.getAllProceduresVisibleFor(orgId);
+
+        // Then
+        StepVerifier.create(mono)
+                .expectNextMatches(result ->
+                        result.credentialProcedures().size() == 1
+                                && result.credentialProcedures().get(0).credentialProcedure().procedureId().equals(cp.getProcedureId())
+                                && "Carol".equals(result.credentialProcedures().get(0).credentialProcedure().subject())
+                                && "TYPE_C".equals(result.credentialProcedures().get(0).credentialProcedure().credentialType())
+                                && "VALID".equals(result.credentialProcedures().get(0).credentialProcedure().status())
+                                && orgId.equals(result.credentialProcedures().get(0).credentialProcedure().organizationIdentifier())
+                )
+                .verifyComplete();
+
+        verify(credentialProcedureRepository, never()).findAllOrderByUpdatedDesc();
+        verify(spyService, times(1)).getAllProceduresBasicInfoByOrganizationId(orgId);
+    }
+
+    @Test
+    void getAllProceduresBasicInfoForAllOrganizations_shouldReturnEmptyList_whenRepositoryIsEmpty() {
+        // Given
+        when(credentialProcedureRepository.findAllOrderByUpdatedDesc())
+                .thenReturn(Flux.empty());
+
+        // When
+        Mono<CredentialProcedures> mono = credentialProcedureService.getAllProceduresVisibleFor(IN2_ORGANIZATION_IDENTIFIER);
+
+        // Then
+        StepVerifier.create(mono)
+                .assertNext(result -> {
+                    List<CredentialProcedures.CredentialProcedure> list = result.credentialProcedures();
+                    assertNotNull(list);
+                    assertTrue(list.isEmpty(), "List should be empty");
+                })
+                .verifyComplete();
+
+        verify(credentialProcedureRepository, times(1)).findAllOrderByUpdatedDesc();
+    }
+
+    @Test
+    void getAllProceduresBasicInfoByOrganizationId_shouldReturnMappedList_forOrg() {
+        // Given
+        String orgId = "org-xyz";
+
+        CredentialProcedure cp1 = new CredentialProcedure();
+        cp1.setProcedureId(UUID.randomUUID());
+        cp1.setSubject("Alice");
+        cp1.setCredentialType("TYPE_A");
+        cp1.setCredentialStatus(CredentialStatusEnum.DRAFT);
+        cp1.setOrganizationIdentifier(orgId);
+        cp1.setUpdatedAt(Instant.parse("2025-01-10T10:00:00Z"));
+
+        CredentialProcedure cp2 = new CredentialProcedure();
+        cp2.setProcedureId(UUID.randomUUID());
+        cp2.setSubject("Bob");
+        cp2.setCredentialType("TYPE_B");
+        cp2.setCredentialStatus(CredentialStatusEnum.ISSUED);
+        cp2.setOrganizationIdentifier(orgId);
+        cp2.setUpdatedAt(Instant.parse("2025-02-12T09:30:00Z"));
+
+        when(credentialProcedureRepository.findAllByOrganizationIdentifier(orgId))
+                .thenReturn(Flux.fromIterable(List.of(cp1, cp2)));
+
+        // When
+        Mono<CredentialProcedures> mono = credentialProcedureService.getAllProceduresBasicInfoByOrganizationId(orgId);
+
+        // Then
+        StepVerifier.create(mono)
+                .assertNext(result -> {
+                    List<CredentialProcedures.CredentialProcedure> list = result.credentialProcedures();
+                    assertNotNull(list, "Result list should not be null");
+                    assertTrue(list.size() == 2, "Should contain 2 procedures");
+
+                    // Order is the same as repository emission (no extra sorting in method)
+                    ProcedureBasicInfo first = list.get(0).credentialProcedure();
+                    ProcedureBasicInfo second = list.get(1).credentialProcedure();
+
+                    // First (cp1)
+                    assertEquals(cp1.getProcedureId(), first.procedureId());
+                    assertEquals("Alice", first.subject());
+                    assertEquals("TYPE_A", first.credentialType());
+                    assertEquals(CredentialStatusEnum.DRAFT.name(), first.status());
+                    assertEquals(orgId, first.organizationIdentifier());
+                    assertEquals(cp1.getUpdatedAt(), first.updated());
+
+                    // Second (cp2)
+                    assertEquals(cp2.getProcedureId(), second.procedureId());
+                    assertEquals("Bob", second.subject());
+                    assertEquals("TYPE_B", second.credentialType());
+                    assertEquals(CredentialStatusEnum.ISSUED.name(), second.status());
+                    assertEquals(orgId, second.organizationIdentifier());
+                    assertEquals(cp2.getUpdatedAt(), second.updated());
+                })
+                .verifyComplete();
+
+        verify(credentialProcedureRepository, times(1)).findAllByOrganizationIdentifier(orgId);
+    }
+
+    @Test
+    void getAllProceduresBasicInfoByOrganizationId_shouldReturnEmptyList_whenRepositoryIsEmpty() {
+        // Given
+        String orgId = "org-empty";
+        when(credentialProcedureRepository.findAllByOrganizationIdentifier(orgId))
+                .thenReturn(Flux.empty());
+
+        // When
+        Mono<CredentialProcedures> mono = credentialProcedureService.getAllProceduresBasicInfoByOrganizationId(orgId);
+
+        // Then
+        StepVerifier.create(mono)
+                .assertNext(result -> {
+                    List<CredentialProcedures.CredentialProcedure> list = result.credentialProcedures();
+                    assertNotNull(list, "Result list should not be null");
+                    assertTrue(list.isEmpty(), "List should be empty");
+                })
+                .verifyComplete();
+
+        verify(credentialProcedureRepository, times(1)).findAllByOrganizationIdentifier(orgId);
     }
 }

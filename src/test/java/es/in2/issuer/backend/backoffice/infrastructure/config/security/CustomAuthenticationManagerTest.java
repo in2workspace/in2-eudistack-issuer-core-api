@@ -21,6 +21,9 @@ import reactor.test.StepVerifier;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Base64;
+import java.util.HashMap;
+import java.util.Map;
+import org.springframework.security.oauth2.jwt.Jwt;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -255,4 +258,98 @@ class CustomAuthenticationManagerTest {
                         "Invalid JWT signature".equals(e.getMessage()))
                 .verify();
     }
+
+    @SuppressWarnings("unchecked")
+    private String invokeResolvePrincipal(Jwt jwt) {
+        try {
+            var method = CustomAuthenticationManager.class.getDeclaredMethod("resolvePrincipal", Jwt.class);
+            method.setAccessible(true);
+            return (String) method.invoke(authenticationManager, jwt);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private String invokeExtractMandateeEmail(Jwt jwt) {
+        try {
+            var method = CustomAuthenticationManager.class.getDeclaredMethod("extractMandateeEmail", Jwt.class);
+            method.setAccessible(true);
+            return (String) method.invoke(authenticationManager, jwt);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> invokeAsMap(Object v) {
+        try {
+            var method = CustomAuthenticationManager.class.getDeclaredMethod("asMap", Object.class);
+            method.setAccessible(true);
+            return (Map<String, Object>) method.invoke(authenticationManager, v);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private boolean invokeIsLikelyEmail(String s) {
+        try {
+            var method = CustomAuthenticationManager.class.getDeclaredMethod("isLikelyEmail", String.class);
+            method.setAccessible(true);
+            return (boolean) method.invoke(authenticationManager, s);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Test
+    void extractMandateeEmail_returnsEmailWhenValid() {
+        Map<String,Object> mandatee = Map.of("email","ok@ex.com");
+        Map<String,Object> claims = Map.of(
+                "vc", Map.of("credentialSubject", Map.of("mandate", Map.of("mandatee", mandatee)))
+        );
+        Jwt jwt = buildSpringJwt(claims);
+        String r = invokeExtractMandateeEmail(jwt);
+        assert r.equals("ok@ex.com");
+    }
+
+    @Test
+    void extractMandateeEmail_returnsNullWhenEmailIsNonString() {
+        Map<String,Object> mandatee = Map.of("email", 1234); // no String
+        Map<String,Object> claims = Map.of(
+                "vc", Map.of("credentialSubject", Map.of("mandate", Map.of("mandatee", mandatee)))
+        );
+        Jwt jwt = buildSpringJwt(claims);
+        assert invokeExtractMandateeEmail(jwt) == null;
+    }
+
+    @Test
+    void asMap_copiesOnlyStringKeys_trueBranchCovered() {
+        Map<Object,Object> in = new HashMap<>();
+        in.put("k1", "v1");     // true branch
+        in.put(99, "ignored");  // false branch
+        Map<String,Object> out = invokeAsMap(in);
+        assert out.size() == 1;
+        assert out.get("k1").equals("v1");
+        assert !out.containsKey("99");
+    }
+
+    @Test
+    void isLikelyEmail_edgeCases() {
+        assert !invokeIsLikelyEmail(null);        // s != null → false
+        assert !invokeIsLikelyEmail("noat");      // contains("@") → false
+        assert !invokeIsLikelyEmail("@a.com");    // indexOf('@') > 0 → false
+        assert !invokeIsLikelyEmail("a@@b.com");  // single '@' → false
+        assert  invokeIsLikelyEmail("a@b.com");   // tot true
+    }
+
+    private Jwt buildSpringJwt(Map<String, Object> claims) {
+        return Jwt.withTokenValue("t")
+                .headers(h -> h.put("alg","RS256"))
+                .claims(c -> c.putAll(claims))
+                .issuedAt(Instant.now())
+                .expiresAt(Instant.now().plusSeconds(3600))
+                .build();
+    }
+
 }

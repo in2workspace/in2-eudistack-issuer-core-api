@@ -24,6 +24,7 @@ import java.text.ParseException;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.StreamSupport;
 
@@ -198,9 +199,15 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
         return null;
     }
 
-    @SuppressWarnings("unchecked")
     private Map<String, Object> asMap(Object v) {
-        return (v instanceof Map<?, ?> m) ? (Map<String, Object>) m : Map.of();
+        if (v instanceof Map<?, ?> m) {
+            Map<String, Object> safe = new HashMap<>();
+            m.forEach((key, value) -> {
+                if (key instanceof String s) safe.put(s, value);
+            });
+            return safe;
+        }
+        return Map.of();
     }
 
     private boolean isLikelyEmail(String s) {
