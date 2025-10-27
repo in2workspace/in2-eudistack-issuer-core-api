@@ -3,6 +3,8 @@ ALTER TABLE issuer.credential_procedure
   ADD COLUMN IF NOT EXISTS created_by VARCHAR(320),
   ADD COLUMN IF NOT EXISTS updated_by VARCHAR(320);
 
+-- 2) Since update_at column already existed, we need to  modify it
+-- Convert updated_at from TIMESTAMP to TIMESTAMPTZ assuming previous values are UTC
 DO $$
 BEGIN
   IF EXISTS (
