@@ -7,6 +7,7 @@ import es.in2.issuer.backend.shared.domain.exception.*;
 import es.in2.issuer.backend.shared.domain.model.dto.SignatureRequest;
 import es.in2.issuer.backend.shared.domain.model.dto.SignedData;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.DetailedIssuer;
+import es.in2.issuer.backend.shared.domain.model.entities.CredentialProcedure;
 import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum;
 import es.in2.issuer.backend.shared.domain.service.*;
 import es.in2.issuer.backend.shared.domain.util.HttpUtils;
@@ -37,6 +38,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.TimeoutException;
 import java.util.regex.Matcher;
@@ -531,39 +533,62 @@ public class RemoteSignatureServiceImpl implements RemoteSignatureService {
     }
 
     public Mono<Void> handlePostRecoverError(String procedureId) {
-        Mono<Void> updateOperationMode = credentialProcedureRepository.findByProcedureId(UUID.fromString(procedureId))
-                .flatMap(credentialProcedure -> {
-                    credentialProcedure.setOperationMode(ASYNC);
-                    credentialProcedure.setCredentialStatus(CredentialStatusEnum.PEND_SIGNATURE);
-                    return credentialProcedureRepository.save(credentialProcedure)
-                            .doOnSuccess(result -> log.info("Updated operationMode to Async - Procedure"))
+        log.info("handlePostRecoverError");
+
+        UUID id = UUID.fromString(procedureId);
+        String domain = appConfig.getIssuerFrontendUrl();
+
+        // Fetch once and reuse the same result
+        Mono<CredentialProcedure> cachedProc = credentialProcedureRepository
+                .findByProcedureId(id)
+                .switchIfEmpty(Mono.error(new IllegalArgumentException("No CredentialProcedure for " + procedureId)))
+                .cache();
+
+        // Update operation mode and status
+        Mono<Void> updateOperationMode = cachedProc
+                .flatMap(cp -> {
+                    log.info("organizationIdentifier: {}, updated_at: {}", cp.getOrganizationIdentifier(), cp.getUpdatedAt());
+
+                    cp.setOperationMode(ASYNC);
+                    cp.setCredentialStatus(CredentialStatusEnum.PEND_SIGNATURE);
+                    return credentialProcedureRepository.save(cp)
+                            .doOnSuccess(saved -> log.info("Updated operationMode to Async - Procedure"))
                             .then();
                 });
 
-        Mono<Void> updateDeferredMetadata = deferredCredentialMetadataRepository.findByProcedureId(UUID.fromString(procedureId))
+        // Update deferred metadata
+        Mono<Void> updateDeferredMetadata = deferredCredentialMetadataRepository.findByProcedureId(id)
                 .switchIfEmpty(Mono.fromRunnable(() ->
                         log.error("No deferred metadata found for procedureId: {}", procedureId)
                 ).then(Mono.empty()))
-                .flatMap(credentialProcedure -> {
-                    credentialProcedure.setOperationMode(ASYNC);
-                    return deferredCredentialMetadataRepository.save(credentialProcedure)
-                            .doOnSuccess(result -> log.info("Updated operationMode to Async - Deferred"))
+                .flatMap(deferred -> {
+                    deferred.setOperationMode(ASYNC);
+                    return deferredCredentialMetadataRepository.save(deferred)
+                            .doOnSuccess(saved -> log.info("Updated operationMode to Async - Deferred"))
                             .then();
                 });
 
-        String domain = appConfig.getIssuerFrontendUrl();
-        Mono<Void> sendEmail = credentialProcedureService.getSignerEmailFromDecodedCredentialByProcedureId(procedureId)
-                .flatMap(signerEmail ->
-                        emailService.sendPendingSignatureCredentialNotification(
-                                signerEmail,
-                                "email.pending-credential-notification",
-                                procedureId,
-                                domain
-                        )
-                );
+        // Send email using info from cached entity
+        Mono<Void> sendEmail = cachedProc
+                .flatMap(cp -> {
+                    String org = cp.getOrganizationIdentifier();
+                    Instant updatedAt = cp.getUpdatedAt();
+                    log.info("Preparing email for org {} (updated at {})", org, updatedAt);
+
+                    return credentialProcedureService.getSignerEmailFromDecodedCredentialByProcedureId(procedureId)
+                            .flatMap(signerEmail ->
+                                    emailService.sendPendingSignatureCredentialNotification(
+                                            signerEmail,
+                                            "email.pending-credential-notification",
+                                            procedureId,
+                                            domain
+                                    )
+                            );
+                });
 
         return updateOperationMode
                 .then(updateDeferredMetadata)
                 .then(sendEmail);
     }
+
 }
