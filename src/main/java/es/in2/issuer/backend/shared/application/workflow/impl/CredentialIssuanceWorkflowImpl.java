@@ -116,20 +116,20 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
             }
             case LEAR_CREDENTIAL_MACHINE -> {
                 String email;
-                if(preSubmittedCredentialDataRequest.credentialEmail() == null || preSubmittedCredentialDataRequest.credentialEmail().isBlank()) {
+                if(preSubmittedCredentialDataRequest.email() == null || preSubmittedCredentialDataRequest.email().isBlank()) {
                     email = payload.get(MANDATOR).get(EMAIL).asText();
                     log.debug("No credential owner email found in presubmitted data. Using mandator email: {}", payload.get(MANDATOR).get(EMAIL).asText());
                 } else {
-                    email = preSubmittedCredentialDataRequest.credentialEmail();
+                    email = preSubmittedCredentialDataRequest.email();
                 }
                 String org = payload.get(MANDATOR).get(ORGANIZATION).asText();
                 yield new CredentialOfferEmailNotificationInfo(email, org);
             }
             case LABEL_CREDENTIAL -> {
-                    if(preSubmittedCredentialDataRequest.credentialEmail() == null || preSubmittedCredentialDataRequest.credentialEmail().isBlank()) {
+                    if(preSubmittedCredentialDataRequest.email() == null || preSubmittedCredentialDataRequest.email().isBlank()) {
                         throw new MissingEmailOwnerException("Email owner email is required for gx:LabelCredential schema");
                     }
-                    String email = preSubmittedCredentialDataRequest.credentialEmail();
+                    String email = preSubmittedCredentialDataRequest.email();
                 yield new CredentialOfferEmailNotificationInfo(email, DEFAULT_ORGANIZATION_NAME);
             }
             default -> throw new FormatUnsupportedException(

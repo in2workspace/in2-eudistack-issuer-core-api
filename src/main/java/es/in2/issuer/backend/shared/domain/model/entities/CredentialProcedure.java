@@ -54,7 +54,7 @@ public class CredentialProcedure {
     @Column("signature_mode")
     private String signatureMode;
 
-    @Column("subject_email")
+    @Column("email")
     private String email;
 
     // --- Auditing fields (R2DBC auditing will fill these) ---

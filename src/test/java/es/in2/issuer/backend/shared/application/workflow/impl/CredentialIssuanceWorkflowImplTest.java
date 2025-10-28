@@ -579,7 +579,7 @@ class CredentialIssuanceWorkflowImplTest {
                         .schema(schema)
                         .format(JWT_VC_JSON)
                         .operationMode("S")
-                        .credentialEmail(email) // <- important for the test
+                        .email(email) // <- important for the test
                         .build();
 
         when(verifiableCredentialPolicyAuthorizationService.authorize(token, schema, payload, idToken))
