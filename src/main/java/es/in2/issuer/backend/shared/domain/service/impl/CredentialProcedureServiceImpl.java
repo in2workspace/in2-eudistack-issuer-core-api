@@ -373,8 +373,7 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
     }
 
     @Override
-    public Mono<CredentialOfferEmailNotificationInfo> getCredentialOfferEmailInfoByProcedureId(String
-                                                                                                       procedureId) {
+    public Mono<CredentialOfferEmailNotificationInfo> getCredentialOfferEmailInfoByProcedureId(String procedureId) {
         return credentialProcedureRepository
                 .findByProcedureId(UUID.fromString(procedureId))
                 .flatMap(credentialProcedure ->

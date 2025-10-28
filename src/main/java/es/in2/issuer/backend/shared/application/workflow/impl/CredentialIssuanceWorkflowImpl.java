@@ -11,6 +11,7 @@ import es.in2.issuer.backend.shared.domain.model.entities.DeferredCredentialMeta
 import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum;
 import es.in2.issuer.backend.shared.domain.model.enums.CredentialType;
 import es.in2.issuer.backend.shared.domain.service.*;
+import es.in2.issuer.backend.shared.domain.util.JwtUtils;
 import es.in2.issuer.backend.shared.domain.util.factory.LEARCredentialEmployeeFactory;
 import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
 import es.in2.issuer.backend.shared.infrastructure.config.security.service.VerifiableCredentialPolicyAuthorizationService;
@@ -47,6 +48,7 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
     private final CredentialIssuerMetadataService credentialIssuerMetadataService;
     private final M2MTokenService m2mTokenService;
     private final CredentialDeliveryService credentialDeliveryService;
+    private final JwtUtils jwtUtils;
 
     @Override
     public Mono<Void> execute(String processId, PreSubmittedCredentialDataRequest preSubmittedCredentialDataRequest, String token, String idToken) {
@@ -178,7 +180,8 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                                     nonce,
                                     cr,
                                     proc,
-                                    deferredCredentialMetadata
+                                    deferredCredentialMetadata,
+                                    token
                             )
                     );
                 });
@@ -253,13 +256,37 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
             String nonce,
             CredentialResponse cr,
             CredentialProcedure credentialProcedure,
-            DeferredCredentialMetadata deferred
+            DeferredCredentialMetadata deferred,
+            String token
     ) {
         return switch (operationMode) {
             case ASYNC -> deferredCredentialMetadataService.getProcedureIdByAuthServerNonce(nonce)
-                    .flatMap(credentialProcedureService::getSignerEmailFromDecodedCredentialByProcedureId)
-                    .flatMap(email -> emailService.sendPendingCredentialNotification(email, "email.pending-credential")
-                            .thenReturn(cr));
+                    .flatMap(procId -> {
+                        JwtUtils.TokenEmailAndOrg tokenEmailAndOrg = jwtUtils.extractTokenEmailAndOrg(token);
+
+                        boolean useTokenEmail =
+                                tokenEmailAndOrg != null
+                                        && tokenEmailAndOrg.organizationIdentifier() != null
+                                        && !tokenEmailAndOrg.organizationIdentifier().isBlank()
+                                        && IN2_ORGANIZATION_IDENTIFIER.equals(tokenEmailAndOrg.organizationIdentifier())
+                                        && !tokenEmailAndOrg.organizationIdentifier().equals(credentialProcedure.getOrganizationIdentifier())
+                                        && tokenEmailAndOrg.email() != null
+                                        && !tokenEmailAndOrg.email().isBlank();
+
+                        Mono<String> emailMono = useTokenEmail
+                                ? Mono.fromCallable(() -> {
+                            log.debug("Using token mandator email for pending notification: {}", tokenEmailAndOrg.email());
+                            return tokenEmailAndOrg.email();
+                        })
+                                : credentialProcedureService.getSignerEmailFromDecodedCredentialByProcedureId(procId);
+
+                        // Common send + return
+                        return emailMono.flatMap(email ->
+                                emailService
+                                        .sendPendingCredentialNotification(email, "email.pending-credential")
+                                        .thenReturn(cr)
+                        );
+                    });
             case SYNC -> deferredCredentialMetadataService.getProcedureIdByAuthServerNonce(nonce)
                     .flatMap(id -> credentialProcedureService.getCredentialStatusByProcedureId(id)
                             .flatMap(status -> {
