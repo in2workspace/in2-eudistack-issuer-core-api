@@ -219,10 +219,10 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
                                 .thenReturn(signedVc)
                 )
                 .flatMap(signedVc -> credentialProcedureRepository.findByProcedureId(UUID.fromString(procedureId))
-                        .flatMap(updatedCredentialProcedure -> {
-                            return credentialProcedureRepository.save(updatedCredentialProcedure)
-                                    .thenReturn(updatedCredentialProcedure);
-                        })
+                        .flatMap(updatedCredentialProcedure ->
+                            credentialProcedureRepository.save(updatedCredentialProcedure)
+                                    .thenReturn(updatedCredentialProcedure)
+                        )
                         .flatMap(updatedCredentialProcedure -> {
                             String credentialType = updatedCredentialProcedure.getCredentialType();
                             if (!credentialType.equals(LABEL_CREDENTIAL_TYPE)) {

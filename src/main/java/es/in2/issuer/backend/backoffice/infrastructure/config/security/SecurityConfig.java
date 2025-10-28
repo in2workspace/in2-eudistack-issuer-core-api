@@ -15,7 +15,6 @@ import org.springframework.security.config.annotation.web.reactive.EnableWebFlux
 import org.springframework.security.config.web.server.SecurityWebFiltersOrder;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
@@ -27,7 +26,7 @@ import org.springframework.security.web.server.util.matcher.ServerWebExchangeMat
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
-import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 
 import static es.in2.issuer.backend.shared.domain.util.EndpointsConstants.*;
@@ -101,9 +100,15 @@ public class SecurityConfig {
             return (email != null) ? email : jwt.getSubject();
         }
 
-        @SuppressWarnings("unchecked")
         private static Map<String, Object> asMap(Object v) {
-            return (v instanceof Map<?, ?> m) ? (Map<String, Object>) m : Map.of();
+            if (v instanceof Map<?, ?> m) {
+                Map<String, Object> safe = new HashMap<>();
+                m.forEach((key, value) -> {
+                    if (key instanceof String s) safe.put(s, value);
+                });
+                return safe;
+            }
+            return Map.of();
         }
 
         private static String extractMandateeEmail(Jwt jwt) {
@@ -117,8 +122,11 @@ public class SecurityConfig {
         }
 
         private static boolean isLikelyEmail(String s) {
-            // Minimal sanity check
-            return s != null && s.contains("@") && s.indexOf('@') > 0 && s.indexOf('@') == s.lastIndexOf('@');
+            if (s == null) {
+                return false;
+            }
+            int at = s.indexOf('@');
+            return at > 0 && at == s.lastIndexOf('@');
         }
     }
 

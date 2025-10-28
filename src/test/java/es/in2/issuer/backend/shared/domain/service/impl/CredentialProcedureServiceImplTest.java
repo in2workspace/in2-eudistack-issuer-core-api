@@ -15,6 +15,7 @@ import es.in2.issuer.backend.shared.domain.model.enums.CredentialType;
 import es.in2.issuer.backend.shared.infrastructure.repository.CredentialProcedureRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import static org.junit.jupiter.api.Assertions.*;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -29,7 +30,6 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.hibernate.validator.internal.util.Contracts.assertNotNull;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -612,7 +612,7 @@ class CredentialProcedureServiceImplTest {
                 .assertNext(result -> {
                     List<CredentialProcedures.CredentialProcedure> list = result.credentialProcedures();
                     assertNotNull(list);
-                    assertTrue(list.size() == 2, "Should contain 2 procedures");
+                    assertEquals(2, list.size(), "Should contain 2 procedures");
 
                     ProcedureBasicInfo first = list.get(0).credentialProcedure();
                     ProcedureBasicInfo second = list.get(1).credentialProcedure();
@@ -742,7 +742,7 @@ class CredentialProcedureServiceImplTest {
                 .assertNext(result -> {
                     List<CredentialProcedures.CredentialProcedure> list = result.credentialProcedures();
                     assertNotNull(list, "Result list should not be null");
-                    assertTrue(list.size() == 2, "Should contain 2 procedures");
+                    assertEquals(2, list.size(), "Should contain 2 procedures");
 
                     // Order is the same as repository emission (no extra sorting in method)
                     ProcedureBasicInfo first = list.get(0).credentialProcedure();

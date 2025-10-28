@@ -211,8 +211,10 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
     }
 
     private boolean isLikelyEmail(String s) {
-        return s != null && s.contains("@")
-                && s.indexOf('@') > 0
-                && s.indexOf('@') == s.lastIndexOf('@');
+        if (s == null) {
+            return false;
+        }
+        int at = s.indexOf('@');
+        return at > 0 && at == s.lastIndexOf('@');
     }
 }

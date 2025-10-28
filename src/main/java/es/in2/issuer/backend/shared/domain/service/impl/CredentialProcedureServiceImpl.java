@@ -340,6 +340,11 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
     }
 
     private ProcedureBasicInfo toProcedureBasicInfo(CredentialProcedure cp) throws ParseCredentialJsonException{
+        try {
+            objectMapper.readTree(cp.getCredentialDecoded());
+        } catch (JsonProcessingException e) {
+            throw new ParseCredentialJsonException("Invalid credential JSON");
+        }
 
         return ProcedureBasicInfo.builder()
                 .procedureId(cp.getProcedureId())

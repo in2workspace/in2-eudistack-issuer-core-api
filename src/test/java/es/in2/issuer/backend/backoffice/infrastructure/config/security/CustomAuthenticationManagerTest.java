@@ -8,6 +8,7 @@ import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import static org.junit.jupiter.api.Assertions.*;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.AuthenticationServiceException;
@@ -309,8 +310,10 @@ class CustomAuthenticationManagerTest {
                 "vc", Map.of("credentialSubject", Map.of("mandate", Map.of("mandatee", mandatee)))
         );
         Jwt jwt = buildSpringJwt(claims);
+
         String r = invokeExtractMandateeEmail(jwt);
-        assert r.equals("ok@ex.com");
+
+        assertEquals("ok@ex.com", r);
     }
 
     @Test
@@ -320,7 +323,8 @@ class CustomAuthenticationManagerTest {
                 "vc", Map.of("credentialSubject", Map.of("mandate", Map.of("mandatee", mandatee)))
         );
         Jwt jwt = buildSpringJwt(claims);
-        assert invokeExtractMandateeEmail(jwt) == null;
+
+        assertNull(invokeExtractMandateeEmail(jwt));
     }
 
     @Test
@@ -328,19 +332,21 @@ class CustomAuthenticationManagerTest {
         Map<Object,Object> in = new HashMap<>();
         in.put("k1", "v1");     // true branch
         in.put(99, "ignored");  // false branch
+
         Map<String,Object> out = invokeAsMap(in);
-        assert out.size() == 1;
-        assert out.get("k1").equals("v1");
-        assert !out.containsKey("99");
+
+        assertEquals(1, out.size());
+        assertEquals("v1", out.get("k1"));
+        assertFalse(out.containsKey("99"));
     }
 
     @Test
     void isLikelyEmail_edgeCases() {
-        assert !invokeIsLikelyEmail(null);        // s != null → false
-        assert !invokeIsLikelyEmail("noat");      // contains("@") → false
-        assert !invokeIsLikelyEmail("@a.com");    // indexOf('@') > 0 → false
-        assert !invokeIsLikelyEmail("a@@b.com");  // single '@' → false
-        assert  invokeIsLikelyEmail("a@b.com");   // tot true
+        assertFalse(invokeIsLikelyEmail(null));        // s != null → false
+        assertFalse(invokeIsLikelyEmail("noat"));      // contains("@") → false
+        assertFalse(invokeIsLikelyEmail("@a.com"));    // indexOf('@') > 0 → false
+        assertFalse(invokeIsLikelyEmail("a@@b.com"));  // single '@' → false
+        assertTrue(invokeIsLikelyEmail("a@b.com"));    // all true
     }
 
     private Jwt buildSpringJwt(Map<String, Object> claims) {

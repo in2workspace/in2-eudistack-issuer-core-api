@@ -2,7 +2,6 @@ package es.in2.issuer.backend.shared.domain.model.dto;
 
 import org.junit.jupiter.api.Test;
 
-import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.UUID;
 
