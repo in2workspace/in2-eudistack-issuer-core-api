@@ -84,15 +84,4 @@ public class JwtUtils {
         }
     }
 
-    public boolean isOnBehalf(String tokenEmail, String tokenOrg, String otherOrgId) {
-        return tokenEmail != null
-                && tokenOrg != null
-                && tokenOrg != null
-                && !tokenOrg.isBlank()
-                && IN2_ORGANIZATION_IDENTIFIER.equals(tokenOrg)
-                && !tokenOrg.equals(otherOrgId)
-                && tokenEmail != null
-                && !tokenEmail.isBlank();
-    }
-
 }

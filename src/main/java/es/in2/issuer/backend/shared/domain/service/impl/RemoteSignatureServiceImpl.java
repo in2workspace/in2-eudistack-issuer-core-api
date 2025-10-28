@@ -3,12 +3,10 @@ package es.in2.issuer.backend.shared.domain.service.impl;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import es.in2.issuer.backend.backoffice.infrastructure.config.security.SecurityUtils;
 import es.in2.issuer.backend.shared.domain.exception.*;
 import es.in2.issuer.backend.shared.domain.model.dto.SignatureRequest;
 import es.in2.issuer.backend.shared.domain.model.dto.SignedData;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.DetailedIssuer;
-import es.in2.issuer.backend.shared.domain.model.entities.CredentialProcedure;
 import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum;
 import es.in2.issuer.backend.shared.domain.service.*;
 import es.in2.issuer.backend.shared.domain.util.HttpUtils;
@@ -54,7 +52,6 @@ public class RemoteSignatureServiceImpl implements RemoteSignatureService {
     private final ObjectMapper objectMapper;
     private final HttpUtils httpUtils;
     private final JwtUtils jwtUtils;
-    private final SecurityUtils securityUtils;
     private final RemoteSignatureConfig remoteSignatureConfig;
     private final HashGeneratorService hashGeneratorService;
     private static final String ACCESS_TOKEN_NAME = "access_token";
@@ -534,70 +531,36 @@ public class RemoteSignatureServiceImpl implements RemoteSignatureService {
     }
 
     public Mono<Void> handlePostRecoverError(String procedureId) {
-        UUID pid = UUID.fromString(procedureId);
-
-        // Read once and reuse
-        Mono<CredentialProcedure> cpMono = credentialProcedureRepository
-                .findByProcedureId(pid)
-                .switchIfEmpty(Mono.error(new NoCredentialFoundException("No credential procedure found: " + procedureId)))
-                .cache();
-
-        Mono<Void> updateOperationMode = cpMono
-                .flatMap(cp -> {
-                    cp.setOperationMode(ASYNC);
-                    cp.setCredentialStatus(CredentialStatusEnum.PEND_SIGNATURE);
-                    return credentialProcedureRepository.save(cp)
-                            .doOnSuccess(r -> log.info("Updated operationMode to Async - Procedure"))
+        Mono<Void> updateOperationMode = credentialProcedureRepository.findByProcedureId(UUID.fromString(procedureId))
+                .flatMap(credentialProcedure -> {
+                    credentialProcedure.setOperationMode(ASYNC);
+                    credentialProcedure.setCredentialStatus(CredentialStatusEnum.PEND_SIGNATURE);
+                    return credentialProcedureRepository.save(credentialProcedure)
+                            .doOnSuccess(result -> log.info("Updated operationMode to Async - Procedure"))
                             .then();
                 });
 
-        Mono<Void> updateDeferredMetadata = deferredCredentialMetadataRepository
-                .findByProcedureId(pid)
+        Mono<Void> updateDeferredMetadata = deferredCredentialMetadataRepository.findByProcedureId(UUID.fromString(procedureId))
                 .switchIfEmpty(Mono.fromRunnable(() ->
                         log.error("No deferred metadata found for procedureId: {}", procedureId)
                 ).then(Mono.empty()))
-                .flatMap(dm -> {
-                    dm.setOperationMode(ASYNC);
-                    return deferredCredentialMetadataRepository.save(dm)
-                            .doOnSuccess(r -> log.info("Updated operationMode to Async - Deferred"))
+                .flatMap(credentialProcedure -> {
+                    credentialProcedure.setOperationMode(ASYNC);
+                    return deferredCredentialMetadataRepository.save(credentialProcedure)
+                            .doOnSuccess(result -> log.info("Updated operationMode to Async - Deferred"))
                             .then();
                 });
 
         String domain = appConfig.getIssuerFrontendUrl();
-
-
-        Mono<String> emailMono =
-                Mono.zip(
-                                cpMono,
-                                securityUtils.getCurrentPrincipal().defaultIfEmpty(""),
-                                securityUtils.currentOrgId(objectMapper).defaultIfEmpty("")
+        Mono<Void> sendEmail = credentialProcedureService.getSignerEmailFromDecodedCredentialByProcedureId(procedureId)
+                .flatMap(signerEmail ->
+                        emailService.sendPendingSignatureCredentialNotification(
+                                signerEmail,
+                                "email.pending-credential-notification",
+                                procedureId,
+                                domain
                         )
-        .flatMap(tuple -> {
-            CredentialProcedure cp = tuple.getT1();
-            String principalEmail = tuple.getT2();
-            String orgId = tuple.getT3();
-
-            boolean isOnBehalf = jwtUtils.isOnBehalf(
-                    principalEmail, orgId,
-                    cp.getOrganizationIdentifier()
-            );
-
-            if (isOnBehalf && !principalEmail.isBlank() && orgId.isBlank()) {
-                log.debug("Using token mandatee email for pending notification: {}", principalEmail);
-                return Mono.just(principalEmail);
-            }
-            //TODO refactor this, since the procedure is fetched from DB twice
-            return credentialProcedureService.getSignerEmailFromDecodedCredentialByProcedureId(procedureId);
-        });
-
-        Mono<Void> sendEmail = emailMono.flatMap(email ->
-                emailService.sendPendingSignatureCredentialNotification(
-                        email,
-                        "email.pending-credential-notification",
-                        procedureId,
-                        domain
-                )
-        );
+                );
 
         return updateOperationMode
                 .then(updateDeferredMetadata)

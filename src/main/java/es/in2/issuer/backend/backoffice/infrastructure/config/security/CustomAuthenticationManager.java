@@ -37,7 +37,7 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
     private final ObjectMapper objectMapper;
     private final AppConfig appConfig;
     private final JWTService jwtService;
-    private final JwtPrincipalService jwtPrincipalService;
+    private final JwtPrincipalService jwtPrincipalService; // <-- injected service
 
     @Override
     public Mono<Authentication> authenticate(Authentication authentication) {
