@@ -263,24 +263,18 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
             case ASYNC -> deferredCredentialMetadataService.getProcedureIdByAuthServerNonce(nonce)
                     .flatMap(procId -> {
                         JwtUtils.TokenEmailAndOrg tokenEmailAndOrg = jwtUtils.extractTokenEmailAndOrg(token);
+                        String tokenEmail = tokenEmailAndOrg.email();
+                        String tokenOrgId = tokenEmailAndOrg.organizationIdentifier();
 
-                        boolean useTokenEmail =
-                                tokenEmailAndOrg != null
-                                        && tokenEmailAndOrg.organizationIdentifier() != null
-                                        && !tokenEmailAndOrg.organizationIdentifier().isBlank()
-                                        && IN2_ORGANIZATION_IDENTIFIER.equals(tokenEmailAndOrg.organizationIdentifier())
-                                        && !tokenEmailAndOrg.organizationIdentifier().equals(credentialProcedure.getOrganizationIdentifier())
-                                        && tokenEmailAndOrg.email() != null
-                                        && !tokenEmailAndOrg.email().isBlank();
+                        boolean isOnBehalf = jwtUtils.isOnBehalf(tokenEmail, tokenOrgId, credentialProcedure.getOrganizationIdentifier());
 
-                        Mono<String> emailMono = useTokenEmail
+                        Mono<String> emailMono = isOnBehalf
                                 ? Mono.fromCallable(() -> {
                             log.debug("Using token mandator email for pending notification: {}", tokenEmailAndOrg.email());
                             return tokenEmailAndOrg.email();
                         })
                                 : credentialProcedureService.getSignerEmailFromDecodedCredentialByProcedureId(procId);
 
-                        // Common send + return
                         return emailMono.flatMap(email ->
                                 emailService
                                         .sendPendingCredentialNotification(email, "email.pending-credential")
