@@ -12,6 +12,6 @@ public record CredentialDetails(
         @JsonProperty("operation_mode") String operationMode,
         @JsonProperty("signature_mode") String signatureMode,
         @JsonProperty("credential") JsonNode credential,
-        @JsonProperty("subjectEmail") String subjectEmail
+        @JsonProperty("email") String email
         ) {
 }

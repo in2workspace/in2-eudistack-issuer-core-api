@@ -20,7 +20,7 @@ class CredentialDetailsTest {
         String expectedCredentialStatus = "Valid";
         String expectedCredentialJson = "{\"key\": \"value\"}";
         JsonNode jsonNode = null;
-        String subjectEmail = "email";
+        String email = "email";
         String expectedOperationMode = "operationMode";
         String expectedSignatureMode = "signatureMode";
         try {
@@ -30,7 +30,7 @@ class CredentialDetailsTest {
         }
 
         // Act
-        CredentialDetails credentialDetails = new CredentialDetails(uuid, expectedCredentialStatus, expectedOperationMode, expectedSignatureMode, jsonNode, subjectEmail);
+        CredentialDetails credentialDetails = new CredentialDetails(uuid, expectedCredentialStatus, expectedOperationMode, expectedSignatureMode, jsonNode, email);
 
         // Assert
         assertEquals(uuid, credentialDetails.procedureId());
@@ -66,12 +66,12 @@ class CredentialDetailsTest {
         UUID uuid = UUID.randomUUID();
         String expectedCredentialStatus = "Valid";
         JsonNode jsonNode = objectMapper.readTree("{\"key\": \"value\"}");
-        String subjectEmail = "email";
+        String email = "email";
         String expectedOperationMode = "operationMode";
         String expectedSignatureMode = "signatureMode";
 
-        CredentialDetails credentialDetails = new CredentialDetails(uuid, expectedCredentialStatus, expectedOperationMode, expectedSignatureMode, jsonNode, subjectEmail);
-        CredentialDetails credentialDetails2 = new CredentialDetails(uuid, expectedCredentialStatus, expectedOperationMode, expectedSignatureMode, jsonNode, subjectEmail);
+        CredentialDetails credentialDetails = new CredentialDetails(uuid, expectedCredentialStatus, expectedOperationMode, expectedSignatureMode, jsonNode, email);
+        CredentialDetails credentialDetails2 = new CredentialDetails(uuid, expectedCredentialStatus, expectedOperationMode, expectedSignatureMode, jsonNode, email);
 
         // Assert
         assertEquals(credentialDetails, credentialDetails2);

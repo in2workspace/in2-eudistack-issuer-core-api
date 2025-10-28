@@ -37,7 +37,7 @@ class CredentialOfferWorkflowImplTest {
         // English comments as requested by the user
         String processId = "b731b463-7473-4f97-be7a-658ec0b5dbc9";
         String credentialOfferId = "e0e2c6ab-8fe7-4709-82f0-4a771aaee841";
-        String credentialSubjectEmail = "employee1@example.com";
+        String credentialEmail = "employee1@example.com";
         String txCode = "1234";
 
         Grants grants = Grants.builder()
@@ -57,7 +57,7 @@ class CredentialOfferWorkflowImplTest {
 
         CredentialOfferData credentialOfferData = CredentialOfferData.builder()
                 .credentialOffer(credentialOffer)
-                .credentialSubjectEmail(credentialSubjectEmail)
+                .credentialEmail(credentialEmail)
                 .pin(txCode)
                 .build();
 
@@ -66,7 +66,7 @@ class CredentialOfferWorkflowImplTest {
                 .thenReturn(Mono.just(credentialOfferData));
 
         // IMPORTANT: match the template key used in the implementation ("email.pin-code")
-        when(emailService.sendTxCodeNotification(credentialSubjectEmail, "email.pin-code", txCode))
+        when(emailService.sendTxCodeNotification(credentialEmail, "email.pin-code", txCode))
                 .thenReturn(Mono.empty());
 
         // Act
@@ -80,7 +80,7 @@ class CredentialOfferWorkflowImplTest {
         // Verify interactions happen in the expected order
         InOrder inOrder = inOrder(credentialOfferCacheRepository, emailService);
         inOrder.verify(credentialOfferCacheRepository).findCredentialOfferById(credentialOfferId);
-        inOrder.verify(emailService).sendTxCodeNotification(credentialSubjectEmail, "email.pin-code", txCode);
+        inOrder.verify(emailService).sendTxCodeNotification(credentialEmail, "email.pin-code", txCode);
         inOrder.verifyNoMoreInteractions();
     }
 }

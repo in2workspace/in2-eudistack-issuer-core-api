@@ -122,7 +122,7 @@ class LabelCredentialFactoryTest {
                 .assertNext(request -> {
                     assertEquals("subject-1", request.subject());
                     assertEquals(CredentialType.LABEL_CREDENTIAL, request.credentialType());
-                    assertEquals(email, request.subjectEmail());
+                    assertEquals(email, request.email());
                     assertEquals(operationMode, request.operationMode());
                     assertEquals(orgId, request.organizationIdentifier());
                     assertNotNull(request.validUntil());

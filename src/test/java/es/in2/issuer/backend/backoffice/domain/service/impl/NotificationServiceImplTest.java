@@ -36,7 +36,7 @@ class NotificationServiceImplTest {
     private final String mandateeEmail = "mandatee@example.com";
     private final String organization = "Acme Org";
     private final String transactionCode = "transactionCode123";
-    private final String subjectEmail = "owner@example.com";
+    private final String email = "owner@example.com";
 
     @Mock
     private AppConfig appConfig;
@@ -156,7 +156,7 @@ class NotificationServiceImplTest {
         // arrange
         CredentialProcedure credentialProcedure = mock(CredentialProcedure.class);
         when(credentialProcedure.getCredentialStatus()).thenReturn(PEND_DOWNLOAD);
-        when(credentialProcedure.getSubjectEmail()).thenReturn(subjectEmail);
+        when(credentialProcedure.getEmail()).thenReturn(email);
 
         CredentialOfferEmailNotificationInfo emailInfo = new CredentialOfferEmailNotificationInfo(mandateeEmail, organization);
 
@@ -165,7 +165,7 @@ class NotificationServiceImplTest {
         when(credentialProcedureService.getCredentialOfferEmailInfoByProcedureId(procedureId))
                 .thenReturn(Mono.just(emailInfo));
         when(emailService.sendCredentialSignedNotification(
-                subjectEmail,
+                email,
                 CREDENTIAL_READY,
                 "email.you-can-use-wallet")
         ).thenReturn(Mono.empty());
@@ -178,7 +178,7 @@ class NotificationServiceImplTest {
 
         verify(emailService, times(1))
                 .sendCredentialSignedNotification(
-                        subjectEmail,
+                        email,
                         CREDENTIAL_READY,
                         "email.you-can-use-wallet"
                 );

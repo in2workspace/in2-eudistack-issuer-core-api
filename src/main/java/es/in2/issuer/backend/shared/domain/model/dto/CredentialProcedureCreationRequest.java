@@ -14,7 +14,7 @@ public record CredentialProcedureCreationRequest(
         Timestamp validUntil,
         String operationMode,
         String signatureMode,
-        String subjectEmail
+        String email
         )
 {
 }

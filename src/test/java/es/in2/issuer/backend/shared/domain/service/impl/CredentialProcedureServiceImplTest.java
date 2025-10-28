@@ -366,7 +366,7 @@ class CredentialProcedureServiceImplTest {
         CredentialStatusEnum status = CredentialStatusEnum.ISSUED;
         String operationMode = "remote";
         String signatureMode = "remote";
-        String subjectEmail = "owner@example.com";
+        String email = "owner@example.com";
 
         CredentialProcedure credentialProcedure = new CredentialProcedure();
         credentialProcedure.setProcedureId(expectedProcedureId);
@@ -375,7 +375,7 @@ class CredentialProcedureServiceImplTest {
         credentialProcedure.setOrganizationIdentifier(organizationIdentifier);
         credentialProcedure.setOperationMode(operationMode);
         credentialProcedure.setSignatureMode(signatureMode);
-        credentialProcedure.setSubjectEmail(subjectEmail);
+        credentialProcedure.setEmail(email);
 
         JsonNode credentialNode = new ObjectMapper().readTree(credentialDecoded);
 
@@ -395,7 +395,7 @@ class CredentialProcedureServiceImplTest {
                                 details.credential().equals(credentialNode) &&
                                 operationMode.equals(details.operationMode()) &&
                                 signatureMode.equals(details.signatureMode()) &&
-                                subjectEmail.equals(details.subjectEmail())
+                                email.equals(details.email())
                 )
                 .verifyComplete();
 
@@ -413,7 +413,7 @@ class CredentialProcedureServiceImplTest {
         UUID expectedProcedureId = UUID.fromString(procedureId);
         String operationMode = "remote";
         String signatureMode = "remote";
-        String subjectEmail = "admin-owner@example.com";
+        String email = "admin-owner@example.com";
 
         CredentialProcedure credentialProcedure = new CredentialProcedure();
         credentialProcedure.setProcedureId(expectedProcedureId);
@@ -422,7 +422,7 @@ class CredentialProcedureServiceImplTest {
         credentialProcedure.setOrganizationIdentifier("any-org");
         credentialProcedure.setOperationMode(operationMode);
         credentialProcedure.setSignatureMode(signatureMode);
-        credentialProcedure.setSubjectEmail(subjectEmail);
+        credentialProcedure.setEmail(email);
 
         JsonNode credentialNode = new ObjectMapper().readTree(credentialDecoded);
 
@@ -441,7 +441,7 @@ class CredentialProcedureServiceImplTest {
                                 details.credential().equals(credentialNode) &&
                                 operationMode.equals(details.operationMode()) &&
                                 signatureMode.equals(details.signatureMode()) &&
-                                subjectEmail.equals(details.subjectEmail())
+                                email.equals(details.email())
                 )
                 .verifyComplete();
 
