@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JWSObject;
 import com.nimbusds.jwt.SignedJWT;
+import es.in2.issuer.backend.backoffice.domain.service.JwtPrincipalService;
 import es.in2.issuer.backend.shared.domain.service.JWTService;
 import es.in2.issuer.backend.shared.domain.service.VerifierService;
 import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
@@ -24,7 +25,6 @@ import java.text.ParseException;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.StreamSupport;
 
@@ -37,6 +37,7 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
     private final ObjectMapper objectMapper;
     private final AppConfig appConfig;
     private final JWTService jwtService;
+    private final JwtPrincipalService jwtPrincipalService; // <-- injected service
 
     @Override
     public Mono<Authentication> authenticate(Authentication authentication) {
@@ -96,7 +97,11 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
     private Mono<Authentication> handleVerifierToken(String token) {
         return verifierService.verifyToken(token)
                 .then(parseAndValidateJwt(token, Boolean.TRUE))
-                .map(jwt -> new JwtAuthenticationToken(jwt, Collections.emptyList(), resolvePrincipal(jwt)));
+                .map(jwt -> new JwtAuthenticationToken(
+                        jwt,
+                        Collections.emptyList(),
+                        jwtPrincipalService.resolvePrincipal(jwt)
+                ));
     }
 
     private Mono<Authentication> handleIssuerBackendToken(String token) {
@@ -108,7 +113,11 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
                         return Mono.error(new BadCredentialsException("Invalid JWT signature"));
                     }
                     return parseAndValidateJwt(token, Boolean.FALSE)
-                            .map(jwt -> (Authentication) new JwtAuthenticationToken(jwt, Collections.emptyList(), resolvePrincipal(jwt)));
+                            .map(jwt -> (Authentication) new JwtAuthenticationToken(
+                                    jwt,
+                                    Collections.emptyList(),
+                                    jwtPrincipalService.resolvePrincipal(jwt)
+                            ));
                 })
                 .onErrorMap(ParseException.class, e -> {
                     log.error("❌ Failed to parse JWS", e);
@@ -174,47 +183,5 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
             log.error("❌Credential type required: LEARCredentialMachine.");
             throw new BadCredentialsException("Credential type required: LEARCredentialMachine.");
         }
-    }
-
-    // Principal resolution based on nested email; needed for auditing
-    private String resolvePrincipal(Jwt jwt) {
-        String email = extractMandateeEmail(jwt);
-        if (email != null) {
-            return email;
-        }
-        // Fallback to 'sub'
-        return jwt.getSubject();
-    }
-
-    private String extractMandateeEmail(Jwt jwt) {
-        Map<String, Object> claims = jwt.getClaims();
-        Map<String, Object> vc = asMap(claims.get("vc"));
-        Map<String, Object> cs = asMap(vc.get("credentialSubject"));
-        Map<String, Object> mandate = asMap(cs.get("mandate"));
-        Map<String, Object> mandatee = asMap(mandate.get("mandatee"));
-        Object email = mandatee.get("email");
-        if (email instanceof String s && isLikelyEmail(s)) {
-            return s;
-        }
-        return null;
-    }
-
-    private Map<String, Object> asMap(Object v) {
-        if (v instanceof Map<?, ?> m) {
-            Map<String, Object> safe = new HashMap<>();
-            m.forEach((key, value) -> {
-                if (key instanceof String s) safe.put(s, value);
-            });
-            return safe;
-        }
-        return Map.of();
-    }
-
-    private boolean isLikelyEmail(String s) {
-        if (s == null) {
-            return false;
-        }
-        int at = s.indexOf('@');
-        return at > 0 && at == s.lastIndexOf('@');
     }
 }

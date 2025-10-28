@@ -1,5 +1,6 @@
 package es.in2.issuer.backend.backoffice.infrastructure.config.security;
 
+import es.in2.issuer.backend.backoffice.domain.service.JwtPrincipalService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
@@ -76,58 +77,31 @@ public class SecurityConfig {
         return authenticationWebFilter;
     }
     @Bean
-    public Converter<Jwt, Mono<AbstractAuthenticationToken>> jwtAuthenticationConverter() {
-        return new JwtToAuthConverter();
+    public Converter<Jwt, Mono<AbstractAuthenticationToken>> jwtAuthenticationConverter(
+            JwtPrincipalService jwtPrincipalService
+    ) {
+        return new JwtToAuthConverter(jwtPrincipalService);
     }
 
     // Explicit converter class so Spring can resolve <S, T> generic types.
     static final class JwtToAuthConverter implements Converter<Jwt, Mono<AbstractAuthenticationToken>> {
 
         private final JwtGrantedAuthoritiesConverter authoritiesConverter = new JwtGrantedAuthoritiesConverter();
+        private final JwtPrincipalService jwtPrincipalService;
+
+        JwtToAuthConverter(JwtPrincipalService jwtPrincipalService) {
+            this.jwtPrincipalService = jwtPrincipalService;
+        }
 
         @Override
         public Mono<AbstractAuthenticationToken> convert(Jwt jwt) {
-            // Resolve principal (prefer nested email; fallback to sub)
-            String principal = resolvePrincipal(jwt);
-            // Map authorities from standard converter
+            // Resolve principal (prefer mandatee email; fallback to sub)
+            String principal = jwtPrincipalService.resolvePrincipal(jwt);
             var authorities = authoritiesConverter.convert(jwt);
             return Mono.just(new JwtAuthenticationToken(jwt, authorities, principal));
         }
 
-        private static String resolvePrincipal(Jwt jwt) {
-            // Try vc.credentialSubject.mandate.mandatee.email
-            String email = extractMandateeEmail(jwt);
-            return (email != null) ? email : jwt.getSubject();
-        }
 
-        private static Map<String, Object> asMap(Object v) {
-            if (v instanceof Map<?, ?> m) {
-                Map<String, Object> safe = new HashMap<>();
-                m.forEach((key, value) -> {
-                    if (key instanceof String s) safe.put(s, value);
-                });
-                return safe;
-            }
-            return Map.of();
-        }
-
-        private static String extractMandateeEmail(Jwt jwt) {
-            Map<String, Object> claims = jwt.getClaims();
-            Map<String, Object> vc = asMap(claims.get("vc"));
-            Map<String, Object> cs = asMap(vc.get("credentialSubject"));
-            Map<String, Object> mandate = asMap(cs.get("mandate"));
-            Map<String, Object> mandatee = asMap(mandate.get("mandatee"));
-            Object email = mandatee.get("email");
-            return (email instanceof String s && isLikelyEmail(s)) ? s : null;
-        }
-
-        private static boolean isLikelyEmail(String s) {
-            if (s == null) {
-                return false;
-            }
-            int at = s.indexOf('@');
-            return at > 0 && at == s.lastIndexOf('@');
-        }
     }
 
     @Bean
@@ -176,7 +150,8 @@ public class SecurityConfig {
     public SecurityWebFilterChain backofficeFilterChain(
             ServerHttpSecurity http,
             ProblemAuthenticationEntryPoint entryPoint,
-            ProblemAccessDeniedHandler deniedH) {
+            ProblemAccessDeniedHandler deniedH,
+            Converter<Jwt, Mono<AbstractAuthenticationToken>> jwtAuthenticationConverter) {
 
         log.debug("backofficeFilterChain - inside");
 
@@ -204,7 +179,7 @@ public class SecurityConfig {
                         .authenticationEntryPoint(entryPoint)
                         .jwt(jwt -> jwt
                                 .jwtDecoder(internalJwtDecoder)
-                                .jwtAuthenticationConverter(jwtAuthenticationConverter())
+                                .jwtAuthenticationConverter(jwtAuthenticationConverter)
                         )
                 )
                 .exceptionHandling(e -> e

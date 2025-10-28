@@ -2,19 +2,24 @@ package es.in2.issuer.backend.backoffice.infrastructure.config.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JWSObject;
+import es.in2.issuer.backend.backoffice.domain.service.JwtPrincipalService;
 import es.in2.issuer.backend.shared.domain.service.JWTService;
 import es.in2.issuer.backend.shared.domain.service.VerifierService;
 import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -22,24 +27,14 @@ import reactor.test.StepVerifier;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Base64;
-import java.util.HashMap;
-import java.util.Map;
-import org.springframework.security.oauth2.jwt.Jwt;
-
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class CustomAuthenticationManagerTest {
 
-    @Mock
-    private VerifierService verifierService;
-
-    @Mock
-    private JWTService jwtService;
-
-    @Mock
-    private AppConfig appConfig;
+    @Mock private VerifierService verifierService;
+    @Mock private JWTService jwtService;
+    @Mock private AppConfig appConfig;
+    @Mock private JwtPrincipalService jwtPrincipalService; // <-- new mock
 
     private CustomAuthenticationManager authenticationManager;
 
@@ -49,8 +44,12 @@ class CustomAuthenticationManagerTest {
                 verifierService,
                 new ObjectMapper(),
                 appConfig,
-                jwtService
+                jwtService,
+                jwtPrincipalService
         );
+        lenient().doReturn("principal@example.com")
+                .when(jwtPrincipalService)
+                .resolvePrincipal(any());
     }
 
     private String base64UrlEncode(String str) {
@@ -66,7 +65,6 @@ class CustomAuthenticationManagerTest {
 
     @Test
     void authenticate_withValidVerifierToken_returnsAuthentication() {
-        // Arrange
         String headerJson = "{\"alg\":\"RS256\",\"typ\":\"JWT\"}";
         String payloadJson = "{\"iss\":\"http://verifier.local\",\"iat\":1633036800," +
                 "\"exp\":" + (Instant.now().getEpochSecond() + 3600) + "," +
@@ -78,13 +76,16 @@ class CustomAuthenticationManagerTest {
 
         Authentication authentication = new TestingAuthenticationToken(null, token);
 
-        // Act
         Mono<Authentication> result = authenticationManager.authenticate(authentication);
 
-        // Assert
         StepVerifier.create(result)
-                .expectNextMatches(JwtAuthenticationToken.class::isInstance)
+                .assertNext(auth -> {
+                    assertTrue(auth instanceof JwtAuthenticationToken);
+                    assertEquals("principal@example.com", auth.getName()); // resolved by service
+                })
                 .verifyComplete();
+
+        verify(jwtPrincipalService, atLeastOnce()).resolvePrincipal(any(Jwt.class));
     }
 
     @Test
@@ -143,7 +144,7 @@ class CustomAuthenticationManagerTest {
     void authenticate_withInvalidPayloadDecoding_throwsBadCredentialsException() {
         String headerJson = "{\"alg\":\"RS256\",\"typ\":\"JWT\"}";
         String header = base64UrlEncode(headerJson);
-        String payload = "invalidPayload"; // no és base64url-JSON
+        String payload = "invalidPayload"; // not base64url-JSON
         String token = header + "." + payload + ".signature";
 
         Authentication authentication = new TestingAuthenticationToken(null, token);
@@ -176,8 +177,8 @@ class CustomAuthenticationManagerTest {
                 .expectErrorSatisfies(e -> {
                     assert e instanceof AuthenticationServiceException;
                     AuthenticationServiceException ase = (AuthenticationServiceException) e;
-                    assert "Verification failed".equals(ase.getMessage());
-                    assert ase.getCause() == verifyException;
+                    assertEquals("Verification failed", ase.getMessage());
+                    assertSame(verifyException, ase.getCause());
                 })
                 .verify();
     }
@@ -198,13 +199,18 @@ class CustomAuthenticationManagerTest {
         Mono<Authentication> result = authenticationManager.authenticate(authentication);
 
         StepVerifier.create(result)
-                .expectNextMatches(JwtAuthenticationToken.class::isInstance)
+                .assertNext(auth -> {
+                    assertTrue(auth instanceof JwtAuthenticationToken);
+                    assertEquals("principal@example.com", auth.getName());
+                })
                 .verifyComplete();
+
+        verify(jwtPrincipalService, atLeastOnce()).resolvePrincipal(any(Jwt.class));
     }
 
     @Test
     void authenticate_withKeycloakToken_missingVcClaim_returnsAuthentication() {
-       String headerJson = "{\"alg\":\"RS256\",\"typ\":\"JWT\"}";
+        String headerJson = "{\"alg\":\"RS256\",\"typ\":\"JWT\"}";
         String payloadJson = "{\"iss\":\"http://issuer.local\",\"iat\":1633036800,\"exp\":" +
                 (Instant.now().getEpochSecond() + 3600) + "}";
         String token = buildToken(headerJson, payloadJson);
@@ -217,7 +223,10 @@ class CustomAuthenticationManagerTest {
         Mono<Authentication> result = authenticationManager.authenticate(authentication);
 
         StepVerifier.create(result)
-                .expectNextMatches(JwtAuthenticationToken.class::isInstance)
+                .assertNext(auth -> {
+                    assertTrue(auth instanceof JwtAuthenticationToken);
+                    assertEquals("principal@example.com", auth.getName());
+                })
                 .verifyComplete();
     }
 
@@ -236,7 +245,10 @@ class CustomAuthenticationManagerTest {
         Mono<Authentication> result = authenticationManager.authenticate(authentication);
 
         StepVerifier.create(result)
-                .expectNextMatches(JwtAuthenticationToken.class::isInstance)
+                .assertNext(auth -> {
+                    assertTrue(auth instanceof JwtAuthenticationToken);
+                    assertEquals("principal@example.com", auth.getName());
+                })
                 .verifyComplete();
     }
 
@@ -259,103 +271,4 @@ class CustomAuthenticationManagerTest {
                         "Invalid JWT signature".equals(e.getMessage()))
                 .verify();
     }
-
-    @SuppressWarnings("unchecked")
-    private String invokeResolvePrincipal(Jwt jwt) {
-        try {
-            var method = CustomAuthenticationManager.class.getDeclaredMethod("resolvePrincipal", Jwt.class);
-            method.setAccessible(true);
-            return (String) method.invoke(authenticationManager, jwt);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    @SuppressWarnings("unchecked")
-    private String invokeExtractMandateeEmail(Jwt jwt) {
-        try {
-            var method = CustomAuthenticationManager.class.getDeclaredMethod("extractMandateeEmail", Jwt.class);
-            method.setAccessible(true);
-            return (String) method.invoke(authenticationManager, jwt);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    @SuppressWarnings("unchecked")
-    private Map<String, Object> invokeAsMap(Object v) {
-        try {
-            var method = CustomAuthenticationManager.class.getDeclaredMethod("asMap", Object.class);
-            method.setAccessible(true);
-            return (Map<String, Object>) method.invoke(authenticationManager, v);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    private boolean invokeIsLikelyEmail(String s) {
-        try {
-            var method = CustomAuthenticationManager.class.getDeclaredMethod("isLikelyEmail", String.class);
-            method.setAccessible(true);
-            return (boolean) method.invoke(authenticationManager, s);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    @Test
-    void extractMandateeEmail_returnsEmailWhenValid() {
-        Map<String,Object> mandatee = Map.of("email","ok@ex.com");
-        Map<String,Object> claims = Map.of(
-                "vc", Map.of("credentialSubject", Map.of("mandate", Map.of("mandatee", mandatee)))
-        );
-        Jwt jwt = buildSpringJwt(claims);
-
-        String r = invokeExtractMandateeEmail(jwt);
-
-        assertEquals("ok@ex.com", r);
-    }
-
-    @Test
-    void extractMandateeEmail_returnsNullWhenEmailIsNonString() {
-        Map<String,Object> mandatee = Map.of("email", 1234); // no String
-        Map<String,Object> claims = Map.of(
-                "vc", Map.of("credentialSubject", Map.of("mandate", Map.of("mandatee", mandatee)))
-        );
-        Jwt jwt = buildSpringJwt(claims);
-
-        assertNull(invokeExtractMandateeEmail(jwt));
-    }
-
-    @Test
-    void asMap_copiesOnlyStringKeys_trueBranchCovered() {
-        Map<Object,Object> in = new HashMap<>();
-        in.put("k1", "v1");     // true branch
-        in.put(99, "ignored");  // false branch
-
-        Map<String,Object> out = invokeAsMap(in);
-
-        assertEquals(1, out.size());
-        assertEquals("v1", out.get("k1"));
-        assertFalse(out.containsKey("99"));
-    }
-
-    @Test
-    void isLikelyEmail_edgeCases() {
-        assertFalse(invokeIsLikelyEmail(null));        // s != null → false
-        assertFalse(invokeIsLikelyEmail("noat"));      // contains("@") → false
-        assertFalse(invokeIsLikelyEmail("@a.com"));    // indexOf('@') > 0 → false
-        assertFalse(invokeIsLikelyEmail("a@@b.com"));  // single '@' → false
-        assertTrue(invokeIsLikelyEmail("a@b.com"));    // all true
-    }
-
-    private Jwt buildSpringJwt(Map<String, Object> claims) {
-        return Jwt.withTokenValue("t")
-                .headers(h -> h.put("alg","RS256"))
-                .claims(c -> c.putAll(claims))
-                .issuedAt(Instant.now())
-                .expiresAt(Instant.now().plusSeconds(3600))
-                .build();
-    }
-
 }

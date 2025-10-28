@@ -1,22 +1,23 @@
 package es.in2.issuer.backend.backoffice.infrastructure.config.security;
 
+import es.in2.issuer.backend.backoffice.domain.service.JwtPrincipalService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.core.convert.converter.Converter;
 import org.springframework.security.authentication.ReactiveAuthenticationManager;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.security.web.server.SecurityWebFilterChain;
-import org.springframework.security.web.server.authentication.AuthenticationWebFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
+import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-import java.lang.reflect.Method;
 import java.util.Collections;
 import java.util.Map;
 
@@ -26,23 +27,18 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class SecurityConfigTest {
 
-    @Mock
-    private CustomAuthenticationManager customAuthenticationManager;
-    @Mock
-    private InternalCORSConfig internalCORSConfig;
-    @Mock
-    private PublicCORSConfig publicCORSConfig;
-    @Mock
-    private ReactiveJwtDecoder reactiveJwtDecoder;
-
-    @Mock
-    private ProblemAuthenticationEntryPoint entryPoint;
-
-    @Mock
-    private ProblemAccessDeniedHandler deniedHandler;
+    @Mock private CustomAuthenticationManager customAuthenticationManager;
+    @Mock private InternalCORSConfig internalCORSConfig;
+    @Mock private PublicCORSConfig publicCORSConfig;
+    @Mock private ReactiveJwtDecoder reactiveJwtDecoder; // injected into SecurityConfig as internalJwtDecoder
+    @Mock private ProblemAuthenticationEntryPoint entryPoint;
+    @Mock private ProblemAccessDeniedHandler deniedHandler;
 
     @InjectMocks
     private SecurityConfig securityConfig;
+
+    // New mocks for the converter wiring
+    @Mock private JwtPrincipalService jwtPrincipalService;
 
     @Test
     void primaryAuthenticationManager_shouldReturnCustomManager() {
@@ -53,7 +49,7 @@ class SecurityConfigTest {
 
     @Test
     void customAuthenticationWebFilter_shouldCreateFilterWithBearerConverter() {
-        AuthenticationWebFilter filter = securityConfig.customAuthenticationWebFilter(entryPoint);
+        var filter = securityConfig.customAuthenticationWebFilter(entryPoint);
         assertNotNull(filter);
     }
 
@@ -73,13 +69,18 @@ class SecurityConfigTest {
         when(internalCORSConfig.defaultCorsConfigurationSource()).thenReturn(minimalCorsSource());
         ServerHttpSecurity http = ServerHttpSecurity.http();
 
-        SecurityWebFilterChain chain = securityConfig.backofficeFilterChain(http, entryPoint, deniedHandler);
+        // Provide a converter bean (could be the real one or a mock). Here we use the real bean factory method:
+        Converter<Jwt, Mono<org.springframework.security.authentication.AbstractAuthenticationToken>> converterBean =
+                securityConfig.jwtAuthenticationConverter(jwtPrincipalService);
+
+        SecurityWebFilterChain chain = securityConfig.backofficeFilterChain(
+                http, entryPoint, deniedHandler, converterBean);
 
         assertNotNull(chain);
         verify(internalCORSConfig, times(1)).defaultCorsConfigurationSource();
     }
 
-    // --- Tests for JwtToAuthConverter and its private helpers ---
+    // --- Tests for JwtToAuthConverter delegating to JwtPrincipalService ---
 
     private Jwt buildJwt(Map<String, Object> claims, String subject) {
         Jwt.Builder builder = Jwt.withTokenValue("token")
@@ -90,7 +91,8 @@ class SecurityConfigTest {
     }
 
     @Test
-    void convert_shouldUseMandateeEmailAsPrincipal_whenPresent() {
+    void convert_shouldUsePrincipalFromService_whenPresent() {
+        // Given a JWT with an email claim (the service decides the principal)
         Map<String, Object> claims = Map.of(
                 "vc", Map.of(
                         "credentialSubject", Map.of(
@@ -101,7 +103,12 @@ class SecurityConfigTest {
                 )
         );
         Jwt jwt = buildJwt(claims, "ignored-sub");
-        SecurityConfig.JwtToAuthConverter converter = new SecurityConfig.JwtToAuthConverter();
+
+        // Mock service to return the email as principal
+        when(jwtPrincipalService.resolvePrincipal(jwt)).thenReturn("bob@example.com");
+
+        SecurityConfig.JwtToAuthConverter converter =
+                new SecurityConfig.JwtToAuthConverter(jwtPrincipalService);
 
         StepVerifier.create(converter.convert(jwt))
                 .assertNext(auth -> {
@@ -109,107 +116,25 @@ class SecurityConfigTest {
                     assertEquals("bob@example.com", auth.getName());
                 })
                 .verifyComplete();
+
+        verify(jwtPrincipalService).resolvePrincipal(jwt);
     }
 
     @Test
-    void convert_shouldFallbackToSubject_whenNoMandateeEmail() {
+    void convert_shouldFallbackPrincipalFromService_whenNoEmail() {
         Jwt jwt = buildJwt(Collections.emptyMap(), "subject-123");
-        SecurityConfig.JwtToAuthConverter converter = new SecurityConfig.JwtToAuthConverter();
+
+        // Service decides fallback to subject
+        when(jwtPrincipalService.resolvePrincipal(jwt)).thenReturn("subject-123");
+
+        SecurityConfig.JwtToAuthConverter converter =
+                new SecurityConfig.JwtToAuthConverter(jwtPrincipalService);
 
         StepVerifier.create(converter.convert(jwt))
                 .assertNext(auth -> assertEquals("subject-123", auth.getName()))
                 .verifyComplete();
-    }
 
-    @Test
-    void resolvePrincipal_prefersEmail_overSubject() throws Exception {
-        Method m = SecurityConfig.JwtToAuthConverter.class
-                .getDeclaredMethod("resolvePrincipal", Jwt.class);
-        m.setAccessible(true);
-
-        Map<String, Object> claims = Map.of(
-                "vc", Map.of(
-                        "credentialSubject", Map.of(
-                                "mandate", Map.of(
-                                        "mandatee", Map.of("email", "alice@example.com")
-                                )
-                        )
-                )
-        );
-        Jwt jwt = buildJwt(claims, "subject-xyz");
-        String principal = (String) m.invoke(null, jwt);
-        assertEquals("alice@example.com", principal);
-    }
-
-    @Test
-    void resolvePrincipal_fallsBackToSubject_whenEmailMissing() throws Exception {
-        Method m = SecurityConfig.JwtToAuthConverter.class
-                .getDeclaredMethod("resolvePrincipal", Jwt.class);
-        m.setAccessible(true);
-
-        Jwt jwt = buildJwt(Collections.emptyMap(), "fallback-subject");
-        String principal = (String) m.invoke(null, jwt);
-        assertEquals("fallback-subject", principal);
-    }
-
-    @Test
-    void asMap_returnsMap_whenInputIsMap_elseEmptyMap() throws Exception {
-        Method m = SecurityConfig.JwtToAuthConverter.class
-                .getDeclaredMethod("asMap", Object.class);
-        m.setAccessible(true);
-
-        Map<String, Object> input = Map.of("key", "value");
-        @SuppressWarnings("unchecked")
-        Map<String, Object> result1 = (Map<String, Object>) m.invoke(null, input);
-        assertEquals(input, result1);
-
-        @SuppressWarnings("unchecked")
-        Map<String, Object> result2 = (Map<String, Object>) m.invoke(null, "not a map");
-        assertTrue(result2.isEmpty());
-    }
-
-    @Test
-    void extractMandateeEmail_returnsEmail_whenValidNestedClaim() throws Exception {
-        Method m = SecurityConfig.JwtToAuthConverter.class
-                .getDeclaredMethod("extractMandateeEmail", Jwt.class);
-        m.setAccessible(true);
-
-        Map<String, Object> claims = Map.of(
-                "vc", Map.of(
-                        "credentialSubject", Map.of(
-                                "mandate", Map.of(
-                                        "mandatee", Map.of("email", "charlie@example.com")
-                                )
-                        )
-                )
-        );
-        Jwt jwt = buildJwt(claims, "subject-ignored");
-        String email = (String) m.invoke(null, jwt);
-        assertEquals("charlie@example.com", email);
-    }
-
-    @Test
-    void extractMandateeEmail_returnsNull_whenInvalidOrMissing() throws Exception {
-        Method m = SecurityConfig.JwtToAuthConverter.class
-                .getDeclaredMethod("extractMandateeEmail", Jwt.class);
-        m.setAccessible(true);
-
-        // Invalid email (no '@')
-        Map<String, Object> invalid = Map.of(
-                "vc", Map.of(
-                        "credentialSubject", Map.of(
-                                "mandate", Map.of(
-                                        "mandatee", Map.of("email", "not-an-email")
-                                )
-                        )
-                )
-        );
-        Jwt jwtInvalid = buildJwt(invalid, "ignored");
-        assertNull(m.invoke(null, jwtInvalid));
-
-        // Missing structure
-        Jwt jwtMissing = buildJwt(Collections.emptyMap(), "ignored");
-        assertNull(m.invoke(null, jwtMissing));
+        verify(jwtPrincipalService).resolvePrincipal(jwt);
     }
 
     // --- helper ---
