@@ -40,7 +40,7 @@ public class JwtPrincipalServiceImpl implements JwtPrincipalService {
         return Map.of();
     }
 
-    /** Minimal email sanity check; replace with stricter validation if needed. */
+    /** Minimal email sanity check; consider replacing with strictier validation. */
     private boolean isLikelyEmail(String s) {
         if (s == null) return false;
         int at = s.indexOf('@');
