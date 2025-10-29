@@ -174,6 +174,7 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                             );
 
                     return vcMono.flatMap(cr ->
+                            //todo hey
                             handleOperationMode(
                                     proc.getOperationMode(),
                                     processId,
@@ -262,25 +263,15 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
         return switch (operationMode) {
             case ASYNC -> deferredCredentialMetadataService.getProcedureIdByAuthServerNonce(nonce)
                     .flatMap(procId -> {
-                        JwtUtils.TokenEmailAndOrg tokenEmailAndOrg = jwtUtils.extractTokenEmailAndOrg(token);
+                        log.info("handleOperationMode: SYNC");
 
-                        boolean useTokenEmail =
-                                tokenEmailAndOrg != null
-                                        && tokenEmailAndOrg.organizationIdentifier() != null
-                                        && !tokenEmailAndOrg.organizationIdentifier().isBlank()
-                                        && IN2_ORGANIZATION_IDENTIFIER.equals(tokenEmailAndOrg.organizationIdentifier())
-                                        && !tokenEmailAndOrg.organizationIdentifier().equals(credentialProcedure.getOrganizationIdentifier())
-                                        && tokenEmailAndOrg.email() != null
-                                        && !tokenEmailAndOrg.email().isBlank();
+                        Mono<String> emailMono = Mono.fromCallable(() -> {
+                            log.debug("Using procedure email for pending notification: {}", credentialProcedure.getEmail());
+                            return credentialProcedure.getEmail();
+                        });
+//                       : credentialProcedureService.getSignerEmailFromDecodedCredentialByProcedureId(procId);
 
-                        Mono<String> emailMono = useTokenEmail
-                                ? Mono.fromCallable(() -> {
-                            log.debug("Using token mandator email for pending notification: {}", tokenEmailAndOrg.email());
-                            return tokenEmailAndOrg.email();
-                        })
-                                : credentialProcedureService.getSignerEmailFromDecodedCredentialByProcedureId(procId);
 
-                        // Common send + return
                         return emailMono.flatMap(email ->
                                 emailService
                                         .sendPendingCredentialNotification(email, "email.pending-credential")
