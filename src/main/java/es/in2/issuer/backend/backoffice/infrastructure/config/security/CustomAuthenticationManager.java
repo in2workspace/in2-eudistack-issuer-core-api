@@ -68,6 +68,9 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
 
     /** Prefer principal from a valid ID Token; fallback to accessJwt-derived principal. */
     private Mono<String> resolveNamePossiblyFromIdToken(Jwt accessJwt, @Nullable String idToken) {
+        log.info("resolveNamePossiblyFromIdToken");
+        log.info("idToken: {}", idToken);
+
         if (idToken == null) {
             return Mono.just(jwtPrincipalService.resolvePrincipal(accessJwt));
         }

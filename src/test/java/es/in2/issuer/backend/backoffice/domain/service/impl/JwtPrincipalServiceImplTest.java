@@ -1,6 +1,7 @@
 package es.in2.issuer.backend.backoffice.domain.service.impl;
 
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import es.in2.issuer.backend.backoffice.domain.service.JwtPrincipalService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -18,7 +19,7 @@ class JwtPrincipalServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        service = new JwtPrincipalServiceImpl();
+        service = new JwtPrincipalServiceImpl(new ObjectMapper());
     }
 
     // --- helpers ---
