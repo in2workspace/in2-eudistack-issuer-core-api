@@ -88,6 +88,8 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
             String authServerNonce,
             String token,
             String email) {
+        log.info("buildCredentialResponse");
+        log.info("email: {}", email);
         return deferredCredentialMetadataService
                 .getProcedureIdByAuthServerNonce(authServerNonce)
                 .flatMap(procedureId -> credentialProcedureService
@@ -146,6 +148,8 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
             String authServerNonce,
             String token,
             String email) {
+        log.info("updateDeferredAndMap");
+        log.info("email: {}", email);
 
         return deferredCredentialMetadataService
                 .updateDeferredCredentialMetadataByAuthServerNonce(authServerNonce)

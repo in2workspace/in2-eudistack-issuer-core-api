@@ -159,7 +159,7 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                     CredentialProcedure proc = tuple4.getT3();
                     String email = proc.getUpdatedBy();
                     CredentialIssuerMetadata md = tuple4.getT4();
-                    log.info("email: {}", email);
+                    log.info("email (from udpatedBy): {}", email);
 
                     Mono<String> subjectDidMono = determineSubjectDid(proc, md, credentialRequest, token);
 

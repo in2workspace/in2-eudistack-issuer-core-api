@@ -574,6 +574,8 @@ public class RemoteSignatureServiceImpl implements RemoteSignatureService {
         Mono<Void> sendEmail = cachedProc.flatMap(cp -> {
             String org = cp.getOrganizationIdentifier();
             String updatedBy = cp.getUpdatedBy();
+            log.info("updatedBy: {}", updatedBy);
+            log.info("email in sendEmail: {}", email);
 
             String targetEmail = (email != null && !email.isBlank()) ? email : updatedBy;
             log.info("Preparing email for org {} (to {})", org, targetEmail);
