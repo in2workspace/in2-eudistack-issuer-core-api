@@ -97,7 +97,8 @@ public class LabelCredentialFactory {
             String procedureId) {
         LabelCredential labelCredential = mapStringToLabelCredential(decodedCredentialString);
 
-        return issuerFactory.createSimpleIssuer(procedureId, LABEL_CREDENTIAL)
+        return issuerFactory.createSimpleIssuer(procedureId, LABEL_CREDENTIAL, null)
+               //todo hey
                 .flatMap(issuer -> bindIssuer(labelCredential, issuer))
                 .flatMap(this::convertLabelCredentialInToString);
     }

@@ -115,7 +115,7 @@ class RemoteSignatureServiceImplTest {
                 .thenReturn(Mono.just(signedResponse));
         when(objectMapper.readValue(signedResponse, SignedData.class)).thenReturn(signedData);
 
-        Mono<SignedData> result = remoteSignatureService.sign(signatureRequest, token, "550e8400-e29b-41d4-a716-446655440000");
+        Mono<SignedData> result = remoteSignatureService.sign(signatureRequest, token, "550e8400-e29b-41d4-a716-446655440000", "email");
 
         StepVerifier.create(result)
                 .expectNext(signedData)
@@ -135,9 +135,9 @@ class RemoteSignatureServiceImplTest {
         when(remoteSignatureConfig.getRemoteSignatureSignPath()).thenReturn("/sign");
         when(httpUtils.postRequest(eq("http://remote-signature-dss.com/api/v1/sign"), any(), anyString()))
                 .thenReturn(Mono.error(new RemoteSignatureException("Error serializing signature request")));
-        doReturn(Mono.empty()).when(remoteSignatureService).handlePostRecoverError(anyString());
+        doReturn(Mono.empty()).when(remoteSignatureService).handlePostRecoverError(anyString(), null);
 
-        Mono<SignedData> result = remoteSignatureService.sign(signatureRequest, token, "550e8400-e29b-41d4-a716-446655440000");
+        Mono<SignedData> result = remoteSignatureService.sign(signatureRequest, token, "550e8400-e29b-41d4-a716-446655440000", "email");
 
         StepVerifier.create(result)
                 .expectErrorSatisfies(throwable -> {
@@ -384,7 +384,7 @@ class RemoteSignatureServiceImplTest {
         when(objectMapper.readValue("{\"SAD\": \"1234\"}", Map.class)).thenReturn(Map.of("SAD", "1234"));
 
         // Act
-        Mono<SignedData> result = remoteSignatureService.sign(signatureRequest, token, procedureId);
+        Mono<SignedData> result = remoteSignatureService.sign(signatureRequest, token, procedureId, "email");
 
         // Assert
         StepVerifier.create(result)
@@ -452,7 +452,7 @@ class RemoteSignatureServiceImplTest {
         when(jwtUtils.decodePayload(any())).thenReturn("\"vc\": {\"id\": \"fa7376e0-fcc1-44c0-a91e-001a1301c06e\"}");
 
         // Act
-        Mono<SignedData> result = remoteSignatureService.sign(signatureRequest, token, procedureId);
+        Mono<SignedData> result = remoteSignatureService.sign(signatureRequest, token, procedureId, "email");
 
         // Assert
         StepVerifier.create(result)
@@ -518,7 +518,7 @@ class RemoteSignatureServiceImplTest {
         when(emailService.sendPendingSignatureCredentialNotification(anyString(), anyString(), eq(procedureUUID.toString()), eq("http://issuer-ui.com")))
                 .thenReturn(Mono.empty());
         // Act
-        Mono<SignedData> result = remoteSignatureService.sign(signatureRequest, token, procedureId);
+        Mono<SignedData> result = remoteSignatureService.sign(signatureRequest, token, procedureId, "email");
 
         // Assert
         StepVerifier.create(result)

@@ -1,6 +1,7 @@
 package es.in2.issuer.backend.backoffice.infrastructure.controller;
 
 import es.in2.issuer.backend.shared.application.workflow.CredentialSignerWorkflow;
+import es.in2.issuer.backend.shared.domain.service.AccessTokenService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
@@ -16,13 +17,14 @@ import reactor.core.publisher.Mono;
 public class SignUnsignedCredentialController {
 
     private final CredentialSignerWorkflow credentialSignerWorkflow;
+    private final AccessTokenService accessTokenService;
 
     @PostMapping(value = "/{procedure_id}", produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
     public Mono<Void> signUnsignedCredential(
             @RequestHeader(HttpHeaders.AUTHORIZATION) String authorizationHeader,
             @PathVariable("procedure_id") String procedureId) {
-
-        return credentialSignerWorkflow.retrySignUnsignedCredential(authorizationHeader, procedureId);
+        return accessTokenService.getMandateeEmail(authorizationHeader)
+                .flatMap(email -> credentialSignerWorkflow.retrySignUnsignedCredential(authorizationHeader, procedureId, email));
     }
 }

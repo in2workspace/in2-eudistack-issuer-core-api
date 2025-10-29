@@ -22,7 +22,7 @@ class SignUnsignedCredentialControllerTest {
 
     @BeforeEach
     void setup() {
-        SignUnsignedCredentialController controller = new SignUnsignedCredentialController(credentialSignerWorkflow);
+        SignUnsignedCredentialController controller = new SignUnsignedCredentialController(credentialSignerWorkflow, null);
         webTestClient = WebTestClient.bindToController(controller).build();
     }
 
@@ -32,7 +32,7 @@ class SignUnsignedCredentialControllerTest {
         String authorizationHeader = "Bearer token";
         String procedureId = "d290f1ee-6c54-4b01-90e6-d701748f0851";
 
-        when(credentialSignerWorkflow.retrySignUnsignedCredential(authorizationHeader, procedureId))
+        when(credentialSignerWorkflow.retrySignUnsignedCredential(authorizationHeader, procedureId, null))
                 .thenReturn(Mono.empty());
 
         // when + then
@@ -43,7 +43,7 @@ class SignUnsignedCredentialControllerTest {
                 .expectStatus().isCreated(); // 201 segons @ResponseStatus(HttpStatus.CREATED)
 
         verify(credentialSignerWorkflow, times(1))
-                .retrySignUnsignedCredential(authorizationHeader, procedureId);
+                .retrySignUnsignedCredential(authorizationHeader, procedureId, null);
         verifyNoMoreInteractions(credentialSignerWorkflow);
     }
 
@@ -53,7 +53,7 @@ class SignUnsignedCredentialControllerTest {
         String authorizationHeader = "Bearer token";
         String procedureId = "d290f1ee-6c54-4b01-90e6-d701748f0851";
 
-        when(credentialSignerWorkflow.retrySignUnsignedCredential(authorizationHeader, procedureId))
+        when(credentialSignerWorkflow.retrySignUnsignedCredential(authorizationHeader, procedureId, null))
                 .thenReturn(Mono.error(new RuntimeException("Simulated error")));
 
         // when + then
@@ -64,7 +64,7 @@ class SignUnsignedCredentialControllerTest {
                 .expectStatus().is5xxServerError();
 
         verify(credentialSignerWorkflow, times(1))
-                .retrySignUnsignedCredential(authorizationHeader, procedureId);
+                .retrySignUnsignedCredential(authorizationHeader, procedureId, null);
         verifyNoMoreInteractions(credentialSignerWorkflow);
     }
 }

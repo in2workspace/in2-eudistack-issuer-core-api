@@ -1,5 +1,6 @@
 package es.in2.issuer.backend.shared.domain.service.impl;
 
+import brave.internal.Nullable;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -16,6 +17,7 @@ import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
 import es.in2.issuer.backend.shared.infrastructure.config.RemoteSignatureConfig;
 import es.in2.issuer.backend.shared.infrastructure.repository.CredentialProcedureRepository;
 import es.in2.issuer.backend.shared.infrastructure.repository.DeferredCredentialMetadataRepository;
+import jakarta.validation.constraints.Null;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
@@ -75,7 +77,7 @@ public class RemoteSignatureServiceImpl implements RemoteSignatureService {
 
     @Override
     //TODO Cuando se implementen los "settings" del issuer, se debe pasar el clientId, secret, etc. como parámetros en lugar de var entorno
-    public Mono<SignedData> sign(SignatureRequest signatureRequest, String token, String procedureId) {
+    public Mono<SignedData> sign(SignatureRequest signatureRequest, String token, String procedureId, String email) {
         clientId = remoteSignatureConfig.getRemoteSignatureClientId();
         clientSecret = remoteSignatureConfig.getRemoteSignatureClientSecret();
         return Mono.defer(() -> executeSigningFlow(signatureRequest, token)
@@ -96,7 +98,7 @@ public class RemoteSignatureServiceImpl implements RemoteSignatureService {
                 .onErrorResume(throwable -> {
                     log.error("Error after 3 retries, switching to ASYNC mode.");
                     log.error("Error Time: {}", new Date());
-                    return handlePostRecoverError(procedureId)
+                    return handlePostRecoverError(procedureId, email)
                             .then(Mono.error(new RemoteSignatureException("Signature Failed, changed to ASYNC mode", throwable)));
                 }));
     }
@@ -532,9 +534,9 @@ public class RemoteSignatureServiceImpl implements RemoteSignatureService {
         }
     }
 
-    public Mono<Void> handlePostRecoverError(String procedureId) {
+    public Mono<Void> handlePostRecoverError(String procedureId, @Nullable String email) {
         log.info("handlePostRecoverError");
-
+        log.info("Received email");
         UUID id = UUID.fromString(procedureId);
         String domain = appConfig.getIssuerFrontendUrl();
 
@@ -547,7 +549,7 @@ public class RemoteSignatureServiceImpl implements RemoteSignatureService {
         // Update operation mode and status
         Mono<Void> updateOperationMode = cachedProc
                 .flatMap(cp -> {
-                    log.info("organizationIdentifier: {}, updated_at: {}", cp.getOrganizationIdentifier(), cp.getUpdatedAt());
+                    log.info("organizationIdentifier: {}, updated_by: {}", cp.getOrganizationIdentifier(), cp.getUpdatedBy());
 
                     cp.setOperationMode(ASYNC);
                     cp.setCredentialStatus(CredentialStatusEnum.PEND_SIGNATURE);
@@ -568,23 +570,21 @@ public class RemoteSignatureServiceImpl implements RemoteSignatureService {
                             .then();
                 });
 
-        // Send email using info from cached entity
-        Mono<Void> sendEmail = cachedProc
-                .flatMap(cp -> {
-                    String org = cp.getOrganizationIdentifier();
-                    Instant updatedAt = cp.getUpdatedAt();
-                    log.info("Preparing email for org {} (updated at {})", org, updatedAt);
+        // Send email using provided email or fallback to updatedBy value
+        Mono<Void> sendEmail = cachedProc.flatMap(cp -> {
+            String org = cp.getOrganizationIdentifier();
+            String updatedBy = cp.getUpdatedBy();
 
-                    return credentialProcedureService.getSignerEmailFromDecodedCredentialByProcedureId(procedureId)
-                            .flatMap(signerEmail ->
-                                    emailService.sendPendingSignatureCredentialNotification(
-                                            signerEmail,
-                                            "email.pending-credential-notification",
-                                            procedureId,
-                                            domain
-                                    )
-                            );
-                });
+            String targetEmail = (email != null && !email.isBlank()) ? email : updatedBy;
+            log.info("Preparing email for org {} (to {})", org, targetEmail);
+
+            return emailService.sendPendingSignatureCredentialNotification(
+                    targetEmail,
+                    "email.pending-credential-notification",
+                    procedureId,
+                    domain
+            );
+        });
 
         return updateOperationMode
                 .then(updateDeferredMetadata)

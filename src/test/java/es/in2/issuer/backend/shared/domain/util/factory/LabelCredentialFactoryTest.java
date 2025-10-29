@@ -71,7 +71,7 @@ class LabelCredentialFactoryTest {
 
         when(issuerFactory.createSimpleIssuer(
                 "procedure-123",
-                "gx:LabelCredential"))
+                "gx:LabelCredential", null))
                 .thenReturn(Mono.just(SimpleIssuer.builder().id("issuer-id").build()));
 
 

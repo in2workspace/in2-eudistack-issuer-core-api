@@ -67,7 +67,7 @@ class IssuerFactoryTest {
     void createDetailedIssuer_Remote_CredentialsMismatch_CompletesSilently() {
         when(remoteSignatureConfig.getRemoteSignatureType()).thenReturn(SIGNATURE_REMOTE_TYPE_CLOUD);
         when(remoteSignatureServiceImpl.validateCredentials()).thenReturn(Mono.just(false));
-        when(remoteSignatureServiceImpl.handlePostRecoverError(procedureId)).thenReturn(Mono.empty());
+        when(remoteSignatureServiceImpl.handlePostRecoverError(procedureId, null)).thenReturn(Mono.empty());
 
         StepVerifier.create(
                         issuerFactory.createDetailedIssuer(procedureId, learType)
@@ -76,7 +76,7 @@ class IssuerFactoryTest {
                 .verify();
 
         verify(remoteSignatureServiceImpl).validateCredentials();
-        verify(remoteSignatureServiceImpl).handlePostRecoverError(procedureId);
+        verify(remoteSignatureServiceImpl).handlePostRecoverError(procedureId, null);
     }
 
 //    todo test @Test
@@ -130,7 +130,7 @@ class IssuerFactoryTest {
     void createDetailedIssuerRemote_UnsupportedCredentialType_EmitsError() {
         when(remoteSignatureConfig.getRemoteSignatureType()).thenReturn(SIGNATURE_REMOTE_TYPE_CLOUD);
         when(remoteSignatureServiceImpl.validateCredentials()).thenReturn(Mono.just(true));
-        when(remoteSignatureServiceImpl.handlePostRecoverError(procedureId)).thenReturn(Mono.empty());
+        when(remoteSignatureServiceImpl.handlePostRecoverError(procedureId, null)).thenReturn(Mono.empty());
 
         StepVerifier.create(
                         issuerFactory.createDetailedIssuer(procedureId, "UNKNOWN_TYPE")
@@ -148,13 +148,13 @@ class IssuerFactoryTest {
                 .thenReturn(Mono.error(new IOException("timeout3")))
                 .thenReturn(Mono.error(new IOException("timeout4")));
         when(remoteSignatureServiceImpl.isRecoverableError(any())).thenReturn(true);
-        when(remoteSignatureServiceImpl.handlePostRecoverError(procedureId)).thenReturn(Mono.empty());
+        when(remoteSignatureServiceImpl.handlePostRecoverError(procedureId, null)).thenReturn(Mono.empty());
 
         StepVerifier.create(issuerFactory.createDetailedIssuer(procedureId, learType))
                 .verifyComplete();
 
         verify(remoteSignatureServiceImpl, times(4)).validateCredentials();
-        verify(remoteSignatureServiceImpl).handlePostRecoverError(procedureId);
+        verify(remoteSignatureServiceImpl).handlePostRecoverError(procedureId, null);
     }
 
     @Test
@@ -164,13 +164,13 @@ class IssuerFactoryTest {
                 .thenReturn(Mono.error(new IOException("timeout1")));
         when(remoteSignatureServiceImpl.isRecoverableError(any())).thenReturn(true);
         RuntimeException postEx = new RuntimeException("post-recover failed");
-        when(remoteSignatureServiceImpl.handlePostRecoverError(procedureId))
+        when(remoteSignatureServiceImpl.handlePostRecoverError(procedureId, null))
                 .thenReturn(Mono.error(postEx));
 
         StepVerifier.create(issuerFactory.createDetailedIssuer(procedureId, learType))
                 .expectErrorMatches(ex -> ex == postEx)
                 .verify();
 
-        verify(remoteSignatureServiceImpl).handlePostRecoverError(procedureId);
+        verify(remoteSignatureServiceImpl).handlePostRecoverError(procedureId, null);
     }
 }
