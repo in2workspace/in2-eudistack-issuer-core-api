@@ -135,10 +135,11 @@ public class LEARCredentialMachineFactory {
 
     public Mono<String> mapCredentialAndBindIssuerInToTheCredential(
             String decodedCredentialString,
-            String procedureId) {
+            String procedureId,
+            String email) {
         LEARCredentialMachine learCredentialMachine = mapStringToLEARCredentialMachine(decodedCredentialString);
 
-        return issuerFactory.createDetailedIssuer(procedureId, LEAR_CREDENTIAL_MACHINE)
+        return issuerFactory.createDetailedIssuer(procedureId, LEAR_CREDENTIAL_MACHINE, email)
                 .flatMap(issuer -> bindIssuer(learCredentialMachine, issuer))
                 .flatMap(this::convertLEARCredentialMachineInToString);
     }

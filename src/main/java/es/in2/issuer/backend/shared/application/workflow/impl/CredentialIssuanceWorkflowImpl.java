@@ -157,6 +157,7 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                     String nonce = tuple4.getT1();
                     DeferredCredentialMetadata deferredCredentialMetadata = tuple4.getT2();
                     CredentialProcedure proc = tuple4.getT3();
+                    String email = proc.getEmail();
                     CredentialIssuerMetadata md = tuple4.getT4();
 
                     Mono<String> subjectDidMono = determineSubjectDid(proc, md, credentialRequest, token);
@@ -164,12 +165,12 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                     Mono<CredentialResponse> vcMono = subjectDidMono
                             .flatMap(did ->
                                         verifiableCredentialService.buildCredentialResponse(
-                                                processId, did, nonce, token
+                                                processId, did, nonce, token, email
                                         )
                             )
                             .switchIfEmpty(
                                     verifiableCredentialService.buildCredentialResponse(
-                                            processId, null, nonce, token
+                                            processId, null, nonce, token, email
                                     )
                             );
 

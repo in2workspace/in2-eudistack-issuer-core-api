@@ -86,7 +86,8 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
             String processId,
             String subjectDid,
             String authServerNonce,
-            String token) {
+            String token,
+            String email) {
         return deferredCredentialMetadataService
                 .getProcedureIdByAuthServerNonce(authServerNonce)
                 .flatMap(procedureId -> credentialProcedureService
@@ -108,7 +109,8 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
                                             credentialType,
                                             boundCred,
                                             authServerNonce,
-                                            token
+                                            token,
+                                            email
                                     ));
                         })
                 );
@@ -142,7 +144,8 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
             String credentialType,
             String boundCredential,
             String authServerNonce,
-            String token) {
+            String token,
+            String email) {
 
         return deferredCredentialMetadataService
                 .updateDeferredCredentialMetadataByAuthServerNonce(authServerNonce)
@@ -154,7 +157,8 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
                                         boundCredential,
                                         credentialType,
                                         format,
-                                        authServerNonce
+                                        authServerNonce,
+                                        email
                                 )
                                 .then(credentialProcedureService.getOperationModeByProcedureId(procedureId))
                                 .flatMap(mode -> buildCredentialResponseBasedOnOperationMode(

@@ -451,8 +451,8 @@ class VerifiableCredentialServiceImplTest {
 
         when(deferredCredentialMetadataService.updateDeferredCredentialMetadataByAuthServerNonce(authServerNonce))
                 .thenReturn(Mono.just(transactionId));
-
-        when(credentialFactory.mapCredentialBindIssuerAndUpdateDB(processId, procedureId, bindCredential, credentialType, format, authServerNonce)).thenReturn(Mono.empty());
+        //todo
+        when(credentialFactory.mapCredentialBindIssuerAndUpdateDB(processId, procedureId, bindCredential, credentialType, format, authServerNonce, "")).thenReturn(Mono.empty());
 
         when(credentialProcedureService.getOperationModeByProcedureId(procedureId))
                 .thenReturn(Mono.just("S"));
@@ -464,7 +464,7 @@ class VerifiableCredentialServiceImplTest {
                 .thenReturn(Mono.just(format));
 
         Mono<CredentialResponse> result = verifiableCredentialServiceImpl.buildCredentialResponse(
-                processId, subjectDid, authServerNonce, token);
+                processId, subjectDid, authServerNonce, token, "");
 
         StepVerifier.create(result)
                 .expectNextMatches(response ->

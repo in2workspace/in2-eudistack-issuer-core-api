@@ -47,9 +47,9 @@ public class LEARCredentialEmployeeFactory {
                 .flatMap(this::convertLEARCredentialEmployeeInToString);
     }
 
-    public Mono<String> mapCredentialAndBindIssuerInToTheCredential(String decodedCredentialString, String procedureId) {
+    public Mono<String> mapCredentialAndBindIssuerInToTheCredential(String decodedCredentialString, String procedureId, String email) {
         LEARCredentialEmployee decodedCredential = mapStringToLEARCredentialEmployee(decodedCredentialString);
-        return bindIssuerToLearCredentialEmployee(decodedCredential, procedureId)
+        return bindIssuerToLearCredentialEmployee(decodedCredential, procedureId, email)
                 .flatMap(this::convertLEARCredentialEmployeeInToString);
     }
 
@@ -235,9 +235,9 @@ public class LEARCredentialEmployeeFactory {
         );
     }
 
-    private Mono<LEARCredentialEmployee> bindIssuerToLearCredentialEmployee(LEARCredentialEmployee decodedCredential, String procedureId) {
+    private Mono<LEARCredentialEmployee> bindIssuerToLearCredentialEmployee(LEARCredentialEmployee decodedCredential, String procedureId, String email) {
         log.debug("🔐: bindIssuerToLearCredentialEmployee");
-        return issuerFactory.createDetailedIssuer(procedureId, LEAR_CREDENTIAL_EMPLOYEE)
+        return issuerFactory.createDetailedIssuer(procedureId, LEAR_CREDENTIAL_EMPLOYEE, email)
                 .map(issuer -> LEARCredentialEmployee.builder()
                         .context(decodedCredential.context())
                         .id(decodedCredential.id())

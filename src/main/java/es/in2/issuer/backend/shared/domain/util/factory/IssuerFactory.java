@@ -30,14 +30,14 @@ public class IssuerFactory {
     private final DefaultSignerConfig    defaultSignerConfig;
     private final RemoteSignatureServiceImpl remoteSignatureServiceImpl;
 
-    public Mono<DetailedIssuer> createDetailedIssuer(String procedureId, String credentialType) {
+    public Mono<DetailedIssuer> createDetailedIssuer(String procedureId, String credentialType, String email) {
         log.debug("🔐: createDetailedIssuer");
         return isServerMode()
                 ? Mono.just(buildLocalDetailedIssuer())
-                : createRemoteDetailedIssuer(procedureId, credentialType, null);
+                : createRemoteDetailedIssuer(procedureId, credentialType, email);
     }
 
-    public Mono<SimpleIssuer> createSimpleIssuer(String procedureId, String credentialType, @Nullable String email) {
+    public Mono<SimpleIssuer> createSimpleIssuer(String procedureId, String credentialType, String email) {
         log.debug("🔐: createSimpleIssuer");
         return isServerMode()
                 ? Mono.just(buildLocalSimpleIssuer())

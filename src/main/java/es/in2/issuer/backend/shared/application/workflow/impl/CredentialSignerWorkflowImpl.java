@@ -208,7 +208,7 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
                                         });
 
                         case LEAR_CREDENTIAL_EMPLOYEE_CREDENTIAL_TYPE ->
-                                learCredentialEmployeeFactory.mapCredentialAndBindIssuerInToTheCredential(credentialProcedure.getCredentialDecoded(), procedureId)
+                                learCredentialEmployeeFactory.mapCredentialAndBindIssuerInToTheCredential(credentialProcedure.getCredentialDecoded(), procedureId, email)
                                         .flatMap(bindCredential -> {
                                             log.info("ProcessID: {} - Credential mapped and bind to the issuer: {}", procedureId, bindCredential);
                                             log.info("Procedure.updatedBy: {}", credentialProcedure.getUpdatedBy());

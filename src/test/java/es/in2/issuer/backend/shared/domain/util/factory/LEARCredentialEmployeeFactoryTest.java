@@ -136,7 +136,7 @@ class LEARCredentialEmployeeFactoryTest {
                 .thenReturn(learCredentialEmployee);
 
         DetailedIssuer mockIssuer = mock(DetailedIssuer.class);
-        when(issuerFactory.createDetailedIssuer(procedureId, Constants.LEAR_CREDENTIAL_EMPLOYEE))
+        when(issuerFactory.createDetailedIssuer(procedureId, Constants.LEAR_CREDENTIAL_EMPLOYEE, ""))
                 .thenReturn(Mono.just(mockIssuer));
 
         when(objectMapper.writeValueAsString(any(LEARCredentialEmployee.class)))
@@ -144,7 +144,7 @@ class LEARCredentialEmployeeFactoryTest {
 
         // Act & Assert
         StepVerifier.create(
-                        learCredentialEmployeeFactory.mapCredentialAndBindIssuerInToTheCredential(credentialString, procedureId)
+                        learCredentialEmployeeFactory.mapCredentialAndBindIssuerInToTheCredential(credentialString, procedureId, "")
                 )
                 .expectNext(expectedString)
                 .verifyComplete();
@@ -164,12 +164,12 @@ class LEARCredentialEmployeeFactoryTest {
         when(objectMapper.readValue(credentialString, LEARCredentialEmployee.class))
                 .thenReturn(learCredentialEmployee);
 
-        when(issuerFactory.createDetailedIssuer(procedureId, Constants.LEAR_CREDENTIAL_EMPLOYEE))
+        when(issuerFactory.createDetailedIssuer(procedureId, Constants.LEAR_CREDENTIAL_EMPLOYEE, ""))
                 .thenReturn(Mono.empty());
 
         // Act & Assert
         StepVerifier.create(
-                        learCredentialEmployeeFactory.mapCredentialAndBindIssuerInToTheCredential(credentialString, procedureId)
+                        learCredentialEmployeeFactory.mapCredentialAndBindIssuerInToTheCredential(credentialString, procedureId, "")
                 )
                 .expectComplete()
                 .verify();
@@ -188,14 +188,14 @@ class LEARCredentialEmployeeFactoryTest {
                 .thenReturn(learCredentialEmployee);
 
         DetailedIssuer fakeIssuer = mock(DetailedIssuer.class);
-        when(issuerFactory.createDetailedIssuer(procedureId, Constants.LEAR_CREDENTIAL_EMPLOYEE))
+        when(issuerFactory.createDetailedIssuer(procedureId, Constants.LEAR_CREDENTIAL_EMPLOYEE, ""))
                 .thenReturn(Mono.just(fakeIssuer));
 
         when(objectMapper.writeValueAsString(any(LEARCredentialEmployee.class)))
                 .thenReturn(expectedString);
 
         StepVerifier.create(
-                        learCredentialEmployeeFactory.mapCredentialAndBindIssuerInToTheCredential(credentialString, procedureId)
+                        learCredentialEmployeeFactory.mapCredentialAndBindIssuerInToTheCredential(credentialString, procedureId, "")
                 )
                 .expectNext(expectedString)
                 .verifyComplete();
@@ -211,11 +211,11 @@ class LEARCredentialEmployeeFactoryTest {
         when(objectMapper.readValue(credentialString, LEARCredentialEmployee.class))
                 .thenReturn(learCredentialEmployee);
 
-        when(issuerFactory.createDetailedIssuer(procedureId, Constants.LEAR_CREDENTIAL_EMPLOYEE))
+        when(issuerFactory.createDetailedIssuer(procedureId, Constants.LEAR_CREDENTIAL_EMPLOYEE, ""))
                 .thenReturn(Mono.empty());
 
         StepVerifier.create(
-                        learCredentialEmployeeFactory.mapCredentialAndBindIssuerInToTheCredential(credentialString, procedureId)
+                        learCredentialEmployeeFactory.mapCredentialAndBindIssuerInToTheCredential(credentialString, procedureId, "")
                 )
                 .expectComplete()
                 .verify();
@@ -232,11 +232,11 @@ class LEARCredentialEmployeeFactoryTest {
                 .thenReturn(learCredentialEmployee);
 
         RuntimeException postRecoveryEx = new RuntimeException("Error in post-recovery handling");
-        when(issuerFactory.createDetailedIssuer(procedureId, Constants.LEAR_CREDENTIAL_EMPLOYEE))
+        when(issuerFactory.createDetailedIssuer(procedureId, Constants.LEAR_CREDENTIAL_EMPLOYEE, ""))
                 .thenReturn(Mono.error(postRecoveryEx));
 
         StepVerifier.create(
-                        learCredentialEmployeeFactory.mapCredentialAndBindIssuerInToTheCredential(credentialString, procedureId)
+                        learCredentialEmployeeFactory.mapCredentialAndBindIssuerInToTheCredential(credentialString, procedureId, "")
                 )
                 .expectErrorSatisfies(ex -> {
                     assertSame(postRecoveryEx, ex);

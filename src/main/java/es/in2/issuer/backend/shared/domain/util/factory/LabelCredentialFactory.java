@@ -94,11 +94,11 @@ public class LabelCredentialFactory {
 
     public Mono<String> mapCredentialAndBindIssuerInToTheCredential(
             String decodedCredentialString,
-            String procedureId) {
+            String procedureId,
+            String email) {
         LabelCredential labelCredential = mapStringToLabelCredential(decodedCredentialString);
 
-        return issuerFactory.createSimpleIssuer(procedureId, LABEL_CREDENTIAL, null)
-               //todo hey
+        return issuerFactory.createSimpleIssuer(procedureId, LABEL_CREDENTIAL, email)
                 .flatMap(issuer -> bindIssuer(labelCredential, issuer))
                 .flatMap(this::convertLabelCredentialInToString);
     }

@@ -70,7 +70,7 @@ class IssuerFactoryTest {
         when(remoteSignatureServiceImpl.handlePostRecoverError(procedureId, null)).thenReturn(Mono.empty());
 
         StepVerifier.create(
-                        issuerFactory.createDetailedIssuer(procedureId, learType)
+                        issuerFactory.createDetailedIssuer(procedureId, learType, "")
                 )
                 .expectComplete()
                 .verify();
@@ -133,7 +133,7 @@ class IssuerFactoryTest {
         when(remoteSignatureServiceImpl.handlePostRecoverError(procedureId, null)).thenReturn(Mono.empty());
 
         StepVerifier.create(
-                        issuerFactory.createDetailedIssuer(procedureId, "UNKNOWN_TYPE")
+                        issuerFactory.createDetailedIssuer(procedureId, "UNKNOWN_TYPE" , "")
                 )
                 .expectComplete()
                 .verify();
@@ -150,7 +150,7 @@ class IssuerFactoryTest {
         when(remoteSignatureServiceImpl.isRecoverableError(any())).thenReturn(true);
         when(remoteSignatureServiceImpl.handlePostRecoverError(procedureId, null)).thenReturn(Mono.empty());
 
-        StepVerifier.create(issuerFactory.createDetailedIssuer(procedureId, learType))
+        StepVerifier.create(issuerFactory.createDetailedIssuer(procedureId, learType, ""))
                 .verifyComplete();
 
         verify(remoteSignatureServiceImpl, times(4)).validateCredentials();
@@ -167,7 +167,7 @@ class IssuerFactoryTest {
         when(remoteSignatureServiceImpl.handlePostRecoverError(procedureId, null))
                 .thenReturn(Mono.error(postEx));
 
-        StepVerifier.create(issuerFactory.createDetailedIssuer(procedureId, learType))
+        StepVerifier.create(issuerFactory.createDetailedIssuer(procedureId, learType, ""))
                 .expectErrorMatches(ex -> ex == postEx)
                 .verify();
 
