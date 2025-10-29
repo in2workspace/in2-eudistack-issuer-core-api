@@ -62,17 +62,9 @@ public class SecurityConfig {
                         OID4VCI_CREDENTIAL_PATH,
                         OID4VCI_DEFERRED_CREDENTIAL_PATH)
         );
+
         // Configure the Bearer token authentication converter
-        ServerBearerTokenAuthenticationConverter bearerConverter = new ServerBearerTokenAuthenticationConverter() {
-            @Override
-            public Mono<Authentication> convert(ServerWebExchange exchange) {
-                log.debug("CustomAuthenticationWebFilter triggered -> [{} {}]",
-                        exchange.getRequest().getMethod(),
-                        exchange.getRequest().getPath());
-                return super.convert(exchange);
-            }
-        };
-        authenticationWebFilter.setServerAuthenticationConverter(bearerConverter);
+        authenticationWebFilter.setServerAuthenticationConverter(new DualTokenServerAuthenticationConverter());
         authenticationWebFilter.setAuthenticationFailureHandler(new ServerAuthenticationEntryPointFailureHandler(entryPoint));
         return authenticationWebFilter;
     }

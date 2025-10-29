@@ -1,5 +1,6 @@
 package es.in2.issuer.backend.backoffice.infrastructure.config.security;
 
+import brave.internal.Nullable;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JWSObject;
@@ -42,13 +43,43 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
     @Override
     public Mono<Authentication> authenticate(Authentication authentication) {
         log.debug("🔐 CustomAuthenticationManager - authenticate - start");
-        final String token = String.valueOf(authentication.getCredentials());
+        final boolean isDual = authentication instanceof DualTokenAuthentication;
+        final String accessToken = isDual
+                ? ((DualTokenAuthentication) authentication).getAccessToken()
+                : String.valueOf(authentication.getCredentials());
+        final String maybeIdToken = isDual
+                ? ((DualTokenAuthentication) authentication).getIdToken()
+                : null;
 
-        return extractIssuer(token)
-                .flatMap(issuer -> routeByIssuer(issuer, token))
+        return extractIssuer(accessToken)
+                .flatMap(issuer -> routeByIssuer(issuer, accessToken))
+                .flatMap(accessJwt -> resolveNamePossiblyFromIdToken(accessJwt, maybeIdToken)
+                        .map(principalName -> (Authentication) new JwtAuthenticationToken(
+                                accessJwt,
+                                Collections.emptyList(),
+                                principalName
+                        )))
                 .onErrorMap(e -> (e instanceof AuthenticationException)
                         ? e
                         : new AuthenticationServiceException(e.getMessage(), e));
+    }
+
+    /** Prefer principal from a valid ID Token; fallback to accessJwt-derived principal. */
+    private Mono<String> resolveNamePossiblyFromIdToken(Jwt accessJwt, @Nullable String idToken) {
+        if (idToken == null) {
+            return Mono.just(jwtPrincipalService.resolvePrincipal(accessJwt));
+        }
+        return parseAndValidateJwt(idToken, false)
+                .map(validIdJwt -> {
+                    String fromId = jwtPrincipalService.resolvePrincipal(validIdJwt);
+                    return (fromId != null && !fromId.isBlank())
+                            ? fromId
+                            : jwtPrincipalService.resolvePrincipal(accessJwt);
+                })
+                .onErrorResume(ex -> {
+                    log.warn("⚠️ ID Token present but invalid. Falling back to Access Token principal. Reason: {}", ex.getMessage());
+                    return Mono.just(jwtPrincipalService.resolvePrincipal(accessJwt));
+                });
     }
 
     private Mono<String> extractIssuer(String token) {
@@ -81,7 +112,7 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
                 });
     }
 
-    private Mono<Authentication> routeByIssuer(String issuer, String token) {
+    private Mono<Jwt> routeByIssuer(String issuer, String token) {
         if (issuer.equals(appConfig.getVerifierUrl())) {
             log.debug("✅ Token from Verifier - {}", appConfig.getVerifierUrl());
             return handleVerifierToken(token);
@@ -94,17 +125,18 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
         return Mono.error(new BadCredentialsException("Unknown token issuer: " + issuer));
     }
 
-    private Mono<Authentication> handleVerifierToken(String token) {
+    private Mono<Jwt> handleVerifierToken(String token) {
         return verifierService.verifyToken(token)
-                .then(parseAndValidateJwt(token, Boolean.TRUE))
-                .map(jwt -> new JwtAuthenticationToken(
-                        jwt,
-                        Collections.emptyList(),
-                        jwtPrincipalService.resolvePrincipal(jwt)
-                ));
+                .then(parseAndValidateJwt(token, Boolean.TRUE));
+        //todo remove?
+//                .map(jwt -> new JwtAuthenticationToken(
+//                        jwt,
+//                        Collections.emptyList(),
+//                        jwtPrincipalService.resolvePrincipal(jwt)
+//                );
     }
 
-    private Mono<Authentication> handleIssuerBackendToken(String token) {
+    private Mono<Jwt> handleIssuerBackendToken(String token) {
         return Mono.fromCallable(() -> JWSObject.parse(token))
                 .flatMap(jwtService::validateJwtSignatureReactive)
                 .flatMap(isValid -> {
@@ -112,12 +144,13 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
                         log.error("❌ Invalid JWT signature");
                         return Mono.error(new BadCredentialsException("Invalid JWT signature"));
                     }
-                    return parseAndValidateJwt(token, Boolean.FALSE)
-                            .map(jwt -> (Authentication) new JwtAuthenticationToken(
-                                    jwt,
-                                    Collections.emptyList(),
-                                    jwtPrincipalService.resolvePrincipal(jwt)
-                            ));
+                    return parseAndValidateJwt(token, Boolean.FALSE);
+                    //todo remove?
+//                            .map(jwt -> (Authentication) new JwtAuthenticationToken(
+//                                    jwt,
+//                                    Collections.emptyList(),
+//                                    jwtPrincipalService.resolvePrincipal(jwt)
+//                            ));
                 })
                 .onErrorMap(ParseException.class, e -> {
                     log.error("❌ Failed to parse JWS", e);
