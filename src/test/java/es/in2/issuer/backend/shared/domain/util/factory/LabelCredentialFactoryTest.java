@@ -78,7 +78,7 @@ class LabelCredentialFactoryTest {
         when(objectMapper.writeValueAsString(any(LabelCredential.class)))
                 .thenReturn("{\"mocked\": true}");
 
-        Mono<String> result = labelCredentialFactory.mapCredentialAndBindIssuerInToTheCredential(credentialJson, procedureId);
+        Mono<String> result = labelCredentialFactory.mapCredentialAndBindIssuerInToTheCredential(credentialJson, procedureId, "");
 
         StepVerifier.create(result)
                 .expectNext("{\"mocked\": true}")

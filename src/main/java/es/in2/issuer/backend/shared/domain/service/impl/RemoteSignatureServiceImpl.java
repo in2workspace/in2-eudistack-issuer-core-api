@@ -534,9 +534,9 @@ public class RemoteSignatureServiceImpl implements RemoteSignatureService {
         }
     }
 
-    public Mono<Void> handlePostRecoverError(String procedureId, @Nullable String email) {
+    public Mono<Void> handlePostRecoverError(String procedureId, String email) {
         log.info("handlePostRecoverError");
-        log.info("Received email");
+        log.info("Received email: {}", email);
         UUID id = UUID.fromString(procedureId);
         String domain = appConfig.getIssuerFrontendUrl();
 
