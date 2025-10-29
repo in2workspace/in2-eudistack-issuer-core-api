@@ -50,6 +50,8 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
         final String maybeIdToken = isDual
                 ? ((DualTokenAuthentication) authentication).getIdToken()
                 : null;
+        log.info("accessToken: {}", accessToken);
+        log.info("maybeIdToken: {}", maybeIdToken);
 
         return extractIssuer(accessToken)
                 .flatMap(issuer -> routeByIssuer(issuer, accessToken))
