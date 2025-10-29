@@ -13,7 +13,8 @@ public class JwtPrincipalServiceImpl implements JwtPrincipalService {
 
     @Override
     public String resolvePrincipal(Jwt jwt) {
-        return extractMandateeEmail(jwt).orElse(jwt.getSubject());
+        //todo
+        return extractMandateeEmail(jwt).orElse("r.mir.min@gmail.com");
     }
 
     @Override
