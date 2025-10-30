@@ -9,8 +9,7 @@ import static es.in2.issuer.backend.backoffice.domain.util.Constants.SYS_ADMIN;
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.VC;
 import static es.in2.issuer.backend.shared.domain.util.Constants.LABEL_CREDENTIAL;
 import static es.in2.issuer.backend.shared.domain.util.Constants.LEAR_CREDENTIAL_EMPLOYEE;
-import static es.in2.issuer.backend.shared.domain.util.Utils.extractMandatorLearCredentialEmployee;
-import static es.in2.issuer.backend.shared.domain.util.Utils.extractPowers;
+import static es.in2.issuer.backend.shared.domain.util.Utils.*;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -85,6 +84,8 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
             .flatMap(signedJWT -> {
                 String vcClaim = jwtService.getClaimFromPayload(signedJWT.getPayload(), VC);
                 return mapVcToLEARCredential(vcClaim, schema)
+                        //aquí la LEARCredential que es passa és la de l'accessToken
+                        //però amb el switch es fa que
                     .flatMap(learCredential -> {
                         log.info("learCred after mapVcToLEARCredential: {}", learCredential);
                         return switch (schema) {
@@ -210,14 +211,32 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
         return Mono.error(new InsufficientPermissionException("Unauthorized: LEARCredentialMachine does not meet any issuance policies."));
     }
 
-    private boolean isSignerIssuancePolicyValid(LEARCredential learCredential) {
-        return isLearCredentialEmployeeMandatorOrganizationIdentifierAllowedSigner(extractMandatorLearCredentialEmployee(learCredential)) &&
-                hasLearCredentialOnboardingExecutePower(extractPowers(learCredential));
+    // Reads mandator's organizationIdentifier for both Employee and Machine credentials
+    private String resolveMandatorOrgIdentifier(LEARCredential cred) {
+        // Prefer checking by declared "type" to keep it aligned with your existing logic
+        if (cred.type() != null && cred.type().contains(LEAR_CREDENTIAL_MACHINE)) {
+            // Machine mandator type: LEARCredentialMachine.CredentialSubject.Mandate.Mandator
+            var m = extractMandatorLearCredentialMachine(cred);
+            return (m != null) ? m.organizationIdentifier() : null;
+        } else {
+            // Employee mandator type: es.in2.issuer.backend.shared.domain.model.dto.credential.lear.Mandator
+            var m = extractMandatorLearCredentialEmployee(cred);
+            return (m != null) ? m.organizationIdentifier() : null;
+        }
     }
 
+    // --- signer policy (compatible amb els dos tipus) ---
+// Checks if signer is IN2 and has Onboarding/Execute power
+    private boolean isSignerIssuancePolicyValid(LEARCredential learCredential) {
+        final String orgId = resolveMandatorOrgIdentifier(learCredential);
+        return IN2_ORGANIZATION_IDENTIFIER.equals(orgId)
+                && hasLearCredentialOnboardingExecutePower(extractPowers(learCredential));
+    }
+
+    // For machine we reutilize the same logic (no casts)
     private boolean isSignerIssuancePolicyValidLEARCredentialMachine(LEARCredential learCredential) {
-        return isLearCredentialEmployeeMandatorOrganizationIdentifierAllowedSignerLEARCredentialMachine(extractMandatorLearCredentialEmployee(learCredential)) &&
-                hasLearCredentialOnboardingExecutePower(extractPowers(learCredential));
+        // Same rule: IN2 + Onboarding/Execute
+        return isSignerIssuancePolicyValid(learCredential);
     }
 
     private boolean isMandatorIssuancePolicyValid(LEARCredential learCredential, JsonNode payload) {
