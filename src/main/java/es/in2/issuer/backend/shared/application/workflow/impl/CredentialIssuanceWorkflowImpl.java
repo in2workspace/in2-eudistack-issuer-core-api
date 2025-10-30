@@ -176,15 +176,13 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                             );
 
                     return vcMono.flatMap(cr ->
-                            //todo hey
                             handleOperationMode(
                                     proc.getOperationMode(),
                                     processId,
                                     nonce,
                                     cr,
                                     proc,
-                                    deferredCredentialMetadata,
-                                    token
+                                    deferredCredentialMetadata
                             )
                     );
                 });
@@ -259,8 +257,7 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
             String nonce,
             CredentialResponse cr,
             CredentialProcedure credentialProcedure,
-            DeferredCredentialMetadata deferred,
-            String token
+            DeferredCredentialMetadata deferred
     ) {
         return switch (operationMode) {
             case ASYNC -> deferredCredentialMetadataService.getProcedureIdByAuthServerNonce(nonce)
@@ -271,8 +268,6 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                             log.debug("Using procedure email for pending notification: {}", credentialProcedure.getEmail());
                             return credentialProcedure.getEmail();
                         });
-//                       : credentialProcedureService.getSignerEmailFromDecodedCredentialByProcedureId(procId);
-
 
                         return emailMono.flatMap(email ->
                                 emailService

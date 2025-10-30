@@ -53,7 +53,7 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
 
         return extractIssuer(accessToken)
                 .flatMap(issuer -> routeByIssuer(issuer, accessToken))
-                .flatMap(accessJwt -> resolveNamePossiblyFromIdToken(accessJwt, maybeIdToken)
+                .flatMap(accessJwt -> resolvePrincipalNamePossiblyFromIdToken(accessJwt, maybeIdToken)
                         .map(principalName -> (Authentication) new JwtAuthenticationToken(
                                 accessJwt,
                                 Collections.emptyList(),
@@ -65,8 +65,8 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
     }
 
     /** Prefer principal from a valid ID Token; fallback to accessJwt-derived principal. */
-    private Mono<String> resolveNamePossiblyFromIdToken(Jwt accessJwt, @Nullable String idToken) {
-        log.info("resolveNamePossiblyFromIdToken");
+    private Mono<String> resolvePrincipalNamePossiblyFromIdToken(Jwt accessJwt, @Nullable String idToken) {
+        log.info("resolvePrincipalNamePossiblyFromIdToken");
         log.info("idToken: {}", idToken);
 
         if (idToken == null) {
@@ -131,12 +131,6 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
     private Mono<Jwt> handleVerifierToken(String token) {
         return verifierService.verifyToken(token)
                 .then(parseAndValidateJwt(token, Boolean.TRUE));
-        //todo remove?
-//                .map(jwt -> new JwtAuthenticationToken(
-//                        jwt,
-//                        Collections.emptyList(),
-//                        jwtService.resolvePrincipal(jwt)
-//                );
     }
 
     private Mono<Jwt> handleIssuerBackendToken(String token) {
@@ -148,12 +142,6 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
                         return Mono.error(new BadCredentialsException("Invalid JWT signature"));
                     }
                     return parseAndValidateJwt(token, Boolean.FALSE);
-                    //todo remove?
-//                            .map(jwt -> (Authentication) new JwtAuthenticationToken(
-//                                    jwt,
-//                                    Collections.emptyList(),
-//                                    jwtService.resolvePrincipal(jwt)
-//                            ));
                 })
                 .onErrorMap(ParseException.class, e -> {
                     log.error("❌ Failed to parse JWS", e);
