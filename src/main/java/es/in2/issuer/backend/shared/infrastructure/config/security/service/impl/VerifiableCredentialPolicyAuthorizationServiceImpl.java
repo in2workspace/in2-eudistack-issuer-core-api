@@ -75,19 +75,11 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
     }
 
     private Mono<Void> checkPolicies(String token, String schema, JsonNode payload, String idToken) {
-        log.info("checkPolicies: ");
-        log.info("token: {}", token);
-        log.info("schema: {}", schema);
-        log.info("payload: {}", payload);
-        log.info("idToken: {}", idToken);
         return Mono.fromCallable(() -> jwtService.parseJWT(token))
             .flatMap(signedJWT -> {
                 String vcClaim = jwtService.getClaimFromPayload(signedJWT.getPayload(), VC);
                 return mapVcToLEARCredential(vcClaim, schema)
-                        //aquí la LEARCredential que es passa és la de l'accessToken
-                        //però amb el switch es fa que
                     .flatMap(learCredential -> {
-                        log.info("learCred after mapVcToLEARCredential: {}", learCredential);
                         return switch (schema) {
                             case LEAR_CREDENTIAL_EMPLOYEE -> authorizeLearCredentialEmployee(learCredential, payload);
                             case LEAR_CREDENTIAL_MACHINE -> authorizeLearCredentialMachine(learCredential, payload);
@@ -123,8 +115,6 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
                 }
             } else {
                 // For LEAR_CREDENTIAL_EMPLOYEE schema, allow either employee or machine.
-                //todo
-                log.info("determineAllowedCredentialType: schema {} types {}", schema, types);
                 if (types.contains(LEAR_CREDENTIAL_EMPLOYEE)) {
                     return LEAR_CREDENTIAL_EMPLOYEE;
                 } else if (types.contains(LEAR_CREDENTIAL_MACHINE)) {
@@ -140,8 +130,6 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
     private Mono<LEARCredential> mapVcToLEARCredential(String vcClaim, String schema) {
         return checkIfCredentialTypeIsAllowedToIssue(vcClaim, schema)
                 .flatMap(credentialType -> {
-                    log.info("mapVcToLEARCredential - type: {}", credentialType);
-                    log.info("vcClaim: {}", vcClaim);
                     if (LEAR_CREDENTIAL_EMPLOYEE.equals(credentialType)) {
                         return Mono.fromCallable(() -> credentialFactory.learCredentialEmployeeFactory.mapStringToLEARCredentialEmployee(vcClaim));
                     } else if (LEAR_CREDENTIAL_MACHINE.equals(credentialType)) {
@@ -189,8 +177,7 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
 
     // It checks if the signer if Mandator is IN2 or if the credential has same organizationIdentifier as the Mandator of the credential.
     private Mono<Void> authorizeLearCredentialEmployee(LEARCredential learCredential, JsonNode payload) {
-        log.info("authorizeLearCredentialEmployee - learCred {} - payload {}", learCredential, payload);
-        if (isSignerIssuancePolicyValid(learCredential) || isMandatorIssuancePolicyValid(learCredential, payload)) {
+       if (isSignerIssuancePolicyValid(learCredential) || isMandatorIssuancePolicyValid(learCredential, payload)) {
             return Mono.empty();
         }
         return Mono.error(new InsufficientPermissionException("Unauthorized: LEARCredentialEmployee does not meet any issuance policies."));
@@ -204,7 +191,6 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
     }
 
     private Mono<Void> authorizeLearCredentialMachine(LEARCredential learCredential, JsonNode payload) {
-        log.info("authorizeLearCredentialMachine - learCred {} - payload {}", learCredential, payload);
         if (isSignerIssuancePolicyValidLEARCredentialMachine(learCredential) || isMandatorIssuancePolicyValidLEARCredentialMachine(learCredential, payload)) {
             return Mono.empty();
         }
@@ -225,33 +211,26 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
         }
     }
 
-    // --- signer policy (compatible amb els dos tipus) ---
 // Checks if signer is IN2 and has Onboarding/Execute power
     private boolean isSignerIssuancePolicyValid(LEARCredential learCredential) {
-        log.info("isSignerIssuancePolicyValid: {}", learCredential);
 
         final String orgId = resolveMandatorOrgIdentifier(learCredential);
-        log.info("orgId: {}", orgId);
-        boolean hasLearCredentialOnboardingExecutePower = hasLearCredentialOnboardingExecutePower(extractPowers(learCredential));
-        log.info("extracted powers: {}", hasLearCredentialOnboardingExecutePower);
         return IN2_ORGANIZATION_IDENTIFIER.equals(orgId)
                 && hasLearCredentialOnboardingExecutePower(extractPowers(learCredential));
     }
 
-    // For machine we reutilize the same logic (no casts)
+    // For machine we reutilize the same logic
     private boolean isSignerIssuancePolicyValidLEARCredentialMachine(LEARCredential learCredential) {
-        // Same rule: IN2 + Onboarding/Execute
         return isSignerIssuancePolicyValid(learCredential);
     }
 
+    //fixme: change to accept LEAR Credential Employee
     private boolean isMandatorIssuancePolicyValid(LEARCredential learCredential, JsonNode payload) {
-        log.info("isMandatorIssuancePolicyValid");
         if (!hasLearCredentialOnboardingExecutePower(extractPowers(learCredential))) {
             return false;
         }
 
         LEARCredentialEmployee.CredentialSubject.Mandate mandate = objectMapper.convertValue(payload, LEARCredentialEmployee.CredentialSubject.Mandate.class);
-        log.info("mandate: {}", mandate);
         return mandate != null &&
                 mandate.mandator().equals(extractMandatorLearCredentialEmployee(learCredential)) &&
                 payloadPowersOnlyIncludeProductOffering(mandate.power());
@@ -323,19 +302,16 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
     }
 
     private boolean hasLearCredentialOnboardingExecutePower(List<Power> powers) {
-        log.info("hasLearCredentialOnboardingExecutePower - powers: {}", powers);
 
         return powers.stream().anyMatch(this::isOnboardingFunction) &&
                 powers.stream().anyMatch(this::hasExecuteAction);
     }
 
     private boolean isOnboardingFunction(Power power) {
-        log.info("isOnboardingFunction - power.function: {}", power.function());
         return "Onboarding".equals(power.function());
     }
 
     private boolean hasExecuteAction(Power power) {
-        log.info("hasExecuteAction - action: {}: ", power.action());
         return power.action() instanceof List<?> actions ?
                 actions.stream().anyMatch(action -> "Execute".equals(action.toString())) :
                 "Execute".equals(power.action().toString());

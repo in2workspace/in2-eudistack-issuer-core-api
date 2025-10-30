@@ -53,7 +53,7 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
 
         return extractIssuer(accessToken)
                 .flatMap(issuer -> routeByIssuer(issuer, accessToken))
-                .flatMap(accessJwt -> resolvePrincipalNamePossiblyFromIdToken(accessJwt, maybeIdToken)
+                .flatMap(accessJwt -> resolvePrincipalNameFromIdTokenOrAccessToken(accessJwt, maybeIdToken)
                         .map(principalName -> (Authentication) new JwtAuthenticationToken(
                                 accessJwt,
                                 Collections.emptyList(),
@@ -65,8 +65,8 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
     }
 
     /** Prefer principal from a valid ID Token; fallback to accessJwt-derived principal. */
-    private Mono<String> resolvePrincipalNamePossiblyFromIdToken(Jwt accessJwt, @Nullable String idToken) {
-        log.info("resolvePrincipalNamePossiblyFromIdToken");
+    private Mono<String> resolvePrincipalNameFromIdTokenOrAccessToken(Jwt accessJwt, @Nullable String idToken) {
+        log.info("resolvePrincipalNameFromIdTokenOrAccessToken");
         log.info("idToken: {}", idToken);
 
         if (idToken == null) {
