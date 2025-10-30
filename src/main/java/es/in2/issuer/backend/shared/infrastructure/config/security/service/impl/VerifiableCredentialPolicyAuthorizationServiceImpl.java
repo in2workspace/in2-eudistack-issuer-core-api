@@ -228,7 +228,12 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
     // --- signer policy (compatible amb els dos tipus) ---
 // Checks if signer is IN2 and has Onboarding/Execute power
     private boolean isSignerIssuancePolicyValid(LEARCredential learCredential) {
+        log.info("isSignerIssuancePolicyValid: {}", learCredential);
+
         final String orgId = resolveMandatorOrgIdentifier(learCredential);
+        log.info("orgId: {}", orgId);
+        boolean hasLearCredentialOnboardingExecutePower = hasLearCredentialOnboardingExecutePower(extractPowers(learCredential));
+        log.info("extracted powers: {}", hasLearCredentialOnboardingExecutePower);
         return IN2_ORGANIZATION_IDENTIFIER.equals(orgId)
                 && hasLearCredentialOnboardingExecutePower(extractPowers(learCredential));
     }
@@ -240,10 +245,13 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
     }
 
     private boolean isMandatorIssuancePolicyValid(LEARCredential learCredential, JsonNode payload) {
+        log.info("isMandatorIssuancePolicyValid");
         if (!hasLearCredentialOnboardingExecutePower(extractPowers(learCredential))) {
             return false;
         }
+
         LEARCredentialEmployee.CredentialSubject.Mandate mandate = objectMapper.convertValue(payload, LEARCredentialEmployee.CredentialSubject.Mandate.class);
+        log.info("mandate: {}", mandate);
         return mandate != null &&
                 mandate.mandator().equals(extractMandatorLearCredentialEmployee(learCredential)) &&
                 payloadPowersOnlyIncludeProductOffering(mandate.power());
@@ -315,15 +323,19 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
     }
 
     private boolean hasLearCredentialOnboardingExecutePower(List<Power> powers) {
+        log.info("hasLearCredentialOnboardingExecutePower - powers: {}", powers);
+
         return powers.stream().anyMatch(this::isOnboardingFunction) &&
                 powers.stream().anyMatch(this::hasExecuteAction);
     }
 
     private boolean isOnboardingFunction(Power power) {
+        log.info("isOnboardingFunction - power.function: {}", power.function());
         return "Onboarding".equals(power.function());
     }
 
     private boolean hasExecuteAction(Power power) {
+        log.info("hasExecuteAction - action: {}: ", power.action());
         return power.action() instanceof List<?> actions ?
                 actions.stream().anyMatch(action -> "Execute".equals(action.toString())) :
                 "Execute".equals(power.action().toString());

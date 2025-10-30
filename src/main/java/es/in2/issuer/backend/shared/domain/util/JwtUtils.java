@@ -39,7 +39,6 @@ public class JwtUtils {
         }
     }
 
-    // Keep the record as-is
     public record TokenEmailAndOrg(String organizationIdentifier, String email) {}
 
     /**

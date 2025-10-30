@@ -235,13 +235,13 @@ public class JWTServiceImpl implements JWTService {
         Object email = mandatee.get("email");
         log.info("email: {}", email);
 
-        if (email instanceof String s && isLikelyEmail(s)) {
+        if (email instanceof String s) {
             return Optional.of(s);
         }
 
         // Fallback: top-level "email" in the ID token (your sample has it)
         Object topEmail = claims.get("email");
-        if (topEmail instanceof String s2 && isLikelyEmail(s2)) {
+        if (topEmail instanceof String s2) {
             return Optional.of(s2);
         }
 
@@ -279,12 +279,5 @@ public class JWTServiceImpl implements JWTService {
             return safe;
         }
         return Map.of();
-    }
-
-    /** Minimal email sanity check; consider replacing with strictier validation. */
-    private boolean isLikelyEmail(String s) {
-        if (s == null) return false;
-        int at = s.indexOf('@');
-        return at > 0 && at == s.lastIndexOf('@');
     }
 }
