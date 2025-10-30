@@ -180,52 +180,6 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
         return credentialProcedureRepository.findCredentialStatusByProcedureId(UUID.fromString(procedureId));
     }
 
-    //TODO Ajustar estos if-else cuando quede claro que hacer con el mail de jesús y cuando la learemployee v1 ya no exista y el de la certificación arreglarlo
-    @Override
-    public Mono<String> getSignerEmailFromDecodedCredentialByProcedureId(String procedureId) {
-        return credentialProcedureRepository.findByProcedureId(UUID.fromString(procedureId))
-                .flatMap(credentialProcedure -> {
-                    try {
-                        JsonNode credential = objectMapper.readTree(credentialProcedure.getCredentialDecoded());
-                        return switch (credentialProcedure.getCredentialType()) {
-                            case LEAR_CREDENTIAL_EMPLOYEE_CREDENTIAL_TYPE -> {
-                                if (credential.has(VC)) {
-                                    JsonNode vcNode = credential.get(VC);
-                                    JsonNode mandateNode = vcNode.get(CREDENTIAL_SUBJECT).get(MANDATE);
-                                    if (mandateNode.has(SIGNER)) {
-                                    // todo remove signer references
-                                        yield Mono.just(mandateNode.get(SIGNER).get(EMAIL_ADDRESS).asText());
-                                    } else {
-                                    // todo getting the email from the mandator is not correct when issuing a credential "as signer" = when the mandator email is not the "issuer person" issuing the credential
-                                        yield Mono.just(mandateNode.get(MANDATOR).get(EMAIL).asText());
-                                    }
-                                } else {
-                                    JsonNode mandatorEmailNode = credential.get(CREDENTIAL_SUBJECT).get(MANDATE).get(MANDATOR).get(EMAIL);
-                                    String email = mandatorEmailNode.asText();
-                                    yield Mono.just(email.equals("jesus.ruiz@in2.es") ? "domesupport@in2.es" : email);
-                                }
-                            }
-                            case LABEL_CREDENTIAL_TYPE -> Mono.just("domesupport@in2.es");
-
-                            case LEAR_CREDENTIAL_MACHINE_TYPE ->
-                                Mono.just(credential
-                                        .get(CREDENTIAL_SUBJECT)
-                                        .get(MANDATE)
-                                        .get(MANDATOR)
-                                        .get(EMAIL)
-                                        .asText());
-
-
-                            default ->
-                                    Mono.error(new IllegalArgumentException("Unsupported credential type: " + credentialProcedure.getCredentialType()));
-                        };
-                    } catch (JsonProcessingException e) {
-                        return Mono.error(new RuntimeException());
-                    }
-
-                });
-    }
-
     @Override
     public Flux<String> getAllIssuedCredentialByOrganizationIdentifier(String organizationIdentifier) {
         return credentialProcedureRepository.findByCredentialStatusAndOrganizationIdentifier(CredentialStatusEnum.ISSUED, organizationIdentifier)

@@ -284,34 +284,6 @@ class CredentialProcedureServiceImplTest {
     }
 
     @Test
-    void getSignerEmailFromDecodedCredentialByProcedureId_shouldReturnMandatorEmail() throws Exception {
-        // Given
-        String procedureId = UUID.randomUUID().toString();
-        String expectedEmail = "mandator@example.com";
-        String credentialDecoded = "{\"vc\":{\"credentialSubject\":{\"mandate\":{\"signer\":{\"emailAddress\":\"" + expectedEmail + "\"}}}}}";
-
-        CredentialProcedure credentialProcedure = new CredentialProcedure();
-        credentialProcedure.setProcedureId(UUID.fromString(procedureId));
-        credentialProcedure.setCredentialDecoded(credentialDecoded);
-        credentialProcedure.setCredentialType("LEAR_CREDENTIAL_EMPLOYEE");
-
-        JsonNode credentialNode = new ObjectMapper().readTree(credentialDecoded);
-
-        when(credentialProcedureRepository.findByProcedureId(any(UUID.class)))
-                .thenReturn(Mono.just(credentialProcedure));
-        when(objectMapper.readTree(credentialDecoded))
-                .thenReturn(credentialNode);
-
-        // When
-        Mono<String> result = credentialProcedureService.getSignerEmailFromDecodedCredentialByProcedureId(procedureId);
-
-        // Then
-        StepVerifier.create(result)
-                .expectNext(expectedEmail)
-                .verifyComplete();
-    }
-
-    @Test
     void getAllIssuedCredentialByOrganizationIdentifier_shouldReturnAllIssuedCredentials() {
         // Given
         String organizationIdentifier = "org-123";

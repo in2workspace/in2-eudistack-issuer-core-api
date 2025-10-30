@@ -24,8 +24,6 @@ public interface CredentialProcedureService {
 
     Mono<String> getOperationModeByProcedureId(String procedureId);
 
-    Mono<String> getSignerEmailFromDecodedCredentialByProcedureId(String procedureId);
-
     Flux<String> getAllIssuedCredentialByOrganizationIdentifier(String organizationIdentifier);
 
     Mono<CredentialProcedures> getAllProceduresVisibleFor(String organizationIdentifier);

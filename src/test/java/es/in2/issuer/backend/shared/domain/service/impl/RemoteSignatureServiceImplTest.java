@@ -323,8 +323,6 @@ class RemoteSignatureServiceImplTest {
         when(deferredCredentialMetadataRepository.save(any(DeferredCredentialMetadata.class)))
                 .thenAnswer(invocation -> Mono.just(invocation.getArgument(0)));
         when(appConfig.getIssuerFrontendUrl()).thenReturn("http://issuer-ui.com");
-        when(credentialProcedureService.getSignerEmailFromDecodedCredentialByProcedureId(procedureUUID.toString()))
-                .thenReturn(Mono.just(""));
         when(emailService.sendPendingSignatureCredentialNotification(anyString(), anyString(), eq(procedureUUID.toString()), eq("http://issuer-ui.com")))
                 .thenReturn(Mono.empty());
 
@@ -513,8 +511,6 @@ class RemoteSignatureServiceImplTest {
         when(deferredCredentialMetadataRepository.save(any(DeferredCredentialMetadata.class)))
                 .thenReturn(Mono.just(deferredMetadata));
         when(appConfig.getIssuerFrontendUrl()).thenReturn("http://issuer-ui.com");
-        when(credentialProcedureService.getSignerEmailFromDecodedCredentialByProcedureId(procedureUUID.toString()))
-                .thenReturn(Mono.just(""));
         when(emailService.sendPendingSignatureCredentialNotification(anyString(), anyString(), eq(procedureUUID.toString()), eq("http://issuer-ui.com")))
                 .thenReturn(Mono.empty());
         // Act
