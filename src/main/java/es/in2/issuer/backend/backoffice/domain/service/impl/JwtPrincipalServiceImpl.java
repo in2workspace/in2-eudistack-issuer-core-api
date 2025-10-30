@@ -21,7 +21,8 @@ public class JwtPrincipalServiceImpl implements JwtPrincipalService {
     @Override
     public String resolvePrincipal(Jwt jwt) {
         log.info("resolvePrincipal - jwt: {}", jwt.getTokenValue());
-        return extractMandateeEmail(jwt).orElse(jwt.getSubject());
+        String email = extractMandateeEmail(jwt).orElse(jwt.getSubject());
+        return (email != null && !email.isBlank()) ? email : "anonymous";
     }
 
     @Override

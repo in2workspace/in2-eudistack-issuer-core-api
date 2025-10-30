@@ -21,7 +21,7 @@ public class R2dbcAuditingConfig {
                 .doOnNext(ctx -> log.debug("Reactive auth: {}", ctx.getAuthentication()))
                 .map(SecurityContext::getAuthentication)
                 .filter(auth -> auth != null && auth.isAuthenticated() && auth.getName() != null)
-                .map(Authentication::getName) // getName() resolves to the principal provided by JwtPrincipalService (typically the mandatee's email or 'system')
+                .map(Authentication::getName) // getName() resolves to the principal provided by JwtPrincipalService (typically the mandatee's email or 'anonymous')
                 .switchIfEmpty(Mono.just("system"));
     }
 }
