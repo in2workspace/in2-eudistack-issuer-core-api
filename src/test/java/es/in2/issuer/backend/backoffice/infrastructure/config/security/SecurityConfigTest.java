@@ -1,6 +1,6 @@
 package es.in2.issuer.backend.backoffice.infrastructure.config.security;
 
-import es.in2.issuer.backend.backoffice.domain.service.JwtPrincipalService;
+import es.in2.issuer.backend.shared.domain.service.JWTService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -38,7 +38,7 @@ class SecurityConfigTest {
     private SecurityConfig securityConfig;
 
     // New mocks for the converter wiring
-    @Mock private JwtPrincipalService jwtPrincipalService;
+    @Mock private JWTService jwtService;
 
     @Test
     void primaryAuthenticationManager_shouldReturnCustomManager() {
@@ -71,7 +71,7 @@ class SecurityConfigTest {
 
         // Provide a converter bean (could be the real one or a mock). Here we use the real bean factory method:
         Converter<Jwt, Mono<org.springframework.security.authentication.AbstractAuthenticationToken>> converterBean =
-                securityConfig.jwtAuthenticationConverter(jwtPrincipalService);
+                securityConfig.jwtAuthenticationConverter(jwtService);
 
         SecurityWebFilterChain chain = securityConfig.backofficeFilterChain(
                 http, entryPoint, deniedHandler, converterBean);
@@ -80,7 +80,7 @@ class SecurityConfigTest {
         verify(internalCORSConfig, times(1)).defaultCorsConfigurationSource();
     }
 
-    // --- Tests for JwtToAuthConverter delegating to JwtPrincipalService ---
+    // --- Tests for JwtToAuthConverter delegating to JWTService ---
 
     private Jwt buildJwt(Map<String, Object> claims, String subject) {
         Jwt.Builder builder = Jwt.withTokenValue("token")
@@ -105,10 +105,10 @@ class SecurityConfigTest {
         Jwt jwt = buildJwt(claims, "ignored-sub");
 
         // Mock service to return the email as principal
-        when(jwtPrincipalService.resolvePrincipal(jwt)).thenReturn("bob@example.com");
+        when(jwtService.resolvePrincipal(jwt)).thenReturn("bob@example.com");
 
         SecurityConfig.JwtToAuthConverter converter =
-                new SecurityConfig.JwtToAuthConverter(jwtPrincipalService);
+                new SecurityConfig.JwtToAuthConverter(jwtService);
 
         StepVerifier.create(converter.convert(jwt))
                 .assertNext(auth -> {
@@ -117,7 +117,7 @@ class SecurityConfigTest {
                 })
                 .verifyComplete();
 
-        verify(jwtPrincipalService).resolvePrincipal(jwt);
+        verify(jwtService).resolvePrincipal(jwt);
     }
 
     @Test
@@ -125,16 +125,16 @@ class SecurityConfigTest {
         Jwt jwt = buildJwt(Collections.emptyMap(), "subject-123");
 
         // Service decides fallback to subject
-        when(jwtPrincipalService.resolvePrincipal(jwt)).thenReturn("subject-123");
+        when(jwtService.resolvePrincipal(jwt)).thenReturn("subject-123");
 
         SecurityConfig.JwtToAuthConverter converter =
-                new SecurityConfig.JwtToAuthConverter(jwtPrincipalService);
+                new SecurityConfig.JwtToAuthConverter(jwtService);
 
         StepVerifier.create(converter.convert(jwt))
                 .assertNext(auth -> assertEquals("subject-123", auth.getName()))
                 .verifyComplete();
 
-        verify(jwtPrincipalService).resolvePrincipal(jwt);
+        verify(jwtService).resolvePrincipal(jwt);
     }
 
     // --- helper ---

@@ -5,8 +5,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JWSObject;
 import com.nimbusds.jwt.SignedJWT;
-import es.in2.issuer.backend.backoffice.domain.service.JwtPrincipalService;
-import es.in2.issuer.backend.shared.domain.service.JWTService;
 import es.in2.issuer.backend.shared.domain.service.VerifierService;
 import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +18,7 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import reactor.core.publisher.Mono;
+import es.in2.issuer.backend.shared.domain.service.JWTService;
 
 import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
@@ -38,7 +37,6 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
     private final ObjectMapper objectMapper;
     private final AppConfig appConfig;
     private final JWTService jwtService;
-    private final JwtPrincipalService jwtPrincipalService; // <-- injected service
 
     @Override
     public Mono<Authentication> authenticate(Authentication authentication) {
@@ -72,18 +70,18 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
         log.info("idToken: {}", idToken);
 
         if (idToken == null) {
-            return Mono.just(jwtPrincipalService.resolvePrincipal(accessJwt));
+            return Mono.just(jwtService.resolvePrincipal(accessJwt));
         }
         return parseAndValidateJwt(idToken, false)
                 .map(validIdJwt -> {
-                    String fromId = jwtPrincipalService.resolvePrincipal(validIdJwt);
+                    String fromId = jwtService.resolvePrincipal(validIdJwt);
                     return (fromId != null && !fromId.isBlank())
                             ? fromId
-                            : jwtPrincipalService.resolvePrincipal(accessJwt);
+                            : jwtService.resolvePrincipal(accessJwt);
                 })
                 .onErrorResume(ex -> {
                     log.warn("⚠️ ID Token present but invalid. Falling back to Access Token principal. Reason: {}", ex.getMessage());
-                    return Mono.just(jwtPrincipalService.resolvePrincipal(accessJwt));
+                    return Mono.just(jwtService.resolvePrincipal(accessJwt));
                 });
     }
 
@@ -137,7 +135,7 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
 //                .map(jwt -> new JwtAuthenticationToken(
 //                        jwt,
 //                        Collections.emptyList(),
-//                        jwtPrincipalService.resolvePrincipal(jwt)
+//                        jwtService.resolvePrincipal(jwt)
 //                );
     }
 
@@ -154,7 +152,7 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
 //                            .map(jwt -> (Authentication) new JwtAuthenticationToken(
 //                                    jwt,
 //                                    Collections.emptyList(),
-//                                    jwtPrincipalService.resolvePrincipal(jwt)
+//                                    jwtService.resolvePrincipal(jwt)
 //                            ));
                 })
                 .onErrorMap(ParseException.class, e -> {

@@ -1,6 +1,6 @@
 package es.in2.issuer.backend.backoffice.infrastructure.config.security;
 
-import es.in2.issuer.backend.backoffice.domain.service.JwtPrincipalService;
+import es.in2.issuer.backend.shared.domain.service.JWTService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
@@ -70,25 +70,26 @@ public class SecurityConfig {
     }
     @Bean
     public Converter<Jwt, Mono<AbstractAuthenticationToken>> jwtAuthenticationConverter(
-            JwtPrincipalService jwtPrincipalService
+            JWTService jwtService
     ) {
-        return new JwtToAuthConverter(jwtPrincipalService);
+        return new JwtToAuthConverter(jwtService);
     }
 
     // Explicit converter class so Spring can resolve <S, T> generic types.
     static final class JwtToAuthConverter implements Converter<Jwt, Mono<AbstractAuthenticationToken>> {
 
         private final JwtGrantedAuthoritiesConverter authoritiesConverter = new JwtGrantedAuthoritiesConverter();
-        private final JwtPrincipalService jwtPrincipalService;
+        private final JWTService jwtService;
 
-        JwtToAuthConverter(JwtPrincipalService jwtPrincipalService) {
-            this.jwtPrincipalService = jwtPrincipalService;
+        JwtToAuthConverter(JWTService jwtService) {
+            this.jwtService = jwtService;
         }
 
         @Override
         public Mono<AbstractAuthenticationToken> convert(Jwt jwt) {
             // Resolve principal (prefer mandatee email; fallback to sub)
-            String principal = jwtPrincipalService.resolvePrincipal(jwt);
+            String principal = jwtService.resolvePrincipal(jwt);
+            log.info("SecurityConfig - JwtToAuthCoverter - convert: extracted principal: {}", principal);
             var authorities = authoritiesConverter.convert(jwt);
             return Mono.just(new JwtAuthenticationToken(jwt, authorities, principal));
         }

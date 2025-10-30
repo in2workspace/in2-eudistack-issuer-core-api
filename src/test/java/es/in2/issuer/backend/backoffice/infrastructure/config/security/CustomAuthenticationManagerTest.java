@@ -2,7 +2,6 @@ package es.in2.issuer.backend.backoffice.infrastructure.config.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JWSObject;
-import es.in2.issuer.backend.backoffice.domain.service.JwtPrincipalService;
 import es.in2.issuer.backend.shared.domain.service.JWTService;
 import es.in2.issuer.backend.shared.domain.service.VerifierService;
 import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
@@ -34,7 +33,6 @@ class CustomAuthenticationManagerTest {
     @Mock private VerifierService verifierService;
     @Mock private JWTService jwtService;
     @Mock private AppConfig appConfig;
-    @Mock private JwtPrincipalService jwtPrincipalService; // <-- new mock
 
     private CustomAuthenticationManager authenticationManager;
 
@@ -44,11 +42,10 @@ class CustomAuthenticationManagerTest {
                 verifierService,
                 new ObjectMapper(),
                 appConfig,
-                jwtService,
-                jwtPrincipalService
+                jwtService
         );
         lenient().doReturn("principal@example.com")
-                .when(jwtPrincipalService)
+                .when(jwtService)
                 .resolvePrincipal(any());
     }
 
@@ -85,7 +82,7 @@ class CustomAuthenticationManagerTest {
                 })
                 .verifyComplete();
 
-        verify(jwtPrincipalService, atLeastOnce()).resolvePrincipal(any(Jwt.class));
+        verify(jwtService, atLeastOnce()).resolvePrincipal(any(Jwt.class));
     }
 
     @Test
@@ -205,7 +202,7 @@ class CustomAuthenticationManagerTest {
                 })
                 .verifyComplete();
 
-        verify(jwtPrincipalService, atLeastOnce()).resolvePrincipal(any(Jwt.class));
+        verify(jwtService, atLeastOnce()).resolvePrincipal(any(Jwt.class));
     }
 
     @Test
