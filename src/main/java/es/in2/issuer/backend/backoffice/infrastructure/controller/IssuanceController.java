@@ -41,7 +41,13 @@ public class IssuanceController {
                                               @RequestBody PreSubmittedCredentialDataRequest preSubmittedCredentialDataRequest) {
         String processId = UUID.randomUUID().toString();
         return accessTokenService.getCleanBearerToken(bearerToken).flatMap(
-                token -> credentialIssuanceWorkflow.execute(processId, preSubmittedCredentialDataRequest, token, idToken));
+
+                token -> {
+                    log.info("/vci/v1/issuances");
+                    log.info("/vci/v1/issuances");
+                    return credentialIssuanceWorkflow.execute(processId, preSubmittedCredentialDataRequest, token, idToken);
+                }
+                );
     }
 
 }

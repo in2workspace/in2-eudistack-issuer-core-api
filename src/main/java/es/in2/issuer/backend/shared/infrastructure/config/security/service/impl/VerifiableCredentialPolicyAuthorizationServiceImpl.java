@@ -76,16 +76,26 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
     }
 
     private Mono<Void> checkPolicies(String token, String schema, JsonNode payload, String idToken) {
+        log.info("checkPolicies: ");
+        log.info("token: {}", token);
+        log.info("schema: {}", schema);
+        log.info("payload: {}", payload);
+        log.info("idToken: {}", idToken);
         return Mono.fromCallable(() -> jwtService.parseJWT(token))
             .flatMap(signedJWT -> {
                 String vcClaim = jwtService.getClaimFromPayload(signedJWT.getPayload(), VC);
                 return mapVcToLEARCredential(vcClaim, schema)
-                    .flatMap(learCredential -> switch (schema) {
-                        case LEAR_CREDENTIAL_EMPLOYEE -> authorizeLearCredentialEmployee(learCredential, payload);
-                        case LEAR_CREDENTIAL_MACHINE -> authorizeLearCredentialMachine(learCredential, payload);
-                        case LABEL_CREDENTIAL -> authorizeLabelCredential(learCredential, idToken);
-                        default -> Mono.error(new InsufficientPermissionException("Unauthorized: Unsupported schema"));
-                    });
+                    .flatMap(learCredential -> {
+                        log.info("learCred after mapVcToLEARCredential: {}", learCredential);
+                        return switch (schema) {
+                            case LEAR_CREDENTIAL_EMPLOYEE -> authorizeLearCredentialEmployee(learCredential, payload);
+                            case LEAR_CREDENTIAL_MACHINE -> authorizeLearCredentialMachine(learCredential, payload);
+                            case LABEL_CREDENTIAL -> authorizeLabelCredential(learCredential, idToken);
+                            default ->
+                                    Mono.error(new InsufficientPermissionException("Unauthorized: Unsupported schema"));
+                        };
+                    }
+                    );
             });
     }
 
@@ -112,6 +122,8 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
                 }
             } else {
                 // For LEAR_CREDENTIAL_EMPLOYEE schema, allow either employee or machine.
+                //todo
+                log.info("determineAllowedCredentialType: schema {} types {}", schema, types);
                 if (types.contains(LEAR_CREDENTIAL_EMPLOYEE)) {
                     return LEAR_CREDENTIAL_EMPLOYEE;
                 } else if (types.contains(LEAR_CREDENTIAL_MACHINE)) {
@@ -127,6 +139,8 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
     private Mono<LEARCredential> mapVcToLEARCredential(String vcClaim, String schema) {
         return checkIfCredentialTypeIsAllowedToIssue(vcClaim, schema)
                 .flatMap(credentialType -> {
+                    log.info("mapVcToLEARCredential - type: {}", credentialType);
+                    log.info("vcClaim: {}", vcClaim);
                     if (LEAR_CREDENTIAL_EMPLOYEE.equals(credentialType)) {
                         return Mono.fromCallable(() -> credentialFactory.learCredentialEmployeeFactory.mapStringToLEARCredentialEmployee(vcClaim));
                     } else if (LEAR_CREDENTIAL_MACHINE.equals(credentialType)) {
@@ -174,6 +188,7 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
 
     // It checks if the signer if Mandator is IN2 or if the credential has same organizationIdentifier as the Mandator of the credential.
     private Mono<Void> authorizeLearCredentialEmployee(LEARCredential learCredential, JsonNode payload) {
+        log.info("authorizeLearCredentialEmployee - learCred {} - payload {}", learCredential, payload);
         if (isSignerIssuancePolicyValid(learCredential) || isMandatorIssuancePolicyValid(learCredential, payload)) {
             return Mono.empty();
         }
@@ -188,6 +203,7 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
     }
 
     private Mono<Void> authorizeLearCredentialMachine(LEARCredential learCredential, JsonNode payload) {
+        log.info("authorizeLearCredentialMachine - learCred {} - payload {}", learCredential, payload);
         if (isSignerIssuancePolicyValidLEARCredentialMachine(learCredential) || isMandatorIssuancePolicyValidLEARCredentialMachine(learCredential, payload)) {
             return Mono.empty();
         }
