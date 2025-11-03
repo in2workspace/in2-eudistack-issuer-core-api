@@ -140,7 +140,7 @@ public class LEARCredentialMachineFactory {
             String email) {
         LEARCredentialMachine learCredentialMachine = mapStringToLEARCredentialMachine(decodedCredentialString);
 
-        return issuerFactory.createDetailedIssuer(procedureId, LEAR_CREDENTIAL_MACHINE, email)
+        return issuerFactory.createDetailedIssuer(procedureId, email)
                 .flatMap(issuer -> bindIssuer(learCredentialMachine, issuer))
                 .flatMap(this::convertLEARCredentialMachineInToString);
     }

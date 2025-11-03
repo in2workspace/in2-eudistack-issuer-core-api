@@ -199,7 +199,7 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
                 .flatMap(credentialProcedure ->
                     switch (credentialProcedure.getCredentialType()) {
                         case LABEL_CREDENTIAL_TYPE ->
-                                issuerFactory.createSimpleIssuer(procedureId, LABEL_CREDENTIAL, email)
+                                issuerFactory.createSimpleIssuer(procedureId, email)
                                         .flatMap(issuer -> labelCredentialFactory.mapIssuer(procedureId, issuer))
                                         .flatMap(bindCredential -> {
                                             log.info("ProcessID: {} - Credential mapped and bind to the issuer: {}", procedureId, bindCredential);

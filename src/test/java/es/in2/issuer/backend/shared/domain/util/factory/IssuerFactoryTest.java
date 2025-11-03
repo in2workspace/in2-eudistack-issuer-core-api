@@ -50,7 +50,7 @@ class IssuerFactoryTest {
         when(defaultSignerConfig.getCommonName()).thenReturn("CN");
         when(defaultSignerConfig.getSerialNumber()).thenReturn("SN123");
 
-        StepVerifier.create(issuerFactory.createDetailedIssuer(procedureId, learType, "x@y.z"))
+        StepVerifier.create(issuerFactory.createDetailedIssuer(procedureId, "x@y.z"))
                 .assertNext(issuer -> {
                     assertEquals(DID_ELSI + "ORG-ID", issuer.id());
                     assertEquals("ORG-ID", issuer.organizationIdentifier());
@@ -68,7 +68,7 @@ class IssuerFactoryTest {
         when(remoteSignatureConfig.getRemoteSignatureType()).thenReturn(SIGNATURE_REMOTE_TYPE_SERVER);
         when(defaultSignerConfig.getOrganizationIdentifier()).thenReturn("ORG-ID");
 
-        StepVerifier.create(issuerFactory.createSimpleIssuer(procedureId, learType, "someone@mail"))
+        StepVerifier.create(issuerFactory.createSimpleIssuer(procedureId, "someone@mail"))
                 .assertNext(simple -> assertEquals(DID_ELSI + "ORG-ID", simple.getId()))
                 .verifyComplete();
     }
@@ -81,7 +81,7 @@ class IssuerFactoryTest {
         when(remoteSignatureServiceImpl.handlePostRecoverError(procedureId, ""))
                 .thenReturn(Mono.empty());
 
-        StepVerifier.create(issuerFactory.createDetailedIssuer(procedureId, learType, ""))
+        StepVerifier.create(issuerFactory.createDetailedIssuer(procedureId, ""))
                 .verifyComplete();
 
         verify(remoteSignatureServiceImpl).validateCredentials();
@@ -114,7 +114,7 @@ class IssuerFactoryTest {
         when(remoteSignatureServiceImpl.extractIssuerFromCertificateInfo("cert-info"))
                 .thenReturn(Mono.just(expected));
 
-        StepVerifier.create(issuerFactory.createDetailedIssuer(procedureId, verifiableType, "user@mail"))
+        StepVerifier.create(issuerFactory.createDetailedIssuer(procedureId, "user@mail"))
                 .expectNext(expected)
                 .verifyComplete();
 
@@ -139,7 +139,7 @@ class IssuerFactoryTest {
         when(remoteSignatureServiceImpl.extractIssuerFromCertificateInfo("cert-info"))
                 .thenReturn(Mono.just(detailed));
 
-        StepVerifier.create(issuerFactory.createSimpleIssuer(procedureId, learType, "user@mail"))
+        StepVerifier.create(issuerFactory.createSimpleIssuer(procedureId, "user@mail"))
                 .assertNext(simple -> assertEquals("issuer-id", simple.getId()))
                 .verifyComplete();
     }
@@ -154,7 +154,7 @@ class IssuerFactoryTest {
         when(remoteSignatureServiceImpl.handlePostRecoverError(procedureId, ""))
                 .thenReturn(Mono.empty());
 
-        StepVerifier.create(issuerFactory.createDetailedIssuer(procedureId, "ANY", ""))
+        StepVerifier.create(issuerFactory.createDetailedIssuer(procedureId, ""))
                 .verifyComplete();
 
         verify(remoteSignatureServiceImpl).handlePostRecoverError(procedureId, "");
@@ -172,7 +172,7 @@ class IssuerFactoryTest {
         when(remoteSignatureServiceImpl.handlePostRecoverError(procedureId, ""))
                 .thenReturn(Mono.empty());
 
-        StepVerifier.create(issuerFactory.createDetailedIssuer(procedureId, learType, ""))
+        StepVerifier.create(issuerFactory.createDetailedIssuer(procedureId, ""))
                 .verifyComplete();
 
         verify(remoteSignatureServiceImpl, times(4)).validateCredentials();
@@ -189,7 +189,7 @@ class IssuerFactoryTest {
         when(remoteSignatureServiceImpl.handlePostRecoverError(procedureId, ""))
                 .thenReturn(Mono.error(postEx));
 
-        StepVerifier.create(issuerFactory.createDetailedIssuer(procedureId, learType, ""))
+        StepVerifier.create(issuerFactory.createDetailedIssuer(procedureId, ""))
                 .expectErrorSatisfies(ex -> assertEquals(postEx, ex))
                 .verify();
 

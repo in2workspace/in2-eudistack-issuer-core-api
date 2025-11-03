@@ -30,18 +30,18 @@ public class IssuerFactory {
     private final DefaultSignerConfig    defaultSignerConfig;
     private final RemoteSignatureServiceImpl remoteSignatureServiceImpl;
 
-    public Mono<DetailedIssuer> createDetailedIssuer(String procedureId, String credentialType, String email) {
+    public Mono<DetailedIssuer> createDetailedIssuer(String procedureId, String email) {
         log.debug("🔐: createDetailedIssuer");
         return isServerMode()
                 ? Mono.just(buildLocalDetailedIssuer())
-                : createRemoteDetailedIssuer(procedureId, credentialType, email);
+                : createRemoteDetailedIssuer(procedureId, email);
     }
 
-    public Mono<SimpleIssuer> createSimpleIssuer(String procedureId, String credentialType, String email) {
+    public Mono<SimpleIssuer> createSimpleIssuer(String procedureId, String email) {
         log.debug("🔐: createSimpleIssuer");
         return isServerMode()
                 ? Mono.just(buildLocalSimpleIssuer())
-                : createRemoteDetailedIssuer(procedureId, credentialType, email)
+                : createRemoteDetailedIssuer(procedureId, email)
                 .map(detailed -> SimpleIssuer.builder()
                         .id(detailed.getId())
                         .build());
@@ -68,7 +68,7 @@ public class IssuerFactory {
                 .build();
     }
 
-    private Mono<DetailedIssuer> createRemoteDetailedIssuer(String procedureId, String credentialType, @Nullable String email) {
+    private Mono<DetailedIssuer> createRemoteDetailedIssuer(String procedureId, @Nullable String email) {
         log.debug("🔐: createRemoteDetailedIssuer");
         return Mono.defer(() ->
                         remoteSignatureServiceImpl.validateCredentials()
