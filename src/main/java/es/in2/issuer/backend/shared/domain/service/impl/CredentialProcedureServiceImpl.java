@@ -252,6 +252,16 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
     }
 
     @Override
+    public Mono<Void> markUpdatedBy(String procedureId, String userEmail) {
+        return credentialProcedureRepository
+                .updateUpdatedBy(UUID.fromString(procedureId), userEmail)
+                .flatMap(rows -> rows == 1
+                        ? Mono.<Void>empty()
+                        : Mono.error(new IllegalStateException("No row updated for procedureId=" + procedureId)));
+    }
+
+
+    @Override
     public Mono<CredentialProcedures> getAllProceduresBasicInfoByOrganizationId(String
                                                                                         organizationIdentifier) {
         return credentialProcedureRepository.findAllByOrganizationIdentifier(organizationIdentifier)

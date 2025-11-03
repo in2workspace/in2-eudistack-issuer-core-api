@@ -2,7 +2,9 @@ package es.in2.issuer.backend.shared.infrastructure.repository;
 
 import es.in2.issuer.backend.shared.domain.model.entities.CredentialProcedure;
 import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum;
+import org.springframework.data.r2dbc.repository.Modifying;
 import org.springframework.data.r2dbc.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.data.repository.reactive.ReactiveCrudRepository;
 import org.springframework.stereotype.Repository;
 import reactor.core.publisher.Flux;
@@ -21,4 +23,11 @@ public interface CredentialProcedureRepository extends ReactiveCrudRepository<Cr
     @Query("SELECT credential_status FROM issuer.credential_procedure WHERE procedure_id = :procedureId")
     Mono<String> findCredentialStatusByProcedureId(UUID procedureId);
     Mono<CredentialProcedure> findByProcedureId(UUID procedureId);
+    @Modifying
+    @Query("UPDATE issuer.credential_procedure SET updated_by = :user WHERE procedure_id = :id")
+    Mono<Integer> updateUpdatedBy(@org.springframework.data.repository.query.Param("id") UUID id,
+                                  @org.springframework.data.repository.query.Param("user") String user);
+
+
+
 }
