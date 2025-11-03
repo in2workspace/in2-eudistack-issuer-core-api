@@ -13,6 +13,7 @@ import es.in2.issuer.backend.shared.domain.model.enums.CredentialType;
 import es.in2.issuer.backend.shared.domain.service.AccessTokenService;
 import es.in2.issuer.backend.shared.domain.service.CredentialProcedureService;
 import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
+import es.in2.issuer.backend.shared.infrastructure.config.DefaultSignerConfig; // <-- NEW import
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -27,7 +28,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -48,6 +49,9 @@ class LabelCredentialFactoryTest {
     @Mock
     private CredentialProcedureService credentialProcedureService;
 
+    @Mock
+    private DefaultSignerConfig defaultSignerConfig; // <-- NEW mock to satisfy constructor
+
     @InjectMocks
     private LabelCredentialFactory labelCredentialFactory;
 
@@ -65,15 +69,13 @@ class LabelCredentialFactoryTest {
                 .credentialSubject(LabelCredential.CredentialSubject.builder().id("subject-1").build())
                 .build();
 
-
+        // ObjectMapper returns our LabelCredential
         when(objectMapper.readValue(credentialJson, LabelCredential.class))
                 .thenReturn(labelCredential);
 
-        when(issuerFactory.createSimpleIssuer(
-                "procedure-123",
-                "gx:LabelCredential", null))
+        // Match real invocation: (procedureId, LABEL_CREDENTIAL, email="")
+        when(issuerFactory.createSimpleIssuer(eq(procedureId), anyString(), eq("")))
                 .thenReturn(Mono.just(SimpleIssuer.builder().id("issuer-id").build()));
-
 
         when(objectMapper.writeValueAsString(any(LabelCredential.class)))
                 .thenReturn("{\"mocked\": true}");
@@ -92,16 +94,14 @@ class LabelCredentialFactoryTest {
         String operationMode = "S";
         JsonNode mockNode = mock(JsonNode.class);
 
-
         LabelCredential labelCredential = LabelCredential.builder()
                 .id("label-1")
-                .validFrom(String.valueOf(Instant.now()))
-                .validUntil(String.valueOf(Instant.now().plus(1, ChronoUnit.DAYS)))
+                .validFrom(Instant.now().toString())
+                .validUntil(Instant.now().plus(1, ChronoUnit.DAYS).toString())
                 .credentialSubject(LabelCredential.CredentialSubject.builder()
                         .id("subject-1")
                         .build())
                 .build();
-
 
         when(objectMapper.convertValue(mockNode, LabelCredential.class))
                 .thenReturn(labelCredential);
@@ -244,10 +244,9 @@ class LabelCredentialFactoryTest {
     void testMapStringToLabelCredential_throwsInvalidCredentialFormatException() throws Exception {
         String malformedJson = "{invalid_json}";
 
-        InvalidCredentialFormatException jsonProcessingException = new InvalidCredentialFormatException("Error parsing LabelCredential");
-
+        // Simulate real failure path: ObjectMapper throws JsonProcessingException
         when(objectMapper.readValue(malformedJson, LabelCredential.class))
-                .thenThrow(jsonProcessingException);
+                .thenThrow(new JsonProcessingException("boom") {});
 
         assertThrows(InvalidCredentialFormatException.class, () ->
                 labelCredentialFactory.mapStringToLabelCredential(malformedJson));
@@ -286,7 +285,7 @@ class LabelCredentialFactoryTest {
     void convertLabelCredentialJwtPayloadInToString_whenWriteFails_emitsCredentialSerializationException() throws Exception {
         LabelCredentialJwtPayload payload = mock(LabelCredentialJwtPayload.class);
         when(objectMapper.writeValueAsString(any(LabelCredentialJwtPayload.class)))
-                .thenThrow(new JsonProcessingException("error"){});
+                .thenThrow(new JsonProcessingException("error") {});
 
         Mono<String> result = labelCredentialFactory.convertLabelCredentialJwtPayloadInToString(payload);
 
@@ -297,6 +296,4 @@ class LabelCredentialFactoryTest {
                 })
                 .verify();
     }
-
-
 }

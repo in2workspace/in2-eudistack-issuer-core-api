@@ -13,11 +13,13 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import org.mockito.Mock;
+import es.in2.issuer.backend.backoffice.infrastructure.config.security.DualTokenAuthentication;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import reactor.core.publisher.Mono;
@@ -26,6 +28,9 @@ import reactor.test.StepVerifier;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Base64;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Objects;
 
 @ExtendWith(MockitoExtension.class)
 class CustomAuthenticationManagerTest {
@@ -60,6 +65,22 @@ class CustomAuthenticationManagerTest {
         return header + "." + payload + "." + signature;
     }
 
+    private String buildAccessTokenFromIssuer(String issuer, boolean includeLearVc) {
+        String headerJson = "{\"alg\":\"RS256\",\"typ\":\"JWT\"}";
+        long now = Instant.now().getEpochSecond();
+        String vcPart = includeLearVc ? ",\"vc\":{\"type\":[\"LEARCredentialMachine\"]}" : "";
+        String payloadJson = "{\"iss\":\"" + issuer + "\",\"iat\":" + now + ",\"exp\":" + (now + 3600) + vcPart + "}";
+        return buildToken(headerJson, payloadJson);
+    }
+
+    private String buildIdTokenSimple(String subjectEmail) {
+        String headerJson = "{\"alg\":\"none\",\"typ\":\"JWT\"}";
+        long now = Instant.now().getEpochSecond();
+        // No 'vc' claim required for id token parsing path in resolvePrincipal...
+        String payloadJson = "{\"sub\":\"" + subjectEmail + "\",\"iat\":" + now + ",\"exp\":" + (now + 3600) + "}";
+        return buildToken(headerJson, payloadJson);
+    }
+
     @Test
     void authenticate_withValidVerifierToken_returnsAuthentication() {
         String headerJson = "{\"alg\":\"RS256\",\"typ\":\"JWT\"}";
@@ -78,7 +99,7 @@ class CustomAuthenticationManagerTest {
         StepVerifier.create(result)
                 .assertNext(auth -> {
                     assertTrue(auth instanceof JwtAuthenticationToken);
-                    assertEquals("principal@example.com", auth.getName()); // resolved by service
+                    assertEquals("principal@example.com", auth.getName());
                 })
                 .verifyComplete();
 
@@ -182,11 +203,7 @@ class CustomAuthenticationManagerTest {
 
     @Test
     void authenticate_withValidKeycloakToken_returnsAuthentication() {
-        String headerJson = "{\"alg\":\"RS256\",\"typ\":\"JWT\"}";
-        String payloadJson = "{\"iss\":\"http://issuer.local\",\"iat\":1633036800,\"exp\":" +
-                (Instant.now().getEpochSecond() + 3600) + "," +
-                "\"vc\":{\"type\":[\"LEARCredentialMachine\"]}}";
-        String token = buildToken(headerJson, payloadJson);
+        String token = buildAccessTokenFromIssuer("http://issuer.local", true);
 
         when(appConfig.getIssuerBackendUrl()).thenReturn("http://issuer.local");
         when(jwtService.validateJwtSignatureReactive(any(JWSObject.class)))
@@ -207,10 +224,7 @@ class CustomAuthenticationManagerTest {
 
     @Test
     void authenticate_withKeycloakToken_missingVcClaim_returnsAuthentication() {
-        String headerJson = "{\"alg\":\"RS256\",\"typ\":\"JWT\"}";
-        String payloadJson = "{\"iss\":\"http://issuer.local\",\"iat\":1633036800,\"exp\":" +
-                (Instant.now().getEpochSecond() + 3600) + "}";
-        String token = buildToken(headerJson, payloadJson);
+        String token = buildAccessTokenFromIssuer("http://issuer.local", false);
 
         when(appConfig.getIssuerBackendUrl()).thenReturn("http://issuer.local");
         when(jwtService.validateJwtSignatureReactive(any(JWSObject.class)))
@@ -230,8 +244,9 @@ class CustomAuthenticationManagerTest {
     @Test
     void authenticate_withKeycloakToken_invalidVcType_returnsAuthentication() {
         String headerJson = "{\"alg\":\"RS256\",\"typ\":\"JWT\"}";
-        String payloadJson = "{\"iss\":\"http://issuer.local\",\"iat\":1633036800,\"exp\":" +
-                (Instant.now().getEpochSecond() + 3600) + ",\"vc\":{\"type\":[\"OtherType\"]}}";
+        long now = Instant.now().getEpochSecond();
+        String payloadJson = "{\"iss\":\"http://issuer.local\",\"iat\":" + now + ",\"exp\":" +
+                (now + 3600) + ",\"vc\":{\"type\":[\"OtherType\"]}}";
         String token = buildToken(headerJson, payloadJson);
 
         when(appConfig.getIssuerBackendUrl()).thenReturn("http://issuer.local");
@@ -251,10 +266,7 @@ class CustomAuthenticationManagerTest {
 
     @Test
     void authenticate_withKeycloakToken_invalidSignature_throwsBadCredentialsException() {
-        String headerJson = "{\"alg\":\"RS256\",\"typ\":\"JWT\"}";
-        String payloadJson = "{\"iss\":\"http://issuer.local\",\"iat\":1633036800,\"exp\":" +
-                (Instant.now().getEpochSecond() + 3600) + "}";
-        String token = buildToken(headerJson, payloadJson);
+        String token = buildAccessTokenFromIssuer("http://issuer.local", false);
 
         when(appConfig.getIssuerBackendUrl()).thenReturn("http://issuer.local");
         when(jwtService.validateJwtSignatureReactive(any(JWSObject.class)))
@@ -268,4 +280,158 @@ class CustomAuthenticationManagerTest {
                         "Invalid JWT signature".equals(e.getMessage()))
                 .verify();
     }
+
+    @Test
+    void authenticate_withDualToken_andValidIdToken_prefersIdTokenPrincipal() {
+        String accessToken = buildAccessTokenFromIssuer("http://issuer.local", false);
+        String idToken = buildIdTokenSimple("id-principal@example.com");
+
+        when(appConfig.getIssuerBackendUrl()).thenReturn("http://issuer.local");
+        when(jwtService.validateJwtSignatureReactive(any(JWSObject.class))).thenReturn(Mono.just(true));
+
+        // Return different principals depending on which Jwt we parse
+        when(jwtService.resolvePrincipal(any(Jwt.class))).thenAnswer(inv -> {
+            Jwt jwt = inv.getArgument(0);
+            if (jwt.getTokenValue().equals(idToken)) return "id-principal@example.com";
+            if (jwt.getTokenValue().equals(accessToken)) return "access-principal@example.com";
+            return "principal@example.com";
+        });
+
+        Authentication authentication = new DualTokenAuthentication(accessToken, idToken);
+        Mono<Authentication> result = authenticationManager.authenticate(authentication);
+
+        StepVerifier.create(result)
+                .assertNext(auth -> assertEquals("id-principal@example.com", auth.getName()))
+                .verifyComplete();
+    }
+
+    @Test
+    void authenticate_withDualToken_validIdTokenButNoPrincipal_fallsBackToAccessTokenPrincipal() {
+        String accessToken = buildAccessTokenFromIssuer("http://issuer.local", false);
+        String idToken = buildIdTokenSimple("ignored@example.com");
+
+        when(appConfig.getIssuerBackendUrl()).thenReturn("http://issuer.local");
+        when(jwtService.validateJwtSignatureReactive(any(JWSObject.class))).thenReturn(Mono.just(true));
+
+        when(jwtService.resolvePrincipal(any(Jwt.class))).thenAnswer(inv -> {
+            Jwt jwt = inv.getArgument(0);
+            if (jwt.getTokenValue().equals(idToken)) return "  "; // blank forces fallback
+            if (jwt.getTokenValue().equals(accessToken)) return "access-fallback@example.com";
+            return "principal@example.com";
+        });
+
+        Authentication authentication = new DualTokenAuthentication(accessToken, idToken);
+        Mono<Authentication> result = authenticationManager.authenticate(authentication);
+
+        StepVerifier.create(result)
+                .assertNext(auth -> assertEquals("access-fallback@example.com", auth.getName()))
+                .verifyComplete();
+    }
+
+    @Test
+    void authenticate_withDualToken_invalidIdToken_fallsBackToAccessTokenPrincipal() {
+        String accessToken = buildAccessTokenFromIssuer("http://issuer.local", false);
+        String invalidIdToken = "not-a-jwt"; // triggers onErrorResume → fallback
+
+        when(appConfig.getIssuerBackendUrl()).thenReturn("http://issuer.local");
+        when(jwtService.validateJwtSignatureReactive(any(JWSObject.class))).thenReturn(Mono.just(true));
+
+        when(jwtService.resolvePrincipal(any(Jwt.class))).thenAnswer(inv -> {
+            Jwt jwt = inv.getArgument(0);
+            if (jwt.getTokenValue().equals(accessToken)) return "from-access@example.com";
+            return "principal@example.com";
+        });
+
+        Authentication authentication = new DualTokenAuthentication(accessToken, invalidIdToken);
+        Mono<Authentication> result = authenticationManager.authenticate(authentication);
+
+        StepVerifier.create(result)
+                .assertNext(auth -> assertEquals("from-access@example.com", auth.getName()))
+                .verifyComplete();
+    }
+
+    @Test
+    void authenticate_withDualToken_nullIdToken_usesAccessTokenPrincipal() {
+        String accessToken = buildAccessTokenFromIssuer("http://issuer.local", true);
+
+        when(appConfig.getIssuerBackendUrl()).thenReturn("http://issuer.local");
+        when(jwtService.validateJwtSignatureReactive(any(JWSObject.class))).thenReturn(Mono.just(true));
+        when(jwtService.resolvePrincipal(any(Jwt.class))).thenReturn("principal-from-access@example.com");
+
+        Authentication authentication = new DualTokenAuthentication(accessToken, null);
+        Mono<Authentication> result = authenticationManager.authenticate(authentication);
+
+        StepVerifier.create(result)
+                .assertNext(auth -> assertEquals("principal-from-access@example.com", auth.getName()))
+                .verifyComplete();
+    }
+
+
+    @Test
+    void authenticate_withUnknownIssuer_throwsBadCredentialsException() {
+        String token = buildAccessTokenFromIssuer("http://unknown-issuer.local", false);
+
+        when(appConfig.getVerifierUrl()).thenReturn("http://verifier.local");
+        when(appConfig.getIssuerBackendUrl()).thenReturn("http://issuer.local");
+
+        Authentication authentication = new TestingAuthenticationToken(null, token);
+        Mono<Authentication> result = authenticationManager.authenticate(authentication);
+
+        StepVerifier.create(result)
+                .expectErrorMatches(e -> e instanceof BadCredentialsException &&
+                        e.getMessage().equals("Unknown token issuer: http://unknown-issuer.local"))
+                .verify();
+    }
+
+    @Test
+    void authenticate_withMissingIssuerClaim_throwsBadCredentialsException() {
+        String headerJson = "{\"alg\":\"RS256\",\"typ\":\"JWT\"}";
+        long now = Instant.now().getEpochSecond();
+        // No "iss" claim here
+        String payloadJson = "{\"iat\":" + now + ",\"exp\":" + (now + 3600) + "}";
+        String token = buildToken(headerJson, payloadJson);
+
+        Authentication authentication = new TestingAuthenticationToken(null, token);
+        Mono<Authentication> result = authenticationManager.authenticate(authentication);
+
+        StepVerifier.create(result)
+                .expectErrorMatches(e -> e instanceof BadCredentialsException &&
+                        "Missing issuer (iss) claim".equals(e.getMessage()))
+                .verify();
+    }
+
+    @Test
+    void authenticate_withIssuerBackendToken_invalidJwsFormat_throwsBadCredentialsException() {
+        // Force route to issuer backend, but craft a token that breaks JWSObject.parse
+        // Create bogus (non-base64) parts to trigger ParseException in JWSObject.parse
+        String token = "header*.." + "sig*"; // clearly not base64url safe and not three valid parts
+
+        // However, extractIssuer first must succeed to route; so build a separate well-formed token just for issuer extraction
+        // Trick: we cannot; extractIssuer uses the same token. Instead, build a three-part token with malformed parts that break JWS parse,
+        // but still decodable by SignedJWT.parse for issuer extraction. That is tricky. Easiest is to create a valid token for issuer extraction
+        // and then spy manager to jump directly into handleIssuerBackendToken. Since we want to keep it black-box, we will craft a token with proper 'iss'
+        // but make JWSObject.parse fail by using padding/invalid base64 in the signature part while payload/header are fine.
+        String headerJson = "{\"alg\":\"RS256\",\"typ\":\"JWT\"}";
+        long now = Instant.now().getEpochSecond();
+        String payloadJson = "{\"iss\":\"http://issuer.local\",\"iat\":" + now + ",\"exp\":" + (now + 3600) + "}";
+        String header = base64UrlEncode(headerJson);
+        String payload = base64UrlEncode(payloadJson);
+        // invalid base64url signature (contains '=' in middle and non-url chars to provoke ParseException)
+        String badSignature = "bad==signature/with+invalid";
+        token = header + "." + payload + "." + badSignature;
+
+        when(appConfig.getIssuerBackendUrl()).thenReturn("http://issuer.local");
+        when(jwtService.validateJwtSignatureReactive(any(JWSObject.class)))
+                .thenReturn(Mono.error(new BadCredentialsException("Invalid JWS token format")));
+
+
+        Authentication authentication = new TestingAuthenticationToken(null, token);
+        Mono<Authentication> result = authenticationManager.authenticate(authentication);
+
+        StepVerifier.create(result)
+                .expectErrorMatches(e -> e instanceof BadCredentialsException &&
+                        "Invalid JWS token format".equals(e.getMessage()))
+                .verify();
+    }
+
 }

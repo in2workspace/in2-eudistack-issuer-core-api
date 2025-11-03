@@ -135,7 +135,7 @@ class RemoteSignatureServiceImplTest {
         when(remoteSignatureConfig.getRemoteSignatureSignPath()).thenReturn("/sign");
         when(httpUtils.postRequest(eq("http://remote-signature-dss.com/api/v1/sign"), any(), anyString()))
                 .thenReturn(Mono.error(new RemoteSignatureException("Error serializing signature request")));
-        doReturn(Mono.empty()).when(remoteSignatureService).handlePostRecoverError(anyString(), null);
+        doReturn(Mono.empty()).when(remoteSignatureService).handlePostRecoverError(anyString(), anyString());
 
         Mono<SignedData> result = remoteSignatureService.sign(signatureRequest, token, "550e8400-e29b-41d4-a716-446655440000", "email");
 
@@ -326,10 +326,10 @@ class RemoteSignatureServiceImplTest {
         when(emailService.sendPendingSignatureCredentialNotification(anyString(), anyString(), eq(procedureUUID.toString()), eq("http://issuer-ui.com")))
                 .thenReturn(Mono.empty());
 
-        Method method = RemoteSignatureServiceImpl.class.getDeclaredMethod("handlePostRecoverError", String.class);
+        Method method = RemoteSignatureServiceImpl.class.getDeclaredMethod("handlePostRecoverError", String.class, String.class);
         method.setAccessible(true);
         @SuppressWarnings("unchecked")
-        Mono<String> resultMono = (Mono<String>) method.invoke(remoteSignatureService, procedureUUID.toString());
+        Mono<Void> resultMono = (Mono<Void>) method.invoke(remoteSignatureService, procedureUUID.toString(), "test@email.com");
 
         StepVerifier.create(resultMono)
                 .expectComplete()

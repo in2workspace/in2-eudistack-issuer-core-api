@@ -661,8 +661,13 @@ class CredentialIssuanceWorkflowImplTest {
                 .transactionId("t-encoded")
                 .build();
 
-        when(verifiableCredentialService.buildCredentialResponse(eq(processId), isNull(), eq(nonce), eq(token), ""))
-                .thenReturn(Mono.just(cr));
+        when(verifiableCredentialService.buildCredentialResponse(
+                eq(processId),
+                isNull(),
+                eq(nonce),
+                eq(token),
+                isNull(String.class)
+        )).thenReturn(Mono.just(cr));
 
         // the implementation stores using nonce -> procedureId
         when(deferredCredentialMetadataService.getProcedureIdByAuthServerNonce(nonce))
@@ -760,8 +765,14 @@ class CredentialIssuanceWorkflowImplTest {
                 .credentials(List.of(CredentialResponse.Credential.builder().credential("whatever").build()))
                 .transactionId("t-1")
                 .build();
-        when(verifiableCredentialService.buildCredentialResponse(eq(processId), isNull(), eq(nonce), eq(token), ""))
-                .thenReturn(Mono.just(cr));
+
+        when(verifiableCredentialService.buildCredentialResponse(
+                eq(processId),
+                isNull(),
+                eq(nonce),
+                eq(token),
+                isNull(String.class)
+        )).thenReturn(Mono.just(cr));
 
         // In SYNC: status and decoded are queried (the decoded is not used unless it's employee)
         when(deferredCredentialMetadataService.getProcedureIdByAuthServerNonce(nonce))

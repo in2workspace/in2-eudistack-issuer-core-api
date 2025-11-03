@@ -7,6 +7,7 @@ import org.springframework.data.domain.ReactiveAuditorAware;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.ReactiveSecurityContextHolder;
+import org.springframework.security.core.context.SecurityContextImpl;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
@@ -79,4 +80,18 @@ class R2dbcAuditingConfigTest {
                 .expectNext("system")
                 .verifyComplete();
     }
+
+    @Test
+    void whenAuthenticatedButNameIsEmpty_thenEmitsEmptyString() {
+        var auth = new UsernamePasswordAuthenticationToken("", "pw", java.util.List.of());
+
+        Mono<String> result = auditorAware.getCurrentAuditor()
+                .contextWrite(ReactiveSecurityContextHolder.withAuthentication(auth));
+
+        StepVerifier.create(result)
+                .expectNext("")
+                .verifyComplete();
+    }
+
+
 }
