@@ -10,7 +10,10 @@ import es.in2.issuer.backend.shared.domain.service.TranslationService;
 import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 import reactor.core.publisher.Mono;
 
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.*;
@@ -29,8 +32,14 @@ public class NotificationServiceImpl implements NotificationService {
 
     @Override
     public Mono<Void> sendNotification(String processId, String procedureId, String organizationId) {
+        log.info("sendNotification");
+        log.info("organizationId: {}", organizationId);
+        log.info("procedureId: {}", procedureId);
         return credentialProcedureService.getCredentialProcedureById(procedureId)
+                .switchIfEmpty(Mono.error(new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "CredentialProcedure not found: " + procedureId)))
                 .flatMap(credentialProcedure -> {
+                    log.info("credentialProcedure: {}", credentialProcedure);
                     // Admin can bypass organization check
                     final boolean isAdmin = IN2_ORGANIZATION_IDENTIFIER.equals(organizationId);
 
@@ -41,12 +50,12 @@ public class NotificationServiceImpl implements NotificationService {
                                     && organizationId.equals(credentialProcedure.getOrganizationIdentifier());
 
                     if (!isAdmin && !organizationMatches) {
-                        return Mono.error(new org.springframework.security.access.AccessDeniedException(
+                        return Mono.error(new AccessDeniedException(
                                 "Organization ID does not match the credential procedure organization."));
                     }
 
                     return credentialProcedureService
-                            .buildCredentialOfferEmailInfoFromProcedure(credentialProcedure) // ← no extra DB call
+                            .buildCredentialOfferEmailInfoFromProcedure(credentialProcedure)
                             .flatMap(emailCredentialOfferInfo -> {
                                 // TODO remove WITHDRAWN in future versions; kept for backward compatibility
                                 final String status = credentialProcedure.getCredentialStatus().toString();
@@ -65,12 +74,14 @@ public class NotificationServiceImpl implements NotificationService {
                                             .onErrorMap(ex -> new EmailCommunicationException(
                                                     MAIL_ERROR_COMMUNICATION_EXCEPTION_MESSAGE));
                                 } else if (status.equals(PEND_DOWNLOAD.toString())) {
+                                    //fixme remove? If credential is not signed, a "credential signed" notification shouldn't be sent
                                     return emailService.sendCredentialSignedNotification(
                                             credentialProcedure.getEmail(),
                                             CREDENTIAL_READY,
                                             "email.you-can-use-wallet"
                                     );
                                 }
+                                //todo add else for other statuses (throw error)
                                 return Mono.empty();
                             });
                 });

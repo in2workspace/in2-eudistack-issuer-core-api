@@ -312,7 +312,16 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
 
     @Override
     public Mono<CredentialProcedure> getCredentialProcedureById(String procedureId) {
-        return credentialProcedureRepository.findByProcedureId(UUID.fromString(procedureId));
+        log.info("getCredentialProcedureById: {}", procedureId);
+        return credentialProcedureRepository.findByProcedureId(UUID.fromString(procedureId))
+                .doOnSuccess(cp -> {
+                    if (cp == null) {
+                        log.warn("No CredentialProcedure found for procedureId={}", procedureId);
+                    } else {
+                        log.debug("Found CredentialProcedure id={} with status={}",
+                                cp.getProcedureId(), cp.getCredentialStatus());
+                    }
+                });
     }
 
     @Override

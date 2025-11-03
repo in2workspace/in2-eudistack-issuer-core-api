@@ -30,6 +30,5 @@ public class NotificationController {
         return accessTokenService.getOrganizationId(authorizationHeader)
                 .flatMap(organizationId -> notificationService.sendNotification(processId, procedureId, organizationId))
                 .doOnTerminate(() -> log.info("NotificationController - sendEmailNotification()"));
-
     }
 }
