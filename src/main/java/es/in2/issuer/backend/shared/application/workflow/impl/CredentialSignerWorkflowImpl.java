@@ -194,6 +194,8 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
     public Mono<Void> retrySignUnsignedCredential(String authorizationHeader, String procedureId, String email) {
         log.info("Retrying to sign credential...");
         log.info("Email: {}", email);
+        log.info("authorizationHeader: {}", authorizationHeader);
+
         return credentialProcedureRepository.findByProcedureId(UUID.fromString(procedureId))
                 .switchIfEmpty(Mono.error(new RuntimeException("Procedure not found")))
                 .flatMap(credentialProcedure ->
