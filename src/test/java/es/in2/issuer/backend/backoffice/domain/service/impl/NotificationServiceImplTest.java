@@ -22,13 +22,13 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import es.in2.issuer.backend.shared.domain.model.entities.CredentialProcedure;
 import es.in2.issuer.backend.shared.domain.model.dto.CredentialOfferEmailNotificationInfo;
-import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class NotificationServiceImplTest {
 
     private final String processId = "processId";
     private final String procedureId = "procedureId";
+    private final String organizationId = "org-123"; // Provided by controller layer
 
     private final String issuerUiExternalDomain = "https://example.com";
     private final String knowledgebaseWalletUrl = "https://knowledgebaseUrl.com";
@@ -38,14 +38,10 @@ class NotificationServiceImplTest {
     private final String transactionCode = "transactionCode123";
     private final String email = "owner@example.com";
 
-    @Mock
-    private AppConfig appConfig;
-    @Mock
-    private EmailService emailService;
-    @Mock
-    private CredentialProcedureService credentialProcedureService;
-    @Mock
-    private DeferredCredentialMetadataService deferredCredentialMetadataService;
+    @Mock private AppConfig appConfig;
+    @Mock private EmailService emailService;
+    @Mock private CredentialProcedureService credentialProcedureService;
+    @Mock private DeferredCredentialMetadataService deferredCredentialMetadataService;
 
     @InjectMocks
     private NotificationServiceImpl notificationService;
@@ -56,20 +52,19 @@ class NotificationServiceImplTest {
         lenient().when(appConfig.getKnowledgebaseWalletUrl()).thenReturn(knowledgebaseWalletUrl);
     }
 
-
-    // --------- TESTS
-
     @Test
-    void sendNotification_whenDraft_sendsActivationEmail(){
-        // arrange
-        CredentialProcedure credentialProcedure = mock(CredentialProcedure.class);
-        when(credentialProcedure.getCredentialStatus()).thenReturn(DRAFT);
-
-        CredentialOfferEmailNotificationInfo emailInfo = new CredentialOfferEmailNotificationInfo(mandateeEmail, organization);
+    void sendNotification_whenDraft_sendsActivationEmail() {
+        // Arrange
+        CredentialProcedure cp = mock(CredentialProcedure.class);
+        when(cp.getCredentialStatus()).thenReturn(DRAFT);
+        when(cp.getOrganizationIdentifier()).thenReturn(organizationId); // Must match input org
+        // Email info built from the already-fetched entity
+        CredentialOfferEmailNotificationInfo emailInfo =
+                new CredentialOfferEmailNotificationInfo(mandateeEmail, organization);
 
         when(credentialProcedureService.getCredentialProcedureById(procedureId))
-                .thenReturn(Mono.just(credentialProcedure));
-        org.mockito.Mockito.when(credentialProcedureService.getCredentialOfferEmailInfoByProcedureId(procedureId))
+                .thenReturn(Mono.just(cp));
+        when(credentialProcedureService.buildCredentialOfferEmailInfoFromProcedure(cp))
                 .thenReturn(Mono.just(emailInfo));
         when(deferredCredentialMetadataService.updateTransactionCodeInDeferredCredentialMetadata(procedureId))
                 .thenReturn(Mono.just(transactionCode));
@@ -81,10 +76,10 @@ class NotificationServiceImplTest {
                 organization
         )).thenReturn(Mono.empty());
 
-        // act
-        var result = notificationService.sendNotification(processId, procedureId);
+        // Act
+        var result = notificationService.sendNotification(processId, procedureId, organizationId);
 
-        // assert
+        // Assert
         StepVerifier.create(result).verifyComplete();
         verify(emailService, times(1))
                 .sendCredentialActivationEmail(anyString(), anyString(), anyString(), anyString(), anyString());
@@ -93,15 +88,17 @@ class NotificationServiceImplTest {
 
     @Test
     void sendNotification_whenWithdrawn_sendsActivationEmail() {
-        // arrange
-        CredentialProcedure credentialProcedure = mock(CredentialProcedure.class);
-        when(credentialProcedure.getCredentialStatus()).thenReturn(WITHDRAWN);
+        // Arrange
+        CredentialProcedure cp = mock(CredentialProcedure.class);
+        when(cp.getCredentialStatus()).thenReturn(WITHDRAWN);
+        when(cp.getOrganizationIdentifier()).thenReturn(organizationId);
 
-        CredentialOfferEmailNotificationInfo emailInfo = new CredentialOfferEmailNotificationInfo(mandateeEmail, organization);
+        CredentialOfferEmailNotificationInfo emailInfo =
+                new CredentialOfferEmailNotificationInfo(mandateeEmail, organization);
 
         when(credentialProcedureService.getCredentialProcedureById(procedureId))
-                .thenReturn(Mono.just(credentialProcedure));
-        org.mockito.Mockito.when(credentialProcedureService.getCredentialOfferEmailInfoByProcedureId(procedureId))
+                .thenReturn(Mono.just(cp));
+        when(credentialProcedureService.buildCredentialOfferEmailInfoFromProcedure(cp))
                 .thenReturn(Mono.just(emailInfo));
         when(deferredCredentialMetadataService.updateTransactionCodeInDeferredCredentialMetadata(procedureId))
                 .thenReturn(Mono.just(transactionCode));
@@ -113,10 +110,10 @@ class NotificationServiceImplTest {
                 organization
         )).thenReturn(Mono.empty());
 
-        // act
-        var result = notificationService.sendNotification(processId, procedureId);
+        // Act
+        var result = notificationService.sendNotification(processId, procedureId, organizationId);
 
-        // assert
+        // Assert
         StepVerifier.create(result).verifyComplete();
         verify(emailService, times(1))
                 .sendCredentialActivationEmail(anyString(), anyString(), anyString(), anyString(), anyString());
@@ -125,15 +122,17 @@ class NotificationServiceImplTest {
 
     @Test
     void sendNotification_whenDraft_emailFailure_mapsToEmailCommunicationException() {
-        // arrange
-        CredentialProcedure credentialProcedure = mock(CredentialProcedure.class);
-        when(credentialProcedure.getCredentialStatus()).thenReturn(DRAFT);
+        // Arrange
+        CredentialProcedure cp = mock(CredentialProcedure.class);
+        when(cp.getCredentialStatus()).thenReturn(DRAFT);
+        when(cp.getOrganizationIdentifier()).thenReturn(organizationId);
 
-        CredentialOfferEmailNotificationInfo emailInfo = new CredentialOfferEmailNotificationInfo(mandateeEmail, organization);
+        CredentialOfferEmailNotificationInfo emailInfo =
+                new CredentialOfferEmailNotificationInfo(mandateeEmail, organization);
 
         when(credentialProcedureService.getCredentialProcedureById(procedureId))
-                .thenReturn(Mono.just(credentialProcedure));
-        org.mockito.Mockito.when(credentialProcedureService.getCredentialOfferEmailInfoByProcedureId(procedureId))
+                .thenReturn(Mono.just(cp));
+        when(credentialProcedureService.buildCredentialOfferEmailInfoFromProcedure(cp))
                 .thenReturn(Mono.just(emailInfo));
         when(deferredCredentialMetadataService.updateTransactionCodeInDeferredCredentialMetadata(procedureId))
                 .thenReturn(Mono.just(transactionCode));
@@ -141,10 +140,10 @@ class NotificationServiceImplTest {
                 anyString(), anyString(), anyString(), anyString(), anyString()
         )).thenReturn(Mono.error(new RuntimeException("boom")));
 
-        // act
-        var result = notificationService.sendNotification(processId, procedureId);
+        // Act
+        var result = notificationService.sendNotification(processId, procedureId, organizationId);
 
-        // assert
+        // Assert
         StepVerifier.create(result)
                 .expectErrorMatches(ex -> ex instanceof EmailCommunicationException &&
                         ex.getMessage().contains(MAIL_ERROR_COMMUNICATION_EXCEPTION_MESSAGE))
@@ -153,16 +152,19 @@ class NotificationServiceImplTest {
 
     @Test
     void sendNotification_whenPendDownload_sendsSignedNotification() {
-        // arrange
-        CredentialProcedure credentialProcedure = mock(CredentialProcedure.class);
-        when(credentialProcedure.getCredentialStatus()).thenReturn(PEND_DOWNLOAD);
-        when(credentialProcedure.getEmail()).thenReturn(email);
+        // Arrange
+        CredentialProcedure cp = mock(CredentialProcedure.class);
+        when(cp.getCredentialStatus()).thenReturn(PEND_DOWNLOAD);
+        when(cp.getEmail()).thenReturn(email);
+        when(cp.getOrganizationIdentifier()).thenReturn(organizationId);
 
-        CredentialOfferEmailNotificationInfo emailInfo = new CredentialOfferEmailNotificationInfo(mandateeEmail, organization);
+        // Even though PEND_DOWNLOAD branch does not use the built info, the code still builds it beforehand
+        CredentialOfferEmailNotificationInfo emailInfo =
+                new CredentialOfferEmailNotificationInfo(mandateeEmail, organization);
 
         when(credentialProcedureService.getCredentialProcedureById(procedureId))
-                .thenReturn(Mono.just(credentialProcedure));
-        when(credentialProcedureService.getCredentialOfferEmailInfoByProcedureId(procedureId))
+                .thenReturn(Mono.just(cp));
+        when(credentialProcedureService.buildCredentialOfferEmailInfoFromProcedure(cp))
                 .thenReturn(Mono.just(emailInfo));
         when(emailService.sendCredentialSignedNotification(
                 email,
@@ -170,12 +172,11 @@ class NotificationServiceImplTest {
                 "email.you-can-use-wallet")
         ).thenReturn(Mono.empty());
 
-        // act
-        var result = notificationService.sendNotification(processId, procedureId);
+        // Act
+        var result = notificationService.sendNotification(processId, procedureId, organizationId);
 
-        // assert
+        // Assert
         StepVerifier.create(result).verifyComplete();
-
         verify(emailService, times(1))
                 .sendCredentialSignedNotification(
                         email,
@@ -184,9 +185,8 @@ class NotificationServiceImplTest {
                 );
         verifyNoMoreInteractions(emailService);
     }
-
-
 }
+
 
 //    @Test
 //    void testSendNotification_DraftStatus() {

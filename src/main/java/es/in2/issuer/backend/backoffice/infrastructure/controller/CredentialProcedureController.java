@@ -29,7 +29,6 @@ public class CredentialProcedureController {
                 .doOnNext(result -> log.info("CredentialManagementController - getAllProcedures()"));
     }
 
-    //fixme: change to /{procedure_id}
     @GetMapping(value = "/{procedure_id}/credential-decoded", produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseStatus(HttpStatus.OK)
     public Mono<CredentialDetails> getCredentialByProcedureId(@RequestHeader(HttpHeaders.AUTHORIZATION) String authorizationHeader,

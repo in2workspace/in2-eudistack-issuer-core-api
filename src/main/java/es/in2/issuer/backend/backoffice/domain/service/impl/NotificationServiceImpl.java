@@ -28,31 +28,53 @@ public class NotificationServiceImpl implements NotificationService {
     private final TranslationService translationService;
 
     @Override
-    public Mono<Void> sendNotification(String processId, String procedureId) {
+    public Mono<Void> sendNotification(String processId, String procedureId, String organizationId) {
         return credentialProcedureService.getCredentialProcedureById(procedureId)
-                        .flatMap(credentialProcedure -> credentialProcedureService.getCredentialOfferEmailInfoByProcedureId(procedureId)
-                                .flatMap(emailCredentialOfferInfo -> {
-                                            // TODO we need to remove the withdraw status from the condition since the v1.2.0 version is deprecated but in order to support retro compatibility issues we will keep it for now.
-                                            if (credentialProcedure.getCredentialStatus().toString().equals(DRAFT.toString()) || credentialProcedure.getCredentialStatus().toString().equals(WITHDRAWN.toString())) {
-                                                return deferredCredentialMetadataService.updateTransactionCodeInDeferredCredentialMetadata(procedureId)
-                                                        .flatMap(newTransactionCode -> emailService.sendCredentialActivationEmail(
-                                                                emailCredentialOfferInfo.email(),
-                                                                CREDENTIAL_ACTIVATION_EMAIL_SUBJECT,
-                                                                appConfig.getIssuerFrontendUrl() + "/credential-offer?transaction_code=" + newTransactionCode,
-                                                                appConfig.getKnowledgebaseWalletUrl(),
-                                                                emailCredentialOfferInfo.organization()
-                                                        ))
-                                                        .onErrorMap(exception ->
-                                                                new EmailCommunicationException(MAIL_ERROR_COMMUNICATION_EXCEPTION_MESSAGE));
-                                            } else if (credentialProcedure.getCredentialStatus().toString().equals(PEND_DOWNLOAD.toString())) {
+                .flatMap(credentialProcedure -> {
+                    // Admin can bypass organization check
+                    final boolean isAdmin = IN2_ORGANIZATION_IDENTIFIER.equals(organizationId);
 
-                                                return emailService.sendCredentialSignedNotification(credentialProcedure.getEmail(), CREDENTIAL_READY, "email.you-can-use-wallet");
-                                            } else {
-                                                return Mono.empty();
-                                            }
-                                        }
-                                )
-                        );
+                    // Ensure provided organizationId matches the one stored on the procedure
+                    final boolean organizationMatches =
+                            organizationId != null
+                                    && credentialProcedure.getOrganizationIdentifier() != null
+                                    && organizationId.equals(credentialProcedure.getOrganizationIdentifier());
+
+                    if (!isAdmin && !organizationMatches) {
+                        return Mono.error(new org.springframework.security.access.AccessDeniedException(
+                                "Organization ID does not match the credential procedure organization."));
+                    }
+
+                    return credentialProcedureService
+                            .buildCredentialOfferEmailInfoFromProcedure(credentialProcedure) // ← no extra DB call
+                            .flatMap(emailCredentialOfferInfo -> {
+                                // TODO remove WITHDRAWN in future versions; kept for backward compatibility
+                                final String status = credentialProcedure.getCredentialStatus().toString();
+
+                                if (status.equals(DRAFT.toString()) || status.equals(WITHDRAWN.toString())) {
+                                    return deferredCredentialMetadataService
+                                            .updateTransactionCodeInDeferredCredentialMetadata(procedureId)
+                                            .flatMap(newTransactionCode -> emailService.sendCredentialActivationEmail(
+                                                    emailCredentialOfferInfo.email(),
+                                                    CREDENTIAL_ACTIVATION_EMAIL_SUBJECT,
+                                                    appConfig.getIssuerFrontendUrl()
+                                                            + "/credential-offer?transaction_code=" + newTransactionCode,
+                                                    appConfig.getKnowledgebaseWalletUrl(),
+                                                    emailCredentialOfferInfo.organization()
+                                            ))
+                                            .onErrorMap(ex -> new EmailCommunicationException(
+                                                    MAIL_ERROR_COMMUNICATION_EXCEPTION_MESSAGE));
+                                } else if (status.equals(PEND_DOWNLOAD.toString())) {
+                                    return emailService.sendCredentialSignedNotification(
+                                            credentialProcedure.getEmail(),
+                                            CREDENTIAL_READY,
+                                            "email.you-can-use-wallet"
+                                    );
+                                }
+                                return Mono.empty();
+                            });
+                });
     }
+
 
 }
