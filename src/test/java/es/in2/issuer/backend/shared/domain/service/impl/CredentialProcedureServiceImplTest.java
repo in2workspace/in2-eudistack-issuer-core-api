@@ -12,9 +12,12 @@ import es.in2.issuer.backend.shared.domain.model.dto.ProcedureBasicInfo;
 import es.in2.issuer.backend.shared.domain.model.entities.CredentialProcedure;
 import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum;
 import es.in2.issuer.backend.shared.domain.model.enums.CredentialType;
+import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
 import es.in2.issuer.backend.shared.infrastructure.repository.CredentialProcedureRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+
 import static org.junit.jupiter.api.Assertions.*;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -22,13 +25,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
-import static es.in2.issuer.backend.backoffice.domain.util.Constants.*;
 
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
+import static es.in2.issuer.backend.backoffice.domain.util.Constants.*;
 import static org.hibernate.validator.internal.util.Contracts.assertNotNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -38,14 +41,28 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class CredentialProcedureServiceImplTest {
 
+    // Single source of truth for admin org id in tests
+    private static final String ADMIN_ORG_ID = "IN2_ADMIN_ORG_ID_FOR_TEST";
+
     @Mock
     private CredentialProcedureRepository credentialProcedureRepository;
+
+    @Mock
+    private ObjectMapper objectMapper;
+
+    @Mock
+    private AppConfig appConfig;
 
     @InjectMocks
     private CredentialProcedureServiceImpl credentialProcedureService;
 
-    @Mock
-    private ObjectMapper objectMapper;
+    @BeforeEach
+    void setUp() {
+        // Make this stub lenient because some tests exercise regular-org paths only
+        org.mockito.Mockito.lenient()
+                .when(appConfig.getAdminOrganizationId())
+                .thenReturn(ADMIN_ORG_ID);
+    }
 
     @Test
     void createCredentialProcedure_shouldSaveProcedureAndReturnProcedureId() {
@@ -170,7 +187,7 @@ class CredentialProcedureServiceImplTest {
     void getCredentialTypeByProcedureId_shouldReturnErrorIfJsonProcessingExceptionOccurs() throws Exception {
         // Given
         String procedureId = UUID.randomUUID().toString();
-        String invalidCredentialDecoded = "{\"vc\":{\"type\":[\"VerifiableCredential\", \"TestType\"}"; // Invalid JSON
+        String invalidCredentialDecoded = "{\"vc\":{\"type\":[\"VerifiableCredential\", \"TestType\"}";
 
         CredentialProcedure credentialProcedure = new CredentialProcedure();
         credentialProcedure.setProcedureId(UUID.fromString(procedureId));
@@ -178,7 +195,6 @@ class CredentialProcedureServiceImplTest {
 
         when(credentialProcedureRepository.findById(any(UUID.class)))
                 .thenReturn(Mono.just(credentialProcedure));
-        // Simulate any JsonProcessingException (service maps it to ParseCredentialJsonException internally elsewhere; here we only test propagation path)
         when(objectMapper.readTree(invalidCredentialDecoded))
                 .thenThrow(new RuntimeException("Invalid JSON"));
 
@@ -218,9 +234,9 @@ class CredentialProcedureServiceImplTest {
         verify(credentialProcedureRepository, times(1)).findById(UUID.fromString(procedureId));
         verify(credentialProcedureRepository, times(1)).save(existingCredentialProcedure);
 
-        assert existingCredentialProcedure.getCredentialDecoded().equals(newCredential);
-        assert existingCredentialProcedure.getCredentialFormat().equals(newFormat);
-        assert existingCredentialProcedure.getCredentialStatus() == CredentialStatusEnum.ISSUED;
+        assertEquals(newCredential, existingCredentialProcedure.getCredentialDecoded());
+        assertEquals(newFormat, existingCredentialProcedure.getCredentialFormat());
+        assertEquals(CredentialStatusEnum.ISSUED, existingCredentialProcedure.getCredentialStatus());
     }
 
     @Test
@@ -304,7 +320,7 @@ class CredentialProcedureServiceImplTest {
                 CredentialStatusEnum.ISSUED, organizationIdentifier))
                 .thenReturn(Flux.fromIterable(List.of(credentialProcedure1, credentialProcedure2)));
 
-        // When
+        // When / Then
         StepVerifier.create(credentialProcedureService.getAllIssuedCredentialByOrganizationIdentifier(organizationIdentifier))
                 .expectNext(credential1Decoded)
                 .expectNext(credential2Decoded)
@@ -326,11 +342,11 @@ class CredentialProcedureServiceImplTest {
                 .verifyComplete();
     }
 
-    // ---------- UPDATED / NEW TESTS FOR getProcedureDetailByProcedureIdAndOrganizationId ----------
+    // ---------- Admin bypass tests updated to use AppConfig ----------
 
     @Test
     void getProcedureDetailByProcedureIdAndOrganizationId_shouldReturnCredentialDetails_forRegularOrg() throws Exception {
-        // Given
+        // Given (non-admin path)
         String procedureId = UUID.randomUUID().toString();
         String organizationIdentifier = "org-123";
         String credentialDecoded = "{\"vc\":{\"type\":[\"TestCredentialType\"]}}";
@@ -371,7 +387,6 @@ class CredentialProcedureServiceImplTest {
                 )
                 .verifyComplete();
 
-        // Verify correct repo path used
         verify(credentialProcedureRepository, times(1))
                 .findByProcedureIdAndOrganizationIdentifier(UUID.fromString(procedureId), organizationIdentifier);
         verify(credentialProcedureRepository, never()).findByProcedureId(any(UUID.class));
@@ -379,8 +394,9 @@ class CredentialProcedureServiceImplTest {
 
     @Test
     void getProcedureDetailByProcedureIdAndOrganizationId_shouldReturnCredentialDetails_forAdminOrg() throws Exception {
-        // Given (admin organization bypass)
+        // Given (admin organization -> bypass)
         String procedureId = UUID.randomUUID().toString();
+        String organizationIdentifier = ADMIN_ORG_ID; // use admin org id
         String credentialDecoded = "{\"vc\":{\"type\":[\"TestCredentialType\"]}}";
         UUID expectedProcedureId = UUID.fromString(procedureId);
         String operationMode = "remote";
@@ -404,7 +420,7 @@ class CredentialProcedureServiceImplTest {
 
         // When
         Mono<CredentialDetails> result = credentialProcedureService
-                .getProcedureDetailByProcedureIdAndOrganizationId("", procedureId); //todo with admin ID
+                .getProcedureDetailByProcedureIdAndOrganizationId(organizationIdentifier, procedureId);
 
         // Then
         StepVerifier.create(result)
@@ -417,7 +433,6 @@ class CredentialProcedureServiceImplTest {
                 )
                 .verifyComplete();
 
-        // Verify admin path used
         verify(credentialProcedureRepository, times(1)).findByProcedureId(UUID.fromString(procedureId));
         verify(credentialProcedureRepository, never())
                 .findByProcedureIdAndOrganizationIdentifier(any(UUID.class), anyString());
@@ -439,8 +454,8 @@ class CredentialProcedureServiceImplTest {
         // Then
         StepVerifier.create(result)
                 .expectErrorSatisfies(err -> {
-                    assert err instanceof NoCredentialFoundException;
-                    assert err.getMessage().contains(procedureId);
+                    assertTrue(err instanceof NoCredentialFoundException);
+                    assertTrue(err.getMessage().contains(procedureId));
                 })
                 .verify();
     }
@@ -449,7 +464,7 @@ class CredentialProcedureServiceImplTest {
     void getProcedureDetailByProcedureIdAndOrganizationId_shouldErrorWhenNotFound_forAdminOrg() {
         // Given
         String procedureId = UUID.randomUUID().toString();
-        String organizationIdentifier = ""; //todo with admin ID
+        String organizationIdentifier = ADMIN_ORG_ID; // admin path
 
         when(credentialProcedureRepository.findByProcedureId(any(UUID.class)))
                 .thenReturn(Mono.empty());
@@ -469,7 +484,7 @@ class CredentialProcedureServiceImplTest {
         // Given
         String procedureId = UUID.randomUUID().toString();
         String organizationIdentifier = "org-123";
-        String invalidCredentialDecoded = "{\"vc\":{\"type\":[\"TestCredentialType\"}"; // Malformed JSON
+        String invalidCredentialDecoded = "{\"vc\":{\"type\":[\"TestCredentialType\"}";
 
         CredentialProcedure credentialProcedure = new CredentialProcedure();
         credentialProcedure.setProcedureId(UUID.fromString(procedureId));
@@ -507,7 +522,7 @@ class CredentialProcedureServiceImplTest {
         // Then
         assertNotNull(result, "Returned JsonNode should not be null");
         assertTrue(result.has("vc"), "Returned JsonNode should contain 'vc' field");
-        assertEquals(expectedNode, result); // simpler equality check
+        assertEquals(expectedNode, result);
         verify(objectMapper, times(1)).readTree(credentialDecoded);
     }
 
@@ -518,7 +533,6 @@ class CredentialProcedureServiceImplTest {
                 () -> credentialProcedureService.getCredentialNodeSync(null)
         );
         assertEquals("CredentialProcedure or credentialDecoded is null", ex.getMessage());
-        // No need for verify here; Mockito can't throw checked exceptions
     }
 
     @Test
@@ -539,7 +553,6 @@ class CredentialProcedureServiceImplTest {
         CredentialProcedure cp = new CredentialProcedure();
         cp.setCredentialDecoded(invalidJson);
 
-        // Mock exception from ObjectMapper
         doThrow(new JsonParseException(null, "Malformed JSON"))
                 .when(objectMapper).readTree(invalidJson);
 
@@ -555,7 +568,7 @@ class CredentialProcedureServiceImplTest {
     @Test
     void getAllProceduresVisibleFor_admin_shouldReturnAllProceduresMapped() {
         // Given (admin organization)
-        String adminOrg = ""; //todo with admin ID
+        String adminOrg = ADMIN_ORG_ID;
 
         CredentialProcedure cp1 = new CredentialProcedure();
         cp1.setProcedureId(UUID.randomUUID());
@@ -636,7 +649,6 @@ class CredentialProcedureServiceImplTest {
                         .build())
         );
 
-
         CredentialProcedureServiceImpl spyService = spy(credentialProcedureService);
 
         doReturn(Mono.just(expected))
@@ -668,7 +680,7 @@ class CredentialProcedureServiceImplTest {
                 .thenReturn(Flux.empty());
 
         // When
-        Mono<CredentialProcedures> mono = credentialProcedureService.getAllProceduresVisibleFor(""); //todo with admin ID
+        Mono<CredentialProcedures> mono = credentialProcedureService.getAllProceduresVisibleFor(ADMIN_ORG_ID);
 
         // Then
         StepVerifier.create(mono)
@@ -716,11 +728,9 @@ class CredentialProcedureServiceImplTest {
                     assertNotNull(list, "Result list should not be null");
                     assertEquals(2, list.size(), "Should contain 2 procedures");
 
-                    // Order is the same as repository emission (no extra sorting in method)
                     ProcedureBasicInfo first = list.get(0).credentialProcedure();
                     ProcedureBasicInfo second = list.get(1).credentialProcedure();
 
-                    // First (cp1)
                     assertEquals(cp1.getProcedureId(), first.procedureId());
                     assertEquals("Alice", first.subject());
                     assertEquals("TYPE_A", first.credentialType());
@@ -728,7 +738,6 @@ class CredentialProcedureServiceImplTest {
                     assertEquals(orgId, first.organizationIdentifier());
                     assertEquals(cp1.getUpdatedAt(), first.updated());
 
-                    // Second (cp2)
                     assertEquals(cp2.getProcedureId(), second.procedureId());
                     assertEquals("Bob", second.subject());
                     assertEquals("TYPE_B", second.credentialType());
