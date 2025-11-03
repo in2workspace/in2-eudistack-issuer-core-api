@@ -5,10 +5,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
-## [v2.1.2](https://github.com/in2workspace/in2-issuer-api/releases/tag/v2.1.2)
-### Changed
-- Don't include tx code description i preauthorized code response.
+## [v2.1.3](https://github.com/in2workspace/in2-issuer-api/releases/tag/v2.1.3)
+### Added
+- When fetching procedures, if the authenticated user is an admin, fetch across all organizations.
+- Enable R2DBC auditing to auto-populate `created_at`, `updated_at`, `created_by`, and `updated_by`.
+- Resolve auditing principal from the JWT access token (prefer ID token when available).
 
+### Changed
+- `updated_at` in `CredentialProcedure` and related entities is now managed automatically by Spring Data (no manual updates).
+- `subject_email` in `CredentialProcedure` and related entities has been renamed to `email`.
+
+### Fixed
+- Send signature failure emails to the authenticated requester’s email, not the credential mandator’s updated email.
+
+### Removed
+- 
 
 ## [v2.1.1](https://github.com/in2workspace/in2-issuer-api/releases/tag/v2.1.1)
 ### Added
