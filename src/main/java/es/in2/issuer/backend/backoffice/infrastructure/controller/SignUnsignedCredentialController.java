@@ -24,7 +24,14 @@ public class SignUnsignedCredentialController {
     public Mono<Void> signUnsignedCredential(
             @RequestHeader(HttpHeaders.AUTHORIZATION) String authorizationHeader,
             @PathVariable("procedure_id") String procedureId) {
-        return accessTokenService.getMandateeEmail(authorizationHeader)
-                .flatMap(email -> credentialSignerWorkflow.retrySignUnsignedCredential(authorizationHeader, procedureId, email));
+
+        return accessTokenService
+                .getCleanBearerToken(authorizationHeader)
+                .flatMap(token ->
+                        accessTokenService.getMandateeEmail(token)
+                                .flatMap(email ->
+                                        credentialSignerWorkflow.retrySignUnsignedCredential(token, procedureId, email)
+                                )
+                );
     }
 }

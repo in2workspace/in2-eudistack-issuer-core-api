@@ -56,7 +56,7 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
     private final IssuerFactory issuerFactory;
 
     @Override
-    public Mono<String> signAndUpdateCredentialByProcedureId(String authorizationHeader, String procedureId, String format) {
+    public Mono<String> signAndUpdateCredentialByProcedureId(String token, String procedureId, String format) {
         log.info("signAndUpdateCredentialByProcedureId");
 
         return credentialProcedureRepository.findByProcedureId(UUID.fromString(procedureId))
@@ -73,21 +73,21 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
                                     .mapStringToLabelCredential(credentialProcedure.getCredentialDecoded());
                             yield labelCredentialFactory.buildLabelCredentialJwtPayload(labelCredential)
                                     .flatMap(labelCredentialFactory::convertLabelCredentialJwtPayloadInToString)
-                                    .flatMap(unsignedCredential -> signCredentialOnRequestedFormat(unsignedCredential, format, authorizationHeader, procedureId, updatedBy));
+                                    .flatMap(unsignedCredential -> signCredentialOnRequestedFormat(unsignedCredential, format, token, procedureId, updatedBy));
                         }
                         case LEAR_CREDENTIAL_EMPLOYEE_CREDENTIAL_TYPE -> {
                             LEARCredentialEmployee learCredentialEmployee = learCredentialEmployeeFactory
                                     .mapStringToLEARCredentialEmployee(credentialProcedure.getCredentialDecoded());
                             yield learCredentialEmployeeFactory.buildLEARCredentialEmployeeJwtPayload(learCredentialEmployee)
                                     .flatMap(learCredentialEmployeeFactory::convertLEARCredentialEmployeeJwtPayloadInToString)
-                                    .flatMap(unsignedCredential -> signCredentialOnRequestedFormat(unsignedCredential, format, authorizationHeader, procedureId, updatedBy));
+                                    .flatMap(unsignedCredential -> signCredentialOnRequestedFormat(unsignedCredential, format, token, procedureId, updatedBy));
                         }
                         case LEAR_CREDENTIAL_MACHINE_TYPE -> {
                             LEARCredentialMachine learCredentialMachine = learCredentialMachineFactory
                                     .mapStringToLEARCredentialMachine(credentialProcedure.getCredentialDecoded());
                             yield learCredentialMachineFactory.buildLEARCredentialMachineJwtPayload(learCredentialMachine)
                                     .flatMap(learCredentialMachineFactory::convertLEARCredentialMachineJwtPayloadInToString)
-                                    .flatMap(unsignedCredential -> signCredentialOnRequestedFormat(unsignedCredential, format, authorizationHeader, procedureId, updatedBy));
+                                    .flatMap(unsignedCredential -> signCredentialOnRequestedFormat(unsignedCredential, format, token, procedureId, updatedBy));
                         }
                         default -> {
                             log.error("Unsupported credential type: {}", credentialType);
@@ -191,10 +191,10 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
     }
 
     @Override
-    public Mono<Void> retrySignUnsignedCredential(String authorizationHeader, String procedureId, String email) {
+    public Mono<Void> retrySignUnsignedCredential(String token, String procedureId, String email) {
         log.info("Retrying to sign credential...");
         log.info("Email: {}", email);
-        log.info("authorizationHeader: {}", authorizationHeader);
+        log.info("authorizationHeader: {}", token);
 
         return credentialProcedureRepository.findByProcedureId(UUID.fromString(procedureId))
                 .switchIfEmpty(Mono.error(new RuntimeException("Procedure not found")))
@@ -223,7 +223,7 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
                             yield Mono.error(new IllegalArgumentException("Unsupported credential type: " + credentialProcedure.getCredentialType()));
                         }
                     })
-                .then(this.signAndUpdateCredentialByProcedureId(authorizationHeader, procedureId, JWT_VC))
+                .then(this.signAndUpdateCredentialByProcedureId(token, procedureId, JWT_VC))
                 .flatMap(signedVc ->
                         credentialProcedureService.updateCredentialProcedureCredentialStatusToValidByProcedureId(procedureId)
                                 .thenReturn(signedVc)

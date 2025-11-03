@@ -37,12 +37,15 @@ class SignUnsignedCredentialControllerTest {
     void signUnsignedCredential_success() {
         // given
         String authorizationHeader = "Bearer token";
+        String token = "token";
         String procedureId = "d290f1ee-6c54-4b01-90e6-d701748f0851";
         String email = "alice@example.com";
 
-        when(accessTokenService.getMandateeEmail(authorizationHeader))
+        when(accessTokenService.getCleanBearerToken(authorizationHeader))
+                .thenReturn(Mono.just(token));
+        when(accessTokenService.getMandateeEmail(token))
                 .thenReturn(Mono.just(email));
-        when(credentialSignerWorkflow.retrySignUnsignedCredential(authorizationHeader, procedureId, email))
+        when(credentialSignerWorkflow.retrySignUnsignedCredential(token, procedureId, email))
                 .thenReturn(Mono.empty());
 
         // when + then
@@ -54,9 +57,10 @@ class SignUnsignedCredentialControllerTest {
 
         // Verify call order and arguments
         InOrder inOrder = inOrder(accessTokenService, credentialSignerWorkflow);
-        inOrder.verify(accessTokenService).getMandateeEmail(authorizationHeader);
+        inOrder.verify(accessTokenService).getCleanBearerToken(authorizationHeader);
+        inOrder.verify(accessTokenService).getMandateeEmail(token);
         inOrder.verify(credentialSignerWorkflow)
-                .retrySignUnsignedCredential(authorizationHeader, procedureId, email);
+                .retrySignUnsignedCredential(token, procedureId, email);
         verifyNoMoreInteractions(accessTokenService, credentialSignerWorkflow);
     }
 
@@ -64,12 +68,15 @@ class SignUnsignedCredentialControllerTest {
     void signUnsignedCredential_workflowError_propagates5xx() {
         // given
         String authorizationHeader = "Bearer token";
+        String token = "token";
         String procedureId = "d290f1ee-6c54-4b01-90e6-d701748f0851";
         String email = "alice@example.com";
 
-        when(accessTokenService.getMandateeEmail(authorizationHeader))
+        when(accessTokenService.getCleanBearerToken(authorizationHeader))
+                .thenReturn(Mono.just(token));
+        when(accessTokenService.getMandateeEmail(token))
                 .thenReturn(Mono.just(email));
-        when(credentialSignerWorkflow.retrySignUnsignedCredential(authorizationHeader, procedureId, email))
+        when(credentialSignerWorkflow.retrySignUnsignedCredential(token, procedureId, email))
                 .thenReturn(Mono.error(new RuntimeException("Simulated error")));
 
         // when + then
@@ -79,9 +86,10 @@ class SignUnsignedCredentialControllerTest {
                 .exchange()
                 .expectStatus().is5xxServerError();
 
-        verify(accessTokenService, times(1)).getMandateeEmail(authorizationHeader);
-        verify(credentialSignerWorkflow, times(1))
-                .retrySignUnsignedCredential(authorizationHeader, procedureId, email);
+        InOrder inOrder = inOrder(accessTokenService, credentialSignerWorkflow);
+        inOrder.verify(accessTokenService).getCleanBearerToken(authorizationHeader);
+        inOrder.verify(accessTokenService).getMandateeEmail(token);
+        inOrder.verify(credentialSignerWorkflow).retrySignUnsignedCredential(token, procedureId, email);
         verifyNoMoreInteractions(accessTokenService, credentialSignerWorkflow);
     }
 
@@ -91,8 +99,9 @@ class SignUnsignedCredentialControllerTest {
         String authorizationHeader = "Bearer token";
         String procedureId = "d290f1ee-6c54-4b01-90e6-d701748f0851";
 
-        when(accessTokenService.getMandateeEmail(authorizationHeader))
-                .thenReturn(Mono.error(new IllegalArgumentException("Bad token")));
+        // Error happens while extracting/cleaning the token from the header
+        when(accessTokenService.getCleanBearerToken(authorizationHeader))
+                .thenReturn(Mono.error(new IllegalArgumentException("Bad header")));
 
         // when + then
         webTestClient.post()
@@ -101,7 +110,7 @@ class SignUnsignedCredentialControllerTest {
                 .exchange()
                 .expectStatus().is5xxServerError();
 
-        verify(accessTokenService, times(1)).getMandateeEmail(authorizationHeader);
+        verify(accessTokenService, times(1)).getCleanBearerToken(authorizationHeader);
         verifyNoInteractions(credentialSignerWorkflow);
         verifyNoMoreInteractions(accessTokenService);
     }
@@ -124,10 +133,13 @@ class SignUnsignedCredentialControllerTest {
     void signUnsignedCredential_emptyEmail_completes201_andWorkflowNotCalled() {
         // given
         String authorizationHeader = "Bearer token";
+        String token = "token";
         String procedureId = "d290f1ee-6c54-4b01-90e6-d701748f0851";
 
-        // If the token service returns empty, the flatMap is never executed and the endpoint completes.
-        when(accessTokenService.getMandateeEmail(authorizationHeader))
+        // If the email service returns empty, the final flatMap is never executed and the endpoint completes.
+        when(accessTokenService.getCleanBearerToken(authorizationHeader))
+                .thenReturn(Mono.just(token));
+        when(accessTokenService.getMandateeEmail(token))
                 .thenReturn(Mono.empty());
 
         // when + then
@@ -137,7 +149,8 @@ class SignUnsignedCredentialControllerTest {
                 .exchange()
                 .expectStatus().isCreated();
 
-        verify(accessTokenService, times(1)).getMandateeEmail(authorizationHeader);
+        verify(accessTokenService, times(1)).getCleanBearerToken(authorizationHeader);
+        verify(accessTokenService, times(1)).getMandateeEmail(token);
         verifyNoInteractions(credentialSignerWorkflow);
         verifyNoMoreInteractions(accessTokenService);
     }
