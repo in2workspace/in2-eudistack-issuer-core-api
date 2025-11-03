@@ -80,15 +80,14 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
             .flatMap(signedJWT -> {
                 String vcClaim = jwtService.getClaimFromPayload(signedJWT.getPayload(), VC);
                 return mapVcToLEARCredential(vcClaim, schema)
-                    .flatMap(learCredential -> {
-                        return switch (schema) {
+                    .flatMap(learCredential ->
+                        switch (schema) {
                             case LEAR_CREDENTIAL_EMPLOYEE -> authorizeLearCredentialEmployee(learCredential, payload);
                             case LEAR_CREDENTIAL_MACHINE -> authorizeLearCredentialMachine(learCredential, payload);
                             case LABEL_CREDENTIAL -> authorizeLabelCredential(learCredential, idToken);
                             default ->
                                     Mono.error(new InsufficientPermissionException("Unauthorized: Unsupported schema"));
-                        };
-                    }
+                        }
                     );
             });
     }
@@ -316,14 +315,6 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
         return power.action() instanceof List<?> actions ?
                 actions.stream().anyMatch(action -> "Execute".equals(action.toString())) :
                 "Execute".equals(power.action().toString());
-    }
-
-    private boolean isLearCredentialEmployeeMandatorOrganizationIdentifierAllowedSigner(Mandator mandator) {
-        return appConfig.getAdminOrganizationId().equals(mandator.organizationIdentifier());
-    }
-
-    private boolean isLearCredentialEmployeeMandatorOrganizationIdentifierAllowedSignerLEARCredentialMachine(Mandator mandator) {
-        return appConfig.getAdminOrganizationId().equals(mandator.organizationIdentifier());
     }
 
     private boolean payloadPowersOnlyIncludeProductOffering(List<Power> powers) {

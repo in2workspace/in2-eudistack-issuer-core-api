@@ -1,7 +1,6 @@
 package es.in2.issuer.backend.shared.domain.util.factory;
 
 import es.in2.issuer.backend.shared.domain.model.dto.credential.DetailedIssuer;
-import es.in2.issuer.backend.shared.domain.model.dto.credential.SimpleIssuer;
 import es.in2.issuer.backend.shared.domain.service.impl.RemoteSignatureServiceImpl;
 import es.in2.issuer.backend.shared.infrastructure.config.DefaultSignerConfig;
 import es.in2.issuer.backend.shared.infrastructure.config.RemoteSignatureConfig;
@@ -32,8 +31,6 @@ class IssuerFactoryTest {
     @InjectMocks private IssuerFactory issuerFactory;
 
     private final String procedureId = "proc-123";
-    private final String learType = LEAR_CREDENTIAL_EMPLOYEE;
-    private final String verifiableType = LABEL_CREDENTIAL;
 
     @BeforeEach
     void setUp() {

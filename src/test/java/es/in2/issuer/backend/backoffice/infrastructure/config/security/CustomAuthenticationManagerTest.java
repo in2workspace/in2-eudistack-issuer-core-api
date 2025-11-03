@@ -13,13 +13,11 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import org.mockito.Mock;
-import es.in2.issuer.backend.backoffice.infrastructure.config.security.DualTokenAuthentication;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import reactor.core.publisher.Mono;
@@ -28,9 +26,6 @@ import reactor.test.StepVerifier;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Base64;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Objects;
 
 @ExtendWith(MockitoExtension.class)
 class CustomAuthenticationManagerTest {

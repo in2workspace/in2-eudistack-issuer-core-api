@@ -7,7 +7,6 @@ import org.springframework.data.domain.ReactiveAuditorAware;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.ReactiveSecurityContextHolder;
-import org.springframework.security.core.context.SecurityContextImpl;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 

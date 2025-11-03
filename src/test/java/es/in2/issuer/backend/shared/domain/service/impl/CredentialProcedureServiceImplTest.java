@@ -31,7 +31,6 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
-import static es.in2.issuer.backend.backoffice.domain.util.Constants.*;
 import static org.hibernate.validator.internal.util.Contracts.assertNotNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;

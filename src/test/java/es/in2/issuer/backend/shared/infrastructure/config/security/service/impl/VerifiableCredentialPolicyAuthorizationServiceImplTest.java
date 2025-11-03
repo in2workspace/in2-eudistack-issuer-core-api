@@ -543,7 +543,7 @@ class VerifiableCredentialPolicyAuthorizationServiceImplTest {
         Mono<Void> result = policyAuthorizationService.authorize(token, "LEAR_CREDENTIAL_MACHINE", payload, "dummy-id-token");
 
         StepVerifier.create(result)
-                .expectErrorMatches(throwable -> throwable instanceof InsufficientPermissionException)
+                .expectErrorMatches(InsufficientPermissionException.class::isInstance)
                 .verify();
     }
 
@@ -900,31 +900,4 @@ class VerifiableCredentialPolicyAuthorizationServiceImplTest {
         StepVerifier.create(result).verifyComplete();
     }
 
-    @Test
-    void isLearCredentialEmployeeMandatorOrganizationIdentifierAllowedSignerLEARCredentialMachine_returnsTrue_whenOrgMatches() throws Exception {
-        Mandator mandator = Mandator.builder()
-                .organizationIdentifier(ADMIN_ORG_ID)
-                .build();
-
-        Method method = VerifiableCredentialPolicyAuthorizationServiceImpl.class
-                .getDeclaredMethod("isLearCredentialEmployeeMandatorOrganizationIdentifierAllowedSignerLEARCredentialMachine", Mandator.class);
-        method.setAccessible(true);
-
-        boolean result = (boolean) method.invoke(policyAuthorizationService, mandator);
-        assertTrue(result);
-    }
-
-    @Test
-    void isLearCredentialEmployeeMandatorOrganizationIdentifierAllowedSignerLEARCredentialMachine_returnsFalse_whenOrgDoesNotMatch() throws Exception {
-        Mandator mandator = Mandator.builder()
-                .organizationIdentifier("OTHER_ORG")
-                .build();
-
-        Method method = VerifiableCredentialPolicyAuthorizationServiceImpl.class
-                .getDeclaredMethod("isLearCredentialEmployeeMandatorOrganizationIdentifierAllowedSignerLEARCredentialMachine", Mandator.class);
-        method.setAccessible(true);
-
-        boolean result = (boolean) method.invoke(policyAuthorizationService, mandator);
-        assertFalse(result);
-    }
 }

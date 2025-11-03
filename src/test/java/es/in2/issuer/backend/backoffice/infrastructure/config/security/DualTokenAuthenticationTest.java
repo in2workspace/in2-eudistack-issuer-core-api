@@ -91,9 +91,10 @@ class DualTokenAuthenticationTest {
     @Test
     void equals_returnsFalse_whenComparedWithNullOrDifferentType() {
         DualTokenAuthentication a = new DualTokenAuthentication("acc", "id");
-        assertNotEquals(a, null);
-        assertNotEquals(a, "not-an-auth-object");
+        assertNotEquals(null, a);
+        assertNotEquals("not-an-auth-object", a);
     }
+
 
     @Test
     void equals_returnsFalse_whenAccessTokenDiffers() {
