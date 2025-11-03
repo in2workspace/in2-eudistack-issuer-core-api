@@ -19,6 +19,7 @@ import es.in2.issuer.backend.shared.domain.util.factory.CredentialFactory;
 import es.in2.issuer.backend.shared.domain.util.factory.LEARCredentialEmployeeFactory;
 import es.in2.issuer.backend.shared.domain.util.factory.LEARCredentialMachineFactory;
 import es.in2.issuer.backend.shared.domain.util.factory.LabelCredentialFactory;
+import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -63,6 +64,8 @@ class VerifiableCredentialPolicyAuthorizationServiceImplTest {
     @Mock
     private CredentialProcedureService credentialProcedureService;
     @Mock
+    private AppConfig appConfig;
+    @Mock
     private DeferredCredentialMetadataService deferredCredentialMetadataService;
 
 
@@ -76,6 +79,7 @@ class VerifiableCredentialPolicyAuthorizationServiceImplTest {
 
         // Inicializamos policyAuthorizationService con las dependencias adecuadas
         policyAuthorizationService = new VerifiableCredentialPolicyAuthorizationServiceImpl(
+                appConfig,
                 jwtService,
                 objectMapper,
                 credentialFactory,
@@ -675,7 +679,7 @@ class VerifiableCredentialPolicyAuthorizationServiceImplTest {
     // Auxiliary methods to create LEARCredentialEmployee objects
     private LEARCredentialEmployee getLEARCredentialEmployee() {
         Mandator mandator = Mandator.builder()
-                .organizationIdentifier(IN2_ORGANIZATION_IDENTIFIER)
+                .organizationIdentifier("") //todo admin ID
                 .build();
         LEARCredentialEmployee.CredentialSubject.Mandate.Mandatee mandatee = LEARCredentialEmployee.CredentialSubject.Mandate.Mandatee.builder()
                 .id("did:key:1234")
@@ -788,7 +792,7 @@ class VerifiableCredentialPolicyAuthorizationServiceImplTest {
 
     private LEARCredentialMachine getLEARCredentialMachine() {
         LEARCredentialMachine.CredentialSubject.Mandate.Mandator mandator = LEARCredentialMachine.CredentialSubject.Mandate.Mandator.builder()
-                .organization(IN2_ORGANIZATION_IDENTIFIER)
+                .organization("") //todo admin ID
                 .build();
         LEARCredentialMachine.CredentialSubject.Mandate.Mandatee mandatee = LEARCredentialMachine.CredentialSubject.Mandate.Mandatee.builder()
                 .id("did:key:1234")
@@ -813,7 +817,7 @@ class VerifiableCredentialPolicyAuthorizationServiceImplTest {
 
     private LEARCredentialMachine getLEARCredentialMachineWithInvalidPolicy() {
         LEARCredentialMachine.CredentialSubject.Mandate.Mandator mandator = LEARCredentialMachine.CredentialSubject.Mandate.Mandator.builder()
-                .organization(IN2_ORGANIZATION_IDENTIFIER)
+                .organization("") //todo admin ID
                 .build();
         LEARCredentialMachine.CredentialSubject.Mandate.Mandatee mandatee =
                 LEARCredentialMachine.CredentialSubject.Mandate.Mandatee.builder()
@@ -873,7 +877,7 @@ class VerifiableCredentialPolicyAuthorizationServiceImplTest {
     @Test
     void isLearCredentialEmployeeMandatorOrganizationIdentifierAllowedSignerLEARCredentialMachine_returnsTrue_whenOrgMatches() throws Exception {
         Mandator mandator = Mandator.builder()
-                .organizationIdentifier(IN2_ORGANIZATION_IDENTIFIER)
+                .organizationIdentifier("") //todo admin ID
                 .build();
 
         Method method = VerifiableCredentialPolicyAuthorizationServiceImpl.class

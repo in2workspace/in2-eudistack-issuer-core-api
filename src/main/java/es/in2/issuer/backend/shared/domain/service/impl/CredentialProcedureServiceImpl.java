@@ -12,6 +12,7 @@ import es.in2.issuer.backend.shared.domain.model.dto.*;
 import es.in2.issuer.backend.shared.domain.model.entities.CredentialProcedure;
 import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum;
 import es.in2.issuer.backend.shared.domain.service.CredentialProcedureService;
+import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
 import es.in2.issuer.backend.shared.infrastructure.repository.CredentialProcedureRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,6 +34,7 @@ import static es.in2.issuer.backend.shared.domain.util.Constants.*;
 @Slf4j
 public class CredentialProcedureServiceImpl implements CredentialProcedureService {
 
+    private final AppConfig appConfig;
     private static final String UPDATED_CREDENTIAL = "Updated credential";
     private final CredentialProcedureRepository credentialProcedureRepository;
     private final ObjectMapper objectMapper;
@@ -190,7 +192,7 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
     public Mono<CredentialDetails> getProcedureDetailByProcedureIdAndOrganizationId(String organizationIdentifier, String procedureId) {
         Mono<CredentialProcedure> credentialProcedureMono;
         log.info("getProcedureDetailByProcedureIdAndOrganizationId");
-        if(IN2_ORGANIZATION_IDENTIFIER.equals(organizationIdentifier)){
+        if(appConfig.getAdminOrganizationId().equals(organizationIdentifier)){
             log.info("User is admin.");
             credentialProcedureMono = credentialProcedureRepository.findByProcedureId(UUID.fromString(procedureId));
         }else{
@@ -270,7 +272,7 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
 
     @Override
     public Mono<CredentialProcedures> getAllProceduresVisibleFor(String organizationIdentifier) {
-        if (IN2_ORGANIZATION_IDENTIFIER.equals(organizationIdentifier)) {
+        if (appConfig.getAdminOrganizationId().equals(organizationIdentifier)) {
             return getAllProceduresBasicInfoForAllOrganizations();
         }
         return getAllProceduresBasicInfoByOrganizationId(organizationIdentifier);

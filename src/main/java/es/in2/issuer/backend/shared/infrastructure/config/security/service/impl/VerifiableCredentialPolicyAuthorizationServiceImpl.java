@@ -1,6 +1,5 @@
 package es.in2.issuer.backend.shared.infrastructure.config.security.service.impl;
 
-import static es.in2.issuer.backend.backoffice.domain.util.Constants.IN2_ORGANIZATION_IDENTIFIER;
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.LEAR;
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.LEAR_CREDENTIAL_MACHINE;
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.LER;
@@ -26,6 +25,7 @@ import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.machine.LEA
 import es.in2.issuer.backend.shared.domain.service.JWTService;
 import es.in2.issuer.backend.shared.domain.service.VerifierService;
 import es.in2.issuer.backend.shared.domain.util.factory.CredentialFactory;
+import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
 import es.in2.issuer.backend.shared.infrastructure.config.security.service.VerifiableCredentialPolicyAuthorizationService;
 import java.util.List;
 import java.util.stream.StreamSupport;
@@ -39,6 +39,7 @@ import reactor.core.publisher.Mono;
 @RequiredArgsConstructor
 public class VerifiableCredentialPolicyAuthorizationServiceImpl implements VerifiableCredentialPolicyAuthorizationService {
 
+    private final AppConfig appConfig;
     private final JWTService jwtService;
     private final ObjectMapper objectMapper;
     private final CredentialFactory credentialFactory;
@@ -215,7 +216,7 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
     private boolean isSignerIssuancePolicyValid(LEARCredential learCredential) {
 
         final String orgId = resolveMandatorOrgIdentifier(learCredential);
-        return IN2_ORGANIZATION_IDENTIFIER.equals(orgId)
+        return appConfig.getAdminOrganizationId().equals(orgId)
                 && hasLearCredentialOnboardingExecutePower(extractPowers(learCredential));
     }
 
@@ -318,11 +319,11 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
     }
 
     private boolean isLearCredentialEmployeeMandatorOrganizationIdentifierAllowedSigner(Mandator mandator) {
-        return IN2_ORGANIZATION_IDENTIFIER.equals(mandator.organizationIdentifier());
+        return appConfig.getAdminOrganizationId().equals(mandator.organizationIdentifier());
     }
 
     private boolean isLearCredentialEmployeeMandatorOrganizationIdentifierAllowedSignerLEARCredentialMachine(Mandator mandator) {
-        return IN2_ORGANIZATION_IDENTIFIER.equals(mandator.organizationIdentifier());
+        return appConfig.getAdminOrganizationId().equals(mandator.organizationIdentifier());
     }
 
     private boolean payloadPowersOnlyIncludeProductOffering(List<Power> powers) {

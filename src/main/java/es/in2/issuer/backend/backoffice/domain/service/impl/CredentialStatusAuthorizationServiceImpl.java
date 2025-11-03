@@ -6,6 +6,7 @@ import es.in2.issuer.backend.shared.domain.exception.JWTParsingException;
 import es.in2.issuer.backend.shared.domain.exception.UnauthorizedRoleException;
 import es.in2.issuer.backend.shared.domain.service.JWTService;
 import es.in2.issuer.backend.shared.domain.util.factory.LEARCredentialEmployeeFactory;
+import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
 import es.in2.issuer.backend.shared.infrastructure.repository.CredentialProcedureRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,6 +24,7 @@ import static es.in2.issuer.backend.backoffice.domain.util.Constants.*;
 @RequiredArgsConstructor
 public class CredentialStatusAuthorizationServiceImpl implements CredentialStatusAuthorizationService {
 
+    private final AppConfig appConfig;
     private final JWTService jwtService;
     private final LEARCredentialEmployeeFactory learCredentialEmployeeFactory;
     private final CredentialProcedureRepository credentialProcedureRepository;
@@ -57,7 +59,7 @@ public class CredentialStatusAuthorizationServiceImpl implements CredentialStatu
                     return credentialProcedureRepository.findById(UUID.fromString(credentialProcedureId))
                             .flatMap(credential -> {
                                 String credentialOrganizationIdentifier = credential.getOrganizationIdentifier();
-                                if (userOrganizationIdentifier.equals(IN2_ORGANIZATION_IDENTIFIER) ||
+                                if (userOrganizationIdentifier.equals(appConfig.getAdminOrganizationId()) ||
                                         userOrganizationIdentifier.equals(credentialOrganizationIdentifier)) {
                                     return Mono.empty();
                                 } else {

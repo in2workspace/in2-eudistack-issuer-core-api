@@ -404,7 +404,7 @@ class CredentialProcedureServiceImplTest {
 
         // When
         Mono<CredentialDetails> result = credentialProcedureService
-                .getProcedureDetailByProcedureIdAndOrganizationId(IN2_ORGANIZATION_IDENTIFIER, procedureId);
+                .getProcedureDetailByProcedureIdAndOrganizationId("", procedureId); //todo with admin ID
 
         // Then
         StepVerifier.create(result)
@@ -449,7 +449,7 @@ class CredentialProcedureServiceImplTest {
     void getProcedureDetailByProcedureIdAndOrganizationId_shouldErrorWhenNotFound_forAdminOrg() {
         // Given
         String procedureId = UUID.randomUUID().toString();
-        String organizationIdentifier = IN2_ORGANIZATION_IDENTIFIER;
+        String organizationIdentifier = ""; //todo with admin ID
 
         when(credentialProcedureRepository.findByProcedureId(any(UUID.class)))
                 .thenReturn(Mono.empty());
@@ -555,7 +555,7 @@ class CredentialProcedureServiceImplTest {
     @Test
     void getAllProceduresVisibleFor_admin_shouldReturnAllProceduresMapped() {
         // Given (admin organization)
-        String adminOrg = IN2_ORGANIZATION_IDENTIFIER;
+        String adminOrg = ""; //todo with admin ID
 
         CredentialProcedure cp1 = new CredentialProcedure();
         cp1.setProcedureId(UUID.randomUUID());
@@ -668,7 +668,7 @@ class CredentialProcedureServiceImplTest {
                 .thenReturn(Flux.empty());
 
         // When
-        Mono<CredentialProcedures> mono = credentialProcedureService.getAllProceduresVisibleFor(IN2_ORGANIZATION_IDENTIFIER);
+        Mono<CredentialProcedures> mono = credentialProcedureService.getAllProceduresVisibleFor(""); //todo with admin ID
 
         // Then
         StepVerifier.create(mono)
