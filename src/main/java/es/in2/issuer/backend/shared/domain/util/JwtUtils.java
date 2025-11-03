@@ -28,7 +28,6 @@ public class JwtUtils {
 
     public boolean areJsonsEqual(String json1, String json2) {
         try {
-            ObjectMapper objectMapper = new ObjectMapper();
             Map<String, Object> map1 = objectMapper.readValue(json1, Map.class);
             Map<String, Object> map2 = objectMapper.readValue(json2, Map.class);
 

@@ -217,8 +217,8 @@ public class JWTServiceImpl implements JWTService {
     @Override
     public String resolvePrincipal(Jwt jwt) {
         log.info("resolvePrincipal - jwt: {}", jwt.getTokenValue());
-        String email = extractMandateeEmail(jwt).orElse(jwt.getSubject());
-        return (email != null && !email.isBlank()) ? email : "anonymous";
+        String emailOrSubject = extractMandateeEmail(jwt).orElse(jwt.getSubject());
+        return (emailOrSubject != null && !emailOrSubject.isBlank()) ? emailOrSubject : "anonymous";
     }
 
     @Override
