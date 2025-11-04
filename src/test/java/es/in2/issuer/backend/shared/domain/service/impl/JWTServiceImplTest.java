@@ -299,23 +299,6 @@ class JWTServiceImplTest {
     }
 
     @Test
-    void resolvePrincipal_usesSubject_whenNoEmailsAndSubjectPresent() {
-        Map<String, Object> claims = new HashMap<>();
-        claims.put("sub", "subject@example.com"); // no vc, no vc_json, no top-level email
-
-        Jwt jwt = new Jwt(
-                "token",
-                Instant.now(),
-                Instant.now().plusSeconds(3600),
-                Map.of("alg", "none"),
-                claims
-        );
-
-        String principal = jwtService.resolvePrincipal(jwt);
-        assertEquals("subject@example.com", principal);
-    }
-
-    @Test
     void resolvePrincipal_returnsAnonymous_whenNoEmailsAndSubjectBlank() {
         Map<String, Object> claims = new HashMap<>();
         claims.put("sub", "   "); // blank subject

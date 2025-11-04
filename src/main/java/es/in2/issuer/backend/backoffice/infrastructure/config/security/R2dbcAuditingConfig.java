@@ -18,10 +18,11 @@ public class R2dbcAuditingConfig {
     @Bean
     public ReactiveAuditorAware<String> auditorProvider() {
         return () -> ReactiveSecurityContextHolder.getContext()
-                .doOnNext(ctx -> log.debug("Reactive auth: {}", ctx.getAuthentication()))
+                .doOnNext(ctx -> log.debug("R2dbcAuditingConfig - auditorProvider"))
                 .map(SecurityContext::getAuthentication)
                 .filter(auth -> auth != null && auth.isAuthenticated() && auth.getName() != null)
-                .map(Authentication::getName) // getName() resolves to the principal provided by JWTService (typically the mandatee's email or 'anonymous')
+                .map(Authentication::getName) // getName() resolves to the principal provided by JWTService (mandatee's email or 'anonymous')
+                .doOnNext(name -> log.debug("Auditor resolved: {}", name))
                 .switchIfEmpty(Mono.just("system"));
     }
 }

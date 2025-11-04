@@ -57,7 +57,7 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
 
     @Override
     public Mono<String> signAndUpdateCredentialByProcedureId(String token, String procedureId, String format) {
-        log.info("signAndUpdateCredentialByProcedureId");
+        log.debug("signAndUpdateCredentialByProcedureId");
 
         return credentialProcedureRepository.findByProcedureId(UUID.fromString(procedureId))
             .flatMap(credentialProcedure -> {
@@ -65,8 +65,6 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
                     String credentialType = credentialProcedure.getCredentialType();
                     String updatedBy = credentialProcedure.getUpdatedBy();
                     log.info("Building JWT payload for credential signing for credential with type: {}", credentialType);
-                    log.debug("Updated by: {}", updatedBy);
-                    log.debug("Procedure: {}", credentialProcedure);
                     return switch (credentialType) {
                         case LABEL_CREDENTIAL_TYPE -> {
                             LabelCredential labelCredential = labelCredentialFactory
@@ -193,8 +191,6 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
     @Override
     public Mono<Void> retrySignUnsignedCredential(String token, String procedureId, String email) {
         log.info("Retrying to sign credential...");
-        log.info("Email: {}", email);
-        log.info("authorizationHeader: {}", token);
 
         return credentialProcedureRepository.findByProcedureId(UUID.fromString(procedureId))
                 .switchIfEmpty(Mono.error(new RuntimeException("Procedure not found")))
@@ -205,7 +201,6 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
                                         .flatMap(issuer -> labelCredentialFactory.mapIssuer(procedureId, issuer))
                                         .flatMap(bindCredential -> {
                                             log.info("ProcessID: {} - Credential mapped and bind to the issuer: {}", procedureId, bindCredential);
-                                            log.info("Procedure updatedBy: {}", credentialProcedure.getUpdatedBy());
                                             return credentialProcedureService.updateDecodedCredentialByProcedureId(procedureId, bindCredential, JWT_VC);
                                         });
 
@@ -213,13 +208,11 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
                                 learCredentialEmployeeFactory.mapCredentialAndBindIssuerInToTheCredential(credentialProcedure.getCredentialDecoded(), procedureId, email)
                                         .flatMap(bindCredential -> {
                                             log.info("ProcessID: {} - Credential mapped and bind to the issuer: {}", procedureId, bindCredential);
-                                            log.info("Procedure.updatedBy: {}", credentialProcedure.getUpdatedBy());
                                             return credentialProcedureService.updateDecodedCredentialByProcedureId(procedureId, bindCredential, JWT_VC);
                                         });
 
                         default -> {
                             log.error("Unknown credential type: {}", credentialProcedure.getCredentialType());
-                            log.info("Procedure-updatedBy: {}", credentialProcedure.getUpdatedBy());
                             yield Mono.error(new IllegalArgumentException("Unsupported credential type: " + credentialProcedure.getCredentialType()));
                         }
                     })

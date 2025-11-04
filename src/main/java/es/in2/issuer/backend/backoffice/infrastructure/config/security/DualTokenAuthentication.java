@@ -22,7 +22,13 @@ public final class DualTokenAuthentication extends AbstractAuthenticationToken {
     public Object getCredentials() { return accessToken; }
 
     @Override
-    public Object getPrincipal() { return "N/A"; } // principal will be resolved post-validation
+    public Object getPrincipal() {
+        // At this stage, the authentication request only carries the raw tokens (access and optional ID token).
+        // The user's identity ("principal") is not yet known — this instance represents a pre-authenticated state.
+        // Once the tokens are validated by an AuthenticationProvider, a new Authentication object will be created
+        // with the proper principal (e.g., a Jwt or UserDetails instance) and marked as authenticated.
+        return "N/A";
+    }
 
     public String getAccessToken() {
         return (String) getCredentials();
@@ -35,7 +41,7 @@ public final class DualTokenAuthentication extends AbstractAuthenticationToken {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (!(o instanceof DualTokenAuthentication that)) return false;
-        if (!super.equals(o)) return false; // keep AbstractAuthenticationToken's equality parts
+        if (!super.equals(o)) return false;
         return Objects.equals(this.accessToken, that.accessToken)
                 && Objects.equals(this.idToken, that.idToken);
     }

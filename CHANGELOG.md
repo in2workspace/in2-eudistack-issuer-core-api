@@ -9,13 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Make admin organization identifier configurable (add adminOrganizationId env variable).
 - When fetching procedures, if the authenticated user is an admin, fetch across all organizations.
+- When fetching a procedure, if the authenticated user is an admin, don't restrict by organization.
 - Enable R2DBC auditing to auto-populate `created_at`, `updated_at`, `created_by`, and `updated_by`.
 - Resolve auditing principal from the JWT access token (prefer ID token when available).
 
 ### Changed
+- For Employee and Machine credentials, set the `organization_identifier` field with the mandator email.
 - `updated_at` in `CredentialProcedure` and related entities is now managed automatically by Spring Data (no manual updates).
 - `subject_email` in `CredentialProcedure` and related entities has been renamed to `email`.
-- The 
+- In "activate credential" email Spanish template, replace "Estimado/a ," by "Hola,"
 
 ### Fixed
 - Send signature failure emails to the authenticated requester’s email, not the credential mandator’s updated email.

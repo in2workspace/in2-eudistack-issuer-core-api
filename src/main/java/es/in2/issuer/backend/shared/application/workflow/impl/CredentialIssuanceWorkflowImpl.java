@@ -145,7 +145,7 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
             String processId,
             CredentialRequest credentialRequest,
             String token) {
-        log.info("generateVerifiableCredentialResponse");
+        log.debug("generateVerifiableCredentialResponse");
         return parseAuthServerNonce(token)
                 .flatMap(nonce -> deferredCredentialMetadataService.getDeferredCredentialMetadataByAuthServerNonce(nonce)
                         .flatMap(deferred -> credentialProcedureService.getCredentialProcedureById(deferred.getProcedureId().toString())
@@ -159,7 +159,7 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                     CredentialProcedure proc = tuple4.getT3();
                     String email = proc.getUpdatedBy();
                     CredentialIssuerMetadata md = tuple4.getT4();
-                    log.info("email (from udpatedBy): {}", email);
+                    log.debug("email (from udpatedBy): {}", email);
 
                     Mono<String> subjectDidMono = determineSubjectDid(proc, md, credentialRequest, token);
 
@@ -262,8 +262,6 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
         return switch (operationMode) {
             case ASYNC -> deferredCredentialMetadataService.getProcedureIdByAuthServerNonce(nonce)
                     .flatMap(procId -> {
-                        log.info("handleOperationMode: SYNC");
-
                         Mono<String> emailMono = Mono.fromCallable(() -> {
                             log.debug("Using procedure email for pending notification: {}", credentialProcedure.getEmail());
                             return credentialProcedure.getEmail();

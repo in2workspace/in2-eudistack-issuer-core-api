@@ -40,14 +40,9 @@ public class IssuanceController {
                                               @RequestHeader(name = "X-Id-Token", required = false) String idToken,
                                               @RequestBody PreSubmittedCredentialDataRequest preSubmittedCredentialDataRequest) {
         String processId = UUID.randomUUID().toString();
-        return accessTokenService.getCleanBearerToken(bearerToken).flatMap(
-
-                token -> {
-                    log.info("/vci/v1/issuances");
-                    log.info("/vci/v1/issuances");
-                    return credentialIssuanceWorkflow.execute(processId, preSubmittedCredentialDataRequest, token, idToken);
-                }
-                );
+        return accessTokenService.getCleanBearerToken(bearerToken).flatMap(token ->
+                credentialIssuanceWorkflow.execute(processId, preSubmittedCredentialDataRequest, token, idToken)
+        );
     }
 
 }

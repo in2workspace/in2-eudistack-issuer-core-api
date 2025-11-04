@@ -16,7 +16,7 @@ public final class DualTokenServerAuthenticationConverter implements ServerAuthe
         var request = exchange.getRequest();
         var path = request.getPath();
         var method = request.getMethod();
-        log.debug("CustomAuthenticationWebFilter triggered -> [{} {}]",
+        log.debug("DualTokenServerAuthenticationConverter - convert -> [{} {}]",
                 method,
                 path);
 

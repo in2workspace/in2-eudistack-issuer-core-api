@@ -29,6 +29,7 @@ public class NotificationServiceImpl implements NotificationService {
 
     @Override
     public Mono<Void> sendNotification(String processId, String procedureId) {
+        // TODO this flow doesn't udpate the credential procedure, but we should consider updating the "udpated_by" field for auditing and maybe have the last person to send a reminder to receive the failed signature email
         return credentialProcedureService.getCredentialProcedureById(procedureId)
                         .flatMap(credentialProcedure -> credentialProcedureService.getCredentialOfferEmailInfoByProcedureId(procedureId)
                                 .flatMap(emailCredentialOfferInfo -> {

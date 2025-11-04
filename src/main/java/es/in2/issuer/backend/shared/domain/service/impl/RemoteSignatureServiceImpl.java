@@ -78,7 +78,6 @@ public class RemoteSignatureServiceImpl implements RemoteSignatureService {
     @Override
     //TODO Cuando se implementen los "settings" del issuer, se debe pasar el clientId, secret, etc. como parámetros en lugar de var entorno
     public Mono<SignedData> sign(SignatureRequest signatureRequest, String token, String procedureId, String email) {
-        log.info("RemoteSignatureServiceImpl.sign: {}", token);
         clientId = remoteSignatureConfig.getRemoteSignatureClientId();
         clientSecret = remoteSignatureConfig.getRemoteSignatureClientSecret();
         return Mono.defer(() -> executeSigningFlow(signatureRequest, token)
@@ -538,6 +537,7 @@ public class RemoteSignatureServiceImpl implements RemoteSignatureService {
     public Mono<Void> handlePostRecoverError(String procedureId, String email) {
         log.info("handlePostRecoverError");
         log.info("Received email: {}", email);
+
         UUID id = UUID.fromString(procedureId);
         String domain = appConfig.getIssuerFrontendUrl();
 
@@ -550,8 +550,6 @@ public class RemoteSignatureServiceImpl implements RemoteSignatureService {
         // Update operation mode and status
         Mono<Void> updateOperationMode = cachedProc
                 .flatMap(cp -> {
-                    log.info("organizationIdentifier: {}, updated_by: {}", cp.getOrganizationIdentifier(), cp.getUpdatedBy());
-
                     cp.setOperationMode(ASYNC);
                     cp.setCredentialStatus(CredentialStatusEnum.PEND_SIGNATURE);
                     return credentialProcedureRepository.save(cp)
@@ -575,8 +573,7 @@ public class RemoteSignatureServiceImpl implements RemoteSignatureService {
         Mono<Void> sendEmail = cachedProc.flatMap(cp -> {
             String org = cp.getOrganizationIdentifier();
             String updatedBy = cp.getUpdatedBy();
-            log.info("updatedBy: {}", updatedBy);
-            log.info("email in sendEmail: {}", email);
+            log.debug("updatedBy in procedure: {}", updatedBy);
 
             String targetEmail = (email != null && !email.isBlank()) ? email : updatedBy;
             log.info("Preparing email for org {} (to {})", org, targetEmail);

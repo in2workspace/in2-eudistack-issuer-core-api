@@ -216,32 +216,45 @@ public class JWTServiceImpl implements JWTService {
 
     @Override
     public String resolvePrincipal(Jwt jwt) {
-        log.info("resolvePrincipal - jwt: {}", jwt.getTokenValue());
-        String emailOrSubject = extractMandateeEmail(jwt).orElse(jwt.getSubject());
-        return (emailOrSubject != null && !emailOrSubject.isBlank()) ? emailOrSubject : "anonymous";
+        Optional<String> email = extractMandateeEmail(jwt);
+        log.debug("resolvePrincipal - extracted email: {}", email.orElse("<empty>"));
+
+        String resolved = email
+                .filter(e -> !e.isBlank())
+                .orElse("anonymous");
+
+        log.debug("resolvePrincipal - returning: {}", resolved);
+        return resolved;
     }
 
     @Override
     public Optional<String> extractMandateeEmail(Jwt jwt) {
+        log.debug("Extracting email from JWT");
         Map<String, Object> claims = jwt.getClaims();
 
         // Resolve VC from either 'vc' (object) or 'vc_json' (stringified JSON)
         Map<String, Object> vc = resolveVc(claims);
-        log.info("vc after resolveVc: {}", vc);
 
         Map<String, Object> cs = asMap(vc.get("credentialSubject"));
         Map<String, Object> mandate = asMap(cs.get("mandate"));
         Map<String, Object> mandatee = asMap(mandate.get("mandatee"));
         Object email = mandatee.get("email");
-        log.info("email: {}", email);
+        if (email == null) {
+            email = mandatee.get("emailAddress");
+        }
 
         if (email instanceof String s) {
+            log.debug("Email from the mandatee: {}", email);
             return Optional.of(s);
         }
 
-        // Fallback: top-level "email" in the ID token (your sample has it)
+        // Fallback: top-level "email" (in the ID token)
         Object topEmail = claims.get("email");
+        if (topEmail == null) {
+            topEmail = claims.get("emailAddress");
+        }
         if (topEmail instanceof String s2) {
+            log.debug("Email from top level: {}", topEmail);
             return Optional.of(s2);
         }
 
@@ -258,7 +271,6 @@ public class JWTServiceImpl implements JWTService {
         Object vcJsonObj = claims.get("vc_json");
         if (vcJsonObj instanceof String s && !s.isBlank()) {
             try {
-                // Parse the JSON string into a Map
                 return objectMapper.readValue(s, new com.fasterxml.jackson.core.type.TypeReference<Map<String,Object>>(){});
             } catch (Exception e) {
                 log.warn("Failed to parse vc_json string", e);

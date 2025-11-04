@@ -57,8 +57,6 @@ public class CredentialFactory {
             String format,
             String authServerNonce,
             String email) {
-        log.info("mapCredentialBindIssuerAndUpdateDB");
-        log.info("email: {}", email);
 
         Mono<String> bindMono = switch (credentialType) {
             case LEAR_CREDENTIAL_EMPLOYEE ->
