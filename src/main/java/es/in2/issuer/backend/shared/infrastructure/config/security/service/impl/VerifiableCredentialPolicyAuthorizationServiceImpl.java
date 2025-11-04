@@ -34,6 +34,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
+//fixme: change to accept token that contains a LEAR Credential MAchine in Employee and Machine policies
 @Service
 @Slf4j
 @RequiredArgsConstructor
@@ -224,7 +225,6 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
         return isSignerIssuancePolicyValid(learCredential);
     }
 
-    //fixme: change to accept LEAR Credential Employee
     private boolean isMandatorIssuancePolicyValid(LEARCredential learCredential, JsonNode payload) {
         if (!hasLearCredentialOnboardingExecutePower(extractPowers(learCredential))) {
             return false;

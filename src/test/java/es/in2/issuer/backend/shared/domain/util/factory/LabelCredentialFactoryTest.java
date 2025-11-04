@@ -75,7 +75,7 @@ class LabelCredentialFactoryTest {
                 .thenReturn(labelCredential);
 
         // Match real invocation: (procedureId, LABEL_CREDENTIAL, email="testEmail")
-        when(issuerFactory.createSimpleIssuer(eq(procedureId), eq(testEmail)))
+        when(issuerFactory.createSimpleIssuer(procedureId, testEmail))
                 .thenReturn(Mono.just(SimpleIssuer.builder().id("issuer-id").build()));
 
         when(objectMapper.writeValueAsString(any(LabelCredential.class)))

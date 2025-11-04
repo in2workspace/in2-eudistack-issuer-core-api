@@ -1,6 +1,6 @@
 package es.in2.issuer.backend.backoffice.infrastructure.config.security;
 
-import brave.internal.Nullable;
+import org.springframework.lang.Nullable;
 import es.in2.issuer.backend.shared.domain.service.JWTService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
