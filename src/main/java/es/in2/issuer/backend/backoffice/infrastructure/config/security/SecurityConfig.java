@@ -81,8 +81,8 @@ public class SecurityConfig {
         }
 
         @Override
-        @NonNull
-        public Mono<AbstractAuthenticationToken> convert(Jwt jwt) {
+        @Nullable
+        public Mono<AbstractAuthenticationToken> convert(@NonNull final Jwt jwt) {
             // Resolve principal (prefer mandatee email; fallback to sub)
             String principal = jwtService.resolvePrincipal(jwt);
             log.info("SecurityConfig - JwtToAuthCoverter - convert: extracted principal: {}", principal);
