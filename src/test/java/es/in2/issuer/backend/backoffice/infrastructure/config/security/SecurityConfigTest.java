@@ -92,7 +92,6 @@ class SecurityConfigTest {
 
     @Test
     void convert_shouldUsePrincipalFromService_whenPresent() {
-        // Given a JWT with an email claim (the service decides the principal)
         Map<String, Object> claims = Map.of(
                 "vc", Map.of(
                         "credentialSubject", Map.of(
@@ -104,11 +103,11 @@ class SecurityConfigTest {
         );
         Jwt jwt = buildJwt(claims, "ignored-sub");
 
-        // Mock service to return the email as principal
         when(jwtService.resolvePrincipal(jwt)).thenReturn("bob@example.com");
 
-        SecurityConfig.JwtToAuthConverter converter =
-                new SecurityConfig.JwtToAuthConverter(jwtService);
+        // Use the bean (lambda) instead of the inner class
+        Converter<Jwt, Mono<org.springframework.security.authentication.AbstractAuthenticationToken>> converter =
+                securityConfig.jwtAuthenticationConverter(jwtService);
 
         StepVerifier.create(converter.convert(jwt))
                 .assertNext(auth -> {
@@ -124,11 +123,10 @@ class SecurityConfigTest {
     void convert_shouldFallbackPrincipalFromService_whenNoEmail() {
         Jwt jwt = buildJwt(Collections.emptyMap(), "subject-123");
 
-        // Service decides fallback to subject
         when(jwtService.resolvePrincipal(jwt)).thenReturn("subject-123");
 
-        SecurityConfig.JwtToAuthConverter converter =
-                new SecurityConfig.JwtToAuthConverter(jwtService);
+        Converter<Jwt, Mono<org.springframework.security.authentication.AbstractAuthenticationToken>> converter =
+                securityConfig.jwtAuthenticationConverter(jwtService);
 
         StepVerifier.create(converter.convert(jwt))
                 .assertNext(auth -> assertEquals("subject-123", auth.getName()))
@@ -136,6 +134,7 @@ class SecurityConfigTest {
 
         verify(jwtService).resolvePrincipal(jwt);
     }
+
 
     // --- helper ---
     private UrlBasedCorsConfigurationSource minimalCorsSource() {
