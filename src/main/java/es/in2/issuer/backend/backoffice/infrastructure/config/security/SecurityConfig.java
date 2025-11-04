@@ -1,7 +1,6 @@
 package es.in2.issuer.backend.backoffice.infrastructure.config.security;
 
 import org.springframework.lang.NonNull;
-import org.springframework.lang.Nullable;
 import es.in2.issuer.backend.shared.domain.service.JWTService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -81,7 +80,6 @@ public class SecurityConfig {
         }
 
         @Override
-        @Nullable
         public Mono<AbstractAuthenticationToken> convert(@NonNull final Jwt jwt) {
             // Resolve principal (prefer mandatee email; fallback to sub)
             String principal = jwtService.resolvePrincipal(jwt);
