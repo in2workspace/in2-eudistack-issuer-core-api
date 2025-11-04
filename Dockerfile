@@ -13,7 +13,7 @@ RUN if [ "$SKIP_TESTS" = "true" ]; then \
   fi
 
 # build image
-FROM openjdk:17-alpine
+FROM bellsoft/liberica-openjdk-alpine-musl:17
 RUN addgroup -S nonroot \
     && adduser -S nonroot -G nonroot
 USER nonroot
