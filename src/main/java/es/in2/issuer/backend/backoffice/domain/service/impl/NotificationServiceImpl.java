@@ -42,7 +42,6 @@ public class NotificationServiceImpl implements NotificationService {
                                                                 appConfig.getKnowledgebaseWalletUrl(),
                                                                 emailCredentialOfferInfo.organization()
                                                         ))
-                                                        .then(credentialProcedureService.markUpdatedBy(procedureId, "r.mir.min@gmail.com"))
                                                         .onErrorMap(exception ->
                                                                 new EmailCommunicationException(MAIL_ERROR_COMMUNICATION_EXCEPTION_MESSAGE));
                                             } else if (credentialProcedure.getCredentialStatus().toString().equals(PEND_DOWNLOAD.toString())) {
