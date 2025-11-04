@@ -37,6 +37,8 @@ class VerifiableCredentialServiceImplTest {
     private final String deferredResponseId = "deferred-response-id-456";
     private final String procedureId = "procedure-id-321";
     private final String vcValue = "vc-value-123";
+    private final String testEmail = "test.user@example.com";
+
     @Mock
     private DeferredCredentialMetadataService deferredCredentialMetadataService;
     @Mock
@@ -451,8 +453,8 @@ class VerifiableCredentialServiceImplTest {
 
         when(deferredCredentialMetadataService.updateDeferredCredentialMetadataByAuthServerNonce(authServerNonce))
                 .thenReturn(Mono.just(transactionId));
-        //todo
-        when(credentialFactory.mapCredentialBindIssuerAndUpdateDB(processId, procedureId, bindCredential, credentialType, format, authServerNonce, "")).thenReturn(Mono.empty());
+
+        when(credentialFactory.mapCredentialBindIssuerAndUpdateDB(processId, procedureId, bindCredential, credentialType, format, authServerNonce, testEmail)).thenReturn(Mono.empty());
 
         when(credentialProcedureService.getOperationModeByProcedureId(procedureId))
                 .thenReturn(Mono.just("S"));
@@ -464,7 +466,7 @@ class VerifiableCredentialServiceImplTest {
                 .thenReturn(Mono.just(format));
 
         Mono<CredentialResponse> result = verifiableCredentialServiceImpl.buildCredentialResponse(
-                processId, subjectDid, authServerNonce, token, "");
+                processId, subjectDid, authServerNonce, token, testEmail);
 
         StepVerifier.create(result)
                 .expectNextMatches(response ->
@@ -477,6 +479,7 @@ class VerifiableCredentialServiceImplTest {
         verify(credentialSignerWorkflow, times(1))
                 .signAndUpdateCredentialByProcedureId(BEARER_PREFIX + token, procedureId, JWT_VC);
     }
+}
 
 //    @Test
 //    void generateVerifiableCertification_Success() {
@@ -666,4 +669,3 @@ class VerifiableCredentialServiceImplTest {
 //        verify(credentialProcedureService, never())
 //                .updateDecodedCredentialByProcedureId(any(), any(), any());
 //    }
-}

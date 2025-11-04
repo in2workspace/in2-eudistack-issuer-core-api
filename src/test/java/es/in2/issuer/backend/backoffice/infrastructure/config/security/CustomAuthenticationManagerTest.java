@@ -397,23 +397,14 @@ class CustomAuthenticationManagerTest {
 
     @Test
     void authenticate_withIssuerBackendToken_invalidJwsFormat_throwsBadCredentialsException() {
-        // Force route to issuer backend, but craft a token that breaks JWSObject.parse
-        // Create bogus (non-base64) parts to trigger ParseException in JWSObject.parse
-        String token = "header*.." + "sig*"; // clearly not base64url safe and not three valid parts
-
-        // However, extractIssuer first must succeed to route; so build a separate well-formed token just for issuer extraction
-        // Trick: we cannot; extractIssuer uses the same token. Instead, build a three-part token with malformed parts that break JWS parse,
-        // but still decodable by SignedJWT.parse for issuer extraction. That is tricky. Easiest is to create a valid token for issuer extraction
-        // and then spy manager to jump directly into handleIssuerBackendToken. Since we want to keep it black-box, we will craft a token with proper 'iss'
-        // but make JWSObject.parse fail by using padding/invalid base64 in the signature part while payload/header are fine.
-        String headerJson = "{\"alg\":\"RS256\",\"typ\":\"JWT\"}";
+         String headerJson = "{\"alg\":\"RS256\",\"typ\":\"JWT\"}";
         long now = Instant.now().getEpochSecond();
         String payloadJson = "{\"iss\":\"http://issuer.local\",\"iat\":" + now + ",\"exp\":" + (now + 3600) + "}";
         String header = base64UrlEncode(headerJson);
         String payload = base64UrlEncode(payloadJson);
         // invalid base64url signature (contains '=' in middle and non-url chars to provoke ParseException)
         String badSignature = "bad==signature/with+invalid";
-        token = header + "." + payload + "." + badSignature;
+        String token = header + "." + payload + "." + badSignature;
 
         when(appConfig.getIssuerBackendUrl()).thenReturn("http://issuer.local");
         when(jwtService.validateJwtSignatureReactive(any(JWSObject.class)))
