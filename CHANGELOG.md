@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [v2.1.3](https://github.com/in2workspace/in2-issuer-api/releases/tag/v2.1.3)
 ### Added
+- Make admin organization identifier configurable (add adminOrganizationId env variable).
 - When fetching procedures, if the authenticated user is an admin, fetch across all organizations.
 - Enable R2DBC auditing to auto-populate `created_at`, `updated_at`, `created_by`, and `updated_by`.
 - Resolve auditing principal from the JWT access token (prefer ID token when available).
@@ -14,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - `updated_at` in `CredentialProcedure` and related entities is now managed automatically by Spring Data (no manual updates).
 - `subject_email` in `CredentialProcedure` and related entities has been renamed to `email`.
+- The 
 
 ### Fixed
 - Send signature failure emails to the authenticated requester’s email, not the credential mandator’s updated email.
