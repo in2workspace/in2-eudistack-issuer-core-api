@@ -60,7 +60,6 @@ class LabelCredentialFactoryTest {
 
         String procedureId = "procedure-123";
         String credentialJson = "{\"id\":\"urn:uuid:123\"}";
-        String testEmail = "test@email.com";
 
         LabelCredential labelCredential = LabelCredential.builder()
                 .id("label-1")
@@ -74,14 +73,14 @@ class LabelCredentialFactoryTest {
         when(objectMapper.readValue(credentialJson, LabelCredential.class))
                 .thenReturn(labelCredential);
 
-        // Match real invocation: (procedureId, LABEL_CREDENTIAL, email="testEmail")
-        when(issuerFactory.createSimpleIssuer(eq(procedureId), eq(testEmail)))
+        // Match real invocation: (procedureId, LABEL_CREDENTIAL, email="")
+        when(issuerFactory.createSimpleIssuer(eq(procedureId), eq("")))
                 .thenReturn(Mono.just(SimpleIssuer.builder().id("issuer-id").build()));
 
         when(objectMapper.writeValueAsString(any(LabelCredential.class)))
                 .thenReturn("{\"mocked\": true}");
 
-        Mono<String> result = labelCredentialFactory.mapCredentialAndBindIssuerInToTheCredential(credentialJson, procedureId, testEmail);
+        Mono<String> result = labelCredentialFactory.mapCredentialAndBindIssuerInToTheCredential(credentialJson, procedureId, "");
 
         StepVerifier.create(result)
                 .expectNext("{\"mocked\": true}")

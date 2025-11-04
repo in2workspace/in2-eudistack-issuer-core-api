@@ -1,6 +1,5 @@
 package es.in2.issuer.backend.backoffice.infrastructure.config.security;
 
-import brave.internal.Nullable;
 import es.in2.issuer.backend.shared.domain.service.JWTService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -80,7 +79,6 @@ public class SecurityConfig {
         }
 
         @Override
-        @Nullable // Return may be null according to Converter's contract
         public Mono<AbstractAuthenticationToken> convert(Jwt jwt) {
             // Resolve principal (prefer mandatee email; fallback to sub)
             String principal = jwtService.resolvePrincipal(jwt);
