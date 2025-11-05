@@ -83,4 +83,8 @@ public class AppConfig {
     public String getDefaultLang() {
         return configAdapter.getConfiguration(appProperties.defaultLang());
     }
+
+    public String getAdminOrganizationId() {
+        return configAdapter.getConfiguration(appProperties.adminOrganizationId());
+    }
 }

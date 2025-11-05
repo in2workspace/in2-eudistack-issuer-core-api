@@ -13,7 +13,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -35,23 +35,35 @@ class CredentialProcedureControllerTest {
 
     @Test
     void getAllCredentialProcedures() {
-        //Arrange
+        // Arrange
         String organizationId = "testOrganizationId";
         ProcedureBasicInfo procedureBasicInfo = ProcedureBasicInfo.builder()
                 .procedureId(UUID.randomUUID())
                 .subject("testFullName")
                 .status("testStatus")
-                .updated(new Timestamp(System.currentTimeMillis()))
+                .updated(Instant.now())
+                .organizationIdentifier("id")
                 .build();
-        CredentialProcedures.CredentialProcedure credentialProcedure = new CredentialProcedures.CredentialProcedure(procedureBasicInfo);
-        CredentialProcedures credentialProcedures = CredentialProcedures.builder().credentialProcedures(List.of(credentialProcedure)).build();
-        when(accessTokenService.getOrganizationId(anyString())).thenReturn(Mono.just(organizationId));
-        when(credentialProcedureService.getAllProceduresBasicInfoByOrganizationId(organizationId)).thenReturn(Mono.just(credentialProcedures));
 
-        //Act
-        Mono<CredentialProcedures> result = credentialProcedureController.getAllCredentialProcedures("Bearer testToken");
+        CredentialProcedures.CredentialProcedure credentialProcedure =
+                new CredentialProcedures.CredentialProcedure(procedureBasicInfo);
 
-        //Assert
+        CredentialProcedures credentialProcedures = CredentialProcedures.builder()
+                .credentialProcedures(List.of(credentialProcedure))
+                .build();
+
+        when(accessTokenService.getOrganizationId(anyString()))
+                .thenReturn(Mono.just(organizationId));
+
+        // IMPORTANT: controller calls getAllProceduresVisibleFor(...)
+        when(credentialProcedureService.getAllProceduresVisibleFor(organizationId))
+                .thenReturn(Mono.just(credentialProcedures));
+
+        // Act
+        Mono<CredentialProcedures> result =
+                credentialProcedureController.getAllCredentialProcedures("Bearer testToken");
+
+        // Assert
         StepVerifier.create(result)
                 .assertNext(procedures -> assertEquals(credentialProcedures, procedures))
                 .verifyComplete();
@@ -59,21 +71,27 @@ class CredentialProcedureControllerTest {
 
     @Test
     void getCredentialByProcedureId() {
-        //Arrange
+        // Arrange
         String organizationId = "testOrganizationId";
         String procedureId = "testProcedureId";
+
         CredentialDetails credentialDetails = CredentialDetails.builder()
                 .procedureId(UUID.randomUUID())
                 .lifeCycleStatus("testCredentialStatus")
                 .credential(null)
                 .build();
-        when(accessTokenService.getOrganizationId(anyString())).thenReturn(Mono.just(organizationId));
-        when(credentialProcedureService.getProcedureDetailByProcedureIdAndOrganizationId(organizationId, procedureId)).thenReturn(Mono.just(credentialDetails));
 
-        //Act
-        Mono<CredentialDetails> result = credentialProcedureController.getCredentialByProcedureId("Bearer testToken", procedureId);
+        when(accessTokenService.getOrganizationId(anyString()))
+                .thenReturn(Mono.just(organizationId));
 
-        //Assert
+        when(credentialProcedureService.getProcedureDetailByProcedureIdAndOrganizationId(organizationId, procedureId))
+                .thenReturn(Mono.just(credentialDetails));
+
+        // Act
+        Mono<CredentialDetails> result =
+                credentialProcedureController.getCredentialByProcedureId("Bearer testToken", procedureId);
+
+        // Assert
         StepVerifier.create(result)
                 .assertNext(details -> assertEquals(credentialDetails, details))
                 .verifyComplete();

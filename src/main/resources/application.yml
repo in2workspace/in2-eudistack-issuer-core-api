@@ -133,6 +133,8 @@ app:
   wallet-url:
   # Default language for visible texts (OPTIONAL)
   default-lang: en
+  # The identifier of the admin organization (REQUIRED)
+  admin-organization-id:
 
 azure:
   endpoint: "https://myappconfig.azconfig.io"

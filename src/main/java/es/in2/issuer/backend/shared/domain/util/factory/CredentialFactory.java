@@ -55,18 +55,19 @@ public class CredentialFactory {
             String decodedCredential,
             String credentialType,
             String format,
-            String authServerNonce) {
+            String authServerNonce,
+            String email) {
 
         Mono<String> bindMono = switch (credentialType) {
             case LEAR_CREDENTIAL_EMPLOYEE ->
                     learCredentialEmployeeFactory
-                            .mapCredentialAndBindIssuerInToTheCredential(decodedCredential, procedureId);
+                            .mapCredentialAndBindIssuerInToTheCredential(decodedCredential, procedureId, email);
             case LABEL_CREDENTIAL ->
                     labelCredentialFactory
-                            .mapCredentialAndBindIssuerInToTheCredential(decodedCredential, procedureId);
+                            .mapCredentialAndBindIssuerInToTheCredential(decodedCredential, procedureId, email);
             case LEAR_CREDENTIAL_MACHINE ->
                 learCredentialMachineFactory
-                        .mapCredentialAndBindIssuerInToTheCredential(decodedCredential, procedureId);
+                        .mapCredentialAndBindIssuerInToTheCredential(decodedCredential, procedureId, email);
             default ->
                     Mono.error(new CredentialTypeUnsupportedException(credentialType));
         };

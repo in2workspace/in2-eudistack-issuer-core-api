@@ -51,7 +51,7 @@ public class ActivationCodeWorkflowImpl implements ActivationCodeWorkflow {
                                                                 .then(Mono.defer(() -> credentialOfferService.buildCustomCredentialOffer(
                                                                                 credentialProcedure.getCredentialType(),
                                                                                 preAuthorizedCodeResponse.grants(),
-                                                                                credentialProcedure.getOwnerEmail(),
+                                                                                credentialProcedure.getEmail(),
                                                                                 preAuthorizedCodeResponse.pin()
                                                                         )
                                                                         .flatMap(credentialOfferCacheRepository::saveCustomCredentialOffer)

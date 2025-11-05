@@ -9,7 +9,6 @@ import es.in2.issuer.backend.shared.domain.model.dto.LEARCredentialMachineJwtPay
 import es.in2.issuer.backend.shared.domain.model.dto.credential.DetailedIssuer;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.machine.LEARCredentialMachine;
 import es.in2.issuer.backend.shared.domain.service.AccessTokenService;
-import es.in2.issuer.backend.shared.infrastructure.config.properties.CorsProperties;
 import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -21,9 +20,6 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import java.lang.reflect.Method;
-import java.util.List;
-
-import static es.in2.issuer.backend.shared.domain.util.Constants.LEAR_CREDENTIAL_MACHINE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.mockito.ArgumentMatchers.any;
@@ -66,15 +62,16 @@ class LEARCredentialMachineFactoryTest {
         JsonNode jsonNode = objectMapper.readTree(json);
         LEARCredentialMachine.CredentialSubject.Mandate mockMandate = mock(LEARCredentialMachine.CredentialSubject.Mandate.class);
         LEARCredentialMachine.CredentialSubject.Mandate.Mandatee mockMandatee = mock(LEARCredentialMachine.CredentialSubject.Mandate.Mandatee.class);
-
+        LEARCredentialMachine.CredentialSubject.Mandate.Mandator mockMandator = mock(LEARCredentialMachine.CredentialSubject.Mandate.Mandator.class);
         when(appConfig.getIssuerBackendUrl())
                 .thenReturn("https://issuer-backend");
         when(objectMapper.convertValue(jsonNode, LEARCredentialMachine.CredentialSubject.Mandate.class))
                 .thenReturn(mockMandate);
         when(mockMandate.mandatee()).thenReturn(mockMandatee);
+        when(mockMandate.mandator()).thenReturn(mockMandator);
+        when(mockMandator.organizationIdentifier()).thenReturn("orgId");
 
         when(objectMapper.writeValueAsString(any(LEARCredentialMachine.class))).thenReturn(json);
-        when(accessTokenService.getOrganizationIdFromCurrentSession()).thenReturn(Mono.just("orgId"));
 
         // Act
         Mono<CredentialProcedureCreationRequest> result = learCredentialMachineFactory.mapAndBuildLEARCredentialMachine(jsonNode, "S", "");
@@ -132,7 +129,7 @@ class LEARCredentialMachineFactoryTest {
 
         LEARCredentialMachine baseMachine = mock(LEARCredentialMachine.class);
         when(objectMapper.readValue(decoded, LEARCredentialMachine.class)).thenReturn(baseMachine);
-        when(issuerFactory.createDetailedIssuer(procedureId, LEAR_CREDENTIAL_MACHINE))
+        when(issuerFactory.createDetailedIssuer(procedureId, ""))
                 .thenReturn(Mono.just(detailedIssuer));
 
         // capture the final object being serialized to check the issuer is set
@@ -140,7 +137,7 @@ class LEARCredentialMachineFactoryTest {
         when(objectMapper.writeValueAsString(any(LEARCredentialMachine.class))).thenReturn("{\"ok\":true}");
 
         // Act
-        Mono<String> mono = learCredentialMachineFactory.mapCredentialAndBindIssuerInToTheCredential(decoded, procedureId);
+        Mono<String> mono = learCredentialMachineFactory.mapCredentialAndBindIssuerInToTheCredential(decoded, procedureId, "");
 
         // Assert
         StepVerifier.create(mono)
@@ -150,7 +147,7 @@ class LEARCredentialMachineFactoryTest {
         verify(objectMapper).writeValueAsString(captor.capture());
         LEARCredentialMachine serialized = captor.getValue();
         assertEquals(detailedIssuer, serialized.issuer());
-        verify(issuerFactory).createDetailedIssuer(procedureId, LEAR_CREDENTIAL_MACHINE);
+        verify(issuerFactory).createDetailedIssuer(procedureId, "");
     }
 
     @Test

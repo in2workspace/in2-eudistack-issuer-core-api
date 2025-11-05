@@ -32,7 +32,7 @@ public class CredentialOfferServiceImpl implements CredentialOfferService {
     public Mono<CredentialOfferData> buildCustomCredentialOffer(
             String credentialType,
             Grants grants,
-            String credentialOwnerEmail,
+            String credentialEmail,
             String pin) {
 
         return Mono.defer(() -> {
@@ -54,7 +54,7 @@ public class CredentialOfferServiceImpl implements CredentialOfferService {
 
             CredentialOfferData data = CredentialOfferData.builder()
                     .credentialOffer(offer)
-                    .credentialOwnerEmail(credentialOwnerEmail)
+                    .credentialEmail(credentialEmail)
                     .pin(pin)
                     .build();
 

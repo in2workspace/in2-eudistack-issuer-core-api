@@ -1,5 +1,8 @@
 package es.in2.issuer.backend.backoffice.infrastructure.config.security;
 
+import org.springframework.lang.NonNull;
+import org.springframework.lang.Nullable;
+import es.in2.issuer.backend.shared.domain.service.JWTService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
@@ -7,18 +10,20 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.core.convert.converter.Converter;
+import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.authentication.ReactiveAuthenticationManager;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
 import org.springframework.security.config.web.server.SecurityWebFiltersOrder;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder;
-import org.springframework.security.oauth2.server.resource.web.server.authentication.ServerBearerTokenAuthenticationConverter;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
+import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.server.SecurityWebFilterChain;
 import org.springframework.security.web.server.authentication.AuthenticationWebFilter;
 import org.springframework.security.web.server.authentication.ServerAuthenticationEntryPointFailureHandler;
 import org.springframework.security.web.server.util.matcher.ServerWebExchangeMatchers;
-import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 import static es.in2.issuer.backend.shared.domain.util.EndpointsConstants.*;
@@ -53,19 +58,38 @@ public class SecurityConfig {
                         OID4VCI_CREDENTIAL_PATH,
                         OID4VCI_DEFERRED_CREDENTIAL_PATH)
         );
-        // Configure the Bearer token authentication converter
-        ServerBearerTokenAuthenticationConverter bearerConverter = new ServerBearerTokenAuthenticationConverter() {
-            @Override
-            public Mono<Authentication> convert(ServerWebExchange exchange) {
-                log.debug("CustomAuthenticationWebFilter triggered -> [{} {}]",
-                        exchange.getRequest().getMethod(),
-                        exchange.getRequest().getPath());
-                return super.convert(exchange);
-            }
-        };
-        authenticationWebFilter.setServerAuthenticationConverter(bearerConverter);
+
+        authenticationWebFilter.setServerAuthenticationConverter(new DualTokenServerAuthenticationConverter());
         authenticationWebFilter.setAuthenticationFailureHandler(new ServerAuthenticationEntryPointFailureHandler(entryPoint));
         return authenticationWebFilter;
+    }
+
+
+    @Bean
+    public Converter<Jwt, Mono<AbstractAuthenticationToken>> jwtAuthenticationConverter(
+            JWTService jwtService
+    ) {
+        return new JwtToAuthConverter(jwtService);
+    }
+
+    static final class JwtToAuthConverter implements Converter<Jwt, Mono<AbstractAuthenticationToken>> {
+
+        private final JwtGrantedAuthoritiesConverter authoritiesConverter = new JwtGrantedAuthoritiesConverter();
+        private final JWTService jwtService;
+
+        JwtToAuthConverter(JWTService jwtService) {
+            this.jwtService = jwtService;
+        }
+
+        @Override
+        @SuppressWarnings("java:S2638") // Suppressed: Spring's @Nullable conflicts with package @NonNullApi, but method never returns null
+        public Mono<AbstractAuthenticationToken> convert(Jwt jwt) {
+            // Resolve principal (prefer mandatee email; fallback to sub)
+            String principal = jwtService.resolvePrincipal(jwt);
+            log.info("SecurityConfig - JwtToAuthCoverter - convert: extracted principal: {}", principal);
+            var authorities = authoritiesConverter.convert(jwt);
+            return Mono.just(new JwtAuthenticationToken(jwt, authorities, principal));
+        }
     }
 
     @Bean
@@ -114,7 +138,8 @@ public class SecurityConfig {
     public SecurityWebFilterChain backofficeFilterChain(
             ServerHttpSecurity http,
             ProblemAuthenticationEntryPoint entryPoint,
-            ProblemAccessDeniedHandler deniedH) {
+            ProblemAccessDeniedHandler deniedH,
+            Converter<Jwt, Mono<AbstractAuthenticationToken>> jwtAuthenticationConverter) {
 
         log.debug("backofficeFilterChain - inside");
 
@@ -140,7 +165,11 @@ public class SecurityConfig {
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .authenticationEntryPoint(entryPoint)
-                        .jwt(jwt -> jwt.jwtDecoder(internalJwtDecoder)))
+                        .jwt(jwt -> jwt
+                                .jwtDecoder(internalJwtDecoder)
+                                .jwtAuthenticationConverter(jwtAuthenticationConverter)
+                        )
+                )
                 .exceptionHandling(e -> e
                         .authenticationEntryPoint(entryPoint)
                         .accessDeniedHandler(deniedH)

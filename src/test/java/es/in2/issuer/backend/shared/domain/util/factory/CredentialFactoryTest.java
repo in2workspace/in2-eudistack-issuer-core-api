@@ -131,17 +131,17 @@ class CredentialFactoryTest {
         String format = "format";
         String authServerNonce = "nonce";
 
-        when(learCredentialEmployeeFactory.mapCredentialAndBindIssuerInToTheCredential(decodedCredential, procedureId))
+        when(learCredentialEmployeeFactory.mapCredentialAndBindIssuerInToTheCredential(decodedCredential, procedureId, ""))
                 .thenReturn(Mono.just(boundCredential));
         when(credentialProcedureService.updateDecodedCredentialByProcedureId(procedureId, boundCredential, format))
                 .thenReturn(Mono.empty());
         when(deferredCredentialMetadataService.updateDeferredCredentialByAuthServerNonce(authServerNonce, format))
                 .thenReturn(Mono.empty());
 
-        StepVerifier.create(credentialFactory.mapCredentialBindIssuerAndUpdateDB(processId, procedureId, decodedCredential, LEAR_CREDENTIAL_EMPLOYEE, format, authServerNonce))
+        StepVerifier.create(credentialFactory.mapCredentialBindIssuerAndUpdateDB(processId, procedureId, decodedCredential, LEAR_CREDENTIAL_EMPLOYEE, format, authServerNonce, ""))
                 .verifyComplete();
 
-        verify(learCredentialEmployeeFactory).mapCredentialAndBindIssuerInToTheCredential(decodedCredential, procedureId);
+        verify(learCredentialEmployeeFactory).mapCredentialAndBindIssuerInToTheCredential(decodedCredential, procedureId, "");
         verify(credentialProcedureService).updateDecodedCredentialByProcedureId(procedureId, boundCredential, format);
         verify(deferredCredentialMetadataService).updateDeferredCredentialByAuthServerNonce(authServerNonce, format);
     }
@@ -155,11 +155,11 @@ class CredentialFactoryTest {
         String format = "format";
         String authServerNonce = "nonce";
 
-        StepVerifier.create(credentialFactory.mapCredentialBindIssuerAndUpdateDB(processId, procedureId, decodedCredential, credentialType, format, authServerNonce))
+        StepVerifier.create(credentialFactory.mapCredentialBindIssuerAndUpdateDB(processId, procedureId, decodedCredential, credentialType, format, authServerNonce, ""))
                 .expectError(CredentialTypeUnsupportedException.class)
                 .verify();
 
-        verify(learCredentialEmployeeFactory, never()).mapCredentialAndBindIssuerInToTheCredential(any(), any());
+        verify(learCredentialEmployeeFactory, never()).mapCredentialAndBindIssuerInToTheCredential(any(), any(), any());
         verify(credentialProcedureService, never()).updateDecodedCredentialByProcedureId(any(), any(), any());
         verify(deferredCredentialMetadataService, never()).updateDeferredCredentialMetadataByAuthServerNonce(any());
     }
@@ -172,14 +172,14 @@ class CredentialFactoryTest {
         String format = "format";
         String authServerNonce = "nonce";
 
-        when(learCredentialEmployeeFactory.mapCredentialAndBindIssuerInToTheCredential(decodedCredential, procedureId))
+        when(learCredentialEmployeeFactory.mapCredentialAndBindIssuerInToTheCredential(decodedCredential, procedureId, ""))
                 .thenReturn(Mono.error(new RuntimeException("Binding error")));
 
-        StepVerifier.create(credentialFactory.mapCredentialBindIssuerAndUpdateDB(processId, procedureId, decodedCredential, LEAR_CREDENTIAL_EMPLOYEE, format, authServerNonce))
+        StepVerifier.create(credentialFactory.mapCredentialBindIssuerAndUpdateDB(processId, procedureId, decodedCredential, LEAR_CREDENTIAL_EMPLOYEE, format, authServerNonce, ""))
                 .expectError(RuntimeException.class)
                 .verify();
 
-        verify(learCredentialEmployeeFactory).mapCredentialAndBindIssuerInToTheCredential(decodedCredential, procedureId);
+        verify(learCredentialEmployeeFactory).mapCredentialAndBindIssuerInToTheCredential(decodedCredential, procedureId, "");
         verify(credentialProcedureService, never()).updateDecodedCredentialByProcedureId(any(), any(), any());
         verify(deferredCredentialMetadataService, never()).updateDeferredCredentialMetadataByAuthServerNonce(any());
     }
@@ -193,16 +193,16 @@ class CredentialFactoryTest {
         String format = "format";
         String authServerNonce = "nonce";
 
-        when(learCredentialEmployeeFactory.mapCredentialAndBindIssuerInToTheCredential(decodedCredential, procedureId))
+        when(learCredentialEmployeeFactory.mapCredentialAndBindIssuerInToTheCredential(decodedCredential, procedureId, ""))
                 .thenReturn(Mono.just(boundCredential));
         when(credentialProcedureService.updateDecodedCredentialByProcedureId(procedureId, boundCredential, format))
                 .thenReturn(Mono.error(new RuntimeException("DB Update error")));
 
-        StepVerifier.create(credentialFactory.mapCredentialBindIssuerAndUpdateDB(processId, procedureId, decodedCredential, LEAR_CREDENTIAL_EMPLOYEE, format, authServerNonce))
+        StepVerifier.create(credentialFactory.mapCredentialBindIssuerAndUpdateDB(processId, procedureId, decodedCredential, LEAR_CREDENTIAL_EMPLOYEE, format, authServerNonce, ""))
                 .expectError(RuntimeException.class)
                 .verify();
 
-        verify(learCredentialEmployeeFactory).mapCredentialAndBindIssuerInToTheCredential(decodedCredential, procedureId);
+        verify(learCredentialEmployeeFactory).mapCredentialAndBindIssuerInToTheCredential(decodedCredential, procedureId, "");
         verify(credentialProcedureService).updateDecodedCredentialByProcedureId(procedureId, boundCredential, format);
         verify(deferredCredentialMetadataService).updateDeferredCredentialByAuthServerNonce(authServerNonce, format);
     }

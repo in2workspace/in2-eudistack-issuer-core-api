@@ -11,6 +11,7 @@ import es.in2.issuer.backend.shared.domain.model.entities.DeferredCredentialMeta
 import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum;
 import es.in2.issuer.backend.shared.domain.model.enums.CredentialType;
 import es.in2.issuer.backend.shared.domain.service.*;
+import es.in2.issuer.backend.shared.domain.util.JwtUtils;
 import es.in2.issuer.backend.shared.domain.util.factory.LEARCredentialEmployeeFactory;
 import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
 import es.in2.issuer.backend.shared.infrastructure.config.security.service.VerifiableCredentialPolicyAuthorizationService;
@@ -47,6 +48,7 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
     private final CredentialIssuerMetadataService credentialIssuerMetadataService;
     private final M2MTokenService m2mTokenService;
     private final CredentialDeliveryService credentialDeliveryService;
+    private final JwtUtils jwtUtils;
 
     @Override
     public Mono<Void> execute(String processId, PreSubmittedCredentialDataRequest preSubmittedCredentialDataRequest, String token, String idToken) {
@@ -116,20 +118,20 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
             }
             case LEAR_CREDENTIAL_MACHINE -> {
                 String email;
-                if(preSubmittedCredentialDataRequest.credentialOwnerEmail() == null || preSubmittedCredentialDataRequest.credentialOwnerEmail().isBlank()) {
+                if(preSubmittedCredentialDataRequest.email() == null || preSubmittedCredentialDataRequest.email().isBlank()) {
                     email = payload.get(MANDATOR).get(EMAIL).asText();
                     log.debug("No credential owner email found in presubmitted data. Using mandator email: {}", payload.get(MANDATOR).get(EMAIL).asText());
                 } else {
-                    email = preSubmittedCredentialDataRequest.credentialOwnerEmail();
+                    email = preSubmittedCredentialDataRequest.email();
                 }
                 String org = payload.get(MANDATOR).get(ORGANIZATION).asText();
                 yield new CredentialOfferEmailNotificationInfo(email, org);
             }
             case LABEL_CREDENTIAL -> {
-                    if(preSubmittedCredentialDataRequest.credentialOwnerEmail() == null || preSubmittedCredentialDataRequest.credentialOwnerEmail().isBlank()) {
+                    if(preSubmittedCredentialDataRequest.email() == null || preSubmittedCredentialDataRequest.email().isBlank()) {
                         throw new MissingEmailOwnerException("Email owner email is required for gx:LabelCredential schema");
                     }
-                    String email = preSubmittedCredentialDataRequest.credentialOwnerEmail();
+                    String email = preSubmittedCredentialDataRequest.email();
                 yield new CredentialOfferEmailNotificationInfo(email, DEFAULT_ORGANIZATION_NAME);
             }
             default -> throw new FormatUnsupportedException(
@@ -143,7 +145,7 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
             String processId,
             CredentialRequest credentialRequest,
             String token) {
-
+        log.debug("generateVerifiableCredentialResponse");
         return parseAuthServerNonce(token)
                 .flatMap(nonce -> deferredCredentialMetadataService.getDeferredCredentialMetadataByAuthServerNonce(nonce)
                         .flatMap(deferred -> credentialProcedureService.getCredentialProcedureById(deferred.getProcedureId().toString())
@@ -155,19 +157,21 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                     String nonce = tuple4.getT1();
                     DeferredCredentialMetadata deferredCredentialMetadata = tuple4.getT2();
                     CredentialProcedure proc = tuple4.getT3();
+                    String email = proc.getUpdatedBy();
                     CredentialIssuerMetadata md = tuple4.getT4();
+                    log.debug("email (from udpatedBy): {}", email);
 
                     Mono<String> subjectDidMono = determineSubjectDid(proc, md, credentialRequest, token);
 
                     Mono<CredentialResponse> vcMono = subjectDidMono
                             .flatMap(did ->
                                         verifiableCredentialService.buildCredentialResponse(
-                                                processId, did, nonce, token
+                                                processId, did, nonce, token, email
                                         )
                             )
                             .switchIfEmpty(
                                     verifiableCredentialService.buildCredentialResponse(
-                                            processId, null, nonce, token
+                                            processId, null, nonce, token, email
                                     )
                             );
 
@@ -257,9 +261,18 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
     ) {
         return switch (operationMode) {
             case ASYNC -> deferredCredentialMetadataService.getProcedureIdByAuthServerNonce(nonce)
-                    .flatMap(credentialProcedureService::getSignerEmailFromDecodedCredentialByProcedureId)
-                    .flatMap(email -> emailService.sendPendingCredentialNotification(email, "email.pending-credential")
-                            .thenReturn(cr));
+                    .flatMap(procId -> {
+                        Mono<String> emailMono = Mono.fromCallable(() -> {
+                            log.debug("Using procedure email for pending notification: {}", credentialProcedure.getEmail());
+                            return credentialProcedure.getEmail();
+                        });
+
+                        return emailMono.flatMap(email ->
+                                emailService
+                                        .sendPendingCredentialNotification(email, "email.pending-credential")
+                                        .thenReturn(cr)
+                        );
+                    });
             case SYNC -> deferredCredentialMetadataService.getProcedureIdByAuthServerNonce(nonce)
                     .flatMap(id -> credentialProcedureService.getCredentialStatusByProcedureId(id)
                             .flatMap(status -> {
@@ -294,7 +307,7 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                                                                             deferred.getResponseUri(),
                                                                             encodedCredential,
                                                                             credentialId,
-                                                                            credentialProcedure.getOwnerEmail(),
+                                                                            credentialProcedure.getEmail(),
                                                                             tokenResponse.accessToken()
                                                                     )
                                                             )

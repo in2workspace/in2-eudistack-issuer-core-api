@@ -2,7 +2,7 @@ package es.in2.issuer.backend.shared.domain.model.dto;
 
 import org.junit.jupiter.api.Test;
 
-import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -18,8 +18,9 @@ class CredentialProceduresTest {
                 "John Doe",
                 "LEAR_CREDENTIAL_EMPLOYEE",
                 "In Progress",
-                Timestamp.valueOf("2023-01-01 12:00:00")
-        );
+                Instant.parse("2023-01-01T12:00:00Z"),
+                "or"
+                );
         CredentialProcedures.CredentialProcedure credentialProcedure = new CredentialProcedures.CredentialProcedure(procedureBasicInfo);
         List<CredentialProcedures.CredentialProcedure> expectedCredentialProcedures = List.of(credentialProcedure);
 
@@ -38,7 +39,8 @@ class CredentialProceduresTest {
                 "Jane Doe",
                 "LEAR_CREDENTIAL_EMPLOYEE",
                 "Completed",
-                Timestamp.valueOf("2024-01-01 12:00:00")
+                Instant.parse("2024-01-01T12:00:00Z"),
+                "org"
         );
         CredentialProcedures.CredentialProcedure credentialProcedure = new CredentialProcedures.CredentialProcedure(procedureBasicInfo);
         List<CredentialProcedures.CredentialProcedure> newCredentialProcedures = List.of(credentialProcedure);
@@ -60,7 +62,8 @@ class CredentialProceduresTest {
                 "John Doe",
                 "LEAR_CREDENTIAL_EMPLOYEE",
                 "In Progress",
-                Timestamp.valueOf("2023-01-01 12:00:00")
+                Instant.parse("2023-01-01T12:00:00Z"),
+                "org"
         );
         CredentialProcedures.CredentialProcedure credentialProcedure = new CredentialProcedures.CredentialProcedure(procedureBasicInfo);
         List<CredentialProcedures.CredentialProcedure> expectedCredentialProcedures = List.of(credentialProcedure);

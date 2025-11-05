@@ -20,16 +20,19 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.oauth2.jwt.Jwt;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import java.text.ParseException;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.junit.Assert.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -40,6 +43,7 @@ class JWTServiceImplTest {
 
     @Mock
     private CryptoComponent cryptoComponent;
+
     @InjectMocks
     private JWTServiceImpl jwtService;
 
@@ -211,4 +215,126 @@ class JWTServiceImplTest {
         Assertions.assertEquals("The 'exp' claim is not a valid number in the JWT payload.", exception.getMessage());
     }
 
+    @Test
+    void resolvePrincipal_returnsMandateeEmail_whenPresentInVcObject() {
+        // Build nested VC as object (no vc_json)
+        Map<String, Object> mandatee = new HashMap<>();
+        mandatee.put("email", "mandatee@example.com");
+
+        Map<String, Object> mandate = new HashMap<>();
+        mandate.put("mandatee", mandatee);
+
+        Map<String, Object> credentialSubject = new HashMap<>();
+        credentialSubject.put("mandate", mandate);
+
+        Map<String, Object> vc = new HashMap<>();
+        vc.put("credentialSubject", credentialSubject);
+
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("vc", vc);
+        claims.put("sub", "subject@example.com"); // should be ignored because mandatee email exists
+
+        Jwt jwt = new Jwt(
+                "token",
+                Instant.now(),
+                Instant.now().plusSeconds(3600),
+                Map.of("alg", "none"),
+                claims
+        );
+
+        String principal = jwtService.resolvePrincipal(jwt);
+        assertEquals("mandatee@example.com", principal);
+    }
+
+    @Test
+    void extractMandateeEmail_readsFromVcJson_whenStringifiedJsonProvided() throws Exception {
+        // vc_json string provided by the IDP
+        String vcJson = "{\"credentialSubject\":{\"mandate\":{\"mandatee\":{\"email\":\"from-vcjson@example.com\"}}}}";
+
+        Map<String, Object> parsed = new HashMap<>();
+        Map<String, Object> mandatee = new HashMap<>();
+        mandatee.put("email", "from-vcjson@example.com");
+        Map<String, Object> mandate = new HashMap<>();
+        mandate.put("mandatee", mandatee);
+        Map<String, Object> credentialSubject = new HashMap<>();
+        credentialSubject.put("mandate", mandate);
+        parsed.put("credentialSubject", credentialSubject);
+
+        // Stub ObjectMapper.readValue for vc_json parsing success
+        when(objectMapper.readValue(eq(vcJson), any(TypeReference.class))).thenReturn(parsed);
+
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("vc_json", vcJson);
+
+        Jwt jwt = new Jwt(
+                "token",
+                Instant.now(),
+                Instant.now().plusSeconds(3600),
+                Map.of("alg", "none"),
+                claims
+        );
+
+        Optional<String> email = jwtService.extractMandateeEmail(jwt);
+        assertTrue(email.isPresent());
+        assertEquals("from-vcjson@example.com", email.get());
+    }
+
+    @Test
+    void extractMandateeEmail_fallsBackToTopLevelEmail_whenVcMissing() {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("email", "top@example.com");
+        // no vc, no vc_json
+
+        Jwt jwt = new Jwt(
+                "token",
+                Instant.now(),
+                Instant.now().plusSeconds(3600),
+                Map.of("alg", "none"),
+                claims
+        );
+
+        Optional<String> email = jwtService.extractMandateeEmail(jwt);
+        assertTrue(email.isPresent());
+        assertEquals("top@example.com", email.get());
+    }
+
+    @Test
+    void resolvePrincipal_returnsAnonymous_whenNoEmailsAndSubjectBlank() {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("sub", "   "); // blank subject
+
+        Jwt jwt = new Jwt(
+                "token",
+                Instant.now(),
+                Instant.now().plusSeconds(3600),
+                Map.of("alg", "none"),
+                claims
+        );
+
+        String principal = jwtService.resolvePrincipal(jwt);
+        assertEquals("anonymous", principal);
+    }
+
+    @Test
+    void resolveVc_returnsEmptyMap_whenVcJsonMalformed() throws Exception {
+        String badJson = "{not-a-json";
+        // Force ObjectMapper to throw on malformed JSON
+        when(objectMapper.readValue(eq(badJson), any(TypeReference.class)))
+                .thenThrow(new RuntimeException("boom"));
+
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("vc_json", badJson);
+
+        Jwt jwt = new Jwt(
+                "token",
+                Instant.now(),
+                Instant.now().plusSeconds(3600),
+                Map.of("alg", "none"),
+                claims
+        );
+
+        // With malformed vc_json and no top-level email, extraction should be empty
+        Optional<String> email = jwtService.extractMandateeEmail(jwt);
+        assertTrue(email.isEmpty());
+    }
 }

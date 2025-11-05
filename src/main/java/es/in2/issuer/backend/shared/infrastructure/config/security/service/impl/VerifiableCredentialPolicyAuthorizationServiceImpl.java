@@ -1,6 +1,5 @@
 package es.in2.issuer.backend.shared.infrastructure.config.security.service.impl;
 
-import static es.in2.issuer.backend.backoffice.domain.util.Constants.IN2_ORGANIZATION_IDENTIFIER;
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.LEAR;
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.LEAR_CREDENTIAL_MACHINE;
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.LER;
@@ -9,8 +8,7 @@ import static es.in2.issuer.backend.backoffice.domain.util.Constants.SYS_ADMIN;
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.VC;
 import static es.in2.issuer.backend.shared.domain.util.Constants.LABEL_CREDENTIAL;
 import static es.in2.issuer.backend.shared.domain.util.Constants.LEAR_CREDENTIAL_EMPLOYEE;
-import static es.in2.issuer.backend.shared.domain.util.Utils.extractMandatorLearCredentialEmployee;
-import static es.in2.issuer.backend.shared.domain.util.Utils.extractPowers;
+import static es.in2.issuer.backend.shared.domain.util.Utils.*;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -27,6 +25,7 @@ import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.machine.LEA
 import es.in2.issuer.backend.shared.domain.service.JWTService;
 import es.in2.issuer.backend.shared.domain.service.VerifierService;
 import es.in2.issuer.backend.shared.domain.util.factory.CredentialFactory;
+import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
 import es.in2.issuer.backend.shared.infrastructure.config.security.service.VerifiableCredentialPolicyAuthorizationService;
 import java.util.List;
 import java.util.stream.StreamSupport;
@@ -35,11 +34,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
+//fixme: change to accept token that contains a LEAR Credential MAchine in Employee and Machine policies
 @Service
 @Slf4j
 @RequiredArgsConstructor
 public class VerifiableCredentialPolicyAuthorizationServiceImpl implements VerifiableCredentialPolicyAuthorizationService {
 
+    private final AppConfig appConfig;
     private final JWTService jwtService;
     private final ObjectMapper objectMapper;
     private final CredentialFactory credentialFactory;
@@ -80,12 +81,15 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
             .flatMap(signedJWT -> {
                 String vcClaim = jwtService.getClaimFromPayload(signedJWT.getPayload(), VC);
                 return mapVcToLEARCredential(vcClaim, schema)
-                    .flatMap(learCredential -> switch (schema) {
-                        case LEAR_CREDENTIAL_EMPLOYEE -> authorizeLearCredentialEmployee(learCredential, payload);
-                        case LEAR_CREDENTIAL_MACHINE -> authorizeLearCredentialMachine(learCredential, payload);
-                        case LABEL_CREDENTIAL -> authorizeLabelCredential(learCredential, idToken);
-                        default -> Mono.error(new InsufficientPermissionException("Unauthorized: Unsupported schema"));
-                    });
+                    .flatMap(learCredential ->
+                        switch (schema) {
+                            case LEAR_CREDENTIAL_EMPLOYEE -> authorizeLearCredentialEmployee(learCredential, payload);
+                            case LEAR_CREDENTIAL_MACHINE -> authorizeLearCredentialMachine(learCredential, payload);
+                            case LABEL_CREDENTIAL -> authorizeLabelCredential(learCredential, idToken);
+                            default ->
+                                    Mono.error(new InsufficientPermissionException("Unauthorized: Unsupported schema"));
+                        }
+                    );
             });
     }
 
@@ -174,7 +178,7 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
 
     // It checks if the signer if Mandator is IN2 or if the credential has same organizationIdentifier as the Mandator of the credential.
     private Mono<Void> authorizeLearCredentialEmployee(LEARCredential learCredential, JsonNode payload) {
-        if (isSignerIssuancePolicyValid(learCredential) || isMandatorIssuancePolicyValid(learCredential, payload)) {
+       if (isSignerIssuancePolicyValid(learCredential) || isMandatorIssuancePolicyValid(learCredential, payload)) {
             return Mono.empty();
         }
         return Mono.error(new InsufficientPermissionException("Unauthorized: LEARCredentialEmployee does not meet any issuance policies."));
@@ -194,20 +198,38 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
         return Mono.error(new InsufficientPermissionException("Unauthorized: LEARCredentialMachine does not meet any issuance policies."));
     }
 
-    private boolean isSignerIssuancePolicyValid(LEARCredential learCredential) {
-        return isLearCredentialEmployeeMandatorOrganizationIdentifierAllowedSigner(extractMandatorLearCredentialEmployee(learCredential)) &&
-                hasLearCredentialOnboardingExecutePower(extractPowers(learCredential));
+    // Reads mandator's organizationIdentifier for both Employee and Machine credentials
+    private String resolveMandatorOrgIdentifier(LEARCredential cred) {
+        // Prefer checking by declared "type" to keep it aligned with your existing logic
+        if (cred.type() != null && cred.type().contains(LEAR_CREDENTIAL_MACHINE)) {
+            // Machine mandator type: LEARCredentialMachine.CredentialSubject.Mandate.Mandator
+            var m = extractMandatorLearCredentialMachine(cred);
+            return (m != null) ? m.organizationIdentifier() : null;
+        } else {
+            // Employee mandator type: es.in2.issuer.backend.shared.domain.model.dto.credential.lear.Mandator
+            var m = extractMandatorLearCredentialEmployee(cred);
+            return (m != null) ? m.organizationIdentifier() : null;
+        }
     }
 
+// Checks if signer is IN2 and has Onboarding/Execute power
+    private boolean isSignerIssuancePolicyValid(LEARCredential learCredential) {
+
+        final String orgId = resolveMandatorOrgIdentifier(learCredential);
+        return appConfig.getAdminOrganizationId().equals(orgId)
+                && hasLearCredentialOnboardingExecutePower(extractPowers(learCredential));
+    }
+
+    // For machine we reutilize the same logic
     private boolean isSignerIssuancePolicyValidLEARCredentialMachine(LEARCredential learCredential) {
-        return isLearCredentialEmployeeMandatorOrganizationIdentifierAllowedSignerLEARCredentialMachine(extractMandatorLearCredentialEmployee(learCredential)) &&
-                hasLearCredentialOnboardingExecutePower(extractPowers(learCredential));
+        return isSignerIssuancePolicyValid(learCredential);
     }
 
     private boolean isMandatorIssuancePolicyValid(LEARCredential learCredential, JsonNode payload) {
         if (!hasLearCredentialOnboardingExecutePower(extractPowers(learCredential))) {
             return false;
         }
+
         LEARCredentialEmployee.CredentialSubject.Mandate mandate = objectMapper.convertValue(payload, LEARCredentialEmployee.CredentialSubject.Mandate.class);
         return mandate != null &&
                 mandate.mandator().equals(extractMandatorLearCredentialEmployee(learCredential)) &&
@@ -280,6 +302,7 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
     }
 
     private boolean hasLearCredentialOnboardingExecutePower(List<Power> powers) {
+
         return powers.stream().anyMatch(this::isOnboardingFunction) &&
                 powers.stream().anyMatch(this::hasExecuteAction);
     }
@@ -292,14 +315,6 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
         return power.action() instanceof List<?> actions ?
                 actions.stream().anyMatch(action -> "Execute".equals(action.toString())) :
                 "Execute".equals(power.action().toString());
-    }
-
-    private boolean isLearCredentialEmployeeMandatorOrganizationIdentifierAllowedSigner(Mandator mandator) {
-        return IN2_ORGANIZATION_IDENTIFIER.equals(mandator.organizationIdentifier());
-    }
-
-    private boolean isLearCredentialEmployeeMandatorOrganizationIdentifierAllowedSignerLEARCredentialMachine(Mandator mandator) {
-        return IN2_ORGANIZATION_IDENTIFIER.equals(mandator.organizationIdentifier());
     }
 
     private boolean payloadPowersOnlyIncludeProductOffering(List<Power> powers) {

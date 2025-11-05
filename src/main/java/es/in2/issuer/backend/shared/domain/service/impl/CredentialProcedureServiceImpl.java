@@ -12,10 +12,12 @@ import es.in2.issuer.backend.shared.domain.model.dto.*;
 import es.in2.issuer.backend.shared.domain.model.entities.CredentialProcedure;
 import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum;
 import es.in2.issuer.backend.shared.domain.service.CredentialProcedureService;
+import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
 import es.in2.issuer.backend.shared.infrastructure.repository.CredentialProcedureRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -32,6 +34,7 @@ import static es.in2.issuer.backend.shared.domain.util.Constants.*;
 @Slf4j
 public class CredentialProcedureServiceImpl implements CredentialProcedureService {
 
+    private final AppConfig appConfig;
     private static final String UPDATED_CREDENTIAL = "Updated credential";
     private final CredentialProcedureRepository credentialProcedureRepository;
     private final ObjectMapper objectMapper;
@@ -45,10 +48,9 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
                 .credentialType(credentialProcedureCreationRequest.credentialType().toString())
                 .subject(credentialProcedureCreationRequest.subject())
                 .validUntil(credentialProcedureCreationRequest.validUntil())
-                .updatedAt(new Timestamp(Instant.now().toEpochMilli()))
                 .operationMode(credentialProcedureCreationRequest.operationMode())
                 .signatureMode("remote")
-                .ownerEmail(credentialProcedureCreationRequest.ownerEmail())
+                .email(credentialProcedureCreationRequest.email())
                 .build();
         return credentialProcedureRepository.save(credentialProcedure)
                 .map(savedCredentialProcedure -> savedCredentialProcedure.getProcedureId().toString())
@@ -87,6 +89,19 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
                 return Mono.error(new ParseCredentialJsonException("Error parsing credential JSON"));
             }
         });
+    }
+
+    public JsonNode getCredentialNodeSync(CredentialProcedure credentialProcedure) throws ParseCredentialJsonException{
+        log.info("getCredentialNodeSync");
+        if (credentialProcedure == null || credentialProcedure.getCredentialDecoded() == null) {
+            throw new ParseCredentialJsonException("CredentialProcedure or credentialDecoded is null");
+        }
+
+        try {
+            return objectMapper.readTree(credentialProcedure.getCredentialDecoded());
+        } catch (JsonProcessingException e) {
+            throw new ParseCredentialJsonException("Error parsing credential JSON");
+        }
     }
 
     public Mono<String> getCredentialId(CredentialProcedure credentialProcedure) {
@@ -129,7 +144,6 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
                     credentialProcedure.setCredentialDecoded(credential);
                     credentialProcedure.setCredentialStatus(CredentialStatusEnum.ISSUED);
                     credentialProcedure.setCredentialFormat(format);
-                    credentialProcedure.setUpdatedAt(new Timestamp(Instant.now().toEpochMilli()));
 
                     return credentialProcedureRepository.save(credentialProcedure)
                             .doOnSuccess(result -> log.info(UPDATED_CREDENTIAL))
@@ -143,7 +157,6 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
                 .flatMap(credentialProcedure -> {
                     credentialProcedure.setCredentialDecoded(credential);
                     credentialProcedure.setCredentialStatus(CredentialStatusEnum.ISSUED);
-                    credentialProcedure.setUpdatedAt(new Timestamp(Instant.now().toEpochMilli()));
 
                     return credentialProcedureRepository.save(credentialProcedure)
                             .doOnSuccess(result -> log.info(UPDATED_CREDENTIAL))
@@ -169,52 +182,6 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
         return credentialProcedureRepository.findCredentialStatusByProcedureId(UUID.fromString(procedureId));
     }
 
-    //TODO Ajustar estos if-else cuando quede claro que hacer con el mail de jesús y cuando la learemployee v1 ya no exista y el de la certificación arreglarlo
-    @Override
-    public Mono<String> getSignerEmailFromDecodedCredentialByProcedureId(String procedureId) {
-        return credentialProcedureRepository.findByProcedureId(UUID.fromString(procedureId))
-                .flatMap(credentialProcedure -> {
-                    try {
-                        JsonNode credential = objectMapper.readTree(credentialProcedure.getCredentialDecoded());
-                        return switch (credentialProcedure.getCredentialType()) {
-                            case LEAR_CREDENTIAL_EMPLOYEE_CREDENTIAL_TYPE -> {
-                                if (credential.has(VC)) {
-                                    JsonNode vcNode = credential.get(VC);
-                                    JsonNode mandateNode = vcNode.get(CREDENTIAL_SUBJECT).get(MANDATE);
-                                    if (mandateNode.has(SIGNER)) {
-                                    // todo remove signer references
-                                        yield Mono.just(mandateNode.get(SIGNER).get(EMAIL_ADDRESS).asText());
-                                    } else {
-                                    // todo getting the email from the mandator is not correct when issuing a credential "as signer" = when the mandator email is not the "issuer person" issuing the credential
-                                        yield Mono.just(mandateNode.get(MANDATOR).get(EMAIL).asText());
-                                    }
-                                } else {
-                                    JsonNode mandatorEmailNode = credential.get(CREDENTIAL_SUBJECT).get(MANDATE).get(MANDATOR).get(EMAIL);
-                                    String email = mandatorEmailNode.asText();
-                                    yield Mono.just(email.equals("jesus.ruiz@in2.es") ? "domesupport@in2.es" : email);
-                                }
-                            }
-                            case LABEL_CREDENTIAL_TYPE -> Mono.just("domesupport@in2.es");
-
-                            case LEAR_CREDENTIAL_MACHINE_TYPE ->
-                                Mono.just(credential
-                                        .get(CREDENTIAL_SUBJECT)
-                                        .get(MANDATE)
-                                        .get(MANDATOR)
-                                        .get(EMAIL)
-                                        .asText());
-
-
-                            default ->
-                                    Mono.error(new IllegalArgumentException("Unsupported credential type: " + credentialProcedure.getCredentialType()));
-                        };
-                    } catch (JsonProcessingException e) {
-                        return Mono.error(new RuntimeException());
-                    }
-
-                });
-    }
-
     @Override
     public Flux<String> getAllIssuedCredentialByOrganizationIdentifier(String organizationIdentifier) {
         return credentialProcedureRepository.findByCredentialStatusAndOrganizationIdentifier(CredentialStatusEnum.ISSUED, organizationIdentifier)
@@ -222,9 +189,16 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
     }
 
     @Override
-    public Mono<CredentialDetails> getProcedureDetailByProcedureIdAndOrganizationId(String
-                                                                                            organizationIdentifier, String procedureId) {
-        return credentialProcedureRepository.findByProcedureIdAndOrganizationIdentifier(UUID.fromString(procedureId), organizationIdentifier)
+    public Mono<CredentialDetails> getProcedureDetailByProcedureIdAndOrganizationId(String organizationIdentifier, String procedureId) {
+        Mono<CredentialProcedure> credentialProcedureMono;
+        log.info("getProcedureDetailByProcedureIdAndOrganizationId");
+        if(appConfig.getAdminOrganizationId().equals(organizationIdentifier)){
+            log.info("User is admin.");
+            credentialProcedureMono = credentialProcedureRepository.findByProcedureId(UUID.fromString(procedureId));
+        }else{
+            credentialProcedureMono = credentialProcedureRepository.findByProcedureIdAndOrganizationIdentifier(UUID.fromString(procedureId), organizationIdentifier);
+        }
+        return credentialProcedureMono
                 .switchIfEmpty(Mono.error(new NoCredentialFoundException("No credential found for procedureId: " + procedureId)))
                 .flatMap(credentialProcedure -> {
                     try {
@@ -235,6 +209,7 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
                                 .operationMode(credentialProcedure.getOperationMode())
                                 .signatureMode(credentialProcedure.getSignatureMode())
                                 .credential(objectMapper.readTree(credentialProcedure.getCredentialDecoded()))
+                                .email(credentialProcedure.getEmail())
                                 .build());
                     } catch (JsonProcessingException e) {
                         log.warn(PARSING_CREDENTIAL_ERROR_MESSAGE, e);
@@ -271,7 +246,6 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
     public Mono<Void> updateCredentialProcedureCredentialStatusToRevoke(CredentialProcedure
                                                                                 credentialProcedure) {
         credentialProcedure.setCredentialStatus(CredentialStatusEnum.REVOKED);
-        credentialProcedure.setUpdatedAt(Timestamp.from(Instant.now()));
         return credentialProcedureRepository.save(credentialProcedure)
                 .doOnSuccess(result -> log.info(UPDATED_CREDENTIAL))
                 .then();
@@ -281,22 +255,61 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
     public Mono<CredentialProcedures> getAllProceduresBasicInfoByOrganizationId(String
                                                                                         organizationIdentifier) {
         return credentialProcedureRepository.findAllByOrganizationIdentifier(organizationIdentifier)
-                .flatMap(credentialProcedure ->
-                        getCredentialTypeByProcedureId(String.valueOf(credentialProcedure.getProcedureId()))
-                                .flatMap(credentialType ->
-                                        Mono.just(ProcedureBasicInfo.builder()
-                                                .procedureId(credentialProcedure.getProcedureId())
-                                                .subject(credentialProcedure.getSubject())
-                                                .credentialType(credentialProcedure.getCredentialType())
-                                                .status(String.valueOf(credentialProcedure.getCredentialStatus()))
-                                                .updated(credentialProcedure.getUpdatedAt())
-                                                .build())))
+                .map(cp -> {
+                    try {
+                        return toProcedureBasicInfo(cp);
+                    } catch (ParseCredentialJsonException e) {
+                        throw Exceptions.propagate(e);
+                    }
+                })
                 .map(procedureBasicInfo ->
                         CredentialProcedures.CredentialProcedure.builder()
                                 .credentialProcedure(procedureBasicInfo)
                                 .build())
                 .collectList()
                 .map(CredentialProcedures::new);
+    }
+
+    @Override
+    public Mono<CredentialProcedures> getAllProceduresVisibleFor(String organizationIdentifier) {
+        if (appConfig.getAdminOrganizationId().equals(organizationIdentifier)) {
+            return getAllProceduresBasicInfoForAllOrganizations();
+        }
+        return getAllProceduresBasicInfoByOrganizationId(organizationIdentifier);
+    }
+
+    /** Reads all procedures across all orgs, ordered by updated_at DESC. */
+    private Mono<CredentialProcedures> getAllProceduresBasicInfoForAllOrganizations() {
+        return credentialProcedureRepository.findAllOrderByUpdatedDesc()
+                .map(cp -> {
+                    try {
+                        return toProcedureBasicInfo(cp);
+                    } catch (ParseCredentialJsonException e) {
+                        throw Exceptions.propagate(e);
+                    }
+                })
+                .map(procedureBasicInfo -> CredentialProcedures.CredentialProcedure.builder()
+                        .credentialProcedure(procedureBasicInfo)
+                        .build())
+                .collectList()
+                .map(CredentialProcedures::new);
+    }
+
+    private ProcedureBasicInfo toProcedureBasicInfo(CredentialProcedure cp) throws ParseCredentialJsonException{
+        try {
+            objectMapper.readTree(cp.getCredentialDecoded());
+        } catch (JsonProcessingException e) {
+            throw new ParseCredentialJsonException("Invalid credential JSON");
+        }
+
+        return ProcedureBasicInfo.builder()
+                .procedureId(cp.getProcedureId())
+                .subject(cp.getSubject())
+                .credentialType(cp.getCredentialType())
+                .status(String.valueOf(cp.getCredentialStatus()))
+                .organizationIdentifier(cp.getOrganizationIdentifier())
+                .updated(cp.getUpdatedAt())
+                .build();
     }
 
     @Override
@@ -316,8 +329,7 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
     }
 
     @Override
-    public Mono<CredentialOfferEmailNotificationInfo> getCredentialOfferEmailInfoByProcedureId(String
-                                                                                                       procedureId) {
+    public Mono<CredentialOfferEmailNotificationInfo> getCredentialOfferEmailInfoByProcedureId(String procedureId) {
         return credentialProcedureRepository
                 .findByProcedureId(UUID.fromString(procedureId))
                 .flatMap(credentialProcedure ->
@@ -333,7 +345,7 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
                                                 .get(ORGANIZATION)
                                                 .asText();
                                         return new CredentialOfferEmailNotificationInfo(
-                                                credentialProcedure.getOwnerEmail(),
+                                                credentialProcedure.getEmail(),
                                                 org
                                         );
                                     })
@@ -353,7 +365,7 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
                                         String org = mandator
                                                 .get(ORGANIZATION)
                                                 .asText();
-                                        String email = credentialProcedure.getOwnerEmail();
+                                        String email = credentialProcedure.getEmail();
                                         return new CredentialOfferEmailNotificationInfo(
                                                 email,
                                                 org
@@ -366,7 +378,7 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
                                     );
                             case LABEL_CREDENTIAL_TYPE -> Mono.just(
                                     new CredentialOfferEmailNotificationInfo(
-                                            credentialProcedure.getOwnerEmail(),
+                                            credentialProcedure.getEmail(),
                                             DEFAULT_ORGANIZATION_NAME
                                     )
                             );

@@ -13,7 +13,7 @@ RUN if [ "$SKIP_TESTS" = "true" ]; then \
   fi
 
 # build image
-FROM openjdk:17-alpine
+FROM eclipse-temurin:17-jdk-alpine
 RUN addgroup -S nonroot \
     && adduser -S nonroot -G nonroot
 USER nonroot

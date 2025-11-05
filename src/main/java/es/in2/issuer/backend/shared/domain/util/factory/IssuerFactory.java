@@ -1,5 +1,6 @@
 package es.in2.issuer.backend.shared.domain.util.factory;
 
+import brave.internal.Nullable;
 import es.in2.issuer.backend.shared.domain.exception.RemoteSignatureException;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.DetailedIssuer;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.SimpleIssuer;
@@ -14,6 +15,7 @@ import reactor.util.retry.Retry;
 
 import java.time.Duration;
 import java.util.Date;
+import java.util.Optional;
 
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.*;
 import static es.in2.issuer.backend.shared.domain.util.Constants.LABEL_CREDENTIAL;
@@ -28,18 +30,18 @@ public class IssuerFactory {
     private final DefaultSignerConfig    defaultSignerConfig;
     private final RemoteSignatureServiceImpl remoteSignatureServiceImpl;
 
-    public Mono<DetailedIssuer> createDetailedIssuer(String procedureId, String credentialType) {
+    public Mono<DetailedIssuer> createDetailedIssuer(String procedureId, String email) {
         log.debug("🔐: createDetailedIssuer");
         return isServerMode()
                 ? Mono.just(buildLocalDetailedIssuer())
-                : createRemoteDetailedIssuer(procedureId, credentialType);
+                : createRemoteDetailedIssuer(procedureId, email);
     }
 
-    public Mono<SimpleIssuer> createSimpleIssuer(String procedureId, String credentialType) {
+    public Mono<SimpleIssuer> createSimpleIssuer(String procedureId, String email) {
         log.debug("🔐: createSimpleIssuer");
         return isServerMode()
                 ? Mono.just(buildLocalSimpleIssuer())
-                : createRemoteDetailedIssuer(procedureId, credentialType)
+                : createRemoteDetailedIssuer(procedureId, email)
                 .map(detailed -> SimpleIssuer.builder()
                         .id(detailed.getId())
                         .build());
@@ -66,7 +68,7 @@ public class IssuerFactory {
                 .build();
     }
 
-    private Mono<DetailedIssuer> createRemoteDetailedIssuer(String procedureId, String credentialType) {
+    private Mono<DetailedIssuer> createRemoteDetailedIssuer(String procedureId, @Nullable String email) {
         log.debug("🔐: createRemoteDetailedIssuer");
         return Mono.defer(() ->
                         remoteSignatureServiceImpl.validateCredentials()
@@ -88,7 +90,7 @@ public class IssuerFactory {
                 )
                 .onErrorResume(err -> {
                     log.error("Error during remote issuer creation at {}: {}", new Date(), err.getMessage());
-                    return remoteSignatureServiceImpl.handlePostRecoverError(procedureId)
+                    return remoteSignatureServiceImpl.handlePostRecoverError(procedureId, email)
                             .then(Mono.empty());
                 });
     }

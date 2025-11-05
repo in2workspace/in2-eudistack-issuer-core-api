@@ -23,6 +23,7 @@ import org.bouncycastle.jce.spec.ECNamedCurveParameterSpec;
 import org.bouncycastle.jce.spec.ECNamedCurveSpec;
 import org.bouncycastle.math.ec.ECCurve;
 import org.bouncycastle.math.ec.custom.sec.SecP256R1Curve;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
@@ -34,7 +35,9 @@ import java.security.spec.ECPoint;
 import java.security.spec.ECPublicKeySpec;
 import java.text.ParseException;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.DID_KEY;
 
@@ -209,5 +212,84 @@ public class JWTServiceImpl implements JWTService {
         } else {
             throw new JWTClaimMissingException("The 'exp' claim is not a valid number in the JWT payload.");
         }
+    }
+
+    @Override
+    public String resolvePrincipal(Jwt jwt) {
+        Optional<String> email = extractMandateeEmail(jwt);
+        log.debug("resolvePrincipal - extracted email: {}", email.orElse("<empty>"));
+
+        String resolved = email
+                .filter(e -> !e.isBlank())
+                .orElse("anonymous");
+
+        log.debug("resolvePrincipal - returning: {}", resolved);
+        return resolved;
+    }
+
+    @Override
+    public Optional<String> extractMandateeEmail(Jwt jwt) {
+        log.debug("Extracting email from JWT");
+        Map<String, Object> claims = jwt.getClaims();
+
+        // Resolve VC from either 'vc' (object) or 'vc_json' (stringified JSON)
+        Map<String, Object> vc = resolveVc(claims);
+
+        Map<String, Object> cs = asMap(vc.get("credentialSubject"));
+        Map<String, Object> mandate = asMap(cs.get("mandate"));
+        Map<String, Object> mandatee = asMap(mandate.get("mandatee"));
+        Object email = mandatee.get("email");
+        if (email == null) {
+            email = mandatee.get("emailAddress");
+        }
+
+        if (email instanceof String s) {
+            log.debug("Email from the mandatee: {}", email);
+            return Optional.of(s);
+        }
+
+        // Fallback: top-level "email" (in the ID token)
+        Object topEmail = claims.get("email");
+        if (topEmail == null) {
+            topEmail = claims.get("emailAddress");
+        }
+        if (topEmail instanceof String s2) {
+            log.debug("Email from top level: {}", topEmail);
+            return Optional.of(s2);
+        }
+
+        return Optional.empty();
+    }
+
+    /** Extract VC as a Map from either 'vc' or 'vc_json' (string). */
+    private Map<String, Object> resolveVc(Map<String, Object> claims) {
+        Object vcObj = claims.get("vc");
+        if (vcObj instanceof Map<?, ?>) {
+            return asMap(vcObj);
+        }
+
+        Object vcJsonObj = claims.get("vc_json");
+        if (vcJsonObj instanceof String s && !s.isBlank()) {
+            try {
+                return objectMapper.readValue(s, new com.fasterxml.jackson.core.type.TypeReference<Map<String,Object>>(){});
+            } catch (Exception e) {
+                log.warn("Failed to parse vc_json string", e);
+                return Map.of();
+            }
+        }
+        // In case the IDP already places vc_json as an object
+        return asMap(vcJsonObj);
+    }
+
+    // --- helpers ---
+
+    /** Defensive map casting to avoid ClassCastException. */
+    private Map<String, Object> asMap(Object v) {
+        if (v instanceof Map<?, ?> m) {
+            Map<String, Object> safe = new HashMap<>();
+            m.forEach((k, val) -> { if (k instanceof String s) safe.put(s, val); });
+            return safe;
+        }
+        return Map.of();
     }
 }

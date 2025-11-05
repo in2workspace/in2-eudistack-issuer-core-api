@@ -2,7 +2,7 @@ package es.in2.issuer.backend.shared.domain.model.dto;
 
 import org.junit.jupiter.api.Test;
 
-import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -16,7 +16,8 @@ class ProcedureBasicInfoTest {
         String expectedSubject = "John Doe";
         String expectedStatus = "In Progress";
         String expectedCredentialType = "LEAR_CREDENTIAL_EMPLOYEE";
-        Timestamp timestamp = Timestamp.valueOf("2023-01-01 12:00:00");
+        Instant timestamp = Instant.parse("2023-01-01T12:00:00Z");
+        String organizationIdentifier = "ORG";
 
         // Act
         ProcedureBasicInfo procedureBasicInfo = new ProcedureBasicInfo(
@@ -24,7 +25,8 @@ class ProcedureBasicInfoTest {
                 expectedSubject,
                 expectedCredentialType,
                 expectedStatus,
-                timestamp
+                timestamp,
+                organizationIdentifier
         );
 
         // Assert
@@ -41,8 +43,9 @@ class ProcedureBasicInfoTest {
         UUID uuid = UUID.randomUUID();
         String newSubject = "Jane Doe";
         String newStatus = "Completed";
-        Timestamp timestamp = Timestamp.valueOf("2024-01-01 12:00:00");
+        Instant timestamp = Instant.parse("2024-01-01T12:00:00Z");
         String newCredentialType = "VERIFIABLE_CERTIFICATION";
+        String orgId = "VATES-AAAAAA";
 
         // Act
         ProcedureBasicInfo procedureBasicInfo = ProcedureBasicInfo.builder()
@@ -51,6 +54,7 @@ class ProcedureBasicInfoTest {
                 .status(newStatus)
                 .updated(timestamp)
                 .credentialType(newCredentialType)
+                .organizationIdentifier(orgId)
                 .build();
 
         // Assert
@@ -67,22 +71,24 @@ class ProcedureBasicInfoTest {
         UUID uuid = UUID.randomUUID();
         String expectedFullName = "John Doe";
         String expectedStatus = "In Progress";
-        Timestamp timestamp = Timestamp.valueOf("2023-01-01 12:00:00");
+        Instant timestamp = Instant.parse("2023-01-01T12:00:00Z");
         String expectedCredentialType = "LEAR_CREDENTIAL_EMPLOYEE";
+        String organizationIdentifier = "VATES-AAAAAA";
 
         ProcedureBasicInfo procedureBasicInfo1 = new ProcedureBasicInfo(
                 uuid,
                 expectedFullName,
                 expectedCredentialType,
                 expectedStatus,
-                timestamp
-        );
+                timestamp,
+                organizationIdentifier        );
         ProcedureBasicInfo procedureBasicInfo2 = new ProcedureBasicInfo(
                 uuid,
                 expectedFullName,
                 expectedCredentialType,
                 expectedStatus,
-                timestamp
+                timestamp,
+                organizationIdentifier
         );
 
         // Assert

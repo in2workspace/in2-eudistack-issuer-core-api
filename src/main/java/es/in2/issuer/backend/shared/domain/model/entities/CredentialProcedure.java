@@ -3,11 +3,12 @@ package es.in2.issuer.backend.shared.domain.model.entities;
 import brave.internal.Nullable;
 import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum;
 import lombok.*;
-import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.*;
 import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
 
 import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.UUID;
 
 @Getter
@@ -37,9 +38,6 @@ public class CredentialProcedure {
     @Column("organization_identifier")
     private String organizationIdentifier;
 
-    @Column("updated_at")
-    private Timestamp updatedAt;
-
     @Column("subject")
     @Nullable
     private String subject;
@@ -56,6 +54,24 @@ public class CredentialProcedure {
     @Column("signature_mode")
     private String signatureMode;
 
-    @Column("owner_email")
-    private String ownerEmail;
+    @Column("email")
+    private String email;
+
+    // --- Auditing fields (R2DBC auditing will fill these) ---
+    @CreatedDate
+    @Column("created_at")
+    private Instant createdAt;
+
+    @LastModifiedDate
+    @Column("updated_at")
+    private Instant updatedAt;
+
+    @CreatedBy
+    @Column("created_by")
+    private String createdBy;
+
+    @LastModifiedBy
+    @Column("updated_by")
+    private String updatedBy;
+    // --------------------------------------------------------
 }

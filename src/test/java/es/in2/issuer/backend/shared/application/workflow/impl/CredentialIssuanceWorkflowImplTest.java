@@ -544,7 +544,7 @@ class CredentialIssuanceWorkflowImplTest {
     //    }
 
     @Test
-    void completeWithdrawLEARMachineProcessUsesOwnerEmailWhenProvided() throws Exception {
+    void completeWithdrawLEARMachineProcessUsesEmailWhenProvided() throws Exception {
         // given
         String processId = "1234";
         String schema = "LEARCredentialMachine";
@@ -552,7 +552,7 @@ class CredentialIssuanceWorkflowImplTest {
         String idToken = null;
 
         // owner email comes from the request and must take precedence over mandator.email
-        String ownerEmail = "owner.override@in2.es";
+        String email = "owner.override@in2.es";
         String mandatorEmail = "mandator@in2.es";
         String name = "Robot 3000";
         String org  = "IN2 Machines";
@@ -579,20 +579,20 @@ class CredentialIssuanceWorkflowImplTest {
                         .schema(schema)
                         .format(JWT_VC_JSON)
                         .operationMode("S")
-                        .credentialOwnerEmail(ownerEmail) // <- important for the test
+                        .email(email) // <- important for the test
                         .build();
 
         when(verifiableCredentialPolicyAuthorizationService.authorize(token, schema, payload, idToken))
                 .thenReturn(Mono.empty());
 
-        when(verifiableCredentialService.generateVc(processId, req, ownerEmail))
+        when(verifiableCredentialService.generateVc(processId, req, email))
                 .thenReturn(Mono.just(transactionCode));
 
         when(appConfig.getIssuerFrontendUrl()).thenReturn(issuerUiExternalDomain);
         when(appConfig.getKnowledgebaseWalletUrl()).thenReturn(knowledgebaseWalletUrl);
 
         when(emailService.sendCredentialActivationEmail(
-                ownerEmail,
+                email,
                 "email.activation.subject",
                 issuerUiExternalDomain + "/credential-offer?transaction_code=" + transactionCode,
                 knowledgebaseWalletUrl,
@@ -603,9 +603,9 @@ class CredentialIssuanceWorkflowImplTest {
         StepVerifier.create(verifiableCredentialIssuanceWorkflow.execute(processId, req, token, idToken))
                 .verifyComplete();
 
-        // and we explicitly verify that ownerEmail was used
+        // and we explicitly verify that email was used
         verify(emailService).sendCredentialActivationEmail(
-                eq(ownerEmail),
+                eq(email),
                 anyString(),
                 contains(transactionCode),
                 eq(knowledgebaseWalletUrl),
@@ -661,8 +661,13 @@ class CredentialIssuanceWorkflowImplTest {
                 .transactionId("t-encoded")
                 .build();
 
-        when(verifiableCredentialService.buildCredentialResponse(eq(processId), isNull(), eq(nonce), eq(token)))
-                .thenReturn(Mono.just(cr));
+        when(verifiableCredentialService.buildCredentialResponse(
+                eq(processId),
+                isNull(),
+                eq(nonce),
+                eq(token),
+                isNull(String.class)
+        )).thenReturn(Mono.just(cr));
 
         // the implementation stores using nonce -> procedureId
         when(deferredCredentialMetadataService.getProcedureIdByAuthServerNonce(nonce))
@@ -708,7 +713,7 @@ class CredentialIssuanceWorkflowImplTest {
         CredentialProcedure proc = mock(CredentialProcedure.class);
         when(proc.getOperationMode()).thenReturn("S"); // SYNC
         when(proc.getCredentialType()).thenReturn(CredentialType.LEAR_CREDENTIAL_MACHINE.name());
-        when(proc.getOwnerEmail()).thenReturn("owner@in2.es");
+        when(proc.getEmail()).thenReturn("owner@in2.es");
         when(proc.getCredentialEncoded()).thenReturn("ENCODED_JWT_VALUE"); // <- what we want to be sent
 
         // Deferred metadata mock
@@ -760,8 +765,14 @@ class CredentialIssuanceWorkflowImplTest {
                 .credentials(List.of(CredentialResponse.Credential.builder().credential("whatever").build()))
                 .transactionId("t-1")
                 .build();
-        when(verifiableCredentialService.buildCredentialResponse(eq(processId), isNull(), eq(nonce), eq(token)))
-                .thenReturn(Mono.just(cr));
+
+        when(verifiableCredentialService.buildCredentialResponse(
+                eq(processId),
+                isNull(),
+                eq(nonce),
+                eq(token),
+                isNull(String.class)
+        )).thenReturn(Mono.just(cr));
 
         // In SYNC: status and decoded are queried (the decoded is not used unless it's employee)
         when(deferredCredentialMetadataService.getProcedureIdByAuthServerNonce(nonce))
@@ -787,14 +798,14 @@ class CredentialIssuanceWorkflowImplTest {
         ArgumentCaptor<String> responseUriCap = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<String> encodedCap = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<String> credIdCap = ArgumentCaptor.forClass(String.class);
-        ArgumentCaptor<String> ownerEmailCap = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<String> emailCap = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<String> accessTokenCap = ArgumentCaptor.forClass(String.class);
 
         when(credentialDeliveryService.sendVcToResponseUri(
                 responseUriCap.capture(),
                 encodedCap.capture(),
                 credIdCap.capture(),
-                ownerEmailCap.capture(),
+                emailCap.capture(),
                 accessTokenCap.capture()
         )).thenReturn(Mono.empty());
 
@@ -813,7 +824,7 @@ class CredentialIssuanceWorkflowImplTest {
         assert responseUriCap.getValue().equals(responseUri);
         assert encodedCap.getValue().equals("ENCODED_JWT_VALUE");
         assert credIdCap.getValue().equals("cred-777");
-        assert ownerEmailCap.getValue().equals("owner@in2.es");
+        assert emailCap.getValue().equals("owner@in2.es");
         assert accessTokenCap.getValue().equals("access-token-value");
     }
 

@@ -25,7 +25,7 @@ public class CredentialProcedureController {
     @ResponseStatus(HttpStatus.OK)
     public Mono<CredentialProcedures> getAllCredentialProcedures(@RequestHeader(HttpHeaders.AUTHORIZATION) String authorizationHeader) {
         return accessTokenService.getOrganizationId(authorizationHeader)
-                .flatMap(credentialProcedureService::getAllProceduresBasicInfoByOrganizationId)
+                .flatMap(credentialProcedureService::getAllProceduresVisibleFor)
                 .doOnNext(result -> log.info("CredentialManagementController - getAllProcedures()"));
     }
 

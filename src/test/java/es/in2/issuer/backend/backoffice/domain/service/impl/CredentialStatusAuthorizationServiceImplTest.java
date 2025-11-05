@@ -99,7 +99,7 @@ class CredentialStatusAuthorizationServiceImplTest {
 //                                LEARCredentialEmployee.CredentialSubject.builder()
 //                                        .mandate(LEARCredentialEmployee.CredentialSubject.Mandate.builder()
 //                                                .mandator(Mandator.builder()
-//                                                        .organizationIdentifier(IN2_ORGANIZATION_IDENTIFIER)
+//                                                        .organizationIdentifier(appConfig.getAdminOrganizationId())
 //                                                        .build())
 //                                                .build())
 //                                        .build()

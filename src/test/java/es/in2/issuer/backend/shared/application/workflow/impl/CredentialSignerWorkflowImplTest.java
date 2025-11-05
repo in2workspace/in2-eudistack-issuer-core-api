@@ -370,7 +370,7 @@ class CredentialSignerWorkflowImplTest {
 //    }
 //
 //    @Test
-//    void testRetrySignUnsignedCredential_LabelCredential_UsesOwnerEmailAndCredentialIdToSend() {
+//    void testRetrySignUnsignedCredential_LabelCredential_UsesEmailAndCredentialIdToSend() {
 //        // 1) First find(): mapping + update decoded
 //        CredentialProcedure initialProcedure = mock(CredentialProcedure.class);
 //        when(initialProcedure.getCredentialType()).thenReturn(LABEL_CREDENTIAL_TYPE);
@@ -380,7 +380,7 @@ class CredentialSignerWorkflowImplTest {
 //        when(updatedProcedure.getCredentialType()).thenReturn(LABEL_CREDENTIAL_TYPE);
 //        UUID credentialId = UUID.fromString("123e4567-e89b-12d3-a456-426614174000");
 //        when(updatedProcedure.getCredentialId()).thenReturn(credentialId);
-//        when(updatedProcedure.getOwnerEmail()).thenReturn("foo@bar.com");
+//        when(updatedProcedure.getEmail()).thenReturn("foo@bar.com");
 //
 //        // findByProcedureId is called at least twice
 //        when(credentialProcedureRepository.findByProcedureId(UUID.fromString(procedureId)))

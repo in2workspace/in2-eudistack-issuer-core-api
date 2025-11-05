@@ -17,7 +17,9 @@ public record AppProperties(
         @NotBlank @URL String verifierUrl,
         @NotBlank String configSource,
         @NotBlank @URL String walletUrl,
-        @NotBlank String defaultLang
+        @NotBlank String defaultLang,
+        @NotBlank String adminOrganizationId
+
 ) {
 
     @ConstructorBinding
@@ -29,7 +31,8 @@ public record AppProperties(
             String verifierUrl,
             String configSource,
             String walletUrl,
-            String defaultLang
+            String defaultLang,
+            String adminOrganizationId
     ) {
         this.url = url;
         this.issuerFrontendUrl = issuerFrontendUrl;
@@ -39,6 +42,7 @@ public record AppProperties(
         this.configSource = configSource;
         this.walletUrl = walletUrl;
         this.defaultLang = defaultLang;
+        this.adminOrganizationId = adminOrganizationId;
     }
 
     @Validated
