@@ -379,7 +379,7 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
                             case LABEL_CREDENTIAL_TYPE -> Mono.just(
                                     new CredentialOfferEmailNotificationInfo(
                                             credentialProcedure.getEmail(),
-                                            DEFAULT_ORGANIZATION_NAME
+                                            appConfig.getSysTenant()
                                     )
                             );
                             default -> Mono.error(new FormatUnsupportedException(
