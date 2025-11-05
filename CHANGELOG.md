@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [v2.2.1](https://github.com/in2workspace/in2-issuer-api/releases/tag/v2.2.1)
 ### Added
-- Add environment variable `sys-admin`, use it instead of constant DEFAULT_ORGANIZATION_NAME, which was used for email templates.
+- Add environment variable `sys-admin`, use it instead of constant DEFAULT_ORGANIZATION_NAME, which was used in email templates.
 
 ## [v2.2.0](https://github.com/in2workspace/in2-issuer-api/releases/tag/v2.2.0)
 ### Added
