@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - In "activate credential" email Spanish template, replace "Estimado/a ," by "Hola,"
 
 ### Fixed
+- Change deprecated build image openjdk:17-alpine by eclipse-temurin:17-jdk-alpine
 - Send signature failure emails to the authenticated requester’s email, not the credential mandator’s updated email.
 
 ### Removed
