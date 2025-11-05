@@ -12,7 +12,8 @@ plugins {
 
 group = 'es.in2'
 
-version = '2.2.0'
+//todo canvi de minor?
+version = '2.2.1'
 
 java {
     sourceCompatibility = '17'
