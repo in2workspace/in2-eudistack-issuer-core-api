@@ -12,8 +12,8 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class DualTokenServerAuthenticationConverterTest {
 
-    private final DualTokenServerAuthenticationConverter converter =
-            new DualTokenServerAuthenticationConverter();
+    private final es.in2.issuer.backend.backoffice.infrastructure.config.security.DualTokenServerAuthenticationConverter converter =
+            new es.in2.issuer.backend.backoffice.infrastructure.config.security.DualTokenServerAuthenticationConverter();
 
     @Test
     void convert_withValidBearerAndIdToken_returnsDualTokenAuth() {
@@ -27,11 +27,11 @@ class DualTokenServerAuthenticationConverterTest {
 
         StepVerifier.create(result)
                 .assertNext(auth -> {
-                    assertTrue(auth instanceof DualTokenAuthentication);
-                    DualTokenAuthentication dual = (DualTokenAuthentication) auth;
-                    assertEquals("access-123", dual.getAccessToken());
-                    assertEquals("id-456", dual.getIdToken());
+                    assertTrue(auth instanceof es.in2.issuer.backend.backoffice.infrastructure.config.security.DualTokenAuthentication);
+                    es.in2.issuer.backend.backoffice.infrastructure.config.security.DualTokenAuthentication dual = (es.in2.issuer.backend.backoffice.infrastructure.config.security.DualTokenAuthentication) auth;
+                    // Access token is exposed via getCredentials()
                     assertEquals("access-123", dual.getCredentials());
+                    assertEquals("id-456", dual.getIdToken());
                     assertEquals("N/A", dual.getPrincipal());
                     assertFalse(dual.isAuthenticated());
                 })
@@ -48,8 +48,8 @@ class DualTokenServerAuthenticationConverterTest {
 
         StepVerifier.create(converter.convert(exchange))
                 .assertNext(auth -> {
-                    DualTokenAuthentication dual = (DualTokenAuthentication) auth;
-                    assertEquals("access-123", dual.getAccessToken());
+                    es.in2.issuer.backend.backoffice.infrastructure.config.security.DualTokenAuthentication dual = (es.in2.issuer.backend.backoffice.infrastructure.config.security.DualTokenAuthentication) auth;
+                    assertEquals("access-123", dual.getCredentials());
                     assertNull(dual.getIdToken());
                 })
                 .verifyComplete();
@@ -64,8 +64,8 @@ class DualTokenServerAuthenticationConverterTest {
 
         StepVerifier.create(converter.convert(exchange))
                 .assertNext(auth -> {
-                    DualTokenAuthentication dual = (DualTokenAuthentication) auth;
-                    assertEquals("abc123", dual.getAccessToken());
+                    es.in2.issuer.backend.backoffice.infrastructure.config.security.DualTokenAuthentication dual = (es.in2.issuer.backend.backoffice.infrastructure.config.security.DualTokenAuthentication) auth;
+                    assertEquals("abc123", dual.getCredentials());
                     assertNull(dual.getIdToken());
                 })
                 .verifyComplete();
@@ -100,9 +100,9 @@ class DualTokenServerAuthenticationConverterTest {
 
         StepVerifier.create(converter.convert(exchange))
                 .assertNext(auth -> {
-                    DualTokenAuthentication dual = (DualTokenAuthentication) auth;
+                    es.in2.issuer.backend.backoffice.infrastructure.config.security.DualTokenAuthentication dual = (es.in2.issuer.backend.backoffice.infrastructure.config.security.DualTokenAuthentication) auth;
                     // substring(7).trim() -> empty string
-                    assertEquals("", dual.getAccessToken());
+                    assertEquals("", dual.getCredentials());
                     assertNull(dual.getIdToken());
                 })
                 .verifyComplete();

@@ -41,17 +41,14 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
     @Override
     public Mono<Authentication> authenticate(Authentication authentication) {
         log.debug("🔐 CustomAuthenticationManager - authenticate - start");
-        final boolean isDual = authentication instanceof DualTokenAuthentication;
-        final String accessToken = isDual
-                ? ((DualTokenAuthentication) authentication).getAccessToken()
-                : String.valueOf(authentication.getCredentials());
-        final String maybeIdToken = isDual
-                ? ((DualTokenAuthentication) authentication).getIdToken()
+        final String accessToken = String.valueOf(authentication.getCredentials());
+        final String maybeIdToken = (authentication instanceof es.in2.issuer.backend.backoffice.infrastructure.config.security.DualTokenAuthentication dta)
+                ? dta.getIdToken()
                 : null;
 
         return extractIssuer(accessToken)
-                .flatMap(issuer -> routeByIssuer(issuer, accessToken))
-                .flatMap(accessJwt -> resolvePrincipalNameFromIdTokenOrAccessToken(accessJwt, maybeIdToken)
+                .flatMap(issuer -> verifyAndParseJwtForIssuer(issuer, accessToken))
+                .flatMap(accessJwt -> getPrincipalName(accessJwt, maybeIdToken)
                         .map(principalName -> (Authentication) new JwtAuthenticationToken(
                                 accessJwt,
                                 Collections.emptyList(),
@@ -62,39 +59,40 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
                         : new AuthenticationServiceException(e.getMessage(), e));
     }
 
-    /** Prefer principal from a valid ID Token; fallback to accessJwt-derived principal. */
-    private Mono<String> resolvePrincipalNameFromIdTokenOrAccessToken(Jwt accessJwt, @Nullable String idToken) {
-        log.debug("resolvePrincipalNameFromIdTokenOrAccessToken - start");
+    // Returns the preferred principal: ID Token first; falls back to Access Token.
+    private Mono<String> getPrincipalName(Jwt accessJwt, @Nullable String idToken) {
+        log.debug("getPrincipalName - start");
 
+        return getPrincipalFromIdToken(idToken)
+                .switchIfEmpty(getPrincipalFromAccessToken(accessJwt))
+                .doOnSuccess(p -> log.info("getPrincipalName - end with principal: {}", p));
+    }
+
+    private Mono<String> getPrincipalFromIdToken(@Nullable String idToken) {
         if (idToken == null) {
-            log.debug("Using Access Token to resolve principal");
-            return Mono.just(jwtService.resolvePrincipal(accessJwt));
+            log.debug("No ID Token provided");
+            return Mono.empty();
         }
 
-        log.debug("ID Token detected, attempting to validate and extract principal");
+        log.debug("Resolving principal from ID Token");
 
         return parseAndValidateJwt(idToken, false)
                 .map(validIdJwt -> {
-                    String fromId = jwtService.resolvePrincipal(validIdJwt);
-
-                    if (fromId != null && !fromId.isBlank()) {
-                        log.debug("Principal successfully resolved from ID Token");
-                        return fromId;
-                    } else {
-                        log.debug("ID Token validated but no principal found — using Access Token instead");
-                        String fallback = jwtService.resolvePrincipal(accessJwt);
-                        log.debug("Principal resolved from Access Token");
-                        return fallback;
-                    }
+                    String principal = jwtService.resolvePrincipal(validIdJwt);
+                    return (principal == null || principal.isBlank()) ? null : principal;
                 })
+                .flatMap(Mono::justOrEmpty)
                 .onErrorResume(ex -> {
-                    log.warn("⚠ID Token present but invalid. Falling back to Access Token. Reason: {}", ex.getMessage());
-                    String fallback = jwtService.resolvePrincipal(accessJwt);
-                    log.debug("Principal resolved from Access Token after fallback");
-                    return Mono.just(fallback);
-                })
-                .doOnSuccess(result -> log.info("resolvePrincipalNameFromIdTokenOrAccessToken - end with principal: {}", result));
+                    log.warn("ID Token invalid or unreadable. Falling back to Access Token. Reason: {}", ex.getMessage());
+                    return Mono.empty();
+                });
     }
+
+    private Mono<String> getPrincipalFromAccessToken(Jwt accessJwt) {
+        log.debug("Resolving principal from Access Token");
+        return Mono.fromSupplier(() -> jwtService.resolvePrincipal(accessJwt));
+    }
+
 
 
     private Mono<String> extractIssuer(String token) {
@@ -127,7 +125,7 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
                 });
     }
 
-    private Mono<Jwt> routeByIssuer(String issuer, String token) {
+    private Mono<Jwt> verifyAndParseJwtForIssuer(String issuer, String token) {
         if (issuer.equals(appConfig.getVerifierUrl())) {
             log.debug("✅ Token from Verifier - {}", appConfig.getVerifierUrl());
             return handleVerifierToken(token);

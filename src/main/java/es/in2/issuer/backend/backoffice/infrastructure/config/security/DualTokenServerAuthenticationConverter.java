@@ -26,7 +26,7 @@ public final class DualTokenServerAuthenticationConverter implements ServerAuthe
         }
         String accessToken = auth.substring(7).trim();
         String idToken = request.getHeaders().getFirst(ID_TOKEN_HEADER);
-        return Mono.just(new DualTokenAuthentication(accessToken, (idToken == null || idToken.isBlank()) ? null : idToken));
+        return Mono.just(new es.in2.issuer.backend.backoffice.infrastructure.config.security.DualTokenAuthentication(accessToken, (idToken == null || idToken.isBlank()) ? null : idToken));
     }
 }
 

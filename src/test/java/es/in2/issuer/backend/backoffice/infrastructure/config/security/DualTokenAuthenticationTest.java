@@ -11,33 +11,32 @@ class DualTokenAuthenticationTest {
         String accessToken = "access-123";
         String idToken = "id-456";
 
-        DualTokenAuthentication auth = new DualTokenAuthentication(accessToken, idToken);
+        es.in2.issuer.backend.backoffice.infrastructure.config.security.DualTokenAuthentication auth = new es.in2.issuer.backend.backoffice.infrastructure.config.security.DualTokenAuthentication(accessToken, idToken);
 
-        assertEquals(accessToken, auth.getAccessToken());
-        assertEquals(idToken, auth.getIdToken());
+        // Access token is exposed via getCredentials()
         assertEquals(accessToken, auth.getCredentials());
+        assertEquals(idToken, auth.getIdToken());
         assertEquals("N/A", auth.getPrincipal());
         assertFalse(auth.isAuthenticated(), "New DualTokenAuthentication should be unauthenticated by default");
 
         assertNotNull(auth.getAuthorities());
-        assertTrue(auth.getAuthorities().isEmpty(), "Authorities should be empty when constructed with null");
+        assertTrue(auth.getAuthorities().isEmpty(), "Authorities should be empty when constructed");
     }
 
     @Test
     void constructor_withNullIdToken_allowsNullValue() {
         String accessToken = "access-only";
 
-        DualTokenAuthentication auth = new DualTokenAuthentication(accessToken, null);
+        es.in2.issuer.backend.backoffice.infrastructure.config.security.DualTokenAuthentication auth = new es.in2.issuer.backend.backoffice.infrastructure.config.security.DualTokenAuthentication(accessToken, null);
 
-        assertEquals(accessToken, auth.getAccessToken());
-        assertNull(auth.getIdToken());
         assertEquals(accessToken, auth.getCredentials());
+        assertNull(auth.getIdToken());
         assertFalse(auth.isAuthenticated());
     }
 
     @Test
     void canChangeAuthenticatedFlag() {
-        DualTokenAuthentication auth = new DualTokenAuthentication("a", null);
+        es.in2.issuer.backend.backoffice.infrastructure.config.security.DualTokenAuthentication auth = new es.in2.issuer.backend.backoffice.infrastructure.config.security.DualTokenAuthentication("a", null);
         assertFalse(auth.isAuthenticated());
 
         auth.setAuthenticated(true);
@@ -51,28 +50,28 @@ class DualTokenAuthenticationTest {
 
     @Test
     void getCredentials_and_getPrincipal_areOverridden() {
-        DualTokenAuthentication auth = new DualTokenAuthentication("access-xyz", "id-xyz");
+        es.in2.issuer.backend.backoffice.infrastructure.config.security.DualTokenAuthentication auth = new es.in2.issuer.backend.backoffice.infrastructure.config.security.DualTokenAuthentication("access-xyz", "id-xyz");
         assertEquals("access-xyz", auth.getCredentials());
         assertEquals("N/A", auth.getPrincipal());
     }
 
     @Test
-    void getAccessToken_and_getIdToken_returnValues() {
-        DualTokenAuthentication withBoth = new DualTokenAuthentication("A", "I");
-        DualTokenAuthentication withOnlyAccess = new DualTokenAuthentication("A", null);
+    void getIdToken_and_getCredentials_returnValues() {
+        es.in2.issuer.backend.backoffice.infrastructure.config.security.DualTokenAuthentication withBoth = new es.in2.issuer.backend.backoffice.infrastructure.config.security.DualTokenAuthentication("A", "I");
+        es.in2.issuer.backend.backoffice.infrastructure.config.security.DualTokenAuthentication withOnlyAccess = new es.in2.issuer.backend.backoffice.infrastructure.config.security.DualTokenAuthentication("A", null);
 
-        assertEquals("A", withBoth.getAccessToken());
         assertEquals("I", withBoth.getIdToken());
+        assertEquals("A", withBoth.getCredentials());
 
-        assertEquals("A", withOnlyAccess.getAccessToken());
         assertNull(withOnlyAccess.getIdToken());
+        assertEquals("A", withOnlyAccess.getCredentials());
     }
 
     @Test
     void equals_reflexive_symmetric_transitive_and_hashCode_consistent_forSameTokens() {
-        DualTokenAuthentication a1 = new DualTokenAuthentication("acc", "id");
-        DualTokenAuthentication a2 = new DualTokenAuthentication("acc", "id");
-        DualTokenAuthentication a3 = new DualTokenAuthentication("acc", "id");
+        es.in2.issuer.backend.backoffice.infrastructure.config.security.DualTokenAuthentication a1 = new es.in2.issuer.backend.backoffice.infrastructure.config.security.DualTokenAuthentication("acc", "id");
+        es.in2.issuer.backend.backoffice.infrastructure.config.security.DualTokenAuthentication a2 = new es.in2.issuer.backend.backoffice.infrastructure.config.security.DualTokenAuthentication("acc", "id");
+        es.in2.issuer.backend.backoffice.infrastructure.config.security.DualTokenAuthentication a3 = new es.in2.issuer.backend.backoffice.infrastructure.config.security.DualTokenAuthentication("acc", "id");
 
         // Reflexive
         assertEquals(a1, a1);
@@ -90,37 +89,36 @@ class DualTokenAuthenticationTest {
 
     @Test
     void equals_returnsFalse_whenComparedWithNullOrDifferentType() {
-        DualTokenAuthentication a = new DualTokenAuthentication("acc", "id");
+        es.in2.issuer.backend.backoffice.infrastructure.config.security.DualTokenAuthentication a = new es.in2.issuer.backend.backoffice.infrastructure.config.security.DualTokenAuthentication("acc", "id");
         assertNotEquals(null, a);
         assertNotEquals("not-an-auth-object", a);
     }
 
-
     @Test
     void equals_returnsFalse_whenAccessTokenDiffers() {
-        DualTokenAuthentication a = new DualTokenAuthentication("acc1", "id");
-        DualTokenAuthentication b = new DualTokenAuthentication("acc2", "id");
+        es.in2.issuer.backend.backoffice.infrastructure.config.security.DualTokenAuthentication a = new es.in2.issuer.backend.backoffice.infrastructure.config.security.DualTokenAuthentication("acc1", "id");
+        es.in2.issuer.backend.backoffice.infrastructure.config.security.DualTokenAuthentication b = new es.in2.issuer.backend.backoffice.infrastructure.config.security.DualTokenAuthentication("acc2", "id");
         assertNotEquals(a, b);
     }
 
     @Test
     void equals_returnsFalse_whenIdTokenDiffersIncludingNullVsNonNull() {
-        DualTokenAuthentication nonNullId = new DualTokenAuthentication("acc", "id");
-        DualTokenAuthentication differentId = new DualTokenAuthentication("acc", "other");
-        DualTokenAuthentication nullId = new DualTokenAuthentication("acc", null);
+        es.in2.issuer.backend.backoffice.infrastructure.config.security.DualTokenAuthentication nonNullId = new es.in2.issuer.backend.backoffice.infrastructure.config.security.DualTokenAuthentication("acc", "id");
+        es.in2.issuer.backend.backoffice.infrastructure.config.security.DualTokenAuthentication differentId = new es.in2.issuer.backend.backoffice.infrastructure.config.security.DualTokenAuthentication("acc", "other");
+        es.in2.issuer.backend.backoffice.infrastructure.config.security.DualTokenAuthentication nullId = new es.in2.issuer.backend.backoffice.infrastructure.config.security.DualTokenAuthentication("acc", null);
 
         assertNotEquals(nonNullId, differentId);
         assertNotEquals(nonNullId, nullId);
 
-        DualTokenAuthentication nullId2 = new DualTokenAuthentication("acc", null);
+        es.in2.issuer.backend.backoffice.infrastructure.config.security.DualTokenAuthentication nullId2 = new es.in2.issuer.backend.backoffice.infrastructure.config.security.DualTokenAuthentication("acc", null);
         assertEquals(nullId, nullId2, "Both idToken null and same accessToken -> equal");
     }
 
     @Test
     void equals_accountsForSuperFields_authenticatedFlagDiffers() {
         // Note: AbstractAuthenticationToken.equals() considers authentication state among other things.
-        DualTokenAuthentication a = new DualTokenAuthentication("acc", "id");
-        DualTokenAuthentication b = new DualTokenAuthentication("acc", "id");
+        es.in2.issuer.backend.backoffice.infrastructure.config.security.DualTokenAuthentication a = new es.in2.issuer.backend.backoffice.infrastructure.config.security.DualTokenAuthentication("acc", "id");
+        es.in2.issuer.backend.backoffice.infrastructure.config.security.DualTokenAuthentication b = new es.in2.issuer.backend.backoffice.infrastructure.config.security.DualTokenAuthentication("acc", "id");
 
         // Same initial state => equal
         assertEquals(a, b);
@@ -137,8 +135,8 @@ class DualTokenAuthenticationTest {
     @Test
     void equals_accountsForSuperFields_detailsDiffer() {
         // Note: AbstractAuthenticationToken.equals() includes details in equality.
-        DualTokenAuthentication a = new DualTokenAuthentication("acc", "id");
-        DualTokenAuthentication b = new DualTokenAuthentication("acc", "id");
+        es.in2.issuer.backend.backoffice.infrastructure.config.security.DualTokenAuthentication a = new es.in2.issuer.backend.backoffice.infrastructure.config.security.DualTokenAuthentication("acc", "id");
+        es.in2.issuer.backend.backoffice.infrastructure.config.security.DualTokenAuthentication b = new es.in2.issuer.backend.backoffice.infrastructure.config.security.DualTokenAuthentication("acc", "id");
 
         // Baseline equal
         assertEquals(a, b);
@@ -154,14 +152,14 @@ class DualTokenAuthenticationTest {
 
     @Test
     void hashCode_changesWhenTokensOrSuperStateChange() {
-        DualTokenAuthentication a = new DualTokenAuthentication("acc", "id");
+        es.in2.issuer.backend.backoffice.infrastructure.config.security.DualTokenAuthentication a = new es.in2.issuer.backend.backoffice.infrastructure.config.security.DualTokenAuthentication("acc", "id");
         int base = a.hashCode();
 
         // Change tokens by creating a new instance with different values
-        DualTokenAuthentication differentTokens = new DualTokenAuthentication("acc2", "id");
+        es.in2.issuer.backend.backoffice.infrastructure.config.security.DualTokenAuthentication differentTokens = new es.in2.issuer.backend.backoffice.infrastructure.config.security.DualTokenAuthentication("acc2", "id");
         assertNotEquals(base, differentTokens.hashCode());
 
-        DualTokenAuthentication differentId = new DualTokenAuthentication("acc", "id2");
+        es.in2.issuer.backend.backoffice.infrastructure.config.security.DualTokenAuthentication differentId = new es.in2.issuer.backend.backoffice.infrastructure.config.security.DualTokenAuthentication("acc", "id2");
         assertNotEquals(base, differentId.hashCode());
 
         // Change super state (authenticated) should also affect hashCode
@@ -177,7 +175,7 @@ class DualTokenAuthenticationTest {
 
     @Test
     void toString_includesClassNameAndAuthenticatedFlag() {
-        DualTokenAuthentication a = new DualTokenAuthentication("acc", null);
+        es.in2.issuer.backend.backoffice.infrastructure.config.security.DualTokenAuthentication a = new es.in2.issuer.backend.backoffice.infrastructure.config.security.DualTokenAuthentication("acc", null);
         String s1 = a.toString();
         assertTrue(s1.contains("DualTokenAuthentication"), "toString should include simple class name");
         assertTrue(s1.contains("authenticated=false"), "toString should reflect unauthenticated state");

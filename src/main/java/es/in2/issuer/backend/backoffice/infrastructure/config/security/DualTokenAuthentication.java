@@ -5,7 +5,6 @@ import org.springframework.security.authentication.AbstractAuthenticationToken;
 
 import java.util.Objects;
 
-/** Carries the access token (credentials) and an optional id token for identity. */
 public final class DualTokenAuthentication extends AbstractAuthenticationToken {
 
     private final String accessToken;
@@ -28,10 +27,6 @@ public final class DualTokenAuthentication extends AbstractAuthenticationToken {
         // Once the tokens are validated by an AuthenticationProvider, a new Authentication object will be created
         // with the proper principal (e.g., a Jwt or UserDetails instance) and marked as authenticated.
         return "N/A";
-    }
-
-    public String getAccessToken() {
-        return (String) getCredentials();
     }
 
     @Nullable

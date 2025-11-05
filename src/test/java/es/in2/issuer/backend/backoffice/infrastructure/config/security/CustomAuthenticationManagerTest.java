@@ -34,11 +34,11 @@ class CustomAuthenticationManagerTest {
     @Mock private JWTService jwtService;
     @Mock private AppConfig appConfig;
 
-    private CustomAuthenticationManager authenticationManager;
+    private es.in2.issuer.backend.backoffice.infrastructure.config.security.CustomAuthenticationManager authenticationManager;
 
     @BeforeEach
     void setUp() {
-        authenticationManager = new CustomAuthenticationManager(
+        authenticationManager = new es.in2.issuer.backend.backoffice.infrastructure.config.security.CustomAuthenticationManager(
                 verifierService,
                 new ObjectMapper(),
                 appConfig,
@@ -292,7 +292,7 @@ class CustomAuthenticationManagerTest {
             return "principal@example.com";
         });
 
-        Authentication authentication = new DualTokenAuthentication(accessToken, idToken);
+        Authentication authentication = new es.in2.issuer.backend.backoffice.infrastructure.config.security.DualTokenAuthentication(accessToken, idToken);
         Mono<Authentication> result = authenticationManager.authenticate(authentication);
 
         StepVerifier.create(result)
@@ -315,7 +315,7 @@ class CustomAuthenticationManagerTest {
             return "principal@example.com";
         });
 
-        Authentication authentication = new DualTokenAuthentication(accessToken, idToken);
+        Authentication authentication = new es.in2.issuer.backend.backoffice.infrastructure.config.security.DualTokenAuthentication(accessToken, idToken);
         Mono<Authentication> result = authenticationManager.authenticate(authentication);
 
         StepVerifier.create(result)
@@ -337,7 +337,7 @@ class CustomAuthenticationManagerTest {
             return "principal@example.com";
         });
 
-        Authentication authentication = new DualTokenAuthentication(accessToken, invalidIdToken);
+        Authentication authentication = new es.in2.issuer.backend.backoffice.infrastructure.config.security.DualTokenAuthentication(accessToken, invalidIdToken);
         Mono<Authentication> result = authenticationManager.authenticate(authentication);
 
         StepVerifier.create(result)
@@ -353,7 +353,7 @@ class CustomAuthenticationManagerTest {
         when(jwtService.validateJwtSignatureReactive(any(JWSObject.class))).thenReturn(Mono.just(true));
         when(jwtService.resolvePrincipal(any(Jwt.class))).thenReturn("principal-from-access@example.com");
 
-        Authentication authentication = new DualTokenAuthentication(accessToken, null);
+        Authentication authentication = new es.in2.issuer.backend.backoffice.infrastructure.config.security.DualTokenAuthentication(accessToken, null);
         Mono<Authentication> result = authenticationManager.authenticate(authentication);
 
         StepVerifier.create(result)
@@ -397,7 +397,7 @@ class CustomAuthenticationManagerTest {
 
     @Test
     void authenticate_withIssuerBackendToken_invalidJwsFormat_throwsBadCredentialsException() {
-         String headerJson = "{\"alg\":\"RS256\",\"typ\":\"JWT\"}";
+        String headerJson = "{\"alg\":\"RS256\",\"typ\":\"JWT\"}";
         long now = Instant.now().getEpochSecond();
         String payloadJson = "{\"iss\":\"http://issuer.local\",\"iat\":" + now + ",\"exp\":" + (now + 3600) + "}";
         String header = base64UrlEncode(headerJson);
