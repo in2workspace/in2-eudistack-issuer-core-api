@@ -63,6 +63,8 @@ public class SecurityConfig {
         authenticationWebFilter.setAuthenticationFailureHandler(new ServerAuthenticationEntryPointFailureHandler(entryPoint));
         return authenticationWebFilter;
     }
+
+
     @Bean
     public Converter<Jwt, Mono<AbstractAuthenticationToken>> jwtAuthenticationConverter(
             JWTService jwtService
@@ -70,7 +72,6 @@ public class SecurityConfig {
         return new JwtToAuthConverter(jwtService);
     }
 
-    // Explicit converter class so Spring can resolve <S, T> generic types.
     static final class JwtToAuthConverter implements Converter<Jwt, Mono<AbstractAuthenticationToken>> {
 
         private final JwtGrantedAuthoritiesConverter authoritiesConverter = new JwtGrantedAuthoritiesConverter();
@@ -81,7 +82,7 @@ public class SecurityConfig {
         }
 
         @Override
-        @NonNull
+        @SuppressWarnings("java:S2638") // Suppressed: Spring's @Nullable conflicts with package @NonNullApi, but method never returns null
         public Mono<AbstractAuthenticationToken> convert(Jwt jwt) {
             // Resolve principal (prefer mandatee email; fallback to sub)
             String principal = jwtService.resolvePrincipal(jwt);
@@ -89,8 +90,6 @@ public class SecurityConfig {
             var authorities = authoritiesConverter.convert(jwt);
             return Mono.just(new JwtAuthenticationToken(jwt, authorities, principal));
         }
-
-
     }
 
     @Bean
