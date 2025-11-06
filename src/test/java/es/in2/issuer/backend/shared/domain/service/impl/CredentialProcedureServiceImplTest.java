@@ -5,10 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import es.in2.issuer.backend.shared.domain.exception.NoCredentialFoundException;
 import es.in2.issuer.backend.shared.domain.exception.ParseCredentialJsonException;
-import es.in2.issuer.backend.shared.domain.model.dto.CredentialDetails;
-import es.in2.issuer.backend.shared.domain.model.dto.CredentialProcedureCreationRequest;
-import es.in2.issuer.backend.shared.domain.model.dto.CredentialProcedures;
-import es.in2.issuer.backend.shared.domain.model.dto.ProcedureBasicInfo;
+import es.in2.issuer.backend.shared.domain.model.dto.*;
 import es.in2.issuer.backend.shared.domain.model.entities.CredentialProcedure;
 import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum;
 import es.in2.issuer.backend.shared.domain.model.enums.CredentialType;
@@ -18,6 +15,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
+import static es.in2.issuer.backend.shared.domain.util.Constants.LABEL_CREDENTIAL_TYPE;
 import static org.junit.jupiter.api.Assertions.*;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -770,4 +768,39 @@ class CredentialProcedureServiceImplTest {
 
         verify(credentialProcedureRepository, times(1)).findAllByOrganizationIdentifier(orgId);
     }
+
+    @Test
+    void getCredentialOfferEmailInfoByProcedureId_label_usesSysTenantForOrganization() {
+        // given
+        String procedureId = UUID.randomUUID().toString();
+        String email = "label.owner@in2.es";
+        String sysTenant = "my-sys-tenant-from-config";
+
+        CredentialProcedure cp = new CredentialProcedure();
+        cp.setProcedureId(UUID.fromString(procedureId));
+        cp.setCredentialType(LABEL_CREDENTIAL_TYPE);
+        cp.setEmail(email);
+        // For LABEL, decoded JSON is not used, so it can be null
+        cp.setCredentialDecoded(null);
+
+        when(credentialProcedureRepository.findByProcedureId(UUID.fromString(procedureId)))
+                .thenReturn(Mono.just(cp));
+        when(appConfig.getSysTenant()).thenReturn(sysTenant);
+
+        // when
+        Mono<CredentialOfferEmailNotificationInfo> mono =
+                credentialProcedureService.getCredentialOfferEmailInfoByProcedureId(procedureId);
+
+        // then
+        StepVerifier.create(mono)
+                .expectNextMatches(info ->
+                        email.equals(info.email()) &&
+                                sysTenant.equals(info.organization()))
+                .verifyComplete();
+
+        verify(credentialProcedureRepository, times(1))
+                .findByProcedureId(UUID.fromString(procedureId));
+        verify(appConfig, times(1)).getSysTenant();
+    }
+
 }
