@@ -5,6 +5,8 @@ import es.in2.issuer.backend.oidc4vci.domain.model.CredentialIssuerMetadata;
 import es.in2.issuer.backend.shared.domain.model.dto.VerifierOauth2AccessToken;
 import es.in2.issuer.backend.shared.domain.model.entities.CredentialProcedure;
 import org.mockito.ArgumentCaptor;
+
+import static es.in2.issuer.backend.shared.domain.util.Constants.LABEL_CREDENTIAL;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -912,6 +914,64 @@ class CredentialIssuanceWorkflowImplTest {
                 verifiableCredentialIssuanceWorkflow.execute(processId, preSubmittedCredentialDataRequest, token, idToken)
         ).verifyComplete();
     }
+
+    @Test
+    void labelCredential_usesSysTenantAsOrganizationInEmail() throws Exception {
+        // given
+        String processId = "1234";
+        String token = "token";
+        String idToken = "idToken"; // required by execute() when schema is LABEL_CREDENTIAL
+        String ownerEmail = "label.owner@in2.es";
+        String issuerUiExternalDomain = "https://issuer.example.com";
+        String knowledgebaseWalletUrl = "https://knowledgebase.com";
+        String sysTenant = "my-sys-tenant";
+        String tx = "tx-label-001";
+
+        // Minimal payload for label credential (email comes from request, not payload)
+        ObjectMapper om = new ObjectMapper();
+        JsonNode payload = om.readTree("{}");
+
+        PreSubmittedCredentialDataRequest req = PreSubmittedCredentialDataRequest.builder()
+                .payload(payload)
+                .schema(LABEL_CREDENTIAL)
+                .format(JWT_VC_JSON)
+                .operationMode("S")
+                .email(ownerEmail)
+                .build();
+
+        // when
+        when(verifiableCredentialPolicyAuthorizationService.authorize(token, LABEL_CREDENTIAL, payload, idToken))
+                .thenReturn(Mono.empty());
+        when(verifiableCredentialService.generateVc(processId, req, ownerEmail))
+                .thenReturn(Mono.just(tx));
+        when(appConfig.getIssuerFrontendUrl()).thenReturn(issuerUiExternalDomain);
+        when(appConfig.getKnowledgebaseWalletUrl()).thenReturn(knowledgebaseWalletUrl);
+        when(appConfig.getSysTenant()).thenReturn(sysTenant);
+
+        when(emailService.sendCredentialActivationEmail(
+                ownerEmail,
+                "email.activation.subject",
+                issuerUiExternalDomain + "/credential-offer?transaction_code=" + tx,
+                knowledgebaseWalletUrl,
+                sysTenant
+        )).thenReturn(Mono.empty());
+
+        // then
+        StepVerifier.create(
+                verifiableCredentialIssuanceWorkflow.execute(processId, req, token, idToken)
+        ).verifyComplete();
+
+        // verify
+        verify(emailService).sendCredentialActivationEmail(
+                eq(ownerEmail),
+                eq("email.activation.subject"),
+                contains(tx),
+                eq(knowledgebaseWalletUrl),
+                eq(sysTenant)
+        );
+    }
+
+
 
 
 }

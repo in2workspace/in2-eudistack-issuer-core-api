@@ -36,5 +36,4 @@ public final class Constants {
     public static final String ENGLISH = "en";
     public static final String DEFAULT_USER_NAME = "Cloud Provider";
     public static final String LEAR_CREDENTIAL_MACHINE_DESCRIPTION = "Verifiable Credential for machines";
-    public static final String DEFAULT_ORGANIZATION_NAME = "DOME";
 }

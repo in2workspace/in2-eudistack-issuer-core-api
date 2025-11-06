@@ -135,6 +135,8 @@ app:
   default-lang: en
   # The identifier of the admin organization (REQUIRED)
   admin-organization-id:
+  # The system tenant name
+  sys-tenant:
 
 azure:
   endpoint: "https://myappconfig.azconfig.io"

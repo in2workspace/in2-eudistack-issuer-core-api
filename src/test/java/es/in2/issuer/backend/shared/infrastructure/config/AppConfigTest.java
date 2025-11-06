@@ -179,4 +179,31 @@ class AppConfigTest {
 
         assertTrue(actualOrigins.isEmpty());
     }
+
+    @Test
+    void getAdminOrganizationId_returnsConfiguredValue() {
+        // Arrange
+        String propertyKey = "app.admin.organization.id";
+        String expectedValue = "admin-org-123";
+
+        when(appProperties.adminOrganizationId()).thenReturn(propertyKey);
+        when(configAdapter.getConfiguration(propertyKey)).thenReturn(expectedValue);
+
+        // Act
+        String actualValue = appConfig.getAdminOrganizationId();
+
+        // Assert
+        assertEquals(expectedValue, actualValue);
+    }
+
+    @Test
+    void getSysTenant_returnsConfiguredValue() {
+        String expectedTenant = "sys-tenant";
+        when(appProperties.sysTenant()).thenReturn(expectedTenant);
+        when(configAdapter.getConfiguration(expectedTenant)).thenReturn(expectedTenant);
+
+        String actualTenant = appConfig.getSysTenant();
+
+        assertEquals(expectedTenant, actualTenant);
+    }
 }

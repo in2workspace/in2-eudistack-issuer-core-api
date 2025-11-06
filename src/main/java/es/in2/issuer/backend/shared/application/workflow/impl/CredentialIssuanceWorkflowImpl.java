@@ -132,7 +132,7 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                         throw new MissingEmailOwnerException("Email owner email is required for gx:LabelCredential schema");
                     }
                     String email = preSubmittedCredentialDataRequest.email();
-                yield new CredentialOfferEmailNotificationInfo(email, DEFAULT_ORGANIZATION_NAME);
+                yield new CredentialOfferEmailNotificationInfo(email, appConfig.getSysTenant());
             }
             default -> throw new FormatUnsupportedException(
                     "Unknown schema: " + schema

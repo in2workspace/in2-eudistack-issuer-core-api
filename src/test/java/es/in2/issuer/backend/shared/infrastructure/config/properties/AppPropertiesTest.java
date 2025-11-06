@@ -8,33 +8,60 @@ class AppPropertiesTest {
 
     @Test
     void appProperties_initializesCorrectly() {
-        AppProperties.KnowledgeBase knowledgeBase = new AppProperties.KnowledgeBase("https://upload-guide-url.com", "https://wallet-guide-url.com");
+        String appUrl = "https://app-url.com";
+        String issuerFrontendUrl = "https://issuer-frontend-url.com";
+        String trustFrameworkUrl = "https://trust-framework-url.com";
+        String verifierUrl = "https://verifier-url.com";
+        String configSource = "configSource";
+        String walletFrontendUrl = "https://wallet-frontend-url.com";
+        String defaultLang = "es";
+        String adminOrganizationId = "org-admin";
+        String sysTenant = "sys-tenant";
+
+        String uploadGuideUrl = "https://upload-guide-url.com";
+        String walletGuideUrl = "https://wallet-guide-url.com";
+
+        AppProperties.KnowledgeBase knowledgeBase =
+                new AppProperties.KnowledgeBase(uploadGuideUrl, walletGuideUrl);
+
+        // Act
         AppProperties appProperties = new AppProperties(
-                "https://app-url.com",
-                "https://issuer-frontend-url.com",
-                "https://trust-framework-url.com",
+                appUrl,
+                issuerFrontendUrl,
+                trustFrameworkUrl,
                 knowledgeBase,
-                "https://verifier-url.com",
-                "configSource",
-                "https://wallet-frontend-url.com",
-                "es",
-                "org-admin"
+                verifierUrl,
+                configSource,
+                walletFrontendUrl,
+                defaultLang,
+                adminOrganizationId,
+                sysTenant
         );
 
-        assertEquals("https://app-url.com", appProperties.url());
-        assertEquals("https://issuer-frontend-url.com", appProperties.issuerFrontendUrl());
-        assertEquals("https://trust-framework-url.com", appProperties.trustFrameworkUrl());
+        // Assert
+        assertEquals(appUrl, appProperties.url());
+        assertEquals(issuerFrontendUrl, appProperties.issuerFrontendUrl());
+        assertEquals(trustFrameworkUrl, appProperties.trustFrameworkUrl());
         assertEquals(knowledgeBase, appProperties.knowledgeBase());
-        assertEquals("https://verifier-url.com", appProperties.verifierUrl());
-        assertEquals("configSource", appProperties.configSource());
-        assertEquals("https://wallet-frontend-url.com", appProperties.walletUrl());
+        assertEquals(verifierUrl, appProperties.verifierUrl());
+        assertEquals(configSource, appProperties.configSource());
+        assertEquals(walletFrontendUrl, appProperties.walletUrl());
+        assertEquals(sysTenant, appProperties.sysTenant());
+        assertEquals(adminOrganizationId, appProperties.adminOrganizationId());
     }
 
     @Test
     void knowledgeBase_initializesCorrectly() {
-        AppProperties.KnowledgeBase knowledgeBase = new AppProperties.KnowledgeBase("https://upload-guide-url.com", "https://wallet-guide-url.com");
+        // Arrange
+        String uploadGuideUrl = "https://upload-guide-url.com";
+        String walletGuideUrl = "https://wallet-guide-url.com";
 
-        assertEquals("https://upload-guide-url.com", knowledgeBase.uploadCertificationGuideUrl());
-        assertEquals("https://wallet-guide-url.com", knowledgeBase.walletGuideUrl());
+        // Act
+        AppProperties.KnowledgeBase knowledgeBase =
+                new AppProperties.KnowledgeBase(uploadGuideUrl, walletGuideUrl);
+
+        // Assert
+        assertEquals(uploadGuideUrl, knowledgeBase.uploadCertificationGuideUrl());
+        assertEquals(walletGuideUrl, knowledgeBase.walletGuideUrl());
     }
 }

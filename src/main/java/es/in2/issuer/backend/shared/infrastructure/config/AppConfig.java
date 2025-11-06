@@ -87,4 +87,8 @@ public class AppConfig {
     public String getAdminOrganizationId() {
         return configAdapter.getConfiguration(appProperties.adminOrganizationId());
     }
+
+    public String getSysTenant(){
+        return configAdapter.getConfiguration(appProperties.sysTenant());
+    }
 }
