@@ -89,9 +89,6 @@ public class AppConfig {
     }
 
     public String getSysTenant(){
-        //todo remove
-        System.out.println("get SYS tenant");
-        System.out.println(configAdapter.getConfiguration(appProperties.sysTenant()));
         return configAdapter.getConfiguration(appProperties.sysTenant());
     }
 }

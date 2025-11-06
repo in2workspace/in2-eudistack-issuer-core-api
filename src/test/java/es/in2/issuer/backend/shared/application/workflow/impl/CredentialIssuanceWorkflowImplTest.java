@@ -936,7 +936,7 @@ class CredentialIssuanceWorkflowImplTest {
                 .schema(LABEL_CREDENTIAL)
                 .format(JWT_VC_JSON)
                 .operationMode("S")
-                .email(ownerEmail) // Email owner must be provided for LABEL_CREDENTIAL
+                .email(ownerEmail)
                 .build();
 
         // when
@@ -953,7 +953,7 @@ class CredentialIssuanceWorkflowImplTest {
                 "email.activation.subject",
                 issuerUiExternalDomain + "/credential-offer?transaction_code=" + tx,
                 knowledgebaseWalletUrl,
-                sysTenant // <- Must come from AppConfig.sysTenant now
+                sysTenant
         )).thenReturn(Mono.empty());
 
         // then
@@ -961,7 +961,7 @@ class CredentialIssuanceWorkflowImplTest {
                 verifiableCredentialIssuanceWorkflow.execute(processId, req, token, idToken)
         ).verifyComplete();
 
-        // verify explicitly that sysTenant was used as the organization
+        // verify
         verify(emailService).sendCredentialActivationEmail(
                 eq(ownerEmail),
                 eq("email.activation.subject"),
@@ -971,7 +971,7 @@ class CredentialIssuanceWorkflowImplTest {
         );
     }
 
-    
+
 
 
 }

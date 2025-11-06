@@ -12,7 +12,6 @@ plugins {
 
 group = 'es.in2'
 
-//todo canvi de minor?
 version = '2.2.1'
 
 java {
