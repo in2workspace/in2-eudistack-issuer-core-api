@@ -198,6 +198,10 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
                 .switchIfEmpty(Mono.error(new RuntimeException("Procedure not found")))
                 //todo make reusable
                 .filter(credentialProcedure -> {
+                    log.info("organizationId: {}", organizationId);
+                    log.info("procedure ID: {}", credentialProcedure.getProcedureId());
+                    log.info("admin ID: {}", appConfig.getAdminOrganizationId());
+
                     final boolean isAdmin = appConfig.getAdminOrganizationId().equals(organizationId);
                     final boolean organizationMatches =
                             organizationId != null
