@@ -25,13 +25,21 @@ public class SignUnsignedCredentialController {
             @RequestHeader(HttpHeaders.AUTHORIZATION) String authorizationHeader,
             @PathVariable("procedure_id") String procedureId) {
 
-        return accessTokenService
-                .getCleanBearerToken(authorizationHeader)
-                .flatMap(token ->
-                        accessTokenService.getMandateeEmail(token)
-                                .flatMap(email ->
-                                        credentialSignerWorkflow.retrySignUnsignedCredential(token, procedureId, email)
-                                )
-                );
+        return Mono.zip(
+                    accessTokenService.getCleanBearerToken(authorizationHeader),
+                    accessTokenService.getMandateeEmail(authorizationHeader),
+                    accessTokenService.getOrganizationId(authorizationHeader)
+                )
+                .flatMap(tuple3 -> {
+                    String token = tuple3.getT1();
+                    String email = tuple3.getT2();
+                    String orgId = tuple3.getT3();
+                    return credentialSignerWorkflow.retrySignUnsignedCredential(
+                            token,
+                            procedureId,
+                            email,
+                            orgId
+                    );
+                });
     }
 }

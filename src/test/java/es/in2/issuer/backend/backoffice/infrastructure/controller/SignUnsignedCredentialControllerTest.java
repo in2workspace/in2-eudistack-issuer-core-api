@@ -5,7 +5,6 @@ import es.in2.issuer.backend.shared.domain.service.AccessTokenService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpHeaders;
@@ -27,7 +26,6 @@ class SignUnsignedCredentialControllerTest {
 
     @BeforeEach
     void setup() {
-        // Bind controller with BOTH dependencies mocked
         SignUnsignedCredentialController controller =
                 new SignUnsignedCredentialController(credentialSignerWorkflow, accessTokenService);
         webTestClient = WebTestClient.bindToController(controller).build();
@@ -40,12 +38,15 @@ class SignUnsignedCredentialControllerTest {
         String token = "token";
         String procedureId = "d290f1ee-6c54-4b01-90e6-d701748f0851";
         String email = "alice@example.com";
+        String organizationId = "org-123";
 
         when(accessTokenService.getCleanBearerToken(authorizationHeader))
                 .thenReturn(Mono.just(token));
-        when(accessTokenService.getMandateeEmail(token))
+        when(accessTokenService.getMandateeEmail(authorizationHeader))
                 .thenReturn(Mono.just(email));
-        when(credentialSignerWorkflow.retrySignUnsignedCredential(token, procedureId, email))
+        when(accessTokenService.getOrganizationId(authorizationHeader))
+                .thenReturn(Mono.just(organizationId));
+        when(credentialSignerWorkflow.retrySignUnsignedCredential(token, procedureId, email, organizationId))
                 .thenReturn(Mono.empty());
 
         // when + then
@@ -55,12 +56,12 @@ class SignUnsignedCredentialControllerTest {
                 .exchange()
                 .expectStatus().isCreated();
 
-        // Verify call order and arguments
-        InOrder inOrder = inOrder(accessTokenService, credentialSignerWorkflow);
-        inOrder.verify(accessTokenService).getCleanBearerToken(authorizationHeader);
-        inOrder.verify(accessTokenService).getMandateeEmail(token);
-        inOrder.verify(credentialSignerWorkflow)
-                .retrySignUnsignedCredential(token, procedureId, email);
+        // Verify all AccessTokenService methods were called (order doesn't matter with Mono.zip)
+        verify(accessTokenService).getCleanBearerToken(authorizationHeader);
+        verify(accessTokenService).getMandateeEmail(authorizationHeader);
+        verify(accessTokenService).getOrganizationId(authorizationHeader);
+        verify(credentialSignerWorkflow)
+                .retrySignUnsignedCredential(token, procedureId, email, organizationId);
         verifyNoMoreInteractions(accessTokenService, credentialSignerWorkflow);
     }
 
@@ -71,12 +72,15 @@ class SignUnsignedCredentialControllerTest {
         String token = "token";
         String procedureId = "d290f1ee-6c54-4b01-90e6-d701748f0851";
         String email = "alice@example.com";
+        String organizationId = "org-123";
 
         when(accessTokenService.getCleanBearerToken(authorizationHeader))
                 .thenReturn(Mono.just(token));
-        when(accessTokenService.getMandateeEmail(token))
+        when(accessTokenService.getMandateeEmail(authorizationHeader))
                 .thenReturn(Mono.just(email));
-        when(credentialSignerWorkflow.retrySignUnsignedCredential(token, procedureId, email))
+        when(accessTokenService.getOrganizationId(authorizationHeader))
+                .thenReturn(Mono.just(organizationId));
+        when(credentialSignerWorkflow.retrySignUnsignedCredential(token, procedureId, email, organizationId))
                 .thenReturn(Mono.error(new RuntimeException("Simulated error")));
 
         // when + then
@@ -86,10 +90,11 @@ class SignUnsignedCredentialControllerTest {
                 .exchange()
                 .expectStatus().is5xxServerError();
 
-        InOrder inOrder = inOrder(accessTokenService, credentialSignerWorkflow);
-        inOrder.verify(accessTokenService).getCleanBearerToken(authorizationHeader);
-        inOrder.verify(accessTokenService).getMandateeEmail(token);
-        inOrder.verify(credentialSignerWorkflow).retrySignUnsignedCredential(token, procedureId, email);
+        verify(accessTokenService).getCleanBearerToken(authorizationHeader);
+        verify(accessTokenService).getMandateeEmail(authorizationHeader);
+        verify(accessTokenService).getOrganizationId(authorizationHeader);
+        verify(credentialSignerWorkflow)
+                .retrySignUnsignedCredential(token, procedureId, email, organizationId);
         verifyNoMoreInteractions(accessTokenService, credentialSignerWorkflow);
     }
 
@@ -102,6 +107,10 @@ class SignUnsignedCredentialControllerTest {
         // Error happens while extracting/cleaning the token from the header
         when(accessTokenService.getCleanBearerToken(authorizationHeader))
                 .thenReturn(Mono.error(new IllegalArgumentException("Bad header")));
+        when(accessTokenService.getMandateeEmail(authorizationHeader))
+                .thenReturn(Mono.just("alice@example.com"));
+        when(accessTokenService.getOrganizationId(authorizationHeader))
+                .thenReturn(Mono.just("org-123"));
 
         // when + then
         webTestClient.post()
@@ -110,7 +119,10 @@ class SignUnsignedCredentialControllerTest {
                 .exchange()
                 .expectStatus().is5xxServerError();
 
-        verify(accessTokenService, times(1)).getCleanBearerToken(authorizationHeader);
+        // All three AccessTokenService methods are called in parallel due to Mono.zip
+        verify(accessTokenService).getCleanBearerToken(authorizationHeader);
+        verify(accessTokenService).getMandateeEmail(authorizationHeader);
+        verify(accessTokenService).getOrganizationId(authorizationHeader);
         verifyNoInteractions(credentialSignerWorkflow);
         verifyNoMoreInteractions(accessTokenService);
     }
@@ -124,33 +136,37 @@ class SignUnsignedCredentialControllerTest {
         webTestClient.post()
                 .uri("/backoffice/v1/retry-sign-credential/" + procedureId)
                 .exchange()
-                .expectStatus().isBadRequest(); // missing required header → 400
+                .expectStatus().isBadRequest();
 
         verifyNoInteractions(accessTokenService, credentialSignerWorkflow);
     }
 
     @Test
-    void signUnsignedCredential_emptyEmail_completes201_andWorkflowNotCalled() {
+    void signUnsignedCredential_emptyEmail_failsZip_andWorkflowNotCalled() {
         // given
         String authorizationHeader = "Bearer token";
         String token = "token";
         String procedureId = "d290f1ee-6c54-4b01-90e6-d701748f0851";
 
-        // If the email service returns empty, the final flatMap is never executed and the endpoint completes.
+        // With Mono.zip, if any of the sources is empty, the zip fails and flatMap is not executed
         when(accessTokenService.getCleanBearerToken(authorizationHeader))
                 .thenReturn(Mono.just(token));
-        when(accessTokenService.getMandateeEmail(token))
+        when(accessTokenService.getMandateeEmail(authorizationHeader))
                 .thenReturn(Mono.empty());
+        when(accessTokenService.getOrganizationId(authorizationHeader))
+                .thenReturn(Mono.just("org-123"));
 
         // when + then
         webTestClient.post()
                 .uri("/backoffice/v1/retry-sign-credential/" + procedureId)
                 .header(HttpHeaders.AUTHORIZATION, authorizationHeader)
                 .exchange()
-                .expectStatus().isCreated();
+                .expectStatus().isCreated(); // Completes with 201 but no body
 
-        verify(accessTokenService, times(1)).getCleanBearerToken(authorizationHeader);
-        verify(accessTokenService, times(1)).getMandateeEmail(token);
+        // All three methods are called due to Mono.zip
+        verify(accessTokenService).getCleanBearerToken(authorizationHeader);
+        verify(accessTokenService).getMandateeEmail(authorizationHeader);
+        verify(accessTokenService).getOrganizationId(authorizationHeader);
         verifyNoInteractions(credentialSignerWorkflow);
         verifyNoMoreInteractions(accessTokenService);
     }

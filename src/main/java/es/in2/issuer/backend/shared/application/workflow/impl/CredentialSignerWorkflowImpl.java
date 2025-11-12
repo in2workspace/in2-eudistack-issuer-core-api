@@ -16,6 +16,7 @@ import es.in2.issuer.backend.shared.domain.util.factory.IssuerFactory;
 import es.in2.issuer.backend.shared.domain.util.factory.LEARCredentialEmployeeFactory;
 import es.in2.issuer.backend.shared.domain.util.factory.LEARCredentialMachineFactory;
 import es.in2.issuer.backend.shared.domain.util.factory.LabelCredentialFactory;
+import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
 import es.in2.issuer.backend.shared.infrastructure.repository.CredentialProcedureRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -43,6 +44,7 @@ import static es.in2.issuer.backend.shared.domain.util.Constants.*;
 @RequiredArgsConstructor
 public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
 
+    private final AppConfig appConfig;
     private final DeferredCredentialWorkflow deferredCredentialWorkflow;
     private final RemoteSignatureService remoteSignatureService;
     private final LEARCredentialEmployeeFactory learCredentialEmployeeFactory;
@@ -189,11 +191,22 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
     }
 
     @Override
-    public Mono<Void> retrySignUnsignedCredential(String token, String procedureId, String email) {
+    public Mono<Void> retrySignUnsignedCredential(String token, String procedureId, String email, String organizationId) {
         log.info("Retrying to sign credential...");
 
         return credentialProcedureRepository.findByProcedureId(UUID.fromString(procedureId))
                 .switchIfEmpty(Mono.error(new RuntimeException("Procedure not found")))
+                //todo make reusable
+                .filter(credentialProcedure -> {
+                    final boolean isAdmin = appConfig.getAdminOrganizationId().equals(organizationId);
+                    final boolean organizationMatches =
+                            organizationId != null
+                                    && credentialProcedure.getOrganizationIdentifier() != null
+                                    && organizationId.equals(credentialProcedure.getOrganizationIdentifier());
+                    return isAdmin || organizationMatches;
+                })
+                .switchIfEmpty(Mono.error(new org.springframework.security.access.AccessDeniedException(
+                        "Organization ID does not match the credential procedure organization.")))
                 .flatMap(credentialProcedure ->
                     switch (credentialProcedure.getCredentialType()) {
                         case LABEL_CREDENTIAL_TYPE ->
