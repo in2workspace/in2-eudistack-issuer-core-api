@@ -1,6 +1,5 @@
 package es.in2.issuer.backend.backoffice.domain.service.impl;
 
-
 import es.in2.issuer.backend.backoffice.domain.service.NotificationService;
 import es.in2.issuer.backend.shared.domain.exception.EmailCommunicationException;
 import es.in2.issuer.backend.shared.domain.service.CredentialProcedureService;
@@ -10,11 +9,13 @@ import es.in2.issuer.backend.shared.domain.service.TranslationService;
 import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 import reactor.core.publisher.Mono;
 
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.*;
-import static es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum.*;
 
 @Slf4j
 @Service
@@ -28,32 +29,53 @@ public class NotificationServiceImpl implements NotificationService {
     private final TranslationService translationService;
 
     @Override
-    public Mono<Void> sendNotification(String processId, String procedureId) {
-        // TODO this flow doesn't udpate the credential procedure, but we should consider updating the "udpated_by" field for auditing and maybe have the last person to send a reminder to receive the failed signature email
+    public Mono<Void> sendNotification(String processId, String procedureId, String organizationId) {
+        log.info("sendNotification processId={} organizationId={} procedureId={}", processId, organizationId, procedureId);
+
         return credentialProcedureService.getCredentialProcedureById(procedureId)
-                        .flatMap(credentialProcedure -> credentialProcedureService.getCredentialOfferEmailInfoByProcedureId(procedureId)
-                                .flatMap(emailCredentialOfferInfo -> {
-                                            // TODO we need to remove the withdraw status from the condition since the v1.2.0 version is deprecated but in order to support retro compatibility issues we will keep it for now.
-                                            if (credentialProcedure.getCredentialStatus().toString().equals(DRAFT.toString()) || credentialProcedure.getCredentialStatus().toString().equals(WITHDRAWN.toString())) {
-                                                return deferredCredentialMetadataService.updateTransactionCodeInDeferredCredentialMetadata(procedureId)
-                                                        .flatMap(newTransactionCode -> emailService.sendCredentialActivationEmail(
-                                                                emailCredentialOfferInfo.email(),
-                                                                CREDENTIAL_ACTIVATION_EMAIL_SUBJECT,
-                                                                appConfig.getIssuerFrontendUrl() + "/credential-offer?transaction_code=" + newTransactionCode,
-                                                                appConfig.getKnowledgebaseWalletUrl(),
-                                                                emailCredentialOfferInfo.organization()
-                                                        ))
-                                                        .onErrorMap(exception ->
-                                                                new EmailCommunicationException(MAIL_ERROR_COMMUNICATION_EXCEPTION_MESSAGE));
-                                            } else if (credentialProcedure.getCredentialStatus().toString().equals(PEND_DOWNLOAD.toString())) {
+                .switchIfEmpty(Mono.error(new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "CredentialProcedure not found: " + procedureId)))
+                .filter(credentialProcedure -> {
+                    final boolean isAdmin = appConfig.getAdminOrganizationId().equals(organizationId);
+                    final boolean organizationMatches =
+                            organizationId != null
+                                    && credentialProcedure.getOrganizationIdentifier() != null
+                                    && organizationId.equals(credentialProcedure.getOrganizationIdentifier());
+                    return isAdmin || organizationMatches;
+                })
+                .switchIfEmpty(Mono.error(new AccessDeniedException(
+                        "Organization ID does not match the credential procedure organization.")))
+                .zipWhen(credentialProcedure -> credentialProcedureService.getCredentialOfferEmailInfoByProcedureId(procedureId))
+                .flatMap(tuple -> {
+                    final var credentialProcedure = tuple.getT1();
+                    final var emailInfo = tuple.getT2();
 
-                                                return emailService.sendCredentialSignedNotification(credentialProcedure.getEmail(), CREDENTIAL_READY, "email.you-can-use-wallet");
-                                            } else {
-                                                return Mono.empty();
-                                            }
-                                        }
-                                )
-                        );
+                    // Prefer enum comparison over string comparison
+                    return switch (credentialProcedure.getCredentialStatus()) {
+                        case DRAFT, WITHDRAWN ->
+                            deferredCredentialMetadataService
+                                    .updateTransactionCodeInDeferredCredentialMetadata(procedureId)
+                                    .flatMap(newTransactionCode ->
+                                            emailService.sendCredentialActivationEmail(
+                                                    emailInfo.email(),
+                                                    CREDENTIAL_ACTIVATION_EMAIL_SUBJECT,
+                                                    appConfig.getIssuerFrontendUrl() + "/credential-offer?transaction_code=" + newTransactionCode,
+                                                    appConfig.getKnowledgebaseWalletUrl(),
+                                                    emailInfo.organization()
+                                            )
+                                    )
+                                    .onErrorMap(ex -> new EmailCommunicationException(MAIL_ERROR_COMMUNICATION_EXCEPTION_MESSAGE));
+
+                        case PEND_DOWNLOAD ->
+                            emailService.sendCredentialSignedNotification(
+                                    credentialProcedure.getEmail(),
+                                    CREDENTIAL_READY,
+                                    "email.you-can-use-wallet"
+                            );
+
+                        default -> Mono.empty();
+                    };
+                })
+                .then(); // Ensure Mono<Void>
     }
-
 }
