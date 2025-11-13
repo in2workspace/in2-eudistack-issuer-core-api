@@ -20,14 +20,12 @@ import java.util.UUID;
 public class NotificationController {
 
     private final NotificationService notificationService;
-    private final AccessTokenService accessTokenService;
 
     @PostMapping(value = "/{procedure_id}", produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public Mono<Void> sendEmailNotification(@RequestHeader(HttpHeaders.AUTHORIZATION) String authorizationHeader, @PathVariable("procedure_id") String procedureId) {
+    public Mono<Void> sendEmailNotification(@RequestHeader(HttpHeaders.AUTHORIZATION) String bearerToken, @PathVariable("procedure_id") String procedureId) {
         String processId = UUID.randomUUID().toString();
-        return accessTokenService.getOrganizationId(authorizationHeader)
-                .flatMap(organizationId -> notificationService.sendNotification(processId, procedureId, organizationId))
+        return notificationService.sendNotification(processId, procedureId, bearerToken)
                 .doOnTerminate(() -> log.info("NotificationController - sendEmailNotification()"));
     }
 }

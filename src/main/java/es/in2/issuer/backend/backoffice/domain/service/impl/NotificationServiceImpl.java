@@ -1,11 +1,9 @@
 package es.in2.issuer.backend.backoffice.domain.service.impl;
 
+import es.in2.issuer.backend.backoffice.application.workflow.policies.BackofficePdp;
 import es.in2.issuer.backend.backoffice.domain.service.NotificationService;
 import es.in2.issuer.backend.shared.domain.exception.EmailCommunicationException;
-import es.in2.issuer.backend.shared.domain.service.CredentialProcedureService;
-import es.in2.issuer.backend.shared.domain.service.DeferredCredentialMetadataService;
-import es.in2.issuer.backend.shared.domain.service.EmailService;
-import es.in2.issuer.backend.shared.domain.service.TranslationService;
+import es.in2.issuer.backend.shared.domain.service.*;
 import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,34 +21,25 @@ import static es.in2.issuer.backend.backoffice.domain.util.Constants.*;
 public class NotificationServiceImpl implements NotificationService {
 
     private final AppConfig appConfig;
+    private final AccessTokenService accessTokenService;
+    private final BackofficePdp backofficePdp;
     private final EmailService emailService;
     private final CredentialProcedureService credentialProcedureService;
     private final DeferredCredentialMetadataService deferredCredentialMetadataService;
-    private final TranslationService translationService;
 
     @Override
-    public Mono<Void> sendNotification(String processId, String procedureId, String organizationId) {
-        log.info("sendNotification processId={} organizationId={} procedureId={}", processId, organizationId, procedureId);
+    public Mono<Void> sendNotification(String processId, String procedureId, String bearerToken) {
+        log.info("sendNotification processId={} organizationId={} token={}", processId, bearerToken, procedureId);
 
-        return credentialProcedureService.getCredentialProcedureById(procedureId)
-                .switchIfEmpty(Mono.error(new ResponseStatusException(
-                        HttpStatus.NOT_FOUND, "CredentialProcedure not found: " + procedureId)))
-                .filter(credentialProcedure -> {
-                    final boolean isAdmin = appConfig.getAdminOrganizationId().equals(organizationId);
-                    final boolean organizationMatches =
-                            organizationId != null
-                                    && credentialProcedure.getOrganizationIdentifier() != null
-                                    && organizationId.equals(credentialProcedure.getOrganizationIdentifier());
-                    return isAdmin || organizationMatches;
-                })
-                .switchIfEmpty(Mono.error(new AccessDeniedException(
-                        "Organization ID does not match the credential procedure organization.")))
+        return accessTokenService.getCleanBearerToken(bearerToken)
+                .flatMap(token -> backofficePdp.validateSendReminder(processId, token, procedureId)
+                        .then(credentialProcedureService.getCredentialProcedureById(procedureId))
+                )
                 .zipWhen(credentialProcedure -> credentialProcedureService.getCredentialOfferEmailInfoByProcedureId(procedureId))
                 .flatMap(tuple -> {
                     final var credentialProcedure = tuple.getT1();
                     final var emailInfo = tuple.getT2();
 
-                    // Prefer enum comparison over string comparison
                     return switch (credentialProcedure.getCredentialStatus()) {
                         case DRAFT, WITHDRAWN ->
                             deferredCredentialMetadataService
@@ -76,6 +65,6 @@ public class NotificationServiceImpl implements NotificationService {
                         default -> Mono.empty();
                     };
                 })
-                .then(); // Ensure Mono<Void>
+                .then();
     }
 }

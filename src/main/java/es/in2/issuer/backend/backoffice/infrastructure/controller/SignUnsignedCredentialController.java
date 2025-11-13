@@ -10,6 +10,8 @@ import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 
+import java.util.UUID;
+
 @Slf4j
 @RestController
 @RequestMapping("/backoffice/v1/retry-sign-credential")
@@ -25,21 +27,12 @@ public class SignUnsignedCredentialController {
             @RequestHeader(HttpHeaders.AUTHORIZATION) String authorizationHeader,
             @PathVariable("procedure_id") String procedureId) {
 
-        return Mono.zip(
-                    accessTokenService.getCleanBearerToken(authorizationHeader),
-                    accessTokenService.getMandateeEmail(authorizationHeader),
-                    accessTokenService.getOrganizationId(authorizationHeader)
-                )
-                .flatMap(tuple3 -> {
-                    String token = tuple3.getT1();
-                    String email = tuple3.getT2();
-                    String orgId = tuple3.getT3();
-                    return credentialSignerWorkflow.retrySignUnsignedCredential(
-                            token,
-                            procedureId,
-                            email,
-                            orgId
-                    );
-                });
+        String processId = UUID.randomUUID().toString();
+
+        return credentialSignerWorkflow.retrySignUnsignedCredential(
+                processId,
+                authorizationHeader,
+                procedureId
+        );
     }
 }
