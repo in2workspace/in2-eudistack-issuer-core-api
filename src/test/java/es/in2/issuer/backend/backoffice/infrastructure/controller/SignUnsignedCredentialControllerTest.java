@@ -27,7 +27,7 @@ class SignUnsignedCredentialControllerTest {
     @BeforeEach
     void setup() {
         SignUnsignedCredentialController controller =
-                new SignUnsignedCredentialController(credentialSignerWorkflow, accessTokenService);
+                new SignUnsignedCredentialController(credentialSignerWorkflow);
         webTestClient = WebTestClient.bindToController(controller).build();
     }
 

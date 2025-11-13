@@ -1,7 +1,6 @@
 package es.in2.issuer.backend.backoffice.infrastructure.controller;
 
 import es.in2.issuer.backend.backoffice.domain.service.NotificationService;
-import es.in2.issuer.backend.shared.domain.service.AccessTokenService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -12,17 +11,14 @@ import reactor.test.StepVerifier;
 
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class NotificationControllerTest {
 
     @Mock
     private NotificationService notificationService;
-
-    @Mock
-    private AccessTokenService accessTokenService;
 
     @InjectMocks
     private NotificationController notificationController;
@@ -32,12 +28,8 @@ class NotificationControllerTest {
         // Arrange
         String authorizationHeader = "Bearer some.jwt.token";
         String procedureId = "testProcedureId";
-        String organizationId = "org-123";
 
-        when(accessTokenService.getOrganizationId(authorizationHeader))
-                .thenReturn(Mono.just(organizationId));
-
-       when(notificationService.sendNotification(anyString(), eq(procedureId), eq(organizationId)))
+        when(notificationService.sendNotification(anyString(), eq(procedureId), eq(authorizationHeader)))
                 .thenReturn(Mono.empty());
 
         // Act
@@ -46,6 +38,7 @@ class NotificationControllerTest {
         // Assert
         StepVerifier.create(result)
                 .verifyComplete();
-        verify(notificationService).sendNotification(anyString(), eq(procedureId), eq(organizationId));
+
+        verify(notificationService).sendNotification(anyString(), eq(procedureId), eq(authorizationHeader));
     }
 }

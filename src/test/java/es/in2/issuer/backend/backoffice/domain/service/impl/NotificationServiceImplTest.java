@@ -1,10 +1,14 @@
 package es.in2.issuer.backend.backoffice.domain.service.impl;
 
+import es.in2.issuer.backend.backoffice.application.workflow.policies.BackofficePdp;
+import es.in2.issuer.backend.backoffice.domain.service.NotificationService;
 import es.in2.issuer.backend.shared.domain.exception.EmailCommunicationException;
+import es.in2.issuer.backend.shared.domain.model.dto.CredentialOfferEmailNotificationInfo;
+import es.in2.issuer.backend.shared.domain.model.entities.CredentialProcedure;
+import es.in2.issuer.backend.shared.domain.service.AccessTokenService;
 import es.in2.issuer.backend.shared.domain.service.CredentialProcedureService;
 import es.in2.issuer.backend.shared.domain.service.DeferredCredentialMetadataService;
 import es.in2.issuer.backend.shared.domain.service.EmailService;
-import es.in2.issuer.backend.shared.domain.service.TranslationService;
 import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -12,25 +16,26 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.access.AccessDeniedException;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-import static es.in2.issuer.backend.backoffice.domain.util.Constants.*;
+import static es.in2.issuer.backend.backoffice.domain.util.Constants.CREDENTIAL_ACTIVATION_EMAIL_SUBJECT;
+import static es.in2.issuer.backend.backoffice.domain.util.Constants.CREDENTIAL_READY;
+import static es.in2.issuer.backend.backoffice.domain.util.Constants.MAIL_ERROR_COMMUNICATION_EXCEPTION_MESSAGE;
 import static es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum.DRAFT;
 import static es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum.PEND_DOWNLOAD;
 import static es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum.WITHDRAWN;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-import es.in2.issuer.backend.shared.domain.model.entities.CredentialProcedure;
-import es.in2.issuer.backend.shared.domain.model.dto.CredentialOfferEmailNotificationInfo;
-
 @ExtendWith(MockitoExtension.class)
 class NotificationServiceImplTest {
 
     private final String processId = "processId";
     private final String procedureId = "procedureId";
-    private final String organizationId = "org-123";
+    private final String bearerToken = "Bearer some.jwt.token";
+    private final String cleanToken = "clean-token";
 
     private final String issuerUiExternalDomain = "https://example.com";
     private final String knowledgebaseWalletUrl = "https://knowledgebaseUrl.com";
@@ -40,12 +45,12 @@ class NotificationServiceImplTest {
     private final String transactionCode = "transactionCode123";
     private final String email = "owner@example.com";
 
-
     @Mock private AppConfig appConfig;
+    @Mock private AccessTokenService accessTokenService;
+    @Mock private BackofficePdp backofficePdp;
     @Mock private EmailService emailService;
     @Mock private CredentialProcedureService credentialProcedureService;
     @Mock private DeferredCredentialMetadataService deferredCredentialMetadataService;
-    @Mock private TranslationService translationService;
 
     @InjectMocks
     private NotificationServiceImpl notificationService;
@@ -56,8 +61,11 @@ class NotificationServiceImplTest {
         lenient().when(appConfig.getIssuerFrontendUrl()).thenReturn(issuerUiExternalDomain);
         lenient().when(appConfig.getKnowledgebaseWalletUrl()).thenReturn(knowledgebaseWalletUrl);
 
-        // Make the caller a non-admin by default; auth will pass via organization match
-        lenient().when(appConfig.getAdminOrganizationId()).thenReturn("admin-org");
+        // Default PDP and token behavior
+        lenient().when(accessTokenService.getCleanBearerToken(bearerToken))
+                .thenReturn(Mono.just(cleanToken));
+        lenient().when(backofficePdp.validateSendReminder(processId, cleanToken, procedureId))
+                .thenReturn(Mono.empty());
     }
 
     @Test
@@ -65,7 +73,6 @@ class NotificationServiceImplTest {
         // arrange
         CredentialProcedure credentialProcedure = mock(CredentialProcedure.class);
         when(credentialProcedure.getCredentialStatus()).thenReturn(DRAFT);
-        when(credentialProcedure.getOrganizationIdentifier()).thenReturn(organizationId);
 
         CredentialOfferEmailNotificationInfo emailInfo =
                 new CredentialOfferEmailNotificationInfo(mandateeEmail, organization);
@@ -85,10 +92,13 @@ class NotificationServiceImplTest {
         )).thenReturn(Mono.empty());
 
         // act
-        var result = notificationService.sendNotification(processId, procedureId, organizationId);
+        var result = notificationService.sendNotification(processId, procedureId, bearerToken);
 
         // assert
         StepVerifier.create(result).verifyComplete();
+
+        verify(accessTokenService).getCleanBearerToken(bearerToken);
+        verify(backofficePdp).validateSendReminder(processId, cleanToken, procedureId);
         verify(emailService, times(1))
                 .sendCredentialActivationEmail(anyString(), anyString(), anyString(), anyString(), anyString());
         verifyNoMoreInteractions(emailService);
@@ -99,7 +109,6 @@ class NotificationServiceImplTest {
         // arrange
         CredentialProcedure credentialProcedure = mock(CredentialProcedure.class);
         when(credentialProcedure.getCredentialStatus()).thenReturn(WITHDRAWN);
-        when(credentialProcedure.getOrganizationIdentifier()).thenReturn(organizationId);
 
         CredentialOfferEmailNotificationInfo emailInfo =
                 new CredentialOfferEmailNotificationInfo(mandateeEmail, organization);
@@ -119,10 +128,13 @@ class NotificationServiceImplTest {
         )).thenReturn(Mono.empty());
 
         // act
-        var result = notificationService.sendNotification(processId, procedureId, organizationId);
+        var result = notificationService.sendNotification(processId, procedureId, bearerToken);
 
         // assert
         StepVerifier.create(result).verifyComplete();
+
+        verify(accessTokenService).getCleanBearerToken(bearerToken);
+        verify(backofficePdp).validateSendReminder(processId, cleanToken, procedureId);
         verify(emailService, times(1))
                 .sendCredentialActivationEmail(anyString(), anyString(), anyString(), anyString(), anyString());
         verifyNoMoreInteractions(emailService);
@@ -133,7 +145,6 @@ class NotificationServiceImplTest {
         // arrange
         CredentialProcedure credentialProcedure = mock(CredentialProcedure.class);
         when(credentialProcedure.getCredentialStatus()).thenReturn(DRAFT);
-        when(credentialProcedure.getOrganizationIdentifier()).thenReturn(organizationId);
 
         CredentialOfferEmailNotificationInfo emailInfo =
                 new CredentialOfferEmailNotificationInfo(mandateeEmail, organization);
@@ -149,7 +160,7 @@ class NotificationServiceImplTest {
         )).thenReturn(Mono.error(new RuntimeException("boom")));
 
         // act
-        var result = notificationService.sendNotification(processId, procedureId, organizationId);
+        var result = notificationService.sendNotification(processId, procedureId, bearerToken);
 
         // assert
         StepVerifier.create(result)
@@ -164,7 +175,6 @@ class NotificationServiceImplTest {
         CredentialProcedure credentialProcedure = mock(CredentialProcedure.class);
         when(credentialProcedure.getCredentialStatus()).thenReturn(PEND_DOWNLOAD);
         when(credentialProcedure.getEmail()).thenReturn(email);
-        when(credentialProcedure.getOrganizationIdentifier()).thenReturn(organizationId);
 
         CredentialOfferEmailNotificationInfo emailInfo =
                 new CredentialOfferEmailNotificationInfo(mandateeEmail, organization);
@@ -180,10 +190,13 @@ class NotificationServiceImplTest {
         ).thenReturn(Mono.empty());
 
         // act
-        var result = notificationService.sendNotification(processId, procedureId, organizationId);
+        var result = notificationService.sendNotification(processId, procedureId, bearerToken);
 
         // assert
         StepVerifier.create(result).verifyComplete();
+
+        verify(accessTokenService).getCleanBearerToken(bearerToken);
+        verify(backofficePdp).validateSendReminder(processId, cleanToken, procedureId);
         verify(emailService, times(1))
                 .sendCredentialSignedNotification(
                         email,
@@ -194,21 +207,26 @@ class NotificationServiceImplTest {
     }
 
     @Test
-    void sendNotification_whenOrgMismatchAndNotAdmin_failsWithAccessDenied() {
+    void sendNotification_whenPdpDeniesAccess_failsWithAccessDenied() {
         // arrange
-        CredentialProcedure credentialProcedure = mock(CredentialProcedure.class);
-        when(appConfig.getAdminOrganizationId()).thenReturn("admin-org");
+        when(accessTokenService.getCleanBearerToken(bearerToken))
+                .thenReturn(Mono.just(cleanToken));
+        when(backofficePdp.validateSendReminder(processId, cleanToken, procedureId))
+                .thenReturn(Mono.error(new AccessDeniedException("not allowed")));
 
+        // Important: avoid .then(null) -> NPE
         when(credentialProcedureService.getCredentialProcedureById(procedureId))
-                .thenReturn(Mono.just(credentialProcedure));
+                .thenReturn(Mono.just(mock(CredentialProcedure.class)));
 
         // act
-        var result = notificationService.sendNotification(processId, procedureId, organizationId);
+        var result = notificationService.sendNotification(processId, procedureId, bearerToken);
 
         // assert
         StepVerifier.create(result)
-                .expectErrorMatches(ex -> ex instanceof org.springframework.security.access.AccessDeniedException)
+                .expectError(AccessDeniedException.class)
                 .verify();
+
         verifyNoInteractions(emailService);
     }
+
 }

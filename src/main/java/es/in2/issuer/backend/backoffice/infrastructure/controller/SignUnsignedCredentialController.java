@@ -19,7 +19,6 @@ import java.util.UUID;
 public class SignUnsignedCredentialController {
 
     private final CredentialSignerWorkflow credentialSignerWorkflow;
-    private final AccessTokenService accessTokenService;
 
     @PostMapping(value = "/{procedure_id}", produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
