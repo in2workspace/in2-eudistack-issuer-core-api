@@ -1,4 +1,4 @@
-package es.in2.issuer.backend.backoffice.application.workflow.policies.Impl;
+package es.in2.issuer.backend.backoffice.application.workflow.policies.impl;
 
 import com.nimbusds.jose.Payload;
 import com.nimbusds.jwt.SignedJWT;

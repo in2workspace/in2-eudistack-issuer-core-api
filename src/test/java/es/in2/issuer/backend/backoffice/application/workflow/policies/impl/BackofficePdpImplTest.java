@@ -1,9 +1,8 @@
-package es.in2.issuer.backend.backoffice.application.workflow.impl.policies;
+package es.in2.issuer.backend.backoffice.application.workflow.policies.impl;
 
 import com.nimbusds.jose.Payload;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
-import es.in2.issuer.backend.backoffice.application.workflow.policies.Impl.BackofficePdpImpl;
 import es.in2.issuer.backend.shared.domain.exception.JWTParsingException;
 import es.in2.issuer.backend.shared.domain.exception.UnauthorizedRoleException;
 import es.in2.issuer.backend.shared.domain.service.JWTService;
