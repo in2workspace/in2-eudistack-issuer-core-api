@@ -1,7 +1,6 @@
 package es.in2.issuer.backend.backoffice.infrastructure.controller;
 
 import es.in2.issuer.backend.shared.application.workflow.CredentialSignerWorkflow;
-import es.in2.issuer.backend.shared.domain.service.AccessTokenService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
@@ -10,6 +9,8 @@ import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 
+import java.util.UUID;
+
 @Slf4j
 @RestController
 @RequestMapping("/backoffice/v1/retry-sign-credential")
@@ -17,7 +18,6 @@ import reactor.core.publisher.Mono;
 public class SignUnsignedCredentialController {
 
     private final CredentialSignerWorkflow credentialSignerWorkflow;
-    private final AccessTokenService accessTokenService;
 
     @PostMapping(value = "/{procedure_id}", produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
@@ -25,13 +25,12 @@ public class SignUnsignedCredentialController {
             @RequestHeader(HttpHeaders.AUTHORIZATION) String authorizationHeader,
             @PathVariable("procedure_id") String procedureId) {
 
-        return accessTokenService
-                .getCleanBearerToken(authorizationHeader)
-                .flatMap(token ->
-                        accessTokenService.getMandateeEmail(token)
-                                .flatMap(email ->
-                                        credentialSignerWorkflow.retrySignUnsignedCredential(token, procedureId, email)
-                                )
-                );
+        String processId = UUID.randomUUID().toString();
+
+        return credentialSignerWorkflow.retrySignUnsignedCredential(
+                processId,
+                authorizationHeader,
+                procedureId
+        );
     }
 }

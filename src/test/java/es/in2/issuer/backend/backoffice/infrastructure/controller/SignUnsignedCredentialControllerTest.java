@@ -1,17 +1,17 @@
 package es.in2.issuer.backend.backoffice.infrastructure.controller;
 
 import es.in2.issuer.backend.shared.application.workflow.CredentialSignerWorkflow;
-import es.in2.issuer.backend.shared.domain.service.AccessTokenService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpHeaders;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.core.publisher.Mono;
 
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -20,16 +20,12 @@ class SignUnsignedCredentialControllerTest {
     @Mock
     private CredentialSignerWorkflow credentialSignerWorkflow;
 
-    @Mock
-    private AccessTokenService accessTokenService;
-
     private WebTestClient webTestClient;
 
     @BeforeEach
     void setup() {
-        // Bind controller with BOTH dependencies mocked
         SignUnsignedCredentialController controller =
-                new SignUnsignedCredentialController(credentialSignerWorkflow, accessTokenService);
+                new SignUnsignedCredentialController(credentialSignerWorkflow);
         webTestClient = WebTestClient.bindToController(controller).build();
     }
 
@@ -37,15 +33,10 @@ class SignUnsignedCredentialControllerTest {
     void signUnsignedCredential_success() {
         // given
         String authorizationHeader = "Bearer token";
-        String token = "token";
         String procedureId = "d290f1ee-6c54-4b01-90e6-d701748f0851";
-        String email = "alice@example.com";
 
-        when(accessTokenService.getCleanBearerToken(authorizationHeader))
-                .thenReturn(Mono.just(token));
-        when(accessTokenService.getMandateeEmail(token))
-                .thenReturn(Mono.just(email));
-        when(credentialSignerWorkflow.retrySignUnsignedCredential(token, procedureId, email))
+        when(credentialSignerWorkflow.retrySignUnsignedCredential(
+                anyString(), eq(authorizationHeader), eq(procedureId)))
                 .thenReturn(Mono.empty());
 
         // when + then
@@ -55,28 +46,20 @@ class SignUnsignedCredentialControllerTest {
                 .exchange()
                 .expectStatus().isCreated();
 
-        // Verify call order and arguments
-        InOrder inOrder = inOrder(accessTokenService, credentialSignerWorkflow);
-        inOrder.verify(accessTokenService).getCleanBearerToken(authorizationHeader);
-        inOrder.verify(accessTokenService).getMandateeEmail(token);
-        inOrder.verify(credentialSignerWorkflow)
-                .retrySignUnsignedCredential(token, procedureId, email);
-        verifyNoMoreInteractions(accessTokenService, credentialSignerWorkflow);
+        // processId és aleatori, així que només comprovem que s’hi passa algun String
+        verify(credentialSignerWorkflow)
+                .retrySignUnsignedCredential(anyString(), eq(authorizationHeader), eq(procedureId));
+        verifyNoMoreInteractions(credentialSignerWorkflow);
     }
 
     @Test
     void signUnsignedCredential_workflowError_propagates5xx() {
         // given
         String authorizationHeader = "Bearer token";
-        String token = "token";
         String procedureId = "d290f1ee-6c54-4b01-90e6-d701748f0851";
-        String email = "alice@example.com";
 
-        when(accessTokenService.getCleanBearerToken(authorizationHeader))
-                .thenReturn(Mono.just(token));
-        when(accessTokenService.getMandateeEmail(token))
-                .thenReturn(Mono.just(email));
-        when(credentialSignerWorkflow.retrySignUnsignedCredential(token, procedureId, email))
+        when(credentialSignerWorkflow.retrySignUnsignedCredential(
+                anyString(), eq(authorizationHeader), eq(procedureId)))
                 .thenReturn(Mono.error(new RuntimeException("Simulated error")));
 
         // when + then
@@ -86,33 +69,9 @@ class SignUnsignedCredentialControllerTest {
                 .exchange()
                 .expectStatus().is5xxServerError();
 
-        InOrder inOrder = inOrder(accessTokenService, credentialSignerWorkflow);
-        inOrder.verify(accessTokenService).getCleanBearerToken(authorizationHeader);
-        inOrder.verify(accessTokenService).getMandateeEmail(token);
-        inOrder.verify(credentialSignerWorkflow).retrySignUnsignedCredential(token, procedureId, email);
-        verifyNoMoreInteractions(accessTokenService, credentialSignerWorkflow);
-    }
-
-    @Test
-    void signUnsignedCredential_accessTokenError_propagates5xx_andWorkflowNotCalled() {
-        // given
-        String authorizationHeader = "Bearer token";
-        String procedureId = "d290f1ee-6c54-4b01-90e6-d701748f0851";
-
-        // Error happens while extracting/cleaning the token from the header
-        when(accessTokenService.getCleanBearerToken(authorizationHeader))
-                .thenReturn(Mono.error(new IllegalArgumentException("Bad header")));
-
-        // when + then
-        webTestClient.post()
-                .uri("/backoffice/v1/retry-sign-credential/" + procedureId)
-                .header(HttpHeaders.AUTHORIZATION, authorizationHeader)
-                .exchange()
-                .expectStatus().is5xxServerError();
-
-        verify(accessTokenService, times(1)).getCleanBearerToken(authorizationHeader);
-        verifyNoInteractions(credentialSignerWorkflow);
-        verifyNoMoreInteractions(accessTokenService);
+        verify(credentialSignerWorkflow)
+                .retrySignUnsignedCredential(anyString(), eq(authorizationHeader), eq(procedureId));
+        verifyNoMoreInteractions(credentialSignerWorkflow);
     }
 
     @Test
@@ -124,34 +83,8 @@ class SignUnsignedCredentialControllerTest {
         webTestClient.post()
                 .uri("/backoffice/v1/retry-sign-credential/" + procedureId)
                 .exchange()
-                .expectStatus().isBadRequest(); // missing required header → 400
+                .expectStatus().isBadRequest();
 
-        verifyNoInteractions(accessTokenService, credentialSignerWorkflow);
-    }
-
-    @Test
-    void signUnsignedCredential_emptyEmail_completes201_andWorkflowNotCalled() {
-        // given
-        String authorizationHeader = "Bearer token";
-        String token = "token";
-        String procedureId = "d290f1ee-6c54-4b01-90e6-d701748f0851";
-
-        // If the email service returns empty, the final flatMap is never executed and the endpoint completes.
-        when(accessTokenService.getCleanBearerToken(authorizationHeader))
-                .thenReturn(Mono.just(token));
-        when(accessTokenService.getMandateeEmail(token))
-                .thenReturn(Mono.empty());
-
-        // when + then
-        webTestClient.post()
-                .uri("/backoffice/v1/retry-sign-credential/" + procedureId)
-                .header(HttpHeaders.AUTHORIZATION, authorizationHeader)
-                .exchange()
-                .expectStatus().isCreated();
-
-        verify(accessTokenService, times(1)).getCleanBearerToken(authorizationHeader);
-        verify(accessTokenService, times(1)).getMandateeEmail(token);
         verifyNoInteractions(credentialSignerWorkflow);
-        verifyNoMoreInteractions(accessTokenService);
     }
 }

@@ -11,6 +11,7 @@ import reactor.test.StepVerifier;
 
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -23,16 +24,21 @@ class NotificationControllerTest {
     private NotificationController notificationController;
 
     @Test
-    void sendEmailNotification() {
+    void sendEmailNotification_completesSuccessfully() {
         // Arrange
+        String authorizationHeader = "Bearer some.jwt.token";
         String procedureId = "testProcedureId";
-        when(notificationService.sendNotification(anyString(), eq(procedureId))).thenReturn(Mono.empty());
+
+        when(notificationService.sendNotification(anyString(), eq(procedureId), eq(authorizationHeader)))
+                .thenReturn(Mono.empty());
 
         // Act
-        Mono<Void> result = notificationController.sendEmailNotification(procedureId);
+        Mono<Void> result = notificationController.sendEmailNotification(authorizationHeader, procedureId);
 
         // Assert
         StepVerifier.create(result)
                 .verifyComplete();
+
+        verify(notificationService).sendNotification(anyString(), eq(procedureId), eq(authorizationHeader));
     }
 }

@@ -7,6 +7,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
+import org.springframework.http.HttpHeaders;
 
 import java.util.UUID;
 
@@ -20,8 +21,8 @@ public class NotificationController {
 
     @PostMapping(value = "/{procedure_id}", produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public Mono<Void> sendEmailNotification(@PathVariable("procedure_id") String procedureId) {
+    public Mono<Void> sendEmailNotification(@RequestHeader(HttpHeaders.AUTHORIZATION) String bearerToken, @PathVariable("procedure_id") String procedureId) {
         String processId = UUID.randomUUID().toString();
-        return notificationService.sendNotification(processId, procedureId);
+        return notificationService.sendNotification(processId, procedureId, bearerToken);
     }
 }
