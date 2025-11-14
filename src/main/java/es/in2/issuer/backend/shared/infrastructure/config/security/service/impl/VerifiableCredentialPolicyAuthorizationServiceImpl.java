@@ -212,7 +212,6 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
         }
     }
 
-    //rev paràmetre orgId optatiu
 // Checks if signer is IN2 and has Onboarding/Execute power
     private boolean isSignerIssuancePolicyValid(LEARCredential learCredential) {
 

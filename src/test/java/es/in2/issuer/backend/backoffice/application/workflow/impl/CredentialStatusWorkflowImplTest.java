@@ -32,7 +32,7 @@ class CredentialStatusWorkflowImplTest {
     @Mock private ObjectMapper objectMapper;
     @Mock private AccessTokenService accessTokenService;
     @Mock private CredentialStatusService credentialStatusService;
-    @Mock private CredentialStatusAuthorizationService credentialStatusAuthorizationService; // encara és dependency del constructor
+    @Mock private CredentialStatusAuthorizationService credentialStatusAuthorizationService;
     @Mock private CredentialProcedureService credentialProcedureService;
     @Mock private EmailService emailService;
     @Mock private BackofficePdp backofficePdp;

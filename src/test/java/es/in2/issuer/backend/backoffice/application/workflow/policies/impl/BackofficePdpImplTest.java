@@ -25,7 +25,6 @@ import java.util.UUID;
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.LEAR;
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.ROLE;
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.VC;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.*;
 
@@ -182,7 +181,7 @@ class BackofficePdpImplTest {
     }
 
     @Test
-    void validateCommon_parseTokenThrows_propagatesError() throws Exception {
+    void validateCommon_parseTokenThrows_propagatesError(){
         String token = "token";
         String procedureId = UUID.randomUUID().toString();
 

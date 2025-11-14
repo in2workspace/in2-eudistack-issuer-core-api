@@ -1,7 +1,6 @@
 package es.in2.issuer.backend.backoffice.domain.service.impl;
 
 import es.in2.issuer.backend.backoffice.application.workflow.policies.BackofficePdp;
-import es.in2.issuer.backend.backoffice.domain.service.NotificationService;
 import es.in2.issuer.backend.shared.domain.exception.EmailCommunicationException;
 import es.in2.issuer.backend.shared.domain.model.dto.CredentialOfferEmailNotificationInfo;
 import es.in2.issuer.backend.shared.domain.model.entities.CredentialProcedure;
