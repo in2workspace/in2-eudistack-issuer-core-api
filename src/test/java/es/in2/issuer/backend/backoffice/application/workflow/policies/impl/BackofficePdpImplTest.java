@@ -5,12 +5,12 @@ import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import es.in2.issuer.backend.shared.domain.exception.JWTParsingException;
 import es.in2.issuer.backend.shared.domain.exception.UnauthorizedRoleException;
+import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.employee.LEARCredentialEmployee;
+import es.in2.issuer.backend.shared.domain.model.entities.CredentialProcedure;
 import es.in2.issuer.backend.shared.domain.service.JWTService;
 import es.in2.issuer.backend.shared.domain.util.factory.LEARCredentialEmployeeFactory;
 import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
 import es.in2.issuer.backend.shared.infrastructure.repository.CredentialProcedureRepository;
-import es.in2.issuer.backend.shared.domain.model.entities.CredentialProcedure;
-import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.employee.LEARCredentialEmployee;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -26,8 +26,8 @@ import static es.in2.issuer.backend.backoffice.domain.util.Constants.LEAR;
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.ROLE;
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.VC;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class BackofficePdpImplTest {
@@ -149,7 +149,7 @@ class BackofficePdpImplTest {
         String token = "token";
         String procedureId = UUID.randomUUID().toString();
 
-        SignedJWT signedJWT = buildSignedJwtWithRoleAndOrg("NOT_LEAR", "some-org");
+        SignedJWT signedJWT = buildSignedJwtWithRoleOnly("NOT_LEAR");
 
         when(jwtService.parseJWT(token)).thenReturn(signedJWT);
 
@@ -161,6 +161,7 @@ class BackofficePdpImplTest {
 
         verifyNoInteractions(credentialProcedureRepository);
     }
+
 
     @Test
     void validateCommon_jwtClaimsParseError_throwsJWTParsingException() throws Exception {
@@ -218,4 +219,17 @@ class BackofficePdpImplTest {
 
         verify(credentialProcedureRepository).findById(UUID.fromString(procedureId));
     }
+
+    //helper
+    private SignedJWT buildSignedJwtWithRoleOnly(String role) throws Exception {
+        SignedJWT signedJWT = mock(SignedJWT.class);
+
+        JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
+                .claim(ROLE, role)
+                .build();
+        when(signedJWT.getJWTClaimsSet()).thenReturn(claimsSet);
+
+        return signedJWT;
+    }
+
 }

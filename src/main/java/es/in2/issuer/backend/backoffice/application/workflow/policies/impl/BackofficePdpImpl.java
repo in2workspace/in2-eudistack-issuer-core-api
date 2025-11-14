@@ -11,7 +11,7 @@ import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
 import es.in2.issuer.backend.shared.infrastructure.repository.CredentialProcedureRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
 import java.text.ParseException;
@@ -21,7 +21,7 @@ import static es.in2.issuer.backend.backoffice.domain.util.Constants.LEAR;
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.ROLE;
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.VC;
 
-@Component
+@Service
 @Slf4j
 @RequiredArgsConstructor
 public class BackofficePdpImpl implements BackofficePdp {
@@ -33,54 +33,51 @@ public class BackofficePdpImpl implements BackofficePdp {
 
     @Override
     public Mono<Void> validateSignCredential(String processId, String token, String credentialProcedureId) {
-        log.debug("Validating 'sign' action for processId={} and credentialProcedureId={}", processId, credentialProcedureId);
+        log.info("Validating 'sign' action for processId={} and credentialProcedureId={}", processId, credentialProcedureId);
         return validateCommon(token, credentialProcedureId);
     }
 
     @Override
     public Mono<Void> validateRevokeCredential(String processId, String token, String credentialProcedureId) {
-        log.debug("Validating 'revoke' action for processId={} and credentialProcedureId={}", processId, credentialProcedureId);
+        log.info("Validating 'revoke' action for processId={} and credentialProcedureId={}", processId, credentialProcedureId);
         return validateCommon(token, credentialProcedureId);
     }
 
     @Override
     public Mono<Void> validateSendReminder(String processId, String token, String credentialProcedureId) {
-        log.debug("Validating 'send reminder' action for processId={} and credentialProcedureId={}", processId, credentialProcedureId);
+        log.info("Validating 'send reminder' action for processId={} and credentialProcedureId={}", processId, credentialProcedureId);
         return validateCommon(token, credentialProcedureId);
     }
 
     private Mono<Void> validateCommon(String token, String credentialProcedureId) {
-        return parseToken(token)
+        return parseTokenAndValidateRole(token)
                 .flatMap(signedJWT ->
-                        extractRole(signedJWT)
-                                .flatMap(this::ensureRoleIsLear)
-                                .then(extractUserOrganizationIdentifier(signedJWT))
+                        extractUserOrganizationIdentifier(signedJWT)
                                 .flatMap(userOrg -> {
 
                                     if (isSysAdmin(userOrg)) {
-                                        log.debug("User belongs to admin organization. Skipping DB lookup.");
+                                        log.info("User belongs to admin organization. Skipping DB lookup.");
                                         return Mono.empty();
                                     }
 
-                                    return validateUserOrganizationForCredentialProcedure(userOrg, credentialProcedureId);
+                                    return credentialProcedureRepository.findById(UUID.fromString(credentialProcedureId))
+                                            .flatMap(credentialProcedure ->
+                                                    matchUserAndCredentialOrganization(
+                                                            userOrg,
+                                                            credentialProcedure.getOrganizationIdentifier()
+                                                    )
+                                            );
                                 })
                 );
     }
 
-    private Mono<Void> validateUserOrganizationForCredentialProcedure(String userOrganizationIdentifier,
-                                                                      String credentialProcedureId) {
-        return credentialProcedureRepository.findById(UUID.fromString(credentialProcedureId))
-                .flatMap(credential -> {
-                    String credentialOrganizationIdentifier = credential.getOrganizationIdentifier();
-
-                    if (matchUserAndCredentialOrganization(userOrganizationIdentifier, credentialOrganizationIdentifier)) {
-                        return Mono.empty();
-                    }
-
-                    return Mono.error(
-                            new UnauthorizedRoleException("Access denied: Unauthorized organization identifier")
-                    );
-                });
+    private Mono<SignedJWT> parseTokenAndValidateRole(String token) {
+        return parseToken(token)
+                .flatMap(signedJWT ->
+                        extractRole(signedJWT)
+                                .flatMap(this::ensureRoleIsLear)
+                                .thenReturn(signedJWT)
+                );
     }
 
     private Mono<SignedJWT> parseToken(String token) {
@@ -90,17 +87,17 @@ public class BackofficePdpImpl implements BackofficePdp {
     private Mono<String> extractRole(SignedJWT signedJWT) {
         try {
             String role = (String) signedJWT.getJWTClaimsSet().getClaim(ROLE);
-            log.debug("Extracted role: {}", role);
+            log.info("Extracted role: {}", role);
             return Mono.just(role);
         } catch (ParseException e) {
-            throw new JWTParsingException(e.getMessage());
+            return Mono.error(new JWTParsingException(e.getMessage()));
         }
     }
 
     private Mono<String> extractUserOrganizationIdentifier(SignedJWT signedJWT) {
         Payload payload = signedJWT.getPayload();
         String vcClaim = jwtService.getClaimFromPayload(payload, VC);
-        log.debug("VC claim: {}", vcClaim);
+        log.info("VC claim: {}", vcClaim);
 
         // TODO: Adapt to all credential types if needed
         String userOrganizationIdentifier =
@@ -111,7 +108,7 @@ public class BackofficePdpImpl implements BackofficePdp {
                         .mandator()
                         .organizationIdentifier();
 
-        log.debug("User organization identifier: {}", userOrganizationIdentifier);
+        log.info("User organization identifier: {}", userOrganizationIdentifier);
         return Mono.just(userOrganizationIdentifier);
     }
 
@@ -119,9 +116,16 @@ public class BackofficePdpImpl implements BackofficePdp {
         return userOrganizationIdentifier.equals(appConfig.getAdminOrganizationId());
     }
 
-    private boolean matchUserAndCredentialOrganization(String userOrganizationIdentifier,
-                                                       String credentialOrganizationIdentifier) {
-        return userOrganizationIdentifier.equals(credentialOrganizationIdentifier);
+    private Mono<Void> matchUserAndCredentialOrganization(String userOrganizationIdentifier,
+                                                          String credentialOrganizationIdentifier) {
+
+        if (userOrganizationIdentifier.equals(credentialOrganizationIdentifier)) {
+            return Mono.empty();
+        }
+
+        return Mono.error(
+                new UnauthorizedRoleException("Access denied: Unauthorized organization identifier")
+        );
     }
 
     private Mono<Void> ensureRoleIsLear(String role) {
