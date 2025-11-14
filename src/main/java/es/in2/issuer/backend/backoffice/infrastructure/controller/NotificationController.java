@@ -25,7 +25,6 @@ public class NotificationController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public Mono<Void> sendEmailNotification(@RequestHeader(HttpHeaders.AUTHORIZATION) String bearerToken, @PathVariable("procedure_id") String procedureId) {
         String processId = UUID.randomUUID().toString();
-        return notificationService.sendNotification(processId, procedureId, bearerToken)
-                .doOnTerminate(() -> log.info("NotificationController - sendEmailNotification()"));
+        return notificationService.sendNotification(processId, procedureId, bearerToken);
     }
 }

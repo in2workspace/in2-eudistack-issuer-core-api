@@ -29,6 +29,7 @@ public class NotificationServiceImpl implements NotificationService {
 
     @Override
     public Mono<Void> sendNotification(String processId, String procedureId, String bearerToken) {
+        // TODO this flow doesn't udpate the credential procedure, but we should consider updating the "udpated_by" field for auditing and maybe have the last person to send a reminder to receive the failed signature email
         log.info("sendNotification processId={} organizationId={} token={}", processId, bearerToken, procedureId);
 
         return accessTokenService.getCleanBearerToken(bearerToken)
@@ -41,6 +42,7 @@ public class NotificationServiceImpl implements NotificationService {
                     final var emailInfo = tuple.getT2();
 
                     return switch (credentialProcedure.getCredentialStatus()) {
+                        // TODO we need to remove the withdraw status from the condition since the v1.2.0 version is deprecated but in order to support retro compatibility issues we will keep it for now.
                         case DRAFT, WITHDRAWN ->
                             deferredCredentialMetadataService
                                     .updateTransactionCodeInDeferredCredentialMetadata(procedureId)

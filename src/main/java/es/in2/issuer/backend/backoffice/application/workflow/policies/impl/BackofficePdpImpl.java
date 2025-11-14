@@ -97,7 +97,7 @@ public class BackofficePdpImpl implements BackofficePdp {
     private Mono<String> extractUserOrganizationIdentifier(SignedJWT signedJWT) {
         Payload payload = signedJWT.getPayload();
         String vcClaim = jwtService.getClaimFromPayload(payload, VC);
-        log.info("VC claim: {}", vcClaim);
+        log.debug("VC claim: {}", vcClaim);
 
         // TODO: Adapt to all credential types if needed
         String userOrganizationIdentifier =
