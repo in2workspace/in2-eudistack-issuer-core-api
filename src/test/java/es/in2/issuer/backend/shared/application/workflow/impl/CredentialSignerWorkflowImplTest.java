@@ -5,6 +5,7 @@ import es.in2.issuer.backend.shared.application.workflow.DeferredCredentialWorkf
 import es.in2.issuer.backend.shared.domain.model.dto.*;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.SimpleIssuer;
 import es.in2.issuer.backend.shared.domain.model.entities.CredentialProcedure;
+import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum;
 import es.in2.issuer.backend.shared.domain.service.*;
 import es.in2.issuer.backend.shared.domain.util.factory.IssuerFactory;
 import es.in2.issuer.backend.shared.domain.util.factory.LEARCredentialEmployeeFactory;
@@ -203,11 +204,13 @@ class CredentialSignerWorkflowImplTest {
         // First find(): mapping + update decoded
         CredentialProcedure initialProcedure = mock(CredentialProcedure.class);
         when(initialProcedure.getCredentialType()).thenReturn(LABEL_CREDENTIAL_TYPE);
+        when(initialProcedure.getCredentialStatus()).thenReturn(CredentialStatusEnum.PEND_SIGNATURE);
 
         // Second find(): after signing and updating as VALID
         CredentialProcedure updatedProcedure = mock(CredentialProcedure.class);
         when(updatedProcedure.getCredentialType()).thenReturn(LABEL_CREDENTIAL_TYPE);
         when(updatedProcedure.getEmail()).thenReturn("foo@bar.com");
+        when(updatedProcedure.getCredentialStatus()).thenReturn(CredentialStatusEnum.VALID);
 
         when(accessTokenService.getCleanBearerToken(authorizationHeader))
                 .thenReturn(Mono.just(token));
@@ -282,9 +285,11 @@ class CredentialSignerWorkflowImplTest {
     void testRetrySignUnsignedCredential_LabelCredential_NoResponseUri_ThrowsError() {
         CredentialProcedure initialProcedure = mock(CredentialProcedure.class);
         when(initialProcedure.getCredentialType()).thenReturn(LABEL_CREDENTIAL_TYPE);
+        when(initialProcedure.getCredentialStatus()).thenReturn(CredentialStatusEnum.PEND_SIGNATURE);
 
         CredentialProcedure updatedProcedure = mock(CredentialProcedure.class);
         when(updatedProcedure.getCredentialType()).thenReturn(LABEL_CREDENTIAL_TYPE);
+        when(updatedProcedure.getCredentialStatus()).thenReturn(CredentialStatusEnum.VALID);
 
         when(accessTokenService.getCleanBearerToken(authorizationHeader))
                 .thenReturn(Mono.just(token));
@@ -330,9 +335,11 @@ class CredentialSignerWorkflowImplTest {
         CredentialProcedure initialProcedure = mock(CredentialProcedure.class);
         when(initialProcedure.getCredentialType()).thenReturn(LEAR_CREDENTIAL_EMPLOYEE_CREDENTIAL_TYPE);
         when(initialProcedure.getCredentialDecoded()).thenReturn("decodedCredential");
+        when(initialProcedure.getCredentialStatus()).thenReturn(CredentialStatusEnum.PEND_SIGNATURE);
 
         CredentialProcedure updatedProcedure = mock(CredentialProcedure.class);
         when(updatedProcedure.getCredentialType()).thenReturn(LEAR_CREDENTIAL_EMPLOYEE_CREDENTIAL_TYPE);
+        when(updatedProcedure.getCredentialStatus()).thenReturn(CredentialStatusEnum.VALID);
 
         when(accessTokenService.getCleanBearerToken(authorizationHeader))
                 .thenReturn(Mono.just(token));
@@ -382,5 +389,44 @@ class CredentialSignerWorkflowImplTest {
         verify(accessTokenService).getCleanBearerToken(authorizationHeader);
         verify(backofficePdp).validateSignCredential(processId, token, procedureId);
         verifyNoInteractions(credentialProcedureRepository);
+    }
+
+    @Test
+    void testRetrySignUnsignedCredential_StatusNotPendSignature_ThrowsError() {
+        // Arrange
+        CredentialProcedure initialProcedure = mock(CredentialProcedure.class);
+        // Configuramos el estado para que NO sea PEND_SIGNATURE
+        when(initialProcedure.getCredentialStatus()).thenReturn(CredentialStatusEnum.ISSUED); // O cualquier otro estado que no sea PEND_SIGNATURE
+        when(initialProcedure.getCredentialType()).thenReturn(LABEL_CREDENTIAL_TYPE); // El tipo no importa para este test, pero lo ponemos para evitar NPEs si se accediera.
+
+        when(accessTokenService.getCleanBearerToken(authorizationHeader))
+                .thenReturn(Mono.just(token));
+        when(backofficePdp.validateSignCredential(processId, token, procedureId))
+                .thenReturn(Mono.empty());
+        when(accessTokenService.getMandateeEmail(authorizationHeader))
+                .thenReturn(Mono.just(email));
+        when(accessTokenService.getOrganizationId(authorizationHeader))
+                .thenReturn(Mono.just(organizationId));
+
+        // Mock para el findByProcedureId que devolverá el procedimiento con estado incorrecto
+        when(credentialProcedureRepository.findByProcedureId(UUID.fromString(procedureId)))
+                .thenReturn(Mono.just(initialProcedure));
+
+        // Act & Assert
+        StepVerifier.create(credentialSignerWorkflow.retrySignUnsignedCredential(processId, authorizationHeader, procedureId))
+                .expectErrorMatches(throwable ->
+                        throwable instanceof IllegalStateException &&
+                                throwable.getMessage().contains("Credential procedure with ID " + procedureId + " is not in PEND_SIGNATURE status.")
+                )
+                .verify();
+
+        // Verify que se intentó obtener el procedimiento y se verificó el estado
+        verify(accessTokenService).getCleanBearerToken(authorizationHeader);
+        verify(backofficePdp).validateSignCredential(processId, token, procedureId);
+        verify(credentialProcedureRepository).findByProcedureId(UUID.fromString(procedureId));
+        // Asegurarse de que no se llama a nada más después de la validación fallida
+        verifyNoMoreInteractions(issuerFactory, labelCredentialFactory, learCredentialEmployeeFactory,
+                credentialProcedureService, remoteSignatureService, deferredCredentialMetadataService,
+                m2mTokenService, credentialDeliveryService);
     }
 }

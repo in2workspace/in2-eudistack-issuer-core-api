@@ -12,6 +12,7 @@ import es.in2.issuer.backend.shared.domain.model.dto.*;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.LabelCredential;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.employee.LEARCredentialEmployee;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.machine.LEARCredentialMachine;
+import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum;
 import es.in2.issuer.backend.shared.domain.model.enums.SignatureType;
 import es.in2.issuer.backend.shared.domain.service.*;
 import es.in2.issuer.backend.shared.domain.util.factory.IssuerFactory;
@@ -218,6 +219,17 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
 
                     return credentialProcedureRepository.findByProcedureId(UUID.fromString(procedureId))
                             .switchIfEmpty(Mono.error(new RuntimeException("Procedure not found")))
+                            .filter(credentialProcedure -> {
+                                boolean isPendSignature = credentialProcedure.getCredentialStatus() == CredentialStatusEnum.PEND_SIGNATURE;
+                                if (!isPendSignature) {
+                                    log.error("ProcessID: {} - Credential procedure status is not PEND_SIGNATURE. Current status: {}",
+                                            processId, credentialProcedure.getCredentialStatus());
+                                }
+                                return isPendSignature;
+                            })
+                            .switchIfEmpty(Mono.error(new IllegalStateException(
+                                    "Credential procedure with ID " + procedureId + " is not in PEND_SIGNATURE status."
+                            )))
                             .flatMap(credentialProcedure -> {
                                 Mono<Void> updateDecodedCredentialMono =
                                         switch (credentialProcedure.getCredentialType()) {
