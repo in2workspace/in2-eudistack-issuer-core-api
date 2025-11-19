@@ -1,13 +1,12 @@
 package es.in2.issuer.backend.shared.application.workflow.impl;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+
 import com.upokecenter.cbor.CBORObject;
 import es.in2.issuer.backend.backoffice.application.workflow.policies.BackofficePdp;
 import es.in2.issuer.backend.shared.application.workflow.CredentialSignerWorkflow;
 import es.in2.issuer.backend.shared.application.workflow.DeferredCredentialWorkflow;
 import es.in2.issuer.backend.shared.domain.exception.Base45Exception;
+import es.in2.issuer.backend.shared.domain.exception.CredentialProcedureInvalidStatusException;
 import es.in2.issuer.backend.shared.domain.model.dto.*;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.LabelCredential;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.employee.LEARCredentialEmployee;
@@ -29,11 +28,8 @@ import org.apache.commons.compress.compressors.CompressorStreamFactory;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
-import reactor.util.function.Tuples;
 
 import java.io.ByteArrayOutputStream;
-import java.sql.Timestamp;
-import java.time.Instant;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
@@ -208,27 +204,22 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
                         backofficePdp.validateSignCredential(processId, token, procedureId)
                                 .then(Mono.just(token))
                                 .zipWhen(t -> accessTokenService.getMandateeEmail(authorizationHeader))
-                                .zipWhen(
-                                        tuple2 -> accessTokenService.getOrganizationId(authorizationHeader),
-                                        (tuple2, orgId) -> Tuples.of(tuple2.getT1(), tuple2.getT2(), orgId)
-                                )
                 )
-                .flatMap(tuple3 -> {
-                    String token = tuple3.getT1();
-                    String email = tuple3.getT2();
+                .flatMap(tupleTokenEmail -> {
+                    String token = tupleTokenEmail.getT1();
+                    String email = tupleTokenEmail.getT2();
 
                     return credentialProcedureRepository.findByProcedureId(UUID.fromString(procedureId))
                             .switchIfEmpty(Mono.error(new RuntimeException("Procedure not found")))
-                            .filter(credentialProcedure -> {
-                                boolean isPendSignature = credentialProcedure.getCredentialStatus() == CredentialStatusEnum.PEND_SIGNATURE;
-                                if (!isPendSignature) {
-                                    log.error("ProcessID: {} - Credential procedure status is not PEND_SIGNATURE. Current status: {}",
-                                            processId, credentialProcedure.getCredentialStatus());
-                                }
-                                return isPendSignature;
-                            })
-                            .switchIfEmpty(Mono.error(new IllegalStateException(
-                                    "Credential procedure with ID " + procedureId + " is not in PEND_SIGNATURE status."
+                            .doOnNext(credentialProcedure ->
+                                    log.info("ProcessID: {} - Current credential status: {}",
+                                            processId, credentialProcedure.getCredentialStatus())
+                            )
+                            .filter(credentialProcedure ->
+                                    credentialProcedure.getCredentialStatus() == CredentialStatusEnum.PEND_SIGNATURE
+                            )
+                            .switchIfEmpty(Mono.error(new CredentialProcedureInvalidStatusException(
+                                    "Credential procedure with ID " + procedureId + " is not in PEND_SIGNATURE status"
                             )))
                             .flatMap(credentialProcedure -> {
                                 Mono<Void> updateDecodedCredentialMono =

@@ -372,4 +372,19 @@ public class GlobalExceptionHandler {
         );
     }
 
+    @ExceptionHandler(CredentialProcedureInvalidStatusException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public Mono<GlobalErrorMessage> handleCredentialProcedureInvalidStatusException(
+            CredentialProcedureInvalidStatusException ex,
+            ServerHttpRequest request
+    ) {
+        return errors.handleWith(
+                ex, request,
+                GlobalErrorTypes.CREDENTIAL_PROCEDURE_INVALID_STATUS.getCode(),
+                "Invalid credential procedure status",
+                HttpStatus.CONFLICT,
+                "The credential procedure is not in a status that allows signing."
+        );
+    }
+
 }

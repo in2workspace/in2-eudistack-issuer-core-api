@@ -660,5 +660,35 @@ class GlobalExceptionHandlerTest {
         verify(errors).handleWith(ex, request, type, title, st, fallback);
     }
 
+    // -------------------- handleCredentialProcedureInvalidStatusException --------------------
+
+    @Test
+    void handleCredentialProcedureInvalidStatusException() {
+        var ex = new CredentialProcedureInvalidStatusException("procedure status exception");
+        var type = GlobalErrorTypes.CREDENTIAL_PROCEDURE_INVALID_STATUS.getCode();
+        var title = "Invalid credential procedure status";
+        var st = HttpStatus.CONFLICT;
+        var fallback = "The credential procedure is not in a status that allows signing.";
+
+        var expected = new GlobalErrorMessage(
+                type,
+                title,
+                st.value(),
+                "invalid procedure status",
+                UUID.randomUUID().toString()
+        );
+
+        when(errors.handleWith(ex, request, type, title, st, fallback))
+                .thenReturn(Mono.just(expected));
+
+        StepVerifier.create(handler.handleCredentialProcedureInvalidStatusException(ex, request))
+                .assertNext(gem -> assertGem(gem, type, title, st, "invalid procedure status"))
+                .verifyComplete();
+
+        verify(errors).handleWith(ex, request, type, title, st, fallback);
+    }
+
+
+
 
 }
