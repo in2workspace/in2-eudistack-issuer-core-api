@@ -29,7 +29,7 @@ import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class BackofficePdpImplTest {
+class BackofficePdpServiceImplTest {
 
     @Mock
     private AppConfig appConfig;
@@ -44,7 +44,7 @@ class BackofficePdpImplTest {
     private CredentialProcedureRepository credentialProcedureRepository;
 
     @InjectMocks
-    private BackofficePdpImpl backofficePdp;
+    private BackofficePdpServiceImpl backofficePdp;
 
     private SignedJWT buildSignedJwtWithRoleAndOrg(String role, String orgId) throws Exception {
         SignedJWT signedJWT = mock(SignedJWT.class);

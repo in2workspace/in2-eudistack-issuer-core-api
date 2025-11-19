@@ -1,6 +1,6 @@
 package es.in2.issuer.backend.shared.application.workflow.impl;
 
-import es.in2.issuer.backend.backoffice.application.workflow.policies.BackofficePdp;
+import es.in2.issuer.backend.backoffice.application.workflow.policies.BackofficePdpService;
 import es.in2.issuer.backend.shared.application.workflow.DeferredCredentialWorkflow;
 import es.in2.issuer.backend.shared.domain.exception.CredentialProcedureInvalidStatusException;
 import es.in2.issuer.backend.shared.domain.exception.CredentialProcedureNotFoundException;
@@ -39,7 +39,7 @@ class CredentialSignerWorkflowImplTest {
     private AccessTokenService accessTokenService;
 
     @Mock
-    private BackofficePdp backofficePdp;
+    private BackofficePdpService backofficePdpService;
 
     @Mock
     private RemoteSignatureService remoteSignatureService;
@@ -101,7 +101,7 @@ class CredentialSignerWorkflowImplTest {
         // Mock token extraction and validation
         when(accessTokenService.getCleanBearerToken(authorizationHeader))
                 .thenReturn(Mono.just(token));
-        when(backofficePdp.validateSignCredential(processId, token, procedureId))
+        when(backofficePdpService.validateSignCredential(processId, token, procedureId))
                 .thenReturn(Mono.empty());
         when(accessTokenService.getMandateeEmail(authorizationHeader))
                 .thenReturn(Mono.just(email));
@@ -124,7 +124,7 @@ class CredentialSignerWorkflowImplTest {
                 .verifyComplete();
 
         verify(accessTokenService).getCleanBearerToken(authorizationHeader);
-        verify(backofficePdp).validateSignCredential(processId, token, procedureId);
+        verify(backofficePdpService).validateSignCredential(processId, token, procedureId);
         verify(learCredentialEmployeeFactory).mapCredentialAndBindIssuerInToTheCredential("decodedCredential", procedureId, email);
         verify(credentialProcedureService).updateDecodedCredentialByProcedureId(procedureId, bindedCredential, JWT_VC);
         verify(credentialSignerWorkflow).signAndUpdateCredentialByProcedureId(token, procedureId, JWT_VC);
@@ -135,7 +135,7 @@ class CredentialSignerWorkflowImplTest {
     void testRetrySignUnsignedCredential_ThrowsWhenProcedureNotFound() {
         when(accessTokenService.getCleanBearerToken(authorizationHeader))
                 .thenReturn(Mono.just(token));
-        when(backofficePdp.validateSignCredential(processId, token, procedureId))
+        when(backofficePdpService.validateSignCredential(processId, token, procedureId))
                 .thenReturn(Mono.empty());
         when(accessTokenService.getMandateeEmail(authorizationHeader))
                 .thenReturn(Mono.just(email));
@@ -156,7 +156,7 @@ class CredentialSignerWorkflowImplTest {
                 .verify();
 
         verify(accessTokenService).getCleanBearerToken(authorizationHeader);
-        verify(backofficePdp).validateSignCredential(processId, token, procedureId);
+        verify(backofficePdpService).validateSignCredential(processId, token, procedureId);
         verifyNoInteractions(learCredentialEmployeeFactory);
     }
 
@@ -170,7 +170,7 @@ class CredentialSignerWorkflowImplTest {
 
         when(accessTokenService.getCleanBearerToken(authorizationHeader))
                 .thenReturn(Mono.just(token));
-        when(backofficePdp.validateSignCredential(processId, token, procedureId))
+        when(backofficePdpService.validateSignCredential(processId, token, procedureId))
                 .thenReturn(Mono.empty());
         when(accessTokenService.getMandateeEmail(authorizationHeader))
                 .thenReturn(Mono.just(email));
@@ -192,7 +192,7 @@ class CredentialSignerWorkflowImplTest {
 
         when(accessTokenService.getCleanBearerToken(authorizationHeader))
                 .thenReturn(Mono.just(token));
-        when(backofficePdp.validateSignCredential(processId, token, procedureId))
+        when(backofficePdpService.validateSignCredential(processId, token, procedureId))
                 .thenReturn(Mono.empty());
         when(accessTokenService.getMandateeEmail(authorizationHeader))
                 .thenReturn(Mono.just(email));
@@ -218,7 +218,7 @@ class CredentialSignerWorkflowImplTest {
 
         when(accessTokenService.getCleanBearerToken(authorizationHeader))
                 .thenReturn(Mono.just(token));
-        when(backofficePdp.validateSignCredential(processId, token, procedureId))
+        when(backofficePdpService.validateSignCredential(processId, token, procedureId))
                 .thenReturn(Mono.empty());
         when(accessTokenService.getMandateeEmail(authorizationHeader))
                 .thenReturn(Mono.just(email));
@@ -271,7 +271,7 @@ class CredentialSignerWorkflowImplTest {
 
         when(accessTokenService.getCleanBearerToken(authorizationHeader))
                 .thenReturn(Mono.just(token));
-        when(backofficePdp.validateSignCredential(processId, token, procedureId))
+        when(backofficePdpService.validateSignCredential(processId, token, procedureId))
                 .thenReturn(Mono.empty());
         when(accessTokenService.getMandateeEmail(authorizationHeader))
                 .thenReturn(Mono.just(email));
@@ -307,7 +307,7 @@ class CredentialSignerWorkflowImplTest {
     void testRetrySignUnsignedCredential_ValidationFails() {
         when(accessTokenService.getCleanBearerToken(authorizationHeader))
                 .thenReturn(Mono.just(token));
-        when(backofficePdp.validateSignCredential(processId, token, procedureId))
+        when(backofficePdpService.validateSignCredential(processId, token, procedureId))
                 .thenReturn(Mono.error(new RuntimeException("Validation failed")));
 
         StepVerifier.create(credentialSignerWorkflow.retrySignUnsignedCredential(processId, authorizationHeader, procedureId))
@@ -315,7 +315,7 @@ class CredentialSignerWorkflowImplTest {
                 .verify();
 
         verify(accessTokenService).getCleanBearerToken(authorizationHeader);
-        verify(backofficePdp).validateSignCredential(processId, token, procedureId);
+        verify(backofficePdpService).validateSignCredential(processId, token, procedureId);
         verifyNoInteractions(credentialProcedureRepository);
     }
 
@@ -326,7 +326,7 @@ class CredentialSignerWorkflowImplTest {
 
         when(accessTokenService.getCleanBearerToken(authorizationHeader))
                 .thenReturn(Mono.just(token));
-        when(backofficePdp.validateSignCredential(processId, token, procedureId))
+        when(backofficePdpService.validateSignCredential(processId, token, procedureId))
                 .thenReturn(Mono.empty());
         when(accessTokenService.getMandateeEmail(authorizationHeader))
                 .thenReturn(Mono.just(email));

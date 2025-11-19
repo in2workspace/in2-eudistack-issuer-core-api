@@ -1,16 +1,13 @@
 package es.in2.issuer.backend.backoffice.domain.service.impl;
 
-import es.in2.issuer.backend.backoffice.application.workflow.policies.BackofficePdp;
+import es.in2.issuer.backend.backoffice.application.workflow.policies.BackofficePdpService;
 import es.in2.issuer.backend.backoffice.domain.service.NotificationService;
 import es.in2.issuer.backend.shared.domain.exception.EmailCommunicationException;
 import es.in2.issuer.backend.shared.domain.service.*;
 import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 import reactor.core.publisher.Mono;
 
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.*;
@@ -22,7 +19,7 @@ public class NotificationServiceImpl implements NotificationService {
 
     private final AppConfig appConfig;
     private final AccessTokenService accessTokenService;
-    private final BackofficePdp backofficePdp;
+    private final BackofficePdpService backofficePdpService;
     private final EmailService emailService;
     private final CredentialProcedureService credentialProcedureService;
     private final DeferredCredentialMetadataService deferredCredentialMetadataService;
@@ -33,7 +30,7 @@ public class NotificationServiceImpl implements NotificationService {
         log.info("sendNotification processId={} organizationId={} token={}", processId, bearerToken, procedureId);
 
         return accessTokenService.getCleanBearerToken(bearerToken)
-                .flatMap(token -> backofficePdp.validateSendReminder(processId, token, procedureId)
+                .flatMap(token -> backofficePdpService.validateSendReminder(processId, token, procedureId)
                         .then(credentialProcedureService.getCredentialProcedureById(procedureId))
                 )
                 .zipWhen(credentialProcedure -> credentialProcedureService.getCredentialOfferEmailInfoByProcedureId(procedureId))

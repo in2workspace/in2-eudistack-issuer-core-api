@@ -2,7 +2,7 @@ package es.in2.issuer.backend.shared.application.workflow.impl;
 
 
 import com.upokecenter.cbor.CBORObject;
-import es.in2.issuer.backend.backoffice.application.workflow.policies.BackofficePdp;
+import es.in2.issuer.backend.backoffice.application.workflow.policies.BackofficePdpService;
 import es.in2.issuer.backend.shared.application.workflow.CredentialSignerWorkflow;
 import es.in2.issuer.backend.shared.application.workflow.DeferredCredentialWorkflow;
 import es.in2.issuer.backend.shared.domain.exception.Base45Exception;
@@ -46,7 +46,7 @@ import static es.in2.issuer.backend.shared.domain.util.Constants.*;
 public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
 
     private final AccessTokenService accessTokenService;
-    private final BackofficePdp backofficePdp;
+    private final BackofficePdpService backofficePdpService;
     private final AppConfig appConfig;
     private final DeferredCredentialWorkflow deferredCredentialWorkflow;
     private final RemoteSignatureService remoteSignatureService;
@@ -202,7 +202,7 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
 
         return accessTokenService.getCleanBearerToken(authorizationHeader)
                 .flatMap(token ->
-                        backofficePdp.validateSignCredential(processId, token, procedureId)
+                        backofficePdpService.validateSignCredential(processId, token, procedureId)
                                 .then(Mono.just(token))
                                 .zipWhen(t -> accessTokenService.getMandateeEmail(authorizationHeader))
                 )
