@@ -3,6 +3,7 @@ package es.in2.issuer.backend.shared.application.workflow.impl;
 import es.in2.issuer.backend.backoffice.application.workflow.policies.BackofficePdp;
 import es.in2.issuer.backend.shared.application.workflow.DeferredCredentialWorkflow;
 import es.in2.issuer.backend.shared.domain.exception.CredentialProcedureInvalidStatusException;
+import es.in2.issuer.backend.shared.domain.exception.CredentialProcedureNotFoundException;
 import es.in2.issuer.backend.shared.domain.model.dto.*;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.SimpleIssuer;
 import es.in2.issuer.backend.shared.domain.model.entities.CredentialProcedure;
@@ -26,6 +27,8 @@ import java.util.UUID;
 
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.JWT_VC;
 import static es.in2.issuer.backend.shared.domain.util.Constants.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -137,18 +140,26 @@ class CredentialSignerWorkflowImplTest {
         when(accessTokenService.getMandateeEmail(authorizationHeader))
                 .thenReturn(Mono.just(email));
 
-        // FALTA ARA:
         when(credentialProcedureRepository.findByProcedureId(UUID.fromString(procedureId)))
                 .thenReturn(Mono.empty());
 
-        StepVerifier.create(credentialSignerWorkflow.retrySignUnsignedCredential(processId, authorizationHeader, procedureId))
-                .expectErrorMessage("Procedure not found")
+        StepVerifier.create(
+                        credentialSignerWorkflow.retrySignUnsignedCredential(processId, authorizationHeader, procedureId)
+                )
+                .expectErrorSatisfies(throwable -> {
+                    assertTrue(throwable instanceof CredentialProcedureNotFoundException);
+                    assertEquals(
+                            "Credential procedure with ID " + procedureId + " was not found",
+                            throwable.getMessage()
+                    );
+                })
                 .verify();
 
         verify(accessTokenService).getCleanBearerToken(authorizationHeader);
         verify(backofficePdp).validateSignCredential(processId, token, procedureId);
         verifyNoInteractions(learCredentialEmployeeFactory);
     }
+
 
     @Test
     void testRetrySignUnsignedCredential_ErrorOnMappingCredential() {

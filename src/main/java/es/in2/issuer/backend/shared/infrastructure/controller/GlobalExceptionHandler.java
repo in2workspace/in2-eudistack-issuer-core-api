@@ -387,4 +387,19 @@ public class GlobalExceptionHandler {
         );
     }
 
+    @ExceptionHandler(CredentialProcedureNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public Mono<GlobalErrorMessage> handleCredentialProcedureNotFoundException(
+            CredentialProcedureNotFoundException ex,
+            ServerHttpRequest request
+    ) {
+        return errors.handleWith(
+                ex, request,
+                GlobalErrorTypes.CREDENTIAL_PROCEDURE_NOT_FOUND.getCode(),
+                "Credential procedure not found",
+                HttpStatus.NOT_FOUND,
+                "The requested credential procedure was not found"
+        );
+    }
+
 }

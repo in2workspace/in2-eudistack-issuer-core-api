@@ -7,6 +7,7 @@ import es.in2.issuer.backend.shared.application.workflow.CredentialSignerWorkflo
 import es.in2.issuer.backend.shared.application.workflow.DeferredCredentialWorkflow;
 import es.in2.issuer.backend.shared.domain.exception.Base45Exception;
 import es.in2.issuer.backend.shared.domain.exception.CredentialProcedureInvalidStatusException;
+import es.in2.issuer.backend.shared.domain.exception.CredentialProcedureNotFoundException;
 import es.in2.issuer.backend.shared.domain.model.dto.*;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.LabelCredential;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.employee.LEARCredentialEmployee;
@@ -210,7 +211,9 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
                     String email = tupleTokenEmail.getT2();
 
                     return credentialProcedureRepository.findByProcedureId(UUID.fromString(procedureId))
-                            .switchIfEmpty(Mono.error(new RuntimeException("Procedure not found")))
+                            .switchIfEmpty(Mono.error(new CredentialProcedureNotFoundException(
+                                    "Credential procedure with ID " + procedureId + " was not found"
+                            )))
                             .doOnNext(credentialProcedure ->
                                     log.info("ProcessID: {} - Current credential status: {}",
                                             processId, credentialProcedure.getCredentialStatus())
