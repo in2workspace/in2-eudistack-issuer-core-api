@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [v2.2.3](https://github.com/in2workspace/in2-issuer-api/releases/tag/v2.2.3)
 ### Fixed
-- Do not allow to retry signature with a revoked credential.
+- Prevent retrying the signature process when the credential procedure is not in PEND_SIGNATURE status.
 
 ## [v2.2.2](https://github.com/in2workspace/in2-issuer-api/releases/tag/v2.2.2)
 ### Changed
