@@ -78,7 +78,7 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
                                         .flatMap(labelCredentialFactory::convertLabelCredentialJwtPayloadInToString)
                                         .flatMap(unsignedCredential -> signCredentialOnRequestedFormat(unsignedCredential, format, token, procedureId, updatedBy));
                             }
-                            case LEAR_CREDENTIAL_EMPLOYEE_CREDENTIAL_TYPE -> {
+                            case LEAR_CREDENTIAL_EMPLOYEE_TYPE -> {
                                 LEARCredentialEmployee learCredentialEmployee = learCredentialEmployeeFactory
                                         .mapStringToLEARCredentialEmployee(credentialProcedure.getCredentialDecoded());
                                 yield learCredentialEmployeeFactory.buildLEARCredentialEmployeeJwtPayload(learCredentialEmployee)
@@ -236,8 +236,8 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
                                                                         procedureId, bindCredential, JWT_VC
                                                                 );
                                                             });
-
-                                            case LEAR_CREDENTIAL_EMPLOYEE_CREDENTIAL_TYPE ->
+                                            
+                                            case LEAR_CREDENTIAL_EMPLOYEE_TYPE ->
                                                     learCredentialEmployeeFactory
                                                             .mapCredentialAndBindIssuerInToTheCredential(
                                                                     credentialProcedure.getCredentialDecoded(), procedureId, email

@@ -334,7 +334,7 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
                 .findByProcedureId(UUID.fromString(procedureId))
                 .flatMap(credentialProcedure ->
                         switch (credentialProcedure.getCredentialType()) {
-                            case LEAR_CREDENTIAL_EMPLOYEE_CREDENTIAL_TYPE -> Mono.fromCallable(() ->
+                            case LEAR_CREDENTIAL_EMPLOYEE_TYPE -> Mono.fromCallable(() ->
                                             objectMapper.readTree(credentialProcedure.getCredentialDecoded())
                                     )
                                     .map(credential -> {

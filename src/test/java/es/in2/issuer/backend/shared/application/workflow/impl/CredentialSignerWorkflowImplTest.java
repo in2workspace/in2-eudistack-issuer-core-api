@@ -95,7 +95,7 @@ class CredentialSignerWorkflowImplTest {
     void testRetrySignUnsignedCredential_Success_LEARCredentialEmployee() {
         CredentialProcedure credentialProcedure = mock(CredentialProcedure.class);
         when(credentialProcedure.getCredentialDecoded()).thenReturn("decodedCredential");
-        when(credentialProcedure.getCredentialType()).thenReturn(LEAR_CREDENTIAL_EMPLOYEE_CREDENTIAL_TYPE);
+        when(credentialProcedure.getCredentialType()).thenReturn(LEAR_CREDENTIAL_EMPLOYEE_TYPE);
         when(credentialProcedure.getCredentialStatus()).thenReturn(CredentialStatusEnum.PEND_SIGNATURE);
 
         // Mock token extraction and validation
@@ -165,7 +165,7 @@ class CredentialSignerWorkflowImplTest {
     void testRetrySignUnsignedCredential_ErrorOnMappingCredential() {
         CredentialProcedure credentialProcedure = mock(CredentialProcedure.class);
         when(credentialProcedure.getCredentialDecoded()).thenReturn("decodedCredential");
-        when(credentialProcedure.getCredentialType()).thenReturn(LEAR_CREDENTIAL_EMPLOYEE_CREDENTIAL_TYPE);
+        when(credentialProcedure.getCredentialType()).thenReturn(LEAR_CREDENTIAL_EMPLOYEE_TYPE);
         when(credentialProcedure.getCredentialStatus()).thenReturn(CredentialStatusEnum.PEND_SIGNATURE);
 
         when(accessTokenService.getCleanBearerToken(authorizationHeader))
@@ -262,12 +262,12 @@ class CredentialSignerWorkflowImplTest {
     @Test
     void testRetrySignUnsignedCredential_NonLabelCredential_DoesNotSendVc() {
         CredentialProcedure initialProcedure = mock(CredentialProcedure.class);
-        when(initialProcedure.getCredentialType()).thenReturn(LEAR_CREDENTIAL_EMPLOYEE_CREDENTIAL_TYPE);
+        when(initialProcedure.getCredentialType()).thenReturn(LEAR_CREDENTIAL_EMPLOYEE_TYPE);
         when(initialProcedure.getCredentialDecoded()).thenReturn("decodedCredential");
         when(initialProcedure.getCredentialStatus()).thenReturn(CredentialStatusEnum.PEND_SIGNATURE);
 
         CredentialProcedure updatedProcedure = mock(CredentialProcedure.class);
-        when(updatedProcedure.getCredentialType()).thenReturn(LEAR_CREDENTIAL_EMPLOYEE_CREDENTIAL_TYPE);
+        when(updatedProcedure.getCredentialType()).thenReturn(LEAR_CREDENTIAL_EMPLOYEE_TYPE);
 
         when(accessTokenService.getCleanBearerToken(authorizationHeader))
                 .thenReturn(Mono.just(token));
