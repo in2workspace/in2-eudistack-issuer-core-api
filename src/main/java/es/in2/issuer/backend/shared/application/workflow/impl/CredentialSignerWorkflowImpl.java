@@ -236,6 +236,18 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
                                                                         procedureId, bindCredential, JWT_VC
                                                                 );
                                                             });
+
+                                            case LEAR_CREDENTIAL_MACHINE_TYPE ->
+                                                    learCredentialMachineFactory
+                                                            .mapCredentialAndBindIssuerInToTheCredential(
+                                                                    credentialProcedure.getCredentialDecoded(), procedureId, email
+                                                            )
+                                                            .flatMap(bindCredential -> {
+                                                                log.info("ProcessID: {} - Credential mapped and bound to the issuer: {}", procedureId, bindCredential);
+                                                                return credentialProcedureService.updateDecodedCredentialByProcedureId(
+                                                                        procedureId, bindCredential, JWT_VC
+                                                                );
+                                                            });
                                             
                                             case LEAR_CREDENTIAL_EMPLOYEE_TYPE ->
                                                     learCredentialEmployeeFactory
