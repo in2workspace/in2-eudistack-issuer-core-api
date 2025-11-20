@@ -11,6 +11,7 @@ import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum;
 import es.in2.issuer.backend.shared.domain.service.*;
 import es.in2.issuer.backend.shared.domain.util.factory.IssuerFactory;
 import es.in2.issuer.backend.shared.domain.util.factory.LEARCredentialEmployeeFactory;
+import es.in2.issuer.backend.shared.domain.util.factory.LEARCredentialMachineFactory;
 import es.in2.issuer.backend.shared.domain.util.factory.LabelCredentialFactory;
 import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
 import es.in2.issuer.backend.shared.infrastructure.repository.CredentialProcedureRepository;
@@ -49,6 +50,9 @@ class CredentialSignerWorkflowImplTest {
 
     @Mock
     private LEARCredentialEmployeeFactory learCredentialEmployeeFactory;
+
+    @Mock
+    private LEARCredentialMachineFactory learCredentialMachineFactory;
 
     @Mock
     private LabelCredentialFactory labelCredentialFactory;
@@ -344,5 +348,90 @@ class CredentialSignerWorkflowImplTest {
         verifyNoInteractions(issuerFactory);
     }
 
+    @Test
+    void testRetrySignUnsignedCredential_Success_LEARCredentialMachine() {
+        CredentialProcedure credentialProcedure = mock(CredentialProcedure.class);
+        when(credentialProcedure.getCredentialDecoded()).thenReturn("decodedCredential");
+        when(credentialProcedure.getCredentialType()).thenReturn(LEAR_CREDENTIAL_MACHINE_TYPE);
+        when(credentialProcedure.getCredentialStatus()).thenReturn(CredentialStatusEnum.PEND_SIGNATURE);
 
+        // Mock token extraction and validation
+        when(accessTokenService.getCleanBearerToken(authorizationHeader))
+                .thenReturn(Mono.just(token));
+        when(backofficePdpService.validateSignCredential(processId, token, procedureId))
+                .thenReturn(Mono.empty());
+        when(accessTokenService.getMandateeEmail(authorizationHeader))
+                .thenReturn(Mono.just(email));
+
+        // Mock repository and service calls
+        when(credentialProcedureRepository.findByProcedureId(UUID.fromString(procedureId)))
+                .thenReturn(Mono.just(credentialProcedure));
+        when(learCredentialMachineFactory.mapCredentialAndBindIssuerInToTheCredential("decodedCredential", procedureId, email))
+                .thenReturn(Mono.just(bindedCredential));
+        when(credentialProcedureService.updateDecodedCredentialByProcedureId(procedureId, bindedCredential, JWT_VC))
+                .thenReturn(Mono.empty());
+
+        doReturn(Mono.just("signedCredential"))
+                .when(credentialSignerWorkflow)
+                .signAndUpdateCredentialByProcedureId(token, procedureId, JWT_VC);
+
+        when(credentialProcedureService.updateCredentialProcedureCredentialStatusToValidByProcedureId(procedureId))
+                .thenReturn(Mono.empty());
+        when(credentialProcedureRepository.save(any()))
+                .thenReturn(Mono.just(credentialProcedure));
+
+        StepVerifier.create(
+                        credentialSignerWorkflow.retrySignUnsignedCredential(processId, authorizationHeader, procedureId)
+                )
+                .verifyComplete();
+
+        verify(accessTokenService).getCleanBearerToken(authorizationHeader);
+        verify(backofficePdpService).validateSignCredential(processId, token, procedureId);
+        verify(accessTokenService).getMandateeEmail(authorizationHeader);
+        verify(credentialProcedureRepository, atLeastOnce()).findByProcedureId(UUID.fromString(procedureId));
+
+        verify(learCredentialMachineFactory)
+                .mapCredentialAndBindIssuerInToTheCredential("decodedCredential", procedureId, email);
+        verify(credentialProcedureService)
+                .updateDecodedCredentialByProcedureId(procedureId, bindedCredential, JWT_VC);
+        verify(credentialSignerWorkflow)
+                .signAndUpdateCredentialByProcedureId(token, procedureId, JWT_VC);
+        verify(credentialProcedureService)
+                .updateCredentialProcedureCredentialStatusToValidByProcedureId(procedureId);
+        verify(credentialProcedureRepository).save(any());
+
+        verifyNoInteractions(learCredentialEmployeeFactory);
+        verifyNoInteractions(labelCredentialFactory);
+    }
+
+    @Test
+    void testRetrySignUnsignedCredential_ErrorOnMappingCredential_LEARCredentialMachine() {
+        CredentialProcedure credentialProcedure = mock(CredentialProcedure.class);
+        when(credentialProcedure.getCredentialDecoded()).thenReturn("decodedCredential");
+        when(credentialProcedure.getCredentialType()).thenReturn(LEAR_CREDENTIAL_MACHINE_TYPE);
+        when(credentialProcedure.getCredentialStatus()).thenReturn(CredentialStatusEnum.PEND_SIGNATURE);
+
+        when(accessTokenService.getCleanBearerToken(authorizationHeader))
+                .thenReturn(Mono.just(token));
+        when(backofficePdpService.validateSignCredential(processId, token, procedureId))
+                .thenReturn(Mono.empty());
+        when(accessTokenService.getMandateeEmail(authorizationHeader))
+                .thenReturn(Mono.just(email));
+        when(credentialProcedureRepository.findByProcedureId(UUID.fromString(procedureId)))
+                .thenReturn(Mono.just(credentialProcedure));
+        when(learCredentialMachineFactory.mapCredentialAndBindIssuerInToTheCredential("decodedCredential", procedureId, email))
+                .thenReturn(Mono.error(new RuntimeException("Machine mapping failed")));
+
+        StepVerifier.create(
+                        credentialSignerWorkflow.retrySignUnsignedCredential(processId, authorizationHeader, procedureId)
+                )
+                .expectErrorMessage("Machine mapping failed")
+                .verify();
+
+        verify(learCredentialMachineFactory)
+                .mapCredentialAndBindIssuerInToTheCredential("decodedCredential", procedureId, email);
+
+        verifyNoInteractions(learCredentialEmployeeFactory);
+        verifyNoInteractions(labelCredentialFactory);
+    }
 }
