@@ -78,7 +78,7 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
                                         .flatMap(labelCredentialFactory::convertLabelCredentialJwtPayloadInToString)
                                         .flatMap(unsignedCredential -> signCredentialOnRequestedFormat(unsignedCredential, format, token, procedureId, updatedBy));
                             }
-                            case LEAR_CREDENTIAL_EMPLOYEE_CREDENTIAL_TYPE -> {
+                            case LEAR_CREDENTIAL_EMPLOYEE_TYPE -> {
                                 LEARCredentialEmployee learCredentialEmployee = learCredentialEmployeeFactory
                                         .mapStringToLEARCredentialEmployee(credentialProcedure.getCredentialDecoded());
                                 yield learCredentialEmployeeFactory.buildLEARCredentialEmployeeJwtPayload(learCredentialEmployee)
@@ -230,24 +230,27 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
                                             case LABEL_CREDENTIAL_TYPE ->
                                                     issuerFactory.createSimpleIssuer(procedureId, email)
                                                             .flatMap(issuer -> labelCredentialFactory.mapIssuer(procedureId, issuer))
-                                                            .flatMap(bindCredential -> {
-                                                                log.info("ProcessID: {} - Credential mapped and bound to the issuer: {}", procedureId, bindCredential);
-                                                                return credentialProcedureService.updateDecodedCredentialByProcedureId(
-                                                                        procedureId, bindCredential, JWT_VC
-                                                                );
-                                                            });
+                                                            .flatMap(bindCredential ->
+                                                                    updateDecodedCredentialByProcedureId(procedureId, bindCredential)
+                                                            );
 
-                                            case LEAR_CREDENTIAL_EMPLOYEE_CREDENTIAL_TYPE ->
+                                            case LEAR_CREDENTIAL_MACHINE_TYPE ->
+                                                    learCredentialMachineFactory
+                                                            .mapCredentialAndBindIssuerInToTheCredential(
+                                                                    credentialProcedure.getCredentialDecoded(), procedureId, email
+                                                            )
+                                                            .flatMap(bindCredential ->
+                                                                    updateDecodedCredentialByProcedureId(procedureId, bindCredential)
+                                                            );
+                                            
+                                            case LEAR_CREDENTIAL_EMPLOYEE_TYPE ->
                                                     learCredentialEmployeeFactory
                                                             .mapCredentialAndBindIssuerInToTheCredential(
                                                                     credentialProcedure.getCredentialDecoded(), procedureId, email
                                                             )
-                                                            .flatMap(bindCredential -> {
-                                                                log.info("ProcessID: {} - Credential mapped and bound to the issuer: {}", procedureId, bindCredential);
-                                                                return credentialProcedureService.updateDecodedCredentialByProcedureId(
-                                                                        procedureId, bindCredential, JWT_VC
-                                                                );
-                                                            });
+                                                            .flatMap(bindCredential ->
+                                                                    updateDecodedCredentialByProcedureId(procedureId, bindCredential)
+                                                            );
 
                                             default -> {
                                                 log.error("Unknown credential type: {}", credentialProcedure.getCredentialType());
@@ -312,5 +315,14 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
                             });
                 })
                 .then();
+    }
+
+    private Mono<Void> updateDecodedCredentialByProcedureId(String procedureId, String bindCredential) {
+        log.info("ProcessID: {} - Credential mapped and bound to the issuer: {}", procedureId, bindCredential);
+        return credentialProcedureService.updateDecodedCredentialByProcedureId(
+                procedureId,
+                bindCredential,
+                JWT_VC
+        );
     }
 }

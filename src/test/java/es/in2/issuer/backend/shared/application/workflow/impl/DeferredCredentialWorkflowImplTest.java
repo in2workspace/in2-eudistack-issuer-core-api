@@ -95,7 +95,7 @@ class DeferredCredentialWorkflowImplTest {
 //    void updateSignedCredentialsLearCredentialEmployee() throws JsonProcessingException {
 //        String procedureId = UUID.randomUUID().toString();
 //        CredentialProcedure credentialProcedure = new CredentialProcedure();
-//        credentialProcedure.setCredentialType(LEAR_CREDENTIAL_EMPLOYEE_CREDENTIAL_TYPE);
+//        credentialProcedure.setCredentialType(LEAR_CREDENTIAL_EMPLOYEE_TYPE);
 //        credentialProcedure.setProcedureId(UUID.fromString(procedureId));
 //        String credential = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...";
 //        String expectedEmail = "juan.perez@mail.com";
