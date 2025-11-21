@@ -26,7 +26,6 @@ import lombok.extern.slf4j.Slf4j;
 import nl.minvws.encoding.Base45;
 import org.apache.commons.compress.compressors.CompressorOutputStream;
 import org.apache.commons.compress.compressors.CompressorStreamFactory;
-import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
@@ -36,7 +35,6 @@ import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
-import java.util.function.Function;
 
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.CWT_VC;
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.JWT_VC;
