@@ -12,8 +12,6 @@ import java.util.Map;
 @Service
 public class VaultServiceImpl implements VaultService {
     private final ReactiveVaultKeyValueOperations vaultOperations;
-    private static final String BACKEND ="kv";
-
 
     public VaultServiceImpl(ReactiveVaultKeyValueOperations reactiveVaultOperations){
         this.vaultOperations = reactiveVaultOperations;
@@ -48,5 +46,4 @@ public class VaultServiceImpl implements VaultService {
                         vaultOperations.put(secretRelativePath, updatedSecrets)
                 );
     }
-
 }

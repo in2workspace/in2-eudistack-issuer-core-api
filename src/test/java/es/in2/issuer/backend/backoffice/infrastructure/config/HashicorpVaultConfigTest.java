@@ -55,7 +55,6 @@ class HashicorpVaultConfigTest {
                 mount,
                 VaultKeyValueOperationsSupport.KeyValueBackend.KV_2
         );
-        // Called once for the log and once for opsForKeyValue
         verify(properties, times(1)).secretsMount();
     }
 
