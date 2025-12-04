@@ -4,11 +4,15 @@ import es.in2.issuer.backend.backoffice.infrastructure.config.properties.Hashico
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.vault.authentication.ClientAuthentication;
 import org.springframework.vault.authentication.TokenAuthentication;
 import org.springframework.vault.client.VaultEndpoint;
 import org.springframework.vault.config.AbstractReactiveVaultConfiguration;
+import org.springframework.vault.core.ReactiveVaultKeyValueOperations;
+import org.springframework.vault.core.ReactiveVaultOperations;
+import org.springframework.vault.core.VaultKeyValueOperationsSupport;
 
 import java.util.Base64;
 
@@ -17,6 +21,17 @@ import java.util.Base64;
 @RequiredArgsConstructor
 public class HashicorpVaultConfig extends AbstractReactiveVaultConfiguration {
     private final HashicorpVaultProperties properties;
+
+    @Bean
+    public ReactiveVaultKeyValueOperations kvOperations(
+            ReactiveVaultOperations reactiveVaultOperations,
+            HashicorpVaultProperties props
+    ) {
+        return reactiveVaultOperations.opsForKeyValue(
+                props.secretsMount(),
+                VaultKeyValueOperationsSupport.KeyValueBackend.KV_2
+        );
+    }
 
     @Override
     @NonNull

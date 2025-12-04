@@ -17,8 +17,8 @@ public class VaultServiceImpl implements VaultService {
     private static final String BACKEND ="kv";
 
 
-    public VaultServiceImpl(ReactiveVaultOperations reactiveVaultOperations){
-        this.vaultOperations=reactiveVaultOperations.opsForKeyValue(BACKEND, VaultKeyValueOperationsSupport.KeyValueBackend.KV_2);
+    public VaultServiceImpl(ReactiveVaultKeyValueOperations reactiveVaultOperations){
+        this.vaultOperations = reactiveVaultOperations;
     }
 
     @Override
