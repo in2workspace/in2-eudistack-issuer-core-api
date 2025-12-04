@@ -27,7 +27,7 @@ public class NotificationServiceImpl implements NotificationService {
     @Override
     public Mono<Void> sendNotification(String processId, String procedureId, String bearerToken) {
         // TODO this flow doesn't udpate the credential procedure, but we should consider updating the "udpated_by" field for auditing and maybe have the last person to send a reminder to receive the failed signature email
-        log.info("sendNotification processId={} organizationId={} token={}", processId, bearerToken, procedureId);
+        log.info("sendNotification processId={} organizationId={}", processId, procedureId);
 
         return accessTokenService.getCleanBearerToken(bearerToken)
                 .flatMap(token -> backofficePdpService.validateSendReminder(processId, token, procedureId)
