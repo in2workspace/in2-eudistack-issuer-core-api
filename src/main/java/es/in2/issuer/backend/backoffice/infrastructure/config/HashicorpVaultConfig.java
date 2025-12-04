@@ -27,6 +27,8 @@ public class HashicorpVaultConfig extends AbstractReactiveVaultConfiguration {
             ReactiveVaultOperations reactiveVaultOperations,
             HashicorpVaultProperties props
     ) {
+        //todo remove
+        log.info("Secrets mount: {}", props.secretsMount());
         return reactiveVaultOperations.opsForKeyValue(
                 props.secretsMount(),
                 VaultKeyValueOperationsSupport.KeyValueBackend.KV_2
