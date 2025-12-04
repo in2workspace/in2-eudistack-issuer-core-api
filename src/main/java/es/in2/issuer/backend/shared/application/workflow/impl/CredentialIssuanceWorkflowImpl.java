@@ -144,9 +144,9 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
     public Mono<CredentialResponse> generateVerifiableCredentialResponse(
             String processId,
             CredentialRequest credentialRequest,
-            String token) {
+            AccessTokenContext accessTokenContext) {
         log.debug("generateVerifiableCredentialResponse");
-        return parseAuthServerNonce(token)
+        return parseAuthServerNonce(accessTokenContext)
                 .flatMap(nonce -> deferredCredentialMetadataService.getDeferredCredentialMetadataByAuthServerNonce(nonce)
                         .flatMap(deferred -> credentialProcedureService.getCredentialProcedureById(deferred.getProcedureId().toString())
                                 .zipWhen(proc -> credentialIssuerMetadataService.getCredentialIssuerMetadata(processId))
@@ -161,17 +161,18 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                     CredentialIssuerMetadata md = tuple4.getT4();
                     log.debug("email (from udpatedBy): {}", email);
 
-                    Mono<String> subjectDidMono = determineSubjectDid(proc, md, credentialRequest, token);
+                    Mono<String> subjectDidMono = determineSubjectDid(proc, md, credentialRequest, accessTokenContext);
 
+                    //TODO: revisar que no se repita codigo
                     Mono<CredentialResponse> vcMono = subjectDidMono
                             .flatMap(did ->
                                         verifiableCredentialService.buildCredentialResponse(
-                                                processId, did, nonce, token, email
+                                                processId, did, nonce, accessTokenContext.rawToken(), email
                                         )
                             )
                             .switchIfEmpty(
                                     verifiableCredentialService.buildCredentialResponse(
-                                            processId, null, nonce, token, email
+                                            processId, null, nonce, accessTokenContext.rawToken(), email
                                     )
                             );
 
@@ -188,15 +189,10 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                 });
     }
 
-    private Mono<String> parseAuthServerNonce(String token) {
-        return Mono.fromCallable(() -> {
-                    JWSObject jws = JWSObject.parse(token);
-                    return jws.getPayload().toJSONObject().get("jti").toString();
-                })
-                .onErrorMap(ParseException.class, e ->
-                        new ParseErrorException("Error parsing accessToken")
-                );
+    private Mono<String> parseAuthServerNonce(AccessTokenContext accessTokenContext) {
+        return Mono.just(accessTokenContext.jti());
     }
+
 
     // This method determines the subject DID base on the credential type and proof provided in the request,
     // if proof is not needed it returns null.
@@ -204,7 +200,7 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
             CredentialProcedure credentialProcedure,
             CredentialIssuerMetadata metadata,
             CredentialRequest credentialRequest,
-            String token) {
+            AccessTokenContext accessTokenContext) {
 
         final CredentialType typeEnum;
         try {
@@ -241,7 +237,7 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                     }
 
                     String jwtProof = jwtList.get(0);
-                    return proofValidationService.isProofValid(jwtProof, token)
+                    return proofValidationService.isProofValid(jwtProof, accessTokenContext.rawToken())
                             .flatMap(valid -> {
                                 if (!Boolean.TRUE.equals(valid)) {
                                     return Mono.error(new InvalidOrMissingProofException("Invalid proof"));
