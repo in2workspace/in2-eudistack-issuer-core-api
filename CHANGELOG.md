@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [v2.2.6](https://github.com/in2workspace/in2-issuer-api/releases/tag/v2.2.6)
 ### Changed
 - Set vault's secret mounts as environment variable.
+- Remove 'actuator/' path from health and prometheus base path.
 
 ## [v2.2.5](https://github.com/in2workspace/in2-issuer-api/releases/tag/v2.2.5)
 ### Fixed
