@@ -17,7 +17,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 @ToString
-@Table("issuer.credential_procedure")
+@Table(name="credential_procedure", schema = "identity_issuer")
 public class CredentialProcedure {
     @Id
     @Column("procedure_id")

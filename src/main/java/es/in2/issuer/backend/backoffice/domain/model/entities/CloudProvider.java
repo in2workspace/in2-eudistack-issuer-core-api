@@ -11,7 +11,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 @ToString
-@Table("issuer.cloud_provider")
+@Table(name="cloud_provider", schema = "identity_issuer")
 public class CloudProvider {
 
     @Id

@@ -12,7 +12,7 @@ import java.util.UUID;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-@Table("issuer.configuration")
+@Table(name="configuration", schema = "identity_issuer")
 public class Configuration {
 
     @Id

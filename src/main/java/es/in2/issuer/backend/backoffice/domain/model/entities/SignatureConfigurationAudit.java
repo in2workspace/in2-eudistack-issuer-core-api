@@ -13,7 +13,7 @@ import java.util.UUID;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-@Table("issuer.signature_configuration_audit")
+@Table(name="signature_configuration_audit", schema = "identity_issuer")
 public class SignatureConfigurationAudit {
 
     @Id

@@ -12,7 +12,7 @@ import java.util.UUID;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-@Table("issuer.status_list_index")
+@Table(name="status_list_index", schema = "identity_issuer")
 public class StatusListIndex {
 
     @Id

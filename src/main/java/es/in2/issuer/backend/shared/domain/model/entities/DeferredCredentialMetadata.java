@@ -13,7 +13,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 @ToString
-@Table("issuer.deferred_credential_metadata")
+@Table(name="deferred_credential_metadata", schema = "identity_issuer")
 public class DeferredCredentialMetadata {
     @Id
     @Column("id")
