@@ -1,5 +1,5 @@
-CREATE TABLE IF NOT EXISTS issuer.cloud_provider (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS identity_issuer.cloud_provider (
+    id UUID PRIMARY KEY DEFAULT public.uuid_generate_v4(),
     provider VARCHAR(255) NOT NULL UNIQUE,
     url TEXT NOT NULL,
     auth_method VARCHAR(100) NOT NULL,
@@ -7,8 +7,8 @@ CREATE TABLE IF NOT EXISTS issuer.cloud_provider (
     requires_totp BOOLEAN NOT NULL DEFAULT FALSE
     );
 
-CREATE TABLE IF NOT EXISTS issuer.signature_configuration (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS identity_issuer.signature_configuration (
+    id UUID PRIMARY KEY DEFAULT public.uuid_generate_v4(),
     organization_identifier VARCHAR(255) NOT NULL,
     enable_remote_signature BOOLEAN NOT NULL DEFAULT FALSE,
     signature_mode VARCHAR(50) NOT NULL CHECK (signature_mode IN ('LOCAL', 'SERVER', 'CLOUD')),
@@ -18,11 +18,11 @@ CREATE TABLE IF NOT EXISTS issuer.signature_configuration (
     credential_id VARCHAR(255) NULL,
     credential_name VARCHAR(255) NULL,
     vault_hashed_secret_values TEXT NULL,
-    FOREIGN KEY (cloud_provider_id) REFERENCES issuer.cloud_provider (id) ON DELETE SET NULL
+    FOREIGN KEY (cloud_provider_id) REFERENCES identity_issuer.cloud_provider (id) ON DELETE SET NULL
     );
 
-CREATE TABLE IF NOT EXISTS issuer.signature_configuration_audit (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS identity_issuer.signature_configuration_audit (
+    id UUID PRIMARY KEY DEFAULT public.uuid_generate_v4(),
     signature_configuration_id VARCHAR(255) NOT NULL,
     user_email VARCHAR(320) NOT NULL,
     organization_identifier VARCHAR(255) NOT NULL,
@@ -33,8 +33,8 @@ CREATE TABLE IF NOT EXISTS issuer.signature_configuration_audit (
     encrypted BOOLEAN NOT NULL DEFAULT TRUE
     );
 
-CREATE TABLE IF NOT EXISTS issuer.configuration (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS identity_issuer.configuration (
+    id UUID PRIMARY KEY DEFAULT public.uuid_generate_v4(),
     organization_identifier VARCHAR(255) NOT NULL,
     config_key VARCHAR(255) NOT NULL,
     config_value VARCHAR(255) NOT NULL,
