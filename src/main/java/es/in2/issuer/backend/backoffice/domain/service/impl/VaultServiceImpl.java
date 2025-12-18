@@ -3,8 +3,6 @@ package es.in2.issuer.backend.backoffice.domain.service.impl;
 import es.in2.issuer.backend.backoffice.domain.service.VaultService;
 import org.springframework.stereotype.Service;
 import org.springframework.vault.core.ReactiveVaultKeyValueOperations;
-import org.springframework.vault.core.ReactiveVaultOperations;
-import org.springframework.vault.core.VaultKeyValueOperationsSupport;
 import org.springframework.vault.support.VaultResponseSupport;
 import reactor.core.publisher.Mono;
 
@@ -14,11 +12,9 @@ import java.util.Map;
 @Service
 public class VaultServiceImpl implements VaultService {
     private final ReactiveVaultKeyValueOperations vaultOperations;
-    private static final String BACKEND ="kv";
 
-
-    public VaultServiceImpl(ReactiveVaultOperations reactiveVaultOperations){
-        this.vaultOperations=reactiveVaultOperations.opsForKeyValue(BACKEND, VaultKeyValueOperationsSupport.KeyValueBackend.KV_2);
+    public VaultServiceImpl(ReactiveVaultKeyValueOperations reactiveVaultOperations){
+        this.vaultOperations = reactiveVaultOperations;
     }
 
     @Override
@@ -50,5 +46,4 @@ public class VaultServiceImpl implements VaultService {
                         vaultOperations.put(secretRelativePath, updatedSecrets)
                 );
     }
-
 }

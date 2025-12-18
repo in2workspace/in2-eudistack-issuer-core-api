@@ -1,6 +1,6 @@
 package es.in2.issuer.backend.backoffice.domain.service.impl;
 
-import es.in2.issuer.backend.backoffice.application.workflow.policies.BackofficePdp;
+import es.in2.issuer.backend.backoffice.application.workflow.policies.BackofficePdpService;
 import es.in2.issuer.backend.shared.domain.exception.EmailCommunicationException;
 import es.in2.issuer.backend.shared.domain.model.dto.CredentialOfferEmailNotificationInfo;
 import es.in2.issuer.backend.shared.domain.model.entities.CredentialProcedure;
@@ -46,7 +46,7 @@ class NotificationServiceImplTest {
 
     @Mock private AppConfig appConfig;
     @Mock private AccessTokenService accessTokenService;
-    @Mock private BackofficePdp backofficePdp;
+    @Mock private BackofficePdpService backofficePdpService;
     @Mock private EmailService emailService;
     @Mock private CredentialProcedureService credentialProcedureService;
     @Mock private DeferredCredentialMetadataService deferredCredentialMetadataService;
@@ -63,7 +63,7 @@ class NotificationServiceImplTest {
         // Default PDP and token behavior
         lenient().when(accessTokenService.getCleanBearerToken(bearerToken))
                 .thenReturn(Mono.just(cleanToken));
-        lenient().when(backofficePdp.validateSendReminder(processId, cleanToken, procedureId))
+        lenient().when(backofficePdpService.validateSendReminder(processId, cleanToken, procedureId))
                 .thenReturn(Mono.empty());
     }
 
@@ -97,7 +97,7 @@ class NotificationServiceImplTest {
         StepVerifier.create(result).verifyComplete();
 
         verify(accessTokenService).getCleanBearerToken(bearerToken);
-        verify(backofficePdp).validateSendReminder(processId, cleanToken, procedureId);
+        verify(backofficePdpService).validateSendReminder(processId, cleanToken, procedureId);
         verify(emailService, times(1))
                 .sendCredentialActivationEmail(anyString(), anyString(), anyString(), anyString(), anyString());
         verifyNoMoreInteractions(emailService);
@@ -133,7 +133,7 @@ class NotificationServiceImplTest {
         StepVerifier.create(result).verifyComplete();
 
         verify(accessTokenService).getCleanBearerToken(bearerToken);
-        verify(backofficePdp).validateSendReminder(processId, cleanToken, procedureId);
+        verify(backofficePdpService).validateSendReminder(processId, cleanToken, procedureId);
         verify(emailService, times(1))
                 .sendCredentialActivationEmail(anyString(), anyString(), anyString(), anyString(), anyString());
         verifyNoMoreInteractions(emailService);
@@ -195,7 +195,7 @@ class NotificationServiceImplTest {
         StepVerifier.create(result).verifyComplete();
 
         verify(accessTokenService).getCleanBearerToken(bearerToken);
-        verify(backofficePdp).validateSendReminder(processId, cleanToken, procedureId);
+        verify(backofficePdpService).validateSendReminder(processId, cleanToken, procedureId);
         verify(emailService, times(1))
                 .sendCredentialSignedNotification(
                         email,
@@ -210,7 +210,7 @@ class NotificationServiceImplTest {
         // arrange
         when(accessTokenService.getCleanBearerToken(bearerToken))
                 .thenReturn(Mono.just(cleanToken));
-        when(backofficePdp.validateSendReminder(processId, cleanToken, procedureId))
+        when(backofficePdpService.validateSendReminder(processId, cleanToken, procedureId))
                 .thenReturn(Mono.error(new AccessDeniedException("not allowed")));
 
         // Important: avoid .then(null) -> NPE

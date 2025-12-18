@@ -1,17 +1,18 @@
 package es.in2.issuer.backend.shared.application.workflow.impl;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+
 import com.upokecenter.cbor.CBORObject;
-import es.in2.issuer.backend.backoffice.application.workflow.policies.BackofficePdp;
+import es.in2.issuer.backend.backoffice.application.workflow.policies.BackofficePdpService;
 import es.in2.issuer.backend.shared.application.workflow.CredentialSignerWorkflow;
 import es.in2.issuer.backend.shared.application.workflow.DeferredCredentialWorkflow;
 import es.in2.issuer.backend.shared.domain.exception.Base45Exception;
+import es.in2.issuer.backend.shared.domain.exception.CredentialProcedureInvalidStatusException;
+import es.in2.issuer.backend.shared.domain.exception.CredentialProcedureNotFoundException;
 import es.in2.issuer.backend.shared.domain.model.dto.*;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.LabelCredential;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.employee.LEARCredentialEmployee;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.machine.LEARCredentialMachine;
+import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum;
 import es.in2.issuer.backend.shared.domain.model.enums.SignatureType;
 import es.in2.issuer.backend.shared.domain.service.*;
 import es.in2.issuer.backend.shared.domain.util.factory.IssuerFactory;
@@ -28,11 +29,8 @@ import org.apache.commons.compress.compressors.CompressorStreamFactory;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
-import reactor.util.function.Tuples;
 
 import java.io.ByteArrayOutputStream;
-import java.sql.Timestamp;
-import java.time.Instant;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
@@ -48,7 +46,7 @@ import static es.in2.issuer.backend.shared.domain.util.Constants.*;
 public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
 
     private final AccessTokenService accessTokenService;
-    private final BackofficePdp backofficePdp;
+    private final BackofficePdpService backofficePdpService;
     private final AppConfig appConfig;
     private final DeferredCredentialWorkflow deferredCredentialWorkflow;
     private final RemoteSignatureService remoteSignatureService;
@@ -80,7 +78,7 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
                                         .flatMap(labelCredentialFactory::convertLabelCredentialJwtPayloadInToString)
                                         .flatMap(unsignedCredential -> signCredentialOnRequestedFormat(unsignedCredential, format, token, procedureId, updatedBy));
                             }
-                            case LEAR_CREDENTIAL_EMPLOYEE_CREDENTIAL_TYPE -> {
+                            case LEAR_CREDENTIAL_EMPLOYEE_TYPE -> {
                                 LEARCredentialEmployee learCredentialEmployee = learCredentialEmployeeFactory
                                         .mapStringToLEARCredentialEmployee(credentialProcedure.getCredentialDecoded());
                                 yield learCredentialEmployeeFactory.buildLEARCredentialEmployeeJwtPayload(learCredentialEmployee)
@@ -204,44 +202,55 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
 
         return accessTokenService.getCleanBearerToken(authorizationHeader)
                 .flatMap(token ->
-                        backofficePdp.validateSignCredential(processId, token, procedureId)
+                        backofficePdpService.validateSignCredential(processId, token, procedureId)
                                 .then(Mono.just(token))
                                 .zipWhen(t -> accessTokenService.getMandateeEmail(authorizationHeader))
-                                .zipWhen(
-                                        tuple2 -> accessTokenService.getOrganizationId(authorizationHeader),
-                                        (tuple2, orgId) -> Tuples.of(tuple2.getT1(), tuple2.getT2(), orgId)
-                                )
                 )
-                .flatMap(tuple3 -> {
-                    String token = tuple3.getT1();
-                    String email = tuple3.getT2();
+                .flatMap(tupleTokenEmail -> {
+                    String token = tupleTokenEmail.getT1();
+                    String email = tupleTokenEmail.getT2();
 
                     return credentialProcedureRepository.findByProcedureId(UUID.fromString(procedureId))
-                            .switchIfEmpty(Mono.error(new RuntimeException("Procedure not found")))
+                            .switchIfEmpty(Mono.error(new CredentialProcedureNotFoundException(
+                                    "Credential procedure with ID " + procedureId + " was not found"
+                            )))
+                            .doOnNext(credentialProcedure ->
+                                    log.info("ProcessID: {} - Current credential status: {}",
+                                            processId, credentialProcedure.getCredentialStatus())
+                            )
+                            .filter(credentialProcedure ->
+                                    credentialProcedure.getCredentialStatus() == CredentialStatusEnum.PEND_SIGNATURE
+                            )
+                            .switchIfEmpty(Mono.error(new CredentialProcedureInvalidStatusException(
+                                    "Credential procedure with ID " + procedureId + " is not in PEND_SIGNATURE status"
+                            )))
                             .flatMap(credentialProcedure -> {
                                 Mono<Void> updateDecodedCredentialMono =
                                         switch (credentialProcedure.getCredentialType()) {
                                             case LABEL_CREDENTIAL_TYPE ->
                                                     issuerFactory.createSimpleIssuer(procedureId, email)
                                                             .flatMap(issuer -> labelCredentialFactory.mapIssuer(procedureId, issuer))
-                                                            .flatMap(bindCredential -> {
-                                                                log.info("ProcessID: {} - Credential mapped and bound to the issuer: {}", procedureId, bindCredential);
-                                                                return credentialProcedureService.updateDecodedCredentialByProcedureId(
-                                                                        procedureId, bindCredential, JWT_VC
-                                                                );
-                                                            });
+                                                            .flatMap(bindCredential ->
+                                                                    updateDecodedCredentialByProcedureId(procedureId, bindCredential)
+                                                            );
 
-                                            case LEAR_CREDENTIAL_EMPLOYEE_CREDENTIAL_TYPE ->
+                                            case LEAR_CREDENTIAL_MACHINE_TYPE ->
+                                                    learCredentialMachineFactory
+                                                            .mapCredentialAndBindIssuerInToTheCredential(
+                                                                    credentialProcedure.getCredentialDecoded(), procedureId, email
+                                                            )
+                                                            .flatMap(bindCredential ->
+                                                                    updateDecodedCredentialByProcedureId(procedureId, bindCredential)
+                                                            );
+                                            
+                                            case LEAR_CREDENTIAL_EMPLOYEE_TYPE ->
                                                     learCredentialEmployeeFactory
                                                             .mapCredentialAndBindIssuerInToTheCredential(
                                                                     credentialProcedure.getCredentialDecoded(), procedureId, email
                                                             )
-                                                            .flatMap(bindCredential -> {
-                                                                log.info("ProcessID: {} - Credential mapped and bound to the issuer: {}", procedureId, bindCredential);
-                                                                return credentialProcedureService.updateDecodedCredentialByProcedureId(
-                                                                        procedureId, bindCredential, JWT_VC
-                                                                );
-                                                            });
+                                                            .flatMap(bindCredential ->
+                                                                    updateDecodedCredentialByProcedureId(procedureId, bindCredential)
+                                                            );
 
                                             default -> {
                                                 log.error("Unknown credential type: {}", credentialProcedure.getCredentialType());
@@ -306,5 +315,14 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
                             });
                 })
                 .then();
+    }
+
+    private Mono<Void> updateDecodedCredentialByProcedureId(String procedureId, String bindCredential) {
+        log.info("ProcessID: {} - Credential mapped and bound to the issuer: {}", procedureId, bindCredential);
+        return credentialProcedureService.updateDecodedCredentialByProcedureId(
+                procedureId,
+                bindCredential,
+                JWT_VC
+        );
     }
 }

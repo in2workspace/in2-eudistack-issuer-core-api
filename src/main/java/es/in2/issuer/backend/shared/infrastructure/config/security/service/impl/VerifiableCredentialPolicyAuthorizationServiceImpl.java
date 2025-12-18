@@ -232,8 +232,8 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
 
         LEARCredentialEmployee.CredentialSubject.Mandate mandate = objectMapper.convertValue(payload, LEARCredentialEmployee.CredentialSubject.Mandate.class);
         return mandate != null &&
-                mandate.mandator().equals(extractMandatorLearCredentialEmployee(learCredential)) &&
-                payloadPowersOnlyIncludeProductOffering(mandate.power());
+                mandate.mandator().organizationIdentifier().equals(extractMandatorLearCredentialEmployee(learCredential).organizationIdentifier())
+                && payloadPowersOnlyIncludeProductOffering(mandate.power());
     }
 
     private boolean isMandatorIssuancePolicyValidLEARCredentialMachine(LEARCredential learCredential, JsonNode payload) {

@@ -146,13 +146,15 @@ public class SecurityConfig {
         http
                 .securityMatcher(ServerWebExchangeMatchers.pathMatchers(
                         BACKOFFICE_PATH,
-                        ACTUATOR_PATH,
+                        HEALTH_PATH,
+                        PROMETHEUS_PATH,
                         SPRINGDOC_PATH
                 ))
                 .cors(cors -> cors.configurationSource(internalCORSConfig.defaultCorsConfigurationSource()))
                 .authorizeExchange(exchange -> exchange
                         .pathMatchers(HttpMethod.GET,
-                                ACTUATOR_PATH,
+                                HEALTH_PATH,
+                                PROMETHEUS_PATH,
                                 SPRINGDOC_PATH
                         ).permitAll()
                         .pathMatchers(HttpMethod.GET, BACKOFFICE_STATUS_CREDENTIALS).permitAll()

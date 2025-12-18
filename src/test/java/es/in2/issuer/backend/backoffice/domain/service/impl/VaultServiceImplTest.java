@@ -32,12 +32,7 @@ class VaultServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        when(reactiveVaultOperations.opsForKeyValue(
-                "kv",
-                org.springframework.vault.core.VaultKeyValueOperationsSupport.KeyValueBackend.KV_2
-        )).thenReturn(vaultOperations);
-
-        service = new VaultServiceImpl(reactiveVaultOperations);
+        service = new VaultServiceImpl(vaultOperations);
     }
 
     @Test

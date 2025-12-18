@@ -7,8 +7,8 @@ public class EndpointsConstants {
     }
 
     // Management Endpoints
-    public static final String ACTUATOR_BASE_PATH =  "/actuator";
-    public static final String ACTUATOR_PATH =  ACTUATOR_BASE_PATH+"/**";
+    public static final String HEALTH_PATH = "/health";
+    public static final String PROMETHEUS_PATH = "/prometheus";
     public static final String SPRINGDOC_BASE_PATH = "/springdoc";
     public static final String SPRINGDOC_PATH = SPRINGDOC_BASE_PATH+"/**";
     public static final String BACKOFFICE_BASE_PATH = "/backoffice/v1";

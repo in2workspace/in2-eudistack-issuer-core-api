@@ -2,7 +2,7 @@ package es.in2.issuer.backend.backoffice.application.workflow.policies.impl;
 
 import com.nimbusds.jose.Payload;
 import com.nimbusds.jwt.SignedJWT;
-import es.in2.issuer.backend.backoffice.application.workflow.policies.BackofficePdp;
+import es.in2.issuer.backend.backoffice.application.workflow.policies.BackofficePdpService;
 import es.in2.issuer.backend.shared.domain.exception.JWTParsingException;
 import es.in2.issuer.backend.shared.domain.exception.UnauthorizedRoleException;
 import es.in2.issuer.backend.shared.domain.service.JWTService;
@@ -24,7 +24,7 @@ import static es.in2.issuer.backend.backoffice.domain.util.Constants.VC;
 @Service
 @Slf4j
 @RequiredArgsConstructor
-public class BackofficePdpImpl implements BackofficePdp {
+public class BackofficePdpServiceImpl implements BackofficePdpService {
 
     private final AppConfig appConfig;
     private final JWTService jwtService;

@@ -660,5 +660,62 @@ class GlobalExceptionHandlerTest {
         verify(errors).handleWith(ex, request, type, title, st, fallback);
     }
 
+    // -------------------- handleCredentialProcedureInvalidStatusException --------------------
+
+    @Test
+    void handleCredentialProcedureInvalidStatusException() {
+        var ex = new CredentialProcedureInvalidStatusException("procedure status exception");
+        var type = GlobalErrorTypes.CREDENTIAL_PROCEDURE_INVALID_STATUS.getCode();
+        var title = "Invalid credential procedure status";
+        var st = HttpStatus.CONFLICT;
+        var fallback = "The credential procedure is not in a status that allows signing.";
+
+        var expected = new GlobalErrorMessage(
+                type,
+                title,
+                st.value(),
+                "invalid procedure status",
+                UUID.randomUUID().toString()
+        );
+
+        when(errors.handleWith(ex, request, type, title, st, fallback))
+                .thenReturn(Mono.just(expected));
+
+        StepVerifier.create(handler.handleCredentialProcedureInvalidStatusException(ex, request))
+                .assertNext(gem -> assertGem(gem, type, title, st, "invalid procedure status"))
+                .verifyComplete();
+
+        verify(errors).handleWith(ex, request, type, title, st, fallback);
+    }
+
+// -------------------- handleCredentialProcedureNotFoundException --------------------
+
+    @Test
+    void handleCredentialProcedureNotFoundException() {
+        var ex = new CredentialProcedureNotFoundException("procedure not found");
+        var type = GlobalErrorTypes.CREDENTIAL_PROCEDURE_NOT_FOUND.getCode();
+        var title = "Credential procedure not found";
+        var st = HttpStatus.NOT_FOUND;
+        var fallback = "The requested credential procedure was not found";
+
+        var expected = new GlobalErrorMessage(
+                type,
+                title,
+                st.value(),
+                "procedure not found",
+                UUID.randomUUID().toString()
+        );
+
+        when(errors.handleWith(ex, request, type, title, st, fallback))
+                .thenReturn(Mono.just(expected));
+
+        StepVerifier.create(handler.handleCredentialProcedureNotFoundException(ex, request))
+                .assertNext(gem -> assertGem(gem, type, title, st, "procedure not found"))
+                .verifyComplete();
+
+        verify(errors).handleWith(ex, request, type, title, st, fallback);
+    }
+
+
 
 }

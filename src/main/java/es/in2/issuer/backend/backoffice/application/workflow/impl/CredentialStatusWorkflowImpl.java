@@ -5,7 +5,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import es.in2.issuer.backend.backoffice.application.workflow.CredentialStatusWorkflow;
-import es.in2.issuer.backend.backoffice.application.workflow.policies.BackofficePdp;
+import es.in2.issuer.backend.backoffice.application.workflow.policies.BackofficePdpService;
 import es.in2.issuer.backend.backoffice.domain.service.CredentialStatusAuthorizationService;
 import es.in2.issuer.backend.backoffice.domain.service.CredentialStatusService;
 import es.in2.issuer.backend.backoffice.domain.exception.InvalidStatusException;
@@ -31,7 +31,7 @@ public class CredentialStatusWorkflowImpl implements CredentialStatusWorkflow {
 
     private final CredentialStatusService credentialStatusService;
     private final AccessTokenService accessTokenService;
-    private final BackofficePdp backofficePdp;
+    private final BackofficePdpService backofficePdpService;
     private final CredentialStatusAuthorizationService credentialStatusAuthorizationService;
     private final CredentialProcedureService credentialProcedureService;
     private final ObjectMapper objectMapper;
@@ -49,7 +49,7 @@ public class CredentialStatusWorkflowImpl implements CredentialStatusWorkflow {
     @Override
     public Mono<Void> revokeCredential(String processId, String bearerToken, String credentialProcedureId, int listId) {
         return accessTokenService.getCleanBearerToken(bearerToken)
-                .flatMap(token -> backofficePdp.validateRevokeCredential(processId, token, credentialProcedureId)
+                .flatMap(token -> backofficePdpService.validateRevokeCredential(processId, token, credentialProcedureId)
                         .then(credentialProcedureService.getCredentialProcedureById(credentialProcedureId))
                 )
                 .flatMap(credential -> validateStatus(credential.getCredentialStatus())

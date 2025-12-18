@@ -63,7 +63,7 @@ management:
         # Specifies the enabled management endpoints
         include: health, prometheus
       # Sets the base path for management endpoints
-      base-path: /actuator
+      base-path: /
       path-mapping:
         # Maps the health endpoint to /health
         health: health
@@ -217,3 +217,4 @@ vault:
   hashicorp:
     url:
     token:
+    secretsMount:

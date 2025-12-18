@@ -2,7 +2,7 @@ package es.in2.issuer.backend.backoffice.application.workflow.policies;
 
 import reactor.core.publisher.Mono;
 
-public interface BackofficePdp {
+public interface BackofficePdpService {
 
     Mono<Void> validateSignCredential(String processId, String token, String credentialProcedureId);
 

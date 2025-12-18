@@ -2,7 +2,7 @@ package es.in2.issuer.backend.backoffice.application.workflow.impl;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import es.in2.issuer.backend.backoffice.application.workflow.policies.BackofficePdp;
+import es.in2.issuer.backend.backoffice.application.workflow.policies.BackofficePdpService;
 import es.in2.issuer.backend.backoffice.domain.service.CredentialStatusAuthorizationService;
 import es.in2.issuer.backend.backoffice.domain.service.CredentialStatusService;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.CredentialStatus;
@@ -35,7 +35,7 @@ class CredentialStatusWorkflowImplTest {
     @Mock private CredentialStatusAuthorizationService credentialStatusAuthorizationService;
     @Mock private CredentialProcedureService credentialProcedureService;
     @Mock private EmailService emailService;
-    @Mock private BackofficePdp backofficePdp;
+    @Mock private BackofficePdpService backofficePdpService;
 
     @InjectMocks
     private CredentialStatusWorkflowImpl credentialStatusWorkflow;
@@ -90,7 +90,7 @@ class CredentialStatusWorkflowImplTest {
         when(accessTokenService.getCleanBearerToken(bearerToken))
                 .thenReturn(Mono.just(cleanToken));
 
-        when(backofficePdp.validateRevokeCredential("processId", cleanToken, credentialProcedureId))
+        when(backofficePdpService.validateRevokeCredential("processId", cleanToken, credentialProcedureId))
                 .thenReturn(Mono.empty());
 
         when(credentialProcedureService.getCredentialProcedureById(credentialProcedureId))
@@ -112,7 +112,7 @@ class CredentialStatusWorkflowImplTest {
         StepVerifier.create(result).verifyComplete();
 
         verify(accessTokenService).getCleanBearerToken(bearerToken);
-        verify(backofficePdp).validateRevokeCredential("processId", cleanToken, credentialProcedureId);
+        verify(backofficePdpService).validateRevokeCredential("processId", cleanToken, credentialProcedureId);
         verify(credentialStatusService, times(1))
                 .revokeCredential(eq(listId), any(CredentialStatus.class));
         verify(emailService, times(1))
@@ -143,7 +143,7 @@ class CredentialStatusWorkflowImplTest {
         when(accessTokenService.getCleanBearerToken(bearerToken))
                 .thenReturn(Mono.just(cleanToken));
 
-        when(backofficePdp.validateRevokeCredential(processId, cleanToken, credentialProcedureId))
+        when(backofficePdpService.validateRevokeCredential(processId, cleanToken, credentialProcedureId))
                 .thenReturn(Mono.empty());
 
         when(credentialProcedureService.getCredentialProcedureById(credentialProcedureId))
@@ -170,7 +170,7 @@ class CredentialStatusWorkflowImplTest {
         StepVerifier.create(result).verifyComplete();
 
         verify(accessTokenService).getCleanBearerToken(bearerToken);
-        verify(backofficePdp).validateRevokeCredential(processId, cleanToken, credentialProcedureId);
+        verify(backofficePdpService).validateRevokeCredential(processId, cleanToken, credentialProcedureId);
         verify(credentialStatusService).revokeCredential(eq(listId), any(CredentialStatus.class));
         verify(emailService).notifyIfCredentialStatusChanges(cp, "REVOKED");
     }
