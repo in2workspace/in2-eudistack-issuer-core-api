@@ -163,13 +163,15 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                     CredentialIssuerMetadata md = tuple4.getT4();
                     log.debug("email (from udpatedBy): {}", email);
 
-                    Mono<String> subjectDidMono = determineBindingInfo(proc, md, credentialRequest, accessTokenContext);
+                    Mono<BindingInfo> bindingInfoMono  = determineBindingInfo(proc, md, credentialRequest, accessTokenContext);
+
+                    System.out.println("XIVATO3: "+ bindingInfoMono);
 
                     //TODO: revisar que no se repita codigo
-                    Mono<CredentialResponse> vcMono = subjectDidMono
+                    Mono<CredentialResponse> vcMono = bindingInfoMono
                             .flatMap(bindingInfo ->
                                         verifiableCredentialService.buildCredentialResponse(
-                                                processId, bindingInfo, nonce, accessTokenContext.rawToken(), email
+                                                processId, String.valueOf(bindingInfo), nonce, accessTokenContext.rawToken(), email
                                         )
                             )
                             .switchIfEmpty(
@@ -177,6 +179,7 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                                             processId, null, nonce, accessTokenContext.rawToken(), email
                                     )
                             );
+                    System.out.println("XIVATO4: "+ bindingInfoMono);
 
                     return vcMono.flatMap(cr ->
                             handleOperationMode(
@@ -196,7 +199,7 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
     }
 
 
-    private Mono<String> determineSubjectDid(
+    private Mono<BindingInfo> determineBindingInfo(
             CredentialProcedure credentialProcedure,
             CredentialIssuerMetadata metadata,
             CredentialRequest credentialRequest,
@@ -382,10 +385,10 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                 subjectId = kidStr.contains("#") ? kidStr.split("#")[0] : kidStr;
                 return new BindingInfo(subjectId, java.util.Map.of("kid", kidStr));
             }
-            if (jwk != null) {
-                subjectId = null;
-                return new BindingInfo(subjectId, java.util.Map.of("jwk", jwk));
+            if (jwk != null || x5c != null) {
+                throw new IllegalArgumentException("Only kid-based binding is supported for now");
             }
+
 
             subjectId = null;
             return new BindingInfo(subjectId, java.util.Map.of("x5c", x5c));

@@ -138,6 +138,7 @@ public class AccessTokenServiceImpl implements AccessTokenService {
                                     if (expValue == null) return Mono.error(new InvalidTokenException("Access token without exp"));
                                     if (Instant.ofEpochSecond(expValue.longValue()).isBefore(Instant.now())) return Mono.error(new InvalidTokenException("Access token expired"));
 
+                                    System.out.println("XIVATO2");
                                     return deferredCredentialMetadataService
                                             .getDeferredCredentialMetadataByAuthServerNonce(jti)
                                             .switchIfEmpty(Mono.error(new InvalidTokenException("No ProcedureID associated to this token")))

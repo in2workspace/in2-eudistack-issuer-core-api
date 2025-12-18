@@ -30,6 +30,7 @@ public class CredentialController {
             @RequestHeader(HttpHeaders.AUTHORIZATION) String authorizationHeader,
             @RequestBody CredentialRequest credentialRequest) {
         String processId = UUID.randomUUID().toString();
+        System.out.println("XIVATO1");
         return accessTokenService.validateAndResolveProcedure(authorizationHeader)
                 .flatMap(token ->
                         credentialIssuanceWorkflow.generateVerifiableCredentialResponse(processId, credentialRequest, token))
