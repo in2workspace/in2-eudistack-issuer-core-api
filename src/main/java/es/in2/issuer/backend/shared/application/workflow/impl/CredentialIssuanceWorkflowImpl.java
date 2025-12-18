@@ -22,10 +22,12 @@ import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Mono;
 import reactor.util.function.Tuples;
 
+import javax.naming.ConfigurationException;
 import javax.naming.OperationNotSupportedException;
 import java.text.ParseException;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.*;
 import static es.in2.issuer.backend.shared.domain.util.Constants.*;
@@ -161,13 +163,13 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                     CredentialIssuerMetadata md = tuple4.getT4();
                     log.debug("email (from udpatedBy): {}", email);
 
-                    Mono<String> subjectDidMono = determineSubjectDid(proc, md, credentialRequest, accessTokenContext);
+                    Mono<String> subjectDidMono = determineBindingInfo(proc, md, credentialRequest, accessTokenContext);
 
                     //TODO: revisar que no se repita codigo
                     Mono<CredentialResponse> vcMono = subjectDidMono
-                            .flatMap(did ->
+                            .flatMap(bindingInfo ->
                                         verifiableCredentialService.buildCredentialResponse(
-                                                processId, did, nonce, accessTokenContext.rawToken(), email
+                                                processId, bindingInfo, nonce, accessTokenContext.rawToken(), email
                                         )
                             )
                             .switchIfEmpty(
@@ -194,8 +196,6 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
     }
 
 
-    // This method determines the subject DID base on the credential type and proof provided in the request,
-    // if proof is not needed it returns null.
     private Mono<String> determineSubjectDid(
             CredentialProcedure credentialProcedure,
             CredentialIssuerMetadata metadata,
@@ -220,12 +220,38 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                 .switchIfEmpty(Mono.error(new FormatUnsupportedException(
                         "No configuration for typeId: " + typeEnum.getTypeId())))
                 .flatMap(cfg -> {
-                    boolean needsProof = cfg.cryptographicBindingMethodsSupported() != null
-                            && !cfg.cryptographicBindingMethodsSupported().isEmpty();
+                    var cryptoMethods = cfg.cryptographicBindingMethodsSupported();
+                    boolean needsProof = cryptoMethods != null && !cryptoMethods.isEmpty();
 
                     if (!needsProof) {
                         return Mono.empty();
                     }
+
+                    String cryptoBindingMethod = null;
+                    try {
+                        cryptoBindingMethod = cryptoMethods.stream()
+                                .findFirst()
+                                .orElseThrow(() -> new ConfigurationException(
+                                        "No cryptographic binding method configured for " + typeEnum.name()
+                                ));
+                    } catch (ConfigurationException e) {
+                        throw new RuntimeException(e);
+                    }
+                    log.debug("Crypto binding method for {}: {}", typeEnum.name(), cryptoBindingMethod);
+
+                    var proofTypes = cfg.proofTypesSupported();
+                    var jwtProofConfig = (proofTypes != null) ? proofTypes.get("jwt") : null;
+                    Set<String> proofSigningAlgs = (jwtProofConfig != null)
+                            ? jwtProofConfig.proofSigningAlgValuesSupported()
+                            : null;
+
+                    if (proofSigningAlgs == null || proofSigningAlgs.isEmpty()) {
+                        return Mono.error(new ConfigurationException(
+                                "No proof_signing_alg_values_supported configured for proof type 'jwt' " +
+                                        "and credential type " + typeEnum.name()
+                        ));
+                    }
+                    log.debug("Proof signing algs for {}: {}", typeEnum.name(), proofSigningAlgs);
 
                     List<String> jwtList = credentialRequest.proofs() != null
                             ? credentialRequest.proofs().jwt()
@@ -237,15 +263,19 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                     }
 
                     String jwtProof = jwtList.get(0);
-                    return proofValidationService.isProofValid(jwtProof, accessTokenContext.rawToken())
-                            .flatMap(valid -> {
-                                if (!Boolean.TRUE.equals(valid)) {
+
+                    return proofValidationService
+                            .isProofValid(jwtProof, accessTokenContext.rawToken(), proofSigningAlgs)
+                            .flatMap(isValid -> {
+                                if (!Boolean.TRUE.equals(isValid)) {
                                     return Mono.error(new InvalidOrMissingProofException("Invalid proof"));
                                 }
-                                return extractDidFromJwtProof(jwtProof);
+                                return extractBindingInfoFromJwtProof(jwtProof);
                             });
+
                 });
     }
+
 
     private Mono<CredentialResponse> handleOperationMode(
             String operationMode,
@@ -330,15 +360,38 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                 .onErrorResume(e -> Mono.error(new RuntimeException("Failed to process the credential for the next processId: " + processId, e)));
     }
 
-    private Mono<String> extractDidFromJwtProof(String jwtProof) {
+    public record BindingInfo(String subjectId, Object cnf) {}
+
+    private Mono<BindingInfo> extractBindingInfoFromJwtProof(String jwtProof) {
         return Mono.fromCallable(() -> {
-            JWSObject jwsObject = JWSObject.parse(jwtProof);
-            // Extract the issuer DID from the kid claim in the header
-            String kid = jwsObject.getHeader().toJSONObject().get("kid").toString();
-            // Split the kid string at '#' and take the first part
-            return kid.split("#")[0];
+            JWSObject jws = JWSObject.parse(jwtProof);
+            var header = jws.getHeader().toJSONObject();
+
+            Object kid = header.get("kid");
+            Object jwk = header.get("jwk");
+            Object x5c = header.get("x5c");
+
+            int count = (kid != null ? 1 : 0) + (jwk != null ? 1 : 0) + (x5c != null ? 1 : 0);
+            if (count != 1) {
+                throw new IllegalArgumentException("Expected exactly one of kid/jwk/x5c in proof header");
+            }
+
+            String subjectId;
+            if (kid != null) {
+                String kidStr = kid.toString();
+                subjectId = kidStr.contains("#") ? kidStr.split("#")[0] : kidStr;
+                return new BindingInfo(subjectId, java.util.Map.of("kid", kidStr));
+            }
+            if (jwk != null) {
+                subjectId = null;
+                return new BindingInfo(subjectId, java.util.Map.of("jwk", jwk));
+            }
+
+            subjectId = null;
+            return new BindingInfo(subjectId, java.util.Map.of("x5c", x5c));
         });
     }
+
 
     private Mono<Void> getMandatorOrganizationIdentifier(String processId, String decodedCredential) {
         log.info("ProcessID: {} Decoded Credential: {}", processId, decodedCredential);

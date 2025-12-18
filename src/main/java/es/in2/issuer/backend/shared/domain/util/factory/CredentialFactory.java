@@ -41,13 +41,27 @@ public class CredentialFactory {
         }
         return Mono.error(new CredentialTypeUnsupportedException(preSubmittedCredentialRequest.schema()));
     }
-    public Mono<String> bindCryptographicCredentialSubjectId(String processId, String credentialType, String decodedCredential, String mandateeId){
+    public Mono<String> bindCryptographicCredentialSubjectId(
+            String processId,
+            String credentialType,
+            String decodedCredential,
+            String subjectDid) {
+
         if (credentialType.equals(LEAR_CREDENTIAL_EMPLOYEE)) {
-            return learCredentialEmployeeFactory.bindCryptographicCredentialSubjectId(decodedCredential, mandateeId)
-                    .doOnSuccess(learCredentialEmployee -> log.info("ProcessID: {} - Credential mapped and bind to the id: {}", processId, learCredentialEmployee));
+            return learCredentialEmployeeFactory
+                    .bindCryptographicCredentialSubjectId(decodedCredential, subjectDid)
+                    .doOnSuccess(bound ->
+                            log.info("ProcessID: {} - LEARCredentialEmployee mapped and bind to the id: {}", processId, bound));
+        } else if (credentialType.equals(LEAR_CREDENTIAL_MACHINE)) {
+            return learCredentialMachineFactory
+                    .bindCryptographicCredentialSubjectId(decodedCredential, subjectDid)
+                    .doOnSuccess(bound ->
+                            log.info("ProcessID: {} - LEARCredentialMachine mapped and bind to the id: {}", processId, bound));
         }
+
         return Mono.error(new CredentialTypeUnsupportedException(credentialType));
     }
+
 
     public Mono<Void> mapCredentialBindIssuerAndUpdateDB(
             String processId,
@@ -56,7 +70,8 @@ public class CredentialFactory {
             String credentialType,
             String format,
             String authServerNonce,
-            String email) {
+            String email,
+            String subjectDid) {
 
         Mono<String> bindMono = switch (credentialType) {
             case LEAR_CREDENTIAL_EMPLOYEE ->

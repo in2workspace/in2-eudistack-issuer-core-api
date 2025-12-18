@@ -11,9 +11,6 @@ import es.in2.issuer.backend.shared.domain.service.CredentialProcedureService;
 import es.in2.issuer.backend.shared.domain.service.DeferredCredentialMetadataService;
 import es.in2.issuer.backend.shared.domain.service.VerifiableCredentialService;
 import es.in2.issuer.backend.shared.domain.util.factory.CredentialFactory;
-import es.in2.issuer.backend.shared.domain.util.factory.IssuerFactory;
-import es.in2.issuer.backend.shared.domain.util.factory.LEARCredentialEmployeeFactory;
-import es.in2.issuer.backend.shared.domain.util.factory.LabelCredentialFactory;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -33,9 +30,6 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
     private final CredentialProcedureService credentialProcedureService;
     private final DeferredCredentialMetadataService deferredCredentialMetadataService;
     private final CredentialSignerWorkflow credentialSignerWorkflow;
-    private final LEARCredentialEmployeeFactory learCredentialEmployeeFactory;
-    private final LabelCredentialFactory labelCredentialFactory;
-    private final IssuerFactory issuerFactory;
 
     @Override
     public Mono<String> generateVc(String processId, PreSubmittedCredentialDataRequest preSubmittedCredentialDataRequest, String email) {
@@ -111,7 +105,8 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
                                             boundCred,
                                             authServerNonce,
                                             token,
-                                            email
+                                            email,
+                                            subjectDid
                                     ));
                         })
                 );
@@ -146,7 +141,8 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
             String boundCredential,
             String authServerNonce,
             String token,
-            String email) {
+            String email,
+            String subjectDid) {
 
         return deferredCredentialMetadataService
                 .updateDeferredCredentialMetadataByAuthServerNonce(authServerNonce)
@@ -159,7 +155,8 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
                                         credentialType,
                                         format,
                                         authServerNonce,
-                                        email
+                                        email,
+                                        subjectDid
                                 )
                                 .then(credentialProcedureService.getOperationModeByProcedureId(procedureId))
                                 .flatMap(mode -> buildCredentialResponseBasedOnOperationMode(
