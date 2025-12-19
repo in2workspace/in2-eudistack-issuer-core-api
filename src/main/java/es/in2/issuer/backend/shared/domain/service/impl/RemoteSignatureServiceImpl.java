@@ -78,6 +78,7 @@ public class RemoteSignatureServiceImpl implements RemoteSignatureService {
     @Override
     //TODO Cuando se implementen los "settings" del issuer, se debe pasar el clientId, secret, etc. como parámetros en lugar de var entorno
     public Mono<SignedData> sign(SignatureRequest signatureRequest, String token, String procedureId, String email) {
+        // todo: remove if is not being used
         clientId = remoteSignatureConfig.getRemoteSignatureClientId();
         clientSecret = remoteSignatureConfig.getRemoteSignatureClientSecret();
         return Mono.defer(() -> executeSigningFlow(signatureRequest, token)
@@ -116,7 +117,7 @@ public class RemoteSignatureServiceImpl implements RemoteSignatureService {
                 .flatMap(this::validateCertificate);
     }
 
-    private Mono<SignedData> executeSigningFlow(SignatureRequest signatureRequest, String token) {
+    public Mono<SignedData> executeSigningFlow(SignatureRequest signatureRequest, String token) {
         return getSignedSignature(signatureRequest, token)
                 .flatMap(response -> {
                     try {
