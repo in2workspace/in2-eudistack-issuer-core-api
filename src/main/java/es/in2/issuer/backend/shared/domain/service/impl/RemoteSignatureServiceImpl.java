@@ -45,6 +45,7 @@ import java.util.*;
 import java.util.concurrent.TimeoutException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.*;
 
@@ -248,10 +249,16 @@ public class RemoteSignatureServiceImpl implements RemoteSignatureService {
     }
 
     public Mono<String> requestAccessToken(SignatureRequest signatureRequest, String scope) {
+        final String traceId = UUID.randomUUID().toString().substring(0, 8);
+
+        // Toggle via env var to avoid accidental leakage outside test env.
+        final boolean debug = Boolean.parseBoolean(System.getenv().getOrDefault("REMOTE_SIGNATURE_DEBUG", "false"));
+
         credentialID = remoteSignatureConfig.getRemoteSignatureCredentialId();
         credentialPassword = remoteSignatureConfig.getRemoteSignatureCredentialPassword();
         clientId = remoteSignatureConfig.getRemoteSignatureClientId();
         clientSecret = remoteSignatureConfig.getRemoteSignatureClientSecret();
+
         String grantType = "client_credentials";
         String signatureGetAccessTokenEndpoint = remoteSignatureConfig.getRemoteSignatureDomain() + "/oauth2/token";
         String hashAlgorithmOID = "2.16.840.1.101.3.4.2.1";
@@ -268,39 +275,85 @@ public class RemoteSignatureServiceImpl implements RemoteSignatureService {
                 .reduce((p1, p2) -> p1 + "&" + p2)
                 .orElse("");
 
-        String basicAuthHeader = "Basic " + Base64.getEncoder()
+        String basicAuthHeader = "Basic " + java.util.Base64.getEncoder()
                 .encodeToString((clientId + ":" + clientSecret).getBytes(StandardCharsets.UTF_8));
 
         headers.clear();
         headers.add(new AbstractMap.SimpleEntry<>(HttpHeaders.AUTHORIZATION, basicAuthHeader));
         headers.add(new AbstractMap.SimpleEntry<>(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE));
+        headers.add(new AbstractMap.SimpleEntry<>("X-Debug-TraceId", traceId));
+
+        if (debug) {
+            log.warn("[SIG][{}] DEBUG ENABLED - SENSITIVE DATA WILL BE LOGGED", traceId);
+
+            log.warn("[SIG][{}] Endpoint: {}", traceId, signatureGetAccessTokenEndpoint);
+            log.warn("[SIG][{}] grant_type: {}", traceId, grantType);
+            log.warn("[SIG][{}] scope: {}", traceId, scope);
+
+            // Credentials (SENSITIVE)
+            log.warn("[SIG][{}] clientId: [{}]", traceId, clientId);
+            log.warn("[SIG][{}] clientSecret: [{}]", traceId, clientSecret);
+            log.warn("[SIG][{}] credentialID: [{}]", traceId, credentialID);
+            log.warn("[SIG][{}] credentialPassword: [{}]", traceId, credentialPassword);
+
+            // Authorization (SENSITIVE)
+            log.warn("[SIG][{}] Authorization header: {}", traceId, basicAuthHeader);
+
+            // Body (SENSITIVE, includes authorization_details, credentialPassword, etc.)
+            log.warn("[SIG][{}] Request body string: {}", traceId, requestBodyString);
+
+            // Header list
+            String headersDump = headers.stream()
+                    .map(e -> e.getKey() + ": " + e.getValue())
+                    .collect(Collectors.joining(" | "));
+            log.warn("[SIG][{}] Headers dump: {}", traceId, headersDump);
+        } else {
+            // Minimal safe logs (optional)
+            log.info("[SIG][{}] Token request: POST {} scope={}", traceId, signatureGetAccessTokenEndpoint, scope);
+        }
+
         return httpUtils.postRequest(signatureGetAccessTokenEndpoint, headers, requestBodyString)
                 .flatMap(responseJson -> Mono.fromCallable(() -> {
+                    if (debug) {
+                        // Response (could contain tokens)
+                        log.warn("[SIG][{}] Response raw JSON: {}", traceId, responseJson);
+                    } else {
+                        log.info("[SIG][{}] Token response received (len={})", traceId, responseJson == null ? 0 : responseJson.length());
+                    }
+
                     try {
                         Map<String, Object> responseMap = objectMapper.readValue(responseJson, Map.class);
                         if (!responseMap.containsKey(ACCESS_TOKEN_NAME)) {
+                            if (debug) {
+                                log.warn("[SIG][{}] Response keys: {}", traceId, responseMap.keySet());
+                            }
                             throw new AccessTokenException("Access token missing in response");
                         }
                         return (String) responseMap.get(ACCESS_TOKEN_NAME);
-                    } catch (JsonProcessingException e) {
+                    } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
                         throw new AccessTokenException("Error parsing access token response", e);
                     }
                 }))
                 .onErrorResume(WebClientResponseException.class, ex -> {
-                    log.error("❌ Access token endpoint [{}] returned {} {}",
-                            signatureGetAccessTokenEndpoint, ex.getStatusCode(), ex.getStatusText());
-                    if (ex.getStatusCode() == HttpStatus.UNAUTHORIZED) {
-                        return Mono.error(new RemoteSignatureException("Unauthorized: Invalid credentials"));
+                    log.error("[SIG][{}] ❌ Token endpoint returned {} {}", traceId, ex.getStatusCode(), ex.getStatusText());
+
+                    if (debug) {
+                        log.warn("[SIG][{}] Response headers: {}", traceId, ex.getHeaders());
+                        log.warn("[SIG][{}] Response body: {}", traceId, ex.getResponseBodyAsString());
                     }
-                    return Mono.error(new RemoteSignatureException("Remote service error while retrieving access token", ex));
+
+                    if (ex.getStatusCode() == org.springframework.http.HttpStatus.UNAUTHORIZED) {
+                        return Mono.error(new RemoteSignatureException("Unauthorized: Invalid credentials (traceId=" + traceId + ")", ex));
+                    }
+                    return Mono.error(new RemoteSignatureException("Remote service error while retrieving access token (traceId=" + traceId + ")", ex));
                 })
-                .onErrorResume(UnknownHostException.class, ex -> {
-                    log.error("❌ Could not resolve host [{}] - check DNS or VPN", signatureGetAccessTokenEndpoint);
-                    return Mono.error(new RemoteSignatureException("Signature service unreachable: DNS resolution failed", ex));
+                .onErrorResume(java.net.UnknownHostException.class, ex -> {
+                    log.error("[SIG][{}] ❌ Could not resolve host [{}] - {}", traceId, signatureGetAccessTokenEndpoint, ex.getMessage());
+                    return Mono.error(new RemoteSignatureException("Signature service unreachable: DNS resolution failed (traceId=" + traceId + ")", ex));
                 })
                 .onErrorResume(Exception.class, ex -> {
-                    log.error("❌ Unexpected error accessing [{}]: {}", signatureGetAccessTokenEndpoint, ex.getMessage());
-                    return Mono.error(new RemoteSignatureException("Unexpected error retrieving access token", ex));
+                    log.error("[SIG][{}] ❌ Unexpected error accessing [{}]: {}", traceId, signatureGetAccessTokenEndpoint, ex.getMessage(), ex);
+                    return Mono.error(new RemoteSignatureException("Unexpected error retrieving access token (traceId=" + traceId + ")", ex));
                 });
     }
 
