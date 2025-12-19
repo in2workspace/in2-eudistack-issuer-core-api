@@ -252,7 +252,7 @@ public class RemoteSignatureServiceImpl implements RemoteSignatureService {
         final String traceId = UUID.randomUUID().toString().substring(0, 8);
 
         // Toggle via env var to avoid accidental leakage outside test env.
-        final boolean debug = Boolean.parseBoolean(System.getenv().getOrDefault("REMOTE_SIGNATURE_DEBUG", "false"));
+        final boolean debug = true;
 
         credentialID = remoteSignatureConfig.getRemoteSignatureCredentialId();
         credentialPassword = remoteSignatureConfig.getRemoteSignatureCredentialPassword();
