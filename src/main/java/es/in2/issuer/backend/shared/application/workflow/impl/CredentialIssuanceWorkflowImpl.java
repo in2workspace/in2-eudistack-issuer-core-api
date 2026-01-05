@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Set;
 
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.*;
+import static es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum.PEND_SIGNATURE;
 import static es.in2.issuer.backend.shared.domain.util.Constants.*;
 import static es.in2.issuer.backend.shared.domain.util.Constants.LEAR_CREDENTIAL_MACHINE;
 
@@ -355,10 +356,12 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                             .flatMap(status -> {
                                 log.info("[{}] Current credential status for procedureId={}: {}", processId, id, status);
 
-                                Mono<Void> upd = !CredentialStatusEnum.PEND_SIGNATURE.toString().equals(status)
+                                Mono<Void> upd = !PEND_SIGNATURE.toString().equals(status)
                                         ? credentialProcedureService.updateCredentialProcedureCredentialStatusToValidByProcedureId(id)
                                         : Mono.empty();
-                                log.info("[{}] SYNC: statusUpdateNeeded={} (status={})", processId, upd, status);
+                                boolean willUpdate = !PEND_SIGNATURE.equals(status);
+
+                                log.info("[{}] SYNC: statusUpdateNeeded={} (status={})", processId, willUpdate, status);
 
                                 return upd.then(credentialProcedureService.getDecodedCredentialByProcedureId(id)
                                         .zipWith(credentialProcedureService.getCredentialProcedureById(id)));
