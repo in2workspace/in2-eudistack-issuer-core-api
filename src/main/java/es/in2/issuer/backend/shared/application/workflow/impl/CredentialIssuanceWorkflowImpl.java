@@ -148,6 +148,14 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
             CredentialRequest credentialRequest,
             AccessTokenContext accessTokenContext) {
         log.debug("generateVerifiableCredentialResponse");
+        log.info(
+                "[{}] /credential request received: jti={}, credentialConfigurationId={}, hasProofJwt={}",
+                processId,
+                accessTokenContext.jti(),
+                credentialRequest.credentialConfigurationId(),
+                credentialRequest.proofs() != null && credentialRequest.proofs().jwt() != null && !credentialRequest.proofs().jwt().isEmpty()
+        );
+
         return parseAuthServerNonce(accessTokenContext)
                 .flatMap(nonce -> deferredCredentialMetadataService.getDeferredCredentialMetadataByAuthServerNonce(nonce)
                         .flatMap(deferred -> credentialProcedureService.getCredentialProcedureById(deferred.getProcedureId().toString())
@@ -156,30 +164,51 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                         )
                 )
                 .flatMap(tuple4 -> {
+
                     String nonce = tuple4.getT1();
                     DeferredCredentialMetadata deferredCredentialMetadata = tuple4.getT2();
                     CredentialProcedure proc = tuple4.getT3();
                     String email = proc.getUpdatedBy();
                     CredentialIssuerMetadata md = tuple4.getT4();
+                    log.info(
+                            "[{}] Loaded procedure context: nonce(jti)={}, operationMode={}, credentialType={}, responseUriPresent={}",
+                            processId,
+                            nonce,
+                            proc.getOperationMode(),
+                            proc.getCredentialType(),
+                            deferredCredentialMetadata.getResponseUri() != null && !deferredCredentialMetadata.getResponseUri().isBlank()
+                    );
                     log.debug("email (from udpatedBy): {}", email);
 
-                    Mono<BindingInfo> bindingInfoMono  = determineBindingInfo(proc, md, credentialRequest, accessTokenContext);
-
-                    System.out.println("XIVATO3: "+ bindingInfoMono);
-
-                    //TODO: revisar que no se repita codigo
-                    Mono<CredentialResponse> vcMono = bindingInfoMono
-                            .flatMap(bindingInfo ->
-                                        verifiableCredentialService.buildCredentialResponse(
-                                                processId, String.valueOf(bindingInfo), nonce, accessTokenContext.rawToken(), email
-                                        )
+                    Mono<BindingInfo> bindingInfoMono  = determineBindingInfo(proc, md, credentialRequest, accessTokenContext).doOnNext(bi ->
+                            log.info("[{}] Binding required -> subjectId={}, cnfType={}",
+                                    processId,
+                                    bi.subjectId(),
+                                    bi.cnf() instanceof java.util.Map ? ((java.util.Map<?, ?>) bi.cnf()).keySet() : "unknown"
                             )
-                            .switchIfEmpty(
-                                    verifiableCredentialService.buildCredentialResponse(
-                                            processId, null, nonce, accessTokenContext.rawToken(), email
-                                    )
-                            );
-                    System.out.println("XIVATO4: "+ bindingInfoMono);
+                    ).switchIfEmpty(Mono.fromRunnable(() ->
+                            log.info("[{}] No cryptographic binding required for credentialType={}", processId, proc.getCredentialType())
+                    ));
+
+
+                    Mono<CredentialResponse> vcMono = bindingInfoMono
+                            .flatMap(bindingInfo -> {
+                                log.info("[{}] Building VC (binding) nonce={}", processId, nonce);
+                                return verifiableCredentialService.buildCredentialResponse(
+                                        processId,
+                                        bindingInfo.subjectId(),
+                                        nonce,
+                                        accessTokenContext.rawToken(),
+                                        email
+                                );
+                            })
+                            .switchIfEmpty(Mono.defer(() -> {
+                                log.info("[{}] Building VC (no binding) nonce={}", processId, nonce);
+                                return verifiableCredentialService.buildCredentialResponse(
+                                        processId, null, nonce, accessTokenContext.rawToken(), email
+                                );
+                            }));
+
 
                     return vcMono.flatMap(cr ->
                             handleOperationMode(
@@ -195,8 +224,13 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
     }
 
     private Mono<String> parseAuthServerNonce(AccessTokenContext accessTokenContext) {
+        log.debug(
+                "Using auth_server_nonce (jti) from access token: {}",
+                accessTokenContext.jti()
+        );
         return Mono.just(accessTokenContext.jti());
     }
+
 
 
     private Mono<BindingInfo> determineBindingInfo(
@@ -206,6 +240,8 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
             AccessTokenContext accessTokenContext) {
 
         final CredentialType typeEnum;
+        log.debug("determineBindingInfo: credentialType={}", credentialProcedure.getCredentialType());
+
         try {
             typeEnum = CredentialType.valueOf(credentialProcedure.getCredentialType());
         } catch (IllegalArgumentException e) {
@@ -225,6 +261,8 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                 .flatMap(cfg -> {
                     var cryptoMethods = cfg.cryptographicBindingMethodsSupported();
                     boolean needsProof = cryptoMethods != null && !cryptoMethods.isEmpty();
+                    log.info("Binding requirement for {}: needsProof={}", typeEnum.name(), needsProof);
+
 
                     if (!needsProof) {
                         return Mono.empty();
@@ -274,7 +312,9 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                                     return Mono.error(new InvalidOrMissingProofException("Invalid proof"));
                                 }
                                 return extractBindingInfoFromJwtProof(jwtProof);
-                            });
+                            })
+                            .doOnNext(isValid -> log.info("Proof validation result for {}: {}", typeEnum.name(), isValid))
+                            ;
 
                 });
     }
@@ -288,6 +328,14 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
             CredentialProcedure credentialProcedure,
             DeferredCredentialMetadata deferred
     ) {
+        log.info(
+                "[{}] handleOperationMode start: mode={}, nonce(jti)={}, credentialType={}, responseUriPresent={}",
+                processId,
+                operationMode,
+                nonce,
+                credentialProcedure.getCredentialType(),
+                deferred.getResponseUri() != null && !deferred.getResponseUri().isBlank()
+        );
         return switch (operationMode) {
             case ASYNC -> deferredCredentialMetadataService.getProcedureIdByAuthServerNonce(nonce)
                     .flatMap(procId -> {
@@ -305,9 +353,13 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
             case SYNC -> deferredCredentialMetadataService.getProcedureIdByAuthServerNonce(nonce)
                     .flatMap(id -> credentialProcedureService.getCredentialStatusByProcedureId(id)
                             .flatMap(status -> {
+                                log.info("[{}] Current credential status for procedureId={}: {}", processId, id, status);
+
                                 Mono<Void> upd = !CredentialStatusEnum.PEND_SIGNATURE.toString().equals(status)
                                         ? credentialProcedureService.updateCredentialProcedureCredentialStatusToValidByProcedureId(id)
                                         : Mono.empty();
+                                log.info("[{}] SYNC: statusUpdateNeeded={} (status={})", processId, upd, status);
+
                                 return upd.then(credentialProcedureService.getDecodedCredentialByProcedureId(id)
                                         .zipWith(credentialProcedureService.getCredentialProcedureById(id)));
                             })
@@ -317,6 +369,8 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
 
                                 CredentialType typeEnum = CredentialType.valueOf(credentialProcedure.getCredentialType());
                                 if (typeEnum == CredentialType.LEAR_CREDENTIAL_EMPLOYEE) {
+                                    log.info("[{}] SYNC: LEAR_CREDENTIAL_EMPLOYEE -> running TrustFramework registration check", processId);
+
                                     return getMandatorOrganizationIdentifier(processId, decoded);
                                 }
 
@@ -375,6 +429,8 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
             Object x5c = header.get("x5c");
 
             int count = (kid != null ? 1 : 0) + (jwk != null ? 1 : 0) + (x5c != null ? 1 : 0);
+            log.debug("Proof header cnf fields present: kid={}, jwk={}, x5c={}, count={}",
+                    kid != null, jwk != null, x5c != null, count);
             if (count != 1) {
                 throw new IllegalArgumentException("Expected exactly one of kid/jwk/x5c in proof header");
             }
@@ -383,6 +439,11 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
             if (kid != null) {
                 String kidStr = kid.toString();
                 subjectId = kidStr.contains("#") ? kidStr.split("#")[0] : kidStr;
+                log.info("Binding extracted from proof: cnfType=kid, subjectId={}, kidPrefix={}",
+                        subjectId,
+                        kidStr.length() > 20 ? kidStr.substring(0, 20) : kidStr
+                );
+
                 return new BindingInfo(subjectId, java.util.Map.of("kid", kidStr));
             }
             if (jwk != null || x5c != null) {
