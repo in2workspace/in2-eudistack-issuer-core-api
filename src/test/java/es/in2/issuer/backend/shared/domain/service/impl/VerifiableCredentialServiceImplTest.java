@@ -454,7 +454,7 @@ class VerifiableCredentialServiceImplTest {
         when(deferredCredentialMetadataService.updateDeferredCredentialMetadataByAuthServerNonce(authServerNonce))
                 .thenReturn(Mono.just(transactionId));
 
-        when(credentialFactory.mapCredentialBindIssuerAndUpdateDB(processId, procedureId, bindCredential, credentialType, format, authServerNonce, testEmail)).thenReturn(Mono.empty());
+        when(credentialFactory.mapCredentialBindIssuerAndUpdateDB(processId, procedureId, bindCredential, credentialType, format, authServerNonce, testEmail, subjectDid)).thenReturn(Mono.empty());
 
         when(credentialProcedureService.getOperationModeByProcedureId(procedureId))
                 .thenReturn(Mono.just("S"));

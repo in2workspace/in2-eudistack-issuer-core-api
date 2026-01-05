@@ -1,6 +1,7 @@
 package es.in2.issuer.backend.oidc4vci.infrastructure.controller;
 
 import es.in2.issuer.backend.shared.application.workflow.CredentialIssuanceWorkflow;
+import es.in2.issuer.backend.shared.domain.model.dto.AccessTokenContext;
 import es.in2.issuer.backend.shared.domain.model.dto.CredentialRequest;
 import es.in2.issuer.backend.shared.domain.model.dto.CredentialResponse;
 import es.in2.issuer.backend.shared.domain.service.AccessTokenService;
@@ -47,9 +48,14 @@ class CredentialControllerTest {
                                 .build()))
                 .transactionId("sampleTransactionId")
                 .build();
+        AccessTokenContext accessTokenContext = new AccessTokenContext(
+                "testToken",
+                "jti-123",
+                "proc-123"
+        );
         ResponseEntity<CredentialResponse> expectedResponse = new ResponseEntity<>(credentialResponse, HttpStatus.ACCEPTED);
         when(accessTokenService.getCleanBearerToken(authorizationHeader)).thenReturn(Mono.just("testToken"));
-        when(credentialIssuanceWorkflow.generateVerifiableCredentialResponse(anyString(), eq(credentialRequest), anyString())).thenReturn(Mono.just(credentialResponse));
+        when(credentialIssuanceWorkflow.generateVerifiableCredentialResponse(anyString(), eq(credentialRequest), eq(accessTokenContext))).thenReturn(Mono.just(credentialResponse));
 
         Mono<ResponseEntity<CredentialResponse>> result = credentialController.createVerifiableCredential(authorizationHeader, credentialRequest);
 
