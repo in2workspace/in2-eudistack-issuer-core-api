@@ -625,7 +625,8 @@ class CredentialIssuanceWorkflowImplTest {
         AccessTokenContext accessTokenContext = new AccessTokenContext(
                 "raw-token",     // rawToken
                 nonce,           // jti == nonce
-                "procedure-ctx"  // procedureId (not used in this test)
+                "procedure-ctx",  // procedureId (not used in this test)
+                "responseUri"
         );
 
         // metadata so it does NOT require a proof (thus bindingInfo = null and direct path)
@@ -718,7 +719,8 @@ class CredentialIssuanceWorkflowImplTest {
         AccessTokenContext accessTokenContext = new AccessTokenContext(
                 "raw-token",
                 nonce,
-                "procedure-ctx"
+                "procedure-ctx",
+                "responseUri"
         );
 
         // Deferred -> points to our procedureId and has a responseUri

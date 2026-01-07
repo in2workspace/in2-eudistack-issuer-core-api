@@ -51,7 +51,8 @@ class CredentialControllerTest {
         AccessTokenContext accessTokenContext = new AccessTokenContext(
                 "testToken",
                 "jti-123",
-                "proc-123"
+                "proc-123",
+                "responseUri"
         );
         ResponseEntity<CredentialResponse> expectedResponse = new ResponseEntity<>(credentialResponse, HttpStatus.ACCEPTED);
         when(accessTokenService.getCleanBearerToken(authorizationHeader)).thenReturn(Mono.just("testToken"));
