@@ -131,20 +131,37 @@ public class AccessTokenServiceImpl implements AccessTokenService {
                                 .flatMap(jws -> {
                                     var payload = jws.getPayload().toJSONObject();
 
+                                    log.info(
+                                            "[ACCESS_TOKEN] jti={}, exp={}, client_id={}, azp={}, iss={}",
+                                            payload.get("jti"),
+                                            payload.get("exp"),
+                                            payload.get("client_id"),
+                                            payload.get("azp"),
+                                            payload.get("iss")
+                                    );
+
                                     String jti = (String) payload.get("jti");
                                     Number expValue = (Number) payload.get("exp");
 
-                                    if (jti == null || jti.isBlank()) return Mono.error(new InvalidTokenException("Access token without jti"));
-                                    if (expValue == null) return Mono.error(new InvalidTokenException("Access token without exp"));
-                                    if (Instant.ofEpochSecond(expValue.longValue()).isBefore(Instant.now())) return Mono.error(new InvalidTokenException("Access token expired"));
+                                    if (jti == null || jti.isBlank())
+                                        return Mono.error(new InvalidTokenException("Access token without jti"));
+                                    if (expValue == null)
+                                        return Mono.error(new InvalidTokenException("Access token without exp"));
+                                    if (Instant.ofEpochSecond(expValue.longValue()).isBefore(Instant.now()))
+                                        return Mono.error(new InvalidTokenException("Access token expired"));
 
-                                    System.out.println("XIVATO2");
                                     return deferredCredentialMetadataService
                                             .getDeferredCredentialMetadataByAuthServerNonce(jti)
                                             .switchIfEmpty(Mono.error(new InvalidTokenException("No ProcedureID associated to this token")))
-                                            .map(def -> new AccessTokenContext(rawToken,jti,def.getProcedureId().toString()));
+                                            .map(def -> new AccessTokenContext(
+                                                    rawToken,
+                                                    jti,
+                                                    def.getProcedureId().toString(),
+                                                    def.getResponseUri()
+                                            ));
                                 })
                 );
     }
+
 
 }

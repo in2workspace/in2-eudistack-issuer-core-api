@@ -24,11 +24,10 @@ import static es.in2.issuer.backend.backoffice.domain.util.Constants.SUPPORTED_P
 public class ProofValidationServiceImpl implements ProofValidationService {
 
     private final JWTService jwtService;
-    private final NonceValidationWorkflow nonceValidationWorkflow;
 
 
     @Override
-    public Mono<Boolean> isProofValid(String jwtProof, String token, Set<String> allowedAlgs) {
+    public Mono<Boolean> isProofValid(String jwtProof, Set<String> allowedAlgs) {
         return Mono.just(jwtProof)
                 .doOnNext(jwt -> log.debug("Starting validation for JWT: {}", jwt))
                 .flatMap(jwt -> parseAndValidateJwt(jwt, allowedAlgs))
@@ -114,7 +113,6 @@ public class ProofValidationServiceImpl implements ProofValidationService {
             }
         }
     }
-
 
 
     private void validatePayload(JWSObject jwsObject) {

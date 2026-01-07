@@ -28,6 +28,7 @@ import java.text.ParseException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.*;
 import static es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum.PEND_SIGNATURE;
@@ -142,74 +143,69 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
             );
         };
     }
-
     @Override
     public Mono<CredentialResponse> generateVerifiableCredentialResponse(
             String processId,
             CredentialRequest credentialRequest,
-            AccessTokenContext accessTokenContext) {
-        log.debug("generateVerifiableCredentialResponse");
-        log.info(
-                "[{}] /credential request received: jti={}, credentialConfigurationId={}, hasProofJwt={}",
-                processId,
-                accessTokenContext.jti(),
-                credentialRequest.credentialConfigurationId(),
-                credentialRequest.proofs() != null && credentialRequest.proofs().jwt() != null && !credentialRequest.proofs().jwt().isEmpty()
-        );
+            AccessTokenContext accessTokenContext
+    ) {
 
-        return parseAuthServerNonce(accessTokenContext)
-                .flatMap(nonce -> deferredCredentialMetadataService.getDeferredCredentialMetadataByAuthServerNonce(nonce)
-                        .flatMap(deferred -> credentialProcedureService.getCredentialProcedureById(deferred.getProcedureId().toString())
-                                .zipWhen(proc -> credentialIssuerMetadataService.getCredentialIssuerMetadata(processId))
-                                .map(tuple -> Tuples.of(nonce, deferred, tuple.getT1(), tuple.getT2()))
-                        )
-                )
-                .flatMap(tuple4 -> {
+        final String nonce = String.valueOf(parseAuthServerNonce(accessTokenContext));
+        final String procedureId = accessTokenContext.procedureId();
 
-                    String nonce = tuple4.getT1();
-                    DeferredCredentialMetadata deferredCredentialMetadata = tuple4.getT2();
-                    CredentialProcedure proc = tuple4.getT3();
-                    String email = proc.getUpdatedBy();
-                    CredentialIssuerMetadata md = tuple4.getT4();
+        return credentialProcedureService.getCredentialProcedureById(procedureId)
+                .zipWhen(proc -> credentialIssuerMetadataService.getCredentialIssuerMetadata(processId))
+                .flatMap(tuple -> {
+                    CredentialProcedure proc = tuple.getT1();
+                    CredentialIssuerMetadata md = tuple.getT2();
+
+                    String email = proc.getEmail(); //Update to GetEmail
+
+                    boolean responseUriPresent = accessTokenContext.responseUri() != null && !accessTokenContext.responseUri().isBlank();
+
                     log.info(
-                            "[{}] Loaded procedure context: nonce(jti)={}, operationMode={}, credentialType={}, responseUriPresent={}",
+                            "[{}] Loaded procedure context: nonce(jti)={}, procedureId={}, operationMode={}, credentialType={}, responseUriPresent={}",
                             processId,
                             nonce,
+                            procedureId,
                             proc.getOperationMode(),
                             proc.getCredentialType(),
-                            deferredCredentialMetadata.getResponseUri() != null && !deferredCredentialMetadata.getResponseUri().isBlank()
+                            responseUriPresent
                     );
-                    log.debug("email (from udpatedBy): {}", email);
-
-                    Mono<BindingInfo> bindingInfoMono  = determineBindingInfo(proc, md, credentialRequest, accessTokenContext).doOnNext(bi ->
-                            log.info("[{}] Binding required -> subjectId={}, cnfType={}",
-                                    processId,
-                                    bi.subjectId(),
-                                    bi.cnf() instanceof java.util.Map ? ((java.util.Map<?, ?>) bi.cnf()).keySet() : "unknown"
-                            )
-                    ).switchIfEmpty(Mono.fromRunnable(() ->
-                            log.info("[{}] No cryptographic binding required for credentialType={}", processId, proc.getCredentialType())
-                    ));
-
+                    //Determina si necesita crypto binding (si es null no lo necesita)
+                    Mono<BindingInfo> bindingInfoMono = determineBindingInfo(proc, md, credentialRequest, accessTokenContext)
+                                    .doOnNext(bi -> log.info(
+                                            "[{}] Binding required -> subjectId={}, cnfKeys={}",
+                                            processId,
+                                            bi.subjectId(),
+                                            (bi.cnf() instanceof java.util.Map<?, ?> m) ? m.keySet() : "unknown"
+                                    ))
+                                    .doOnSuccess(bi -> {
+                                        if (bi == null) {
+                                            log.info("[{}] No cryptographic binding required for credentialType={}",
+                                                    processId, proc.getCredentialType());
+                                        }
+                                    });
 
                     Mono<CredentialResponse> vcMono = bindingInfoMono
-                            .flatMap(bindingInfo -> {
-                                log.info("[{}] Building VC (binding) nonce={}", processId, nonce);
-                                return verifiableCredentialService.buildCredentialResponse(
-                                        processId,
-                                        bindingInfo.subjectId(),
-                                        nonce,
-                                        accessTokenContext.rawToken(),
-                                        email
-                                );
-                            })
-                            .switchIfEmpty(Mono.defer(() -> {
-                                log.info("[{}] Building VC (no binding) nonce={}", processId, nonce);
-                                return verifiableCredentialService.buildCredentialResponse(
-                                        processId, null, nonce, accessTokenContext.rawToken(), email
-                                );
-                            }));
+                            .flatMap(bi -> verifiableCredentialService.buildCredentialResponse(
+                                    processId,
+                                    bi.subjectId(),
+                                    nonce,
+                                    accessTokenContext.rawToken(),
+                                    email
+                            ))
+                            .switchIfEmpty(Mono.defer(() -> verifiableCredentialService.buildCredentialResponse(
+                                    processId,
+                                    null,
+                                    nonce,
+                                    accessTokenContext.rawToken(),
+                                    email
+                            )));
 
+                    DeferredCredentialMetadata deferred = new DeferredCredentialMetadata();
+                    deferred.setResponseUri(accessTokenContext.responseUri());
+                    deferred.setProcedureId(UUID.fromString(procedureId)); // si aplica en tu entidad
 
                     return vcMono.flatMap(cr ->
                             handleOperationMode(
@@ -218,11 +214,13 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                                     nonce,
                                     cr,
                                     proc,
-                                    deferredCredentialMetadata
+                                    deferred
                             )
                     );
                 });
     }
+
+
 
     private Mono<String> parseAuthServerNonce(AccessTokenContext accessTokenContext) {
         log.debug(
@@ -232,14 +230,14 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
         return Mono.just(accessTokenContext.jti());
     }
 
-
-
     private Mono<BindingInfo> determineBindingInfo(
             CredentialProcedure credentialProcedure,
             CredentialIssuerMetadata metadata,
             CredentialRequest credentialRequest,
-            AccessTokenContext accessTokenContext) {
+            AccessTokenContext accessTokenContext
+    ) {
 
+        //Resolve the credential type declared in the procedure
         final CredentialType typeEnum;
         log.debug("determineBindingInfo: credentialType={}", credentialProcedure.getCredentialType());
 
@@ -250,26 +248,36 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                     "Unknown credential type: " + credentialProcedure.getCredentialType()));
         }
 
+        //Find the Issuer configuration that matches this credential type
         return Mono.justOrEmpty(
-                        metadata.credentialConfigurationsSupported().values().stream()
+                        metadata.credentialConfigurationsSupported()
+                                .values()
+                                .stream()
                                 .filter(cfg ->
                                         cfg.credentialDefinition().type().contains(typeEnum.getTypeId())
                                 )
                                 .findFirst()
                 )
                 .switchIfEmpty(Mono.error(new FormatUnsupportedException(
-                        "No configuration for typeId: " + typeEnum.getTypeId())))
+                        "No configuration for typeId: " + typeEnum.getTypeId()
+                )))
+
+                //Evaluate cryptographic binding requirements
                 .flatMap(cfg -> {
+
+                    //crypto binding methods configured by the Issuer
                     var cryptoMethods = cfg.cryptographicBindingMethodsSupported();
+
                     boolean needsProof = cryptoMethods != null && !cryptoMethods.isEmpty();
                     log.info("Binding requirement for {}: needsProof={}", typeEnum.name(), needsProof);
 
-
+                    //If no cryptographic binding is required
                     if (!needsProof) {
                         return Mono.empty();
                     }
 
-                    String cryptoBindingMethod = null;
+                    //Select the cryptographic binding method
+                    String cryptoBindingMethod;
                     try {
                         cryptoBindingMethod = cryptoMethods.stream()
                                 .findFirst()
@@ -279,46 +287,63 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                     } catch (ConfigurationException e) {
                         throw new RuntimeException(e);
                     }
+
                     log.debug("Crypto binding method for {}: {}", typeEnum.name(), cryptoBindingMethod);
 
+                    //Resolve proof configuration for JWT proofs
                     var proofTypes = cfg.proofTypesSupported();
                     var jwtProofConfig = (proofTypes != null) ? proofTypes.get("jwt") : null;
-                    Set<String> proofSigningAlgs = (jwtProofConfig != null)
-                            ? jwtProofConfig.proofSigningAlgValuesSupported()
-                            : null;
 
-                    if (proofSigningAlgs == null || proofSigningAlgs.isEmpty()) {
+                    //Allowed signing algorithms for the JWT proof
+                    Set<String> proofSigningAlgoritms = (jwtProofConfig != null) ? jwtProofConfig.proofSigningAlgValuesSupported() : null;
+
+                    //Fail if the Issuer configuration is incomplete
+                    if (proofSigningAlgoritms == null || proofSigningAlgoritms.isEmpty()) {
                         return Mono.error(new ConfigurationException(
                                 "No proof_signing_alg_values_supported configured for proof type 'jwt' " +
                                         "and credential type " + typeEnum.name()
                         ));
                     }
-                    log.debug("Proof signing algs for {}: {}", typeEnum.name(), proofSigningAlgs);
 
+                    log.debug("Proof signing algs for {}: {}", typeEnum.name(), proofSigningAlgoritms);
+
+                    //Extract the proof(s) provided by the wallet
                     List<String> jwtList = credentialRequest.proofs() != null
                             ? credentialRequest.proofs().jwt()
                             : Collections.emptyList();
 
+                    //Wallet did not provide a proof although it is required
                     if (jwtList.isEmpty()) {
                         return Mono.error(new InvalidOrMissingProofException(
-                                "Missing proof for type " + typeEnum.name()));
+                                "Missing proof for type " + typeEnum.name()
+                        ));
                     }
 
+                    //Currently only the first proof is used
                     String jwtProof = jwtList.get(0);
 
+                    //Validate the proof according to Issuer configuration
                     return proofValidationService
-                            .isProofValid(jwtProof, accessTokenContext.rawToken(), proofSigningAlgs)
-                            .flatMap(isValid -> {
-                                if (!Boolean.TRUE.equals(isValid)) {
+                            .isProofValid(
+                                    jwtProof,
+                                    proofSigningAlgoritms
+                            )
+                            .doOnNext(valid ->
+                                    log.info("Proof validation result for {}: {}", typeEnum.name(), valid)
+                            )
+
+                            //If the proof is invalid, reject the request
+                            .flatMap(valid -> {
+                                if (!Boolean.TRUE.equals(valid)) {
                                     return Mono.error(new InvalidOrMissingProofException("Invalid proof"));
                                 }
-                                return extractBindingInfoFromJwtProof(jwtProof);
-                            })
-                            .doOnNext(isValid -> log.info("Proof validation result for {}: {}", typeEnum.name(), isValid))
-                            ;
 
+                                //Extract binding information from the JWT proof
+                                return extractBindingInfoFromJwtProof(jwtProof);
+                            });
                 });
     }
+
 
 
     private Mono<CredentialResponse> handleOperationMode(
