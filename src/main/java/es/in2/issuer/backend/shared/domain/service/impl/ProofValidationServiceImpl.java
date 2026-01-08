@@ -1,7 +1,6 @@
 package es.in2.issuer.backend.shared.domain.service.impl;
 
 import com.nimbusds.jose.JWSObject;
-import es.in2.issuer.backend.shared.application.workflow.NonceValidationWorkflow;
 import es.in2.issuer.backend.shared.domain.exception.ProofValidationException;
 import es.in2.issuer.backend.shared.domain.service.JWTService;
 import es.in2.issuer.backend.shared.domain.service.ProofValidationService;
@@ -23,7 +22,6 @@ import static es.in2.issuer.backend.backoffice.domain.util.Constants.SUPPORTED_P
 public class ProofValidationServiceImpl implements ProofValidationService {
 
     private final JWTService jwtService;
-    private final NonceValidationWorkflow nonceValidationWorkflow;
 
 
     @Override

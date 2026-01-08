@@ -48,17 +48,6 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
 
     @Override
     public Mono<Void> authorize(String token, String schema, JsonNode payload, String idToken) {
-        return Mono.fromCallable(() -> jwtService.parseJWT(token))
-                .flatMap(signedJWT -> {
-                    String payloadStr = signedJWT.getPayload().toString();
-                    if (!payloadStr.contains(ROLE)) {
-                        return checkPolicies(token, schema, payload, idToken);
-                    }else{
-                        String roleClaim = jwtService.getClaimFromPayload(signedJWT.getPayload(), ROLE);
-                        return authorizeByRole(roleClaim, token, schema, payload, idToken);
-                    }
-                });
-    }
 
     private Mono<Void> authorizeByRole(String role, String token, String schema, JsonNode payload, String idToken) {
         role =(role != null) ? role.replace("\"", ""): role;
@@ -88,17 +77,6 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
                             case LABEL_CREDENTIAL -> authorizeLabelCredential(learCredential, idToken);
                             default ->
                                     Mono.error(new InsufficientPermissionException("Unauthorized: Unsupported schema"));
-                        }
-                    );
-            });
-    }
-
-    /**
-     * Determines the allowed credential type based on the provided list and schema.
-     * Returns a Mono emitting the allowed type.
-     */
-    private Mono<String> determineAllowedCredentialType(List<String> types, String schema) {
-        return Mono.fromCallable(() -> {
             if (LABEL_CREDENTIAL.equals(schema)) {
                 // For verifiable certification, only LEARCredentialMachine into the access token is allowed.
                 if (types.contains(LEAR_CREDENTIAL_MACHINE)) {
@@ -302,7 +280,7 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
     }
 
     private boolean hasLearCredentialOnboardingExecutePower(List<Power> powers) {
-
+        // Use the verifierService's method that verifies the token without expiration check.
         return powers.stream().anyMatch(this::isOnboardingFunction) &&
                 powers.stream().anyMatch(this::hasExecuteAction);
     }

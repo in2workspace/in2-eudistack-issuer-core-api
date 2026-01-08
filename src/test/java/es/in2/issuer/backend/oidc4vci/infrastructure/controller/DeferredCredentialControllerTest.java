@@ -29,21 +29,20 @@ class DeferredCredentialControllerTest {
 
     @Test
     void getCredential() {
-        String authorizationHeader = "Bearer testToken";
         String newTransactionId = "newTransactionId";
         DeferredCredentialRequest deferredCredentialRequest = DeferredCredentialRequest.builder()
                 .transactionId(newTransactionId)
                 .build();
         DeferredCredentialResponse credentialResponse = DeferredCredentialResponse.builder()
-                .credentials(List.of("sampleCredential"))
+                .credentials(List.of(
+                        DeferredCredentialResponse.Credential.builder().credential("sampleCredential").build()))
                 .build();
         when(credentialIssuanceWorkflow.generateVerifiableCredentialDeferredResponse(anyString(), eq(deferredCredentialRequest))).thenReturn(Mono.just(credentialResponse));
 
-        Mono<DeferredCredentialResponse> result = deferredCredentialController.getCredential(authorizationHeader, deferredCredentialRequest);
+        Mono<DeferredCredentialResponse> result = deferredCredentialController.getCredential(deferredCredentialRequest);
 
         StepVerifier.create(result)
                 .assertNext(response -> assertEquals(credentialResponse, response))
                 .verifyComplete();
     }
-
 }

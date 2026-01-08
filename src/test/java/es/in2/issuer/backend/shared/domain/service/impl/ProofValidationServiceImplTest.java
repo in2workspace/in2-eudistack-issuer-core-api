@@ -1,6 +1,5 @@
 package es.in2.issuer.backend.shared.domain.service.impl;
 
-import es.in2.issuer.backend.shared.application.workflow.NonceValidationWorkflow;
 import es.in2.issuer.backend.shared.domain.service.JWTService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -19,9 +18,6 @@ class ProofValidationServiceImplTest {
 
     @Mock
     private JWTService jwtService;
-
-    @Mock
-    private NonceValidationWorkflow nonceValidationWorkflow;
 
     @InjectMocks
     private ProofValidationServiceImpl service;

@@ -27,6 +27,7 @@ public final class Constants {
     public static final Integer VERIFIABLE_CREDENTIAL_JWT_CACHE_EXPIRATION_TIME = 10;
     public static final Integer CLIENT_ASSERTION_EXPIRATION_TIME = 2;
     public static final String CLIENT_ASSERTION_EXPIRATION_TIME_UNIT = "MINUTES";
+    public static final long CREDENTIAL_PROCEDURE_ID_AND_REFRESH_TOKEN_CACHE_STORE_DURATION_MINUTES = 10080;
 
     private Constants() {
         throw new IllegalStateException("Utility class");

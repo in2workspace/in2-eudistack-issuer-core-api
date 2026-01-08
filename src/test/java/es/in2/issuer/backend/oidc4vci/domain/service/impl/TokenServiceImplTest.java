@@ -29,9 +29,6 @@ class TokenServiceImplTest {
     private CacheStore<CredentialProcedureIdAndTxCode> credentialIdAndTxCodeByPreAuthorizedCodeCacheStore;
 
     @Mock
-    private CacheStore<String> nonceCacheStore;
-
-    @Mock
     private JWTService jwtService;
 
     @Mock
@@ -44,7 +41,6 @@ class TokenServiceImplTest {
     void setUp() {
         tokenService = new TokenServiceImpl(
                 credentialIdAndTxCodeByPreAuthorizedCodeCacheStore,
-                nonceCacheStore,
                 jwtService,
                 appConfig
         );
@@ -61,8 +57,6 @@ class TokenServiceImplTest {
 //
 //        when(credentialIdAndTxCodeByPreAuthorizedCodeCacheStore.get(anyString()))
 //                .thenReturn(Mono.just(credential));
-//        when(nonceCacheStore.add(anyString(), anyString()))
-//                .thenReturn(Mono.just("mockedNonce"));
 //        when(jwtService.generateJWT(any()))
 //                .thenReturn(accessToken);
 //        when(appConfig.getIssuerBackendUrl())

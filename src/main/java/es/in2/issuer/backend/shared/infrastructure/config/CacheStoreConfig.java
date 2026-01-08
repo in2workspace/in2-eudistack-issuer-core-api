@@ -1,5 +1,6 @@
 package es.in2.issuer.backend.shared.infrastructure.config;
 
+import es.in2.issuer.backend.shared.domain.model.dto.CredentialProcedureIdAndRefreshToken;
 import es.in2.issuer.backend.shared.domain.model.dto.CredentialProcedureIdAndTxCode;
 import es.in2.issuer.backend.shared.domain.model.dto.CredentialOfferData;
 import es.in2.issuer.backend.shared.domain.model.dto.VerifiableCredentialJWT;
@@ -10,6 +11,7 @@ import org.springframework.context.annotation.Configuration;
 
 import java.util.concurrent.TimeUnit;
 
+import static es.in2.issuer.backend.shared.domain.util.Constants.CREDENTIAL_PROCEDURE_ID_AND_REFRESH_TOKEN_CACHE_STORE_DURATION_MINUTES;
 import static es.in2.issuer.backend.shared.domain.util.Constants.PRE_AUTH_CODE_EXPIRY_DURATION_MINUTES;
 
 @Configuration
@@ -48,7 +50,7 @@ public class CacheStoreConfig {
     }
 
     @Bean
-    public CacheStore<String> nonceCacheStore() {
-        return new CacheStore<>(PRE_AUTH_CODE_EXPIRY_DURATION_MINUTES, TimeUnit.MINUTES);
+    public CacheStore<CredentialProcedureIdAndRefreshToken> credentialProcedureIdAndRefreshTokenCacheStore() {
+        return new CacheStore<>(CREDENTIAL_PROCEDURE_ID_AND_REFRESH_TOKEN_CACHE_STORE_DURATION_MINUTES, TimeUnit.MINUTES);
     }
 }

@@ -60,7 +60,10 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
                         return credentialProcedureService.updateCredentialProcedureCredentialStatusToValidByProcedureId(deferredCredentialMetadataDeferredResponse.procedureId())
                                 .then(deferredCredentialMetadataService.deleteDeferredCredentialMetadataById(deferredCredentialMetadataDeferredResponse.id()))
                                 .then(Mono.just(DeferredCredentialResponse.builder()
-                                        .credentials(List.of(deferredCredentialMetadataDeferredResponse.vc()))
+                                        .credentials(List.of(
+                                                DeferredCredentialResponse.Credential.builder()
+                                                        .credential(deferredCredentialMetadataDeferredResponse.vc())
+                                                        .build()))
                                         .build()));
                     } else {
                         return Mono.just(DeferredCredentialResponse.builder()

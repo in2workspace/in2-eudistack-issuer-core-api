@@ -3,6 +3,7 @@ package es.in2.issuer.backend.oidc4vci.domain.service.impl;
 import com.nimbusds.jose.Payload;
 import es.in2.issuer.backend.oidc4vci.domain.model.TokenResponse;
 import es.in2.issuer.backend.oidc4vci.domain.service.TokenService;
+import es.in2.issuer.backend.shared.domain.model.dto.CredentialProcedureIdAndRefreshToken;
 import es.in2.issuer.backend.shared.domain.model.dto.CredentialProcedureIdAndTxCode;
 import es.in2.issuer.backend.shared.domain.service.JWTService;
 import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
@@ -19,7 +20,6 @@ import java.util.NoSuchElementException;
 
 import static es.in2.issuer.backend.oidc4vci.domain.util.Constants.ACCESS_TOKEN_EXPIRATION_TIME_DAYS;
 import static es.in2.issuer.backend.shared.domain.util.Constants.GRANT_TYPE;
-import static es.in2.issuer.backend.shared.domain.util.Utils.generateCustomNonce;
 
 @Slf4j
 @Service
@@ -27,7 +27,7 @@ import static es.in2.issuer.backend.shared.domain.util.Utils.generateCustomNonce
 public class TokenServiceImpl implements TokenService {
 
     private final CacheStore<CredentialProcedureIdAndTxCode> credentialProcedureIdAndTxCodeByPreAuthorizedCodeCacheStore;
-    private final CacheStore<String> nonceCacheStore;
+    private final CacheStore<CredentialProcedureIdAndRefreshToken> credentialProcedureIdAndRefreshTokenCacheStore;
     private final JWTService jwtService;
     private final AppConfig appConfig;
 
@@ -37,29 +37,70 @@ public class TokenServiceImpl implements TokenService {
             String preAuthorizedCode,
             String txCode) {
 
-        return ensureGrantTypeIsPreAuthorizedCode(grantType)
-                .then(Mono.defer(() -> ensurePreAuthorizedCodeAndTxCodeAreCorrect(preAuthorizedCode, txCode)))
-                .then(Mono.defer(this::generateAndSaveNonce)
-                        .map(nonce -> {
-                            Instant issueTime = Instant.now();
-                            long issueTimeEpochSeconds = issueTime.getEpochSecond();
-                            long expirationTimeEpochSeconds = generateAccessTokenExpirationTime(issueTime);
-                            String accessToken = generateAccessToken(preAuthorizedCode, issueTimeEpochSeconds, expirationTimeEpochSeconds);
-                            String tokenType = "bearer";
-                            long expiresIn = expirationTimeEpochSeconds - Instant.now().getEpochSecond();
+        return validateGrantTypeIsPreAuthorizedCode(grantType)
+                .then(Mono.defer(() -> validatePreAuthorizedCodeAndTxCodeAreCorrect(preAuthorizedCode, txCode)))
+                .then(Mono.defer(() -> {
 
-                            return TokenResponse.builder()
-                                    .accessToken(accessToken)
-                                    .tokenType(tokenType)
-                                    .expiresIn(expiresIn)
-                                    .build();
-                        }));
+                    Instant issueTime = Instant.now();
+                    long accessTokenExpirationTimeEpochSeconds = generateAccessTokenExpirationTime(issueTime);
+                    String accessToken = generateAccessToken(
+                            preAuthorizedCode,
+                            issueTime.getEpochSecond(),
+                            accessTokenExpirationTimeEpochSeconds);
+
+                    return getCredentialProcedureId(preAuthorizedCode)
+                            .flatMap(credentialProcedureId -> {
+                                long refreshTokenExpiresAt = generateRefreshTokenExpirationTime(issueTime);
+                                String refreshToken = generateRefreshToken();
+
+                                return buildCredentialProcedureIdAndRefreshToken(
+                                        credentialProcedureId,
+                                        refreshToken,
+                                        refreshTokenExpiresAt
+                                )
+                                        .flatMap(obj ->
+                                                saveCredentialProcedureIdAndRefreshTokenCacheStoreByPreAuthorizedCode(
+                                                        preAuthorizedCode,
+                                                        obj
+                                                )
+                                        )
+                                        .then(Mono.fromSupplier(() -> {
+                                            String tokenType = "bearer";
+                                            long expiresIn = accessTokenExpirationTimeEpochSeconds - Instant.now().getEpochSecond();
+                                            return TokenResponse.builder()
+                                                    .accessToken(accessToken)
+                                                    .tokenType(tokenType)
+                                                    .expiresIn(expiresIn)
+                                                    .build();
+                                        }));
+                            });
+                }));
     }
 
-    private Mono<String> generateAndSaveNonce() {
-        return generateCustomNonce()
-                .flatMap(nonce ->
-                        nonceCacheStore.add(nonce, nonce));
+    private Mono<String> getCredentialProcedureId(String preAuthorizedCode) {
+        return credentialProcedureIdAndTxCodeByPreAuthorizedCodeCacheStore
+                .get(preAuthorizedCode)
+                .map(CredentialProcedureIdAndTxCode::credentialProcedureId);
+    }
+
+    private Mono<String> saveCredentialProcedureIdAndRefreshTokenCacheStoreByPreAuthorizedCode(
+            String preAuthorizedCode,
+            CredentialProcedureIdAndRefreshToken credentialProcedureIdAndRefreshToken) {
+        return credentialProcedureIdAndRefreshTokenCacheStore
+                .add(preAuthorizedCode, credentialProcedureIdAndRefreshToken);
+    }
+
+    private Mono<CredentialProcedureIdAndRefreshToken> buildCredentialProcedureIdAndRefreshToken(
+            String credentialProcedureId,
+            String refreshToken,
+            long refreshTokenExpiresAt) {
+        return Mono.just(
+                CredentialProcedureIdAndRefreshToken.builder()
+                        .credentialProcedureId(credentialProcedureId)
+                        .refreshTokenJti(refreshToken)
+                        .refreshTokenExpiresAt(refreshTokenExpiresAt)
+                        .build()
+        );
     }
 
     private long generateAccessTokenExpirationTime(Instant issueTime) {
@@ -79,7 +120,7 @@ public class TokenServiceImpl implements TokenService {
         return jwtService.generateJWT(payload.toString());
     }
 
-    private Mono<Void> ensurePreAuthorizedCodeAndTxCodeAreCorrect(String preAuthorizedCode, String txCode) {
+    private Mono<Void> validatePreAuthorizedCodeAndTxCodeAreCorrect(String preAuthorizedCode, String txCode) {
         return credentialProcedureIdAndTxCodeByPreAuthorizedCodeCacheStore
                 .get(preAuthorizedCode)
                 .onErrorMap(NoSuchElementException.class, ex -> new IllegalArgumentException("Invalid pre-authorized code"))
@@ -91,7 +132,7 @@ public class TokenServiceImpl implements TokenService {
     }
 
 
-    private Mono<Void> ensureGrantTypeIsPreAuthorizedCode(String grantType) {
+    private Mono<Void> validateGrantTypeIsPreAuthorizedCode(String grantType) {
         return GRANT_TYPE.equals(grantType)
                 ? Mono.empty()
                 : Mono.error(new IllegalArgumentException("Invalid grant type"));
