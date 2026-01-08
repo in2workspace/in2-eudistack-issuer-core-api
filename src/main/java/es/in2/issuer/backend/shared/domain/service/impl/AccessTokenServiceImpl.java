@@ -131,15 +131,6 @@ public class AccessTokenServiceImpl implements AccessTokenService {
                                 .flatMap(jws -> {
                                     var payload = jws.getPayload().toJSONObject();
 
-                                    log.info(
-                                            "[ACCESS_TOKEN] jti={}, exp={}, client_id={}, azp={}, iss={}",
-                                            payload.get("jti"),
-                                            payload.get("exp"),
-                                            payload.get("client_id"),
-                                            payload.get("azp"),
-                                            payload.get("iss")
-                                    );
-
                                     String jti = (String) payload.get("jti");
                                     Number expValue = (Number) payload.get("exp");
 

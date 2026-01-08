@@ -321,12 +321,16 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
 
                     //Currently only the first proof is used
                     String jwtProof = jwtList.get(0);
+                    String expectedAudience = metadata.credentialIssuer();
+
+                    System.out.println(expectedAudience);
 
                     //Validate the proof according to Issuer configuration
                     return proofValidationService
                             .isProofValid(
                                     jwtProof,
-                                    proofSigningAlgoritms
+                                    proofSigningAlgoritms,
+                                    expectedAudience
                             )
                             .doOnNext(valid ->
                                     log.info("Proof validation result for {}: {}", typeEnum.name(), valid)

@@ -27,10 +27,10 @@ public class ProofValidationServiceImpl implements ProofValidationService {
 
 
     @Override
-    public Mono<Boolean> isProofValid(String jwtProof, Set<String> allowedAlgs) {
+    public Mono<Boolean> isProofValid(String jwtProof, Set<String> allowedAlgs, String expectedAudience) {
         return Mono.just(jwtProof)
                 .doOnNext(jwt -> log.debug("Starting validation for JWT: {}", jwt))
-                .flatMap(jwt -> parseAndValidateJwt(jwt, allowedAlgs))
+                .flatMap(jwt -> parseAndValidateJwt(jwt, allowedAlgs, expectedAudience))
                 .doOnNext(jws -> log.debug("JWT parsed successfully"))
                 .flatMap(jwsObject ->
                         jwtService.validateJwtSignatureReactive(jwsObject)
@@ -47,11 +47,11 @@ public class ProofValidationServiceImpl implements ProofValidationService {
                 .onErrorMap(e -> new ProofValidationException("Error during JWT validation"));
     }
 
-    private Mono<JWSObject> parseAndValidateJwt(String jwtProof, Set<String> allowedAlgs) {
+    private Mono<JWSObject> parseAndValidateJwt(String jwtProof, Set<String> allowedAlgs, String expectedAudience) {
         return Mono.fromCallable(() -> {
             JWSObject jwsObject = JWSObject.parse(jwtProof);
             validateHeader(jwsObject, allowedAlgs);
-            validatePayload(jwsObject);
+            validatePayload(jwsObject, expectedAudience);
             return jwsObject;
         });
     }
@@ -115,12 +115,20 @@ public class ProofValidationServiceImpl implements ProofValidationService {
     }
 
 
-    private void validatePayload(JWSObject jwsObject) {
+    private void validatePayload(JWSObject jwsObject, String expectedAudience) {
         var payload = jwsObject.getPayload().toJSONObject();
 
         Object audObj = payload.get("aud");
         if (audObj == null || audObj.toString().isBlank()) {
             throw new IllegalArgumentException("Invalid JWT payload: aud is missing");
+        }
+
+        boolean audMatches = (audObj instanceof String s && s.equals(expectedAudience)) || (audObj instanceof java.util.List<?> list && list.stream().anyMatch(a -> expectedAudience.equals(String.valueOf(a))));
+
+        if (!audMatches) {
+            throw new IllegalArgumentException(
+                    "Invalid JWT payload: aud must be '" + expectedAudience + "' but was " + audObj
+            );
         }
 
         Object iatObj = payload.get("iat");

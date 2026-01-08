@@ -32,10 +32,11 @@ class ProofValidationServiceImplTest {
     void isProofValid_valid() {
         String validProof = "eyJraWQiOiJkaWQ6a2V5OnpEbmFlbURadmk2UFdMbjRLRjY2NlJzZ3ZTSnR5R1B4V05GQW8xenZNSmliTGFCSHYjekRuYWVtRFp2aTZQV0xuNEtGNjY2UnNndlNKdHlHUHhXTkZBbzF6dk1KaWJMYUJIdiIsInR5cCI6Im9wZW5pZDR2Y2ktcHJvb2Yrand0IiwiYWxnIjoiRVMyNTYifQ.eyJpc3MiOiJkaWQ6a2V5OnpEbmFlbURadmk2UFdMbjRLRjY2NlJzZ3ZTSnR5R1B4V05GQW8xenZNSmliTGFCSHYiLCJhdWQiOiJodHRwOi8vbG9jYWxob3N0OjgwNzEiLCJleHAiOjMzMjE3NjMwOTgzLCJpYXQiOjE3MTMxNjY5ODMsIm5vbmNlIjoiLVNReklWbWxRTUNWd2xRak53SnRRUT09In0.hgLg04YCmEMa30JQYTZSz3vEGxTfBNYdx3A3wSNrtuJcb9p-96MtPCmLTpIFBU_CLTI4Wm4_lc-rbRMitIiOxA";
         Set<String> allowedAlgs = Set.of("ES256");
+        String expectedAudience = "aud";
 
         when(jwtService.validateJwtSignatureReactive(any())).thenReturn(Mono.just(true));
 
-        Mono<Boolean> result = service.isProofValid(validProof, allowedAlgs);
+        Mono<Boolean> result = service.isProofValid(validProof, allowedAlgs, expectedAudience);
         // Verify the output
         StepVerifier.create(result)
                 .assertNext(response ->
