@@ -139,7 +139,7 @@ class CredentialFactoryTest {
         when(deferredCredentialMetadataService.updateDeferredCredentialByAuthServerNonce(authServerNonce, format))
                 .thenReturn(Mono.empty());
 
-        StepVerifier.create(credentialFactory.mapCredentialBindIssuerAndUpdateDB(processId, procedureId, decodedCredential, LEAR_CREDENTIAL_EMPLOYEE, format, authServerNonce, "",subjectDid))
+        StepVerifier.create(credentialFactory.mapCredentialBindIssuerAndUpdateDB(processId, procedureId, decodedCredential, LEAR_CREDENTIAL_EMPLOYEE, format, authServerNonce, ""))
                 .verifyComplete();
 
         verify(learCredentialEmployeeFactory).mapCredentialAndBindIssuerInToTheCredential(decodedCredential, procedureId, "");
@@ -157,7 +157,7 @@ class CredentialFactoryTest {
         String authServerNonce = "nonce";
         String subjectDid = "did";
 
-        StepVerifier.create(credentialFactory.mapCredentialBindIssuerAndUpdateDB(processId, procedureId, decodedCredential, credentialType, format, authServerNonce, "", subjectDid))
+        StepVerifier.create(credentialFactory.mapCredentialBindIssuerAndUpdateDB(processId, procedureId, decodedCredential, credentialType, format, authServerNonce, ""))
                 .expectError(CredentialTypeUnsupportedException.class)
                 .verify();
 
@@ -178,7 +178,7 @@ class CredentialFactoryTest {
         when(learCredentialEmployeeFactory.mapCredentialAndBindIssuerInToTheCredential(decodedCredential, procedureId, ""))
                 .thenReturn(Mono.error(new RuntimeException("Binding error")));
 
-        StepVerifier.create(credentialFactory.mapCredentialBindIssuerAndUpdateDB(processId, procedureId, decodedCredential, LEAR_CREDENTIAL_EMPLOYEE, format, authServerNonce, "", subjectDid))
+        StepVerifier.create(credentialFactory.mapCredentialBindIssuerAndUpdateDB(processId, procedureId, decodedCredential, LEAR_CREDENTIAL_EMPLOYEE, format, authServerNonce, ""))
                 .expectError(RuntimeException.class)
                 .verify();
 
@@ -202,7 +202,7 @@ class CredentialFactoryTest {
         when(credentialProcedureService.updateDecodedCredentialByProcedureId(procedureId, boundCredential, format))
                 .thenReturn(Mono.error(new RuntimeException("DB Update error")));
 
-        StepVerifier.create(credentialFactory.mapCredentialBindIssuerAndUpdateDB(processId, procedureId, decodedCredential, LEAR_CREDENTIAL_EMPLOYEE, format, authServerNonce, "", subjectDid))
+        StepVerifier.create(credentialFactory.mapCredentialBindIssuerAndUpdateDB(processId, procedureId, decodedCredential, LEAR_CREDENTIAL_EMPLOYEE, format, authServerNonce, ""))
                 .expectError(RuntimeException.class)
                 .verify();
 
