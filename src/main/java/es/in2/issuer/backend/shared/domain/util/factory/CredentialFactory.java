@@ -70,8 +70,7 @@ public class CredentialFactory {
             String credentialType,
             String format,
             String authServerNonce,
-            String email,
-            String subjectDid) {
+            String email) {
 
         Mono<String> bindMono = switch (credentialType) {
             case LEAR_CREDENTIAL_EMPLOYEE ->

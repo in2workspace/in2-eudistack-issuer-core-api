@@ -192,7 +192,7 @@ public class LEARCredentialEmployeeFactory {
                         .issuedAt(parseDateToUnixTime(learCredentialEmployee.validFrom()))
                         .notValidBefore(parseDateToUnixTime(learCredentialEmployee.validFrom()))
                         .issuer(learCredentialEmployee.issuer().getId())
-                        .subject(subject)
+                        .subject(subject) // Aquí se duplica el identificador en el claim `sub`
                         .build()
         );
     }

@@ -105,8 +105,7 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
                                             boundCred,
                                             authServerNonce,
                                             token,
-                                            email,
-                                            subjectDid
+                                            email
                                     ));
                         })
                 );
@@ -126,13 +125,17 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
                         processId,
                         credentialType,
                         decodedCredential,
-                        subjectDid
-                )
+                        subjectDid)
+                .onErrorResume(e -> {
+                    log.error("Error binding cryptographic credential subject ID: {}", e.getMessage(), e);
+                    return Mono.error(new RuntimeException("Failed to bind cryptographic credential subject", e));
+                })
                 .flatMap(bound -> credentialProcedureService
                         .updateDecodedCredentialByProcedureId(procedureId, bound)
                         .thenReturn(bound)
                 );
     }
+
 
     private Mono<CredentialResponse> updateDeferredAndMap(
             String processId,
@@ -141,8 +144,7 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
             String boundCredential,
             String authServerNonce,
             String token,
-            String email,
-            String subjectDid) {
+            String email) {
 
         return deferredCredentialMetadataService
                 .updateDeferredCredentialMetadataByAuthServerNonce(authServerNonce)
@@ -155,15 +157,13 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
                                         credentialType,
                                         format,
                                         authServerNonce,
-                                        email,
-                                        subjectDid
+                                        email
                                 )
                                 .then(credentialProcedureService.getOperationModeByProcedureId(procedureId))
                                 .flatMap(mode -> buildCredentialResponseBasedOnOperationMode(
                                         mode,
                                         procedureId,
                                         transactionId,
-                                        authServerNonce,
                                         token
                                 ))
                         )
@@ -174,7 +174,6 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
             String operationMode,
             String procedureId,
             String transactionId,
-            String authServerNonce,
             String token) {
         if (ASYNC.equals(operationMode)) {
             return credentialProcedureService
@@ -193,43 +192,41 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
                         );
                     });
         } else if (SYNC.equals(operationMode)) {
-            return deferredCredentialMetadataService
-                    .getProcedureIdByAuthServerNonce(authServerNonce)
-                    .flatMap(procId -> credentialSignerWorkflow
-                            .signAndUpdateCredentialByProcedureId(
-                                    BEARER_PREFIX + token,
-                                    procId,
-                                    JWT_VC
-                            )
-                            .flatMap(signed -> Mono.just(
-                                    CredentialResponse.builder()
-                                            .credentials(List.of(
-                                                    CredentialResponse.Credential.builder()
-                                                            .credential(signed)
-                                                            .build()
-                                            ))
-                                            .build()
-                            ))
-                            .onErrorResume(error -> {
-                                if (error instanceof RemoteSignatureException
-                                        || error instanceof IllegalArgumentException) {
-                                    log.info("Error in SYNC mode, falling back to unsigned");
-                                    return credentialProcedureService
-                                            .getDecodedCredentialByProcedureId(procId)
-                                            .flatMap(unsigned -> Mono.just(
-                                                    CredentialResponse.builder()
-                                                            .credentials(List.of(
-                                                                    CredentialResponse.Credential.builder()
-                                                                            .credential(unsigned)
-                                                                            .build()
-                                                            ))
-                                                            .transactionId(transactionId)
-                                                            .build()
-                                            ));
-                                }
-                                return Mono.error(error);
-                            })
-                    );
+            return credentialSignerWorkflow
+                    .signAndUpdateCredentialByProcedureId(
+                            BEARER_PREFIX + token,
+                            procedureId,
+                            JWT_VC
+                    )
+                    .flatMap(signed -> Mono.just(
+                            CredentialResponse.builder()
+                                    .credentials(List.of(
+                                            CredentialResponse.Credential.builder()
+                                                    .credential(signed)
+                                                    .build()
+                                    ))
+                                    .build()
+                    ))
+                    .onErrorResume(error -> {
+                        if (error instanceof RemoteSignatureException
+                                || error instanceof IllegalArgumentException) {
+                            log.info("Error in SYNC mode, falling back to unsigned");
+                            return credentialProcedureService
+                                    .getDecodedCredentialByProcedureId(procedureId)
+                                    .flatMap(unsigned -> Mono.just(
+                                            CredentialResponse.builder()
+                                                    .credentials(List.of(
+                                                            CredentialResponse.Credential.builder()
+                                                                    .credential(unsigned)
+                                                                    .build()
+                                                    ))
+                                                    .transactionId(transactionId)
+                                                    .build()
+                                    ));
+                        }
+                        return Mono.error(error);
+                    });
+
         } else {
             return Mono.error(new IllegalArgumentException(
                     "Unknown operation mode: " + operationMode

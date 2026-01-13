@@ -8,6 +8,7 @@ import com.nimbusds.jose.*;
 import com.nimbusds.jose.crypto.ECDSASigner;
 import com.nimbusds.jose.crypto.ECDSAVerifier;
 import com.nimbusds.jose.jwk.ECKey;
+import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import es.in2.issuer.backend.shared.domain.exception.JWTClaimMissingException;
@@ -30,14 +31,12 @@ import reactor.core.publisher.Mono;
 import java.math.BigInteger;
 import java.security.KeyFactory;
 import java.security.PublicKey;
+import java.security.cert.X509Certificate;
 import java.security.interfaces.ECPublicKey;
 import java.security.spec.ECPoint;
 import java.security.spec.ECPublicKeySpec;
 import java.text.ParseException;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.DID_KEY;
 
@@ -88,15 +87,100 @@ public class JWTServiceImpl implements JWTService {
         }
 
     }
+
+
     @Override
     public Mono<Boolean> validateJwtSignatureReactive(JWSObject jwsObject) {
-        String kid = jwsObject.getHeader().getKeyID();
-        log.debug("validateJwtSignatureReactive - kid: {}", kid);
-        String encodedPublicKey = extractEncodedPublicKey(kid);
-        log.debug("validateJwtSignatureReactive - encodedPublicKey: {}", encodedPublicKey);
-        return decodePublicKeyIntoBytes(encodedPublicKey)
-                .flatMap(publicKeyBytes -> validateJwtSignature(jwsObject.getParsedString(), publicKeyBytes));
+        return Mono.fromCallable(() -> {
+                    if (!(jwsObject instanceof SignedJWT signedJWT)) {
+                        throw new IllegalArgumentException("Expected a SignedJWT/JWSObject with signature");
+                    }
+                    return signedJWT;
+                })
+                .flatMap(signedJWT -> {
+                    JWSHeader header = signedJWT.getHeader();
+
+                    // 1) jwk en header
+                    if (header.getJWK() != null) {
+                        return validateWithJwk(signedJWT);
+                    }
+
+                    // 2) x5c en header
+                    List<com.nimbusds.jose.util.Base64> x5c = header.getX509CertChain();
+                    if (x5c != null && !x5c.isEmpty()) {
+                        return validateWithX5c(signedJWT);
+                    }
+
+                    // 3) fallback: kid
+                    String kid = header.getKeyID();
+                    if (kid == null || kid.isBlank()) {
+                        return Mono.just(false);
+                    }
+
+                    String encodedPublicKey = extractEncodedPublicKey(kid);
+
+                    return decodePublicKeyIntoBytes(encodedPublicKey)
+                            .flatMap(publicKeyBytes ->
+                                    validateJwtSignature(signedJWT.serialize(), publicKeyBytes)
+                            );
+                })
+                .onErrorResume(e -> {
+                    log.debug("JWT signature validation failed: {}", e.getMessage());
+                    return Mono.just(false);
+                });
     }
+
+    private Mono<Boolean> validateWithJwk(SignedJWT signedJWT) {
+        return Mono.fromCallable(() -> {
+            JWK jwk = signedJWT.getHeader().getJWK();
+            if (jwk == null) {
+                throw new IllegalArgumentException("Missing 'jwk' in header");
+            }
+
+            if (!(jwk instanceof ECKey ecKey)) {
+                throw new IllegalArgumentException("Unsupported JWK type: " + jwk.getKeyType());
+            }
+
+            ECPublicKey publicKey = ecKey.toECPublicKey();
+            JWSVerifier verifier = new ECDSAVerifier(publicKey);
+
+            return signedJWT.verify(verifier);
+        });
+    }
+
+    private Mono<Boolean> validateWithX5c(SignedJWT signedJWT) {
+        return Mono.fromCallable(() -> {
+            List<com.nimbusds.jose.util.Base64> x5cChain = signedJWT.getHeader().getX509CertChain();
+            if (x5cChain == null || x5cChain.isEmpty()) {
+                throw new IllegalArgumentException("Missing 'x5c' in header");
+            }
+
+            PublicKey publicKey = extractPublicKeyFromX5c(x5cChain);
+
+            if (!(publicKey instanceof ECPublicKey)) {
+                throw new IllegalArgumentException("x5c public key is not EC");
+            }
+
+            JWSVerifier verifier = new ECDSAVerifier((ECPublicKey) publicKey);
+            return signedJWT.verify(verifier);
+        });
+    }
+
+    private PublicKey extractPublicKeyFromX5c(List<com.nimbusds.jose.util.Base64> x5cChain) {
+        try {
+            byte[] certDer = x5cChain.get(0).decode();
+
+            X509Certificate certificate = (X509Certificate) java.security.cert.CertificateFactory
+                    .getInstance("X.509")
+                    .generateCertificate(new java.io.ByteArrayInputStream(certDer));
+
+            return certificate.getPublicKey();
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Error extracting public key from x5c", e);
+        }
+    }
+
+
 
 
     public String extractEncodedPublicKey(String kid) {
@@ -292,4 +376,5 @@ public class JWTServiceImpl implements JWTService {
         }
         return Map.of();
     }
+
 }

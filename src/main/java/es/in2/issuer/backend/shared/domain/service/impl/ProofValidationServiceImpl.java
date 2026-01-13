@@ -50,19 +50,17 @@ public class ProofValidationServiceImpl implements ProofValidationService {
     private Mono<JWSObject> parseAndValidateJwt(String jwtProof, Set<String> allowedAlgs, String expectedAudience) {
         return Mono.fromCallable(() -> {
             JWSObject jwsObject = JWSObject.parse(jwtProof);
-            validateHeader(jwsObject, allowedAlgs);
+            validateJwtHeader(jwsObject);
             validatePayload(jwsObject, expectedAudience);
             return jwsObject;
         });
     }
 
-    private void validateHeader(JWSObject jwsObject, Set<String> allowedAlgs) {
+    private void validateJwtHeader(JWSObject jwsObject) {
         Map<String, Object> headerParams = jwsObject.getHeader().toJSONObject();
-
 
         Object algObj = headerParams.get("alg");
         Object typObj = headerParams.get("typ");
-
         if (algObj == null || typObj == null) {
             throw new IllegalArgumentException("Invalid JWT header: alg or typ missing");
         }
@@ -70,6 +68,21 @@ public class ProofValidationServiceImpl implements ProofValidationService {
         String alg = algObj.toString();
         String typ = typObj.toString();
 
+        boolean hasJwk = isHasJwk(typ, alg, headerParams);
+
+        if (hasJwk) {
+            Object jwkObj = headerParams.get("jwk");
+            if (jwkObj instanceof Map<?, ?> jwkMap) {
+                if (jwkMap.containsKey("d") || jwkMap.containsKey("p") ||
+                        jwkMap.containsKey("q") || jwkMap.containsKey("dp") ||
+                        jwkMap.containsKey("dq") || jwkMap.containsKey("qi")) {
+                    throw new IllegalArgumentException("Invalid JWT header: JWK must not contain private key material");
+                }
+            }
+        }
+    }
+
+    private boolean isHasJwk(String typ, String alg, Map<String, Object> headerParams) {
         if (!SUPPORTED_PROOF_TYP.equals(typ)) {
             throw new IllegalArgumentException("Invalid JWT header: unsupported typ");
         }
@@ -78,40 +91,18 @@ public class ProofValidationServiceImpl implements ProofValidationService {
             throw new IllegalArgumentException("Invalid JWT header: alg must be asymmetric and not 'none'");
         }
 
-        if (allowedAlgs != null && !allowedAlgs.isEmpty()) {
-            if (!allowedAlgs.contains(alg)) {
-                throw new IllegalArgumentException(
-                        "Invalid JWT header: alg '" + alg + "' not allowed by issuer configuration " + allowedAlgs);
-            }
-        } else {
-            if (!SUPPORTED_PROOF_ALG.equals(alg)) {
-                throw new IllegalArgumentException("Invalid JWT header: alg not supported");
-            }
+        if (!SUPPORTED_PROOF_ALG.equals(alg)) {
+            throw new IllegalArgumentException("Invalid JWT header: alg not supported");
         }
 
         boolean hasKid = headerParams.containsKey("kid");
         boolean hasJwk = headerParams.containsKey("jwk");
         boolean hasX5c = headerParams.containsKey("x5c");
-        int keyRefCount = (hasKid ? 1 : 0) + (hasJwk ? 1 : 0) + (hasX5c ? 1 : 0);
 
-        if (keyRefCount != 1) {
-            throw new IllegalArgumentException(
-                    "Invalid JWT header: exactly one of kid, jwk or x5c must be present");
+        if ((hasKid ? 1 : 0) + (hasJwk ? 1 : 0) + (hasX5c ? 1 : 0) != 1) {
+            throw new IllegalArgumentException("Invalid JWT header: exactly one of kid, jwk or x5c must be present");
         }
-
-        if (hasJwk) {
-            Object jwkObj = headerParams.get("jwk");
-            if (jwkObj instanceof Map<?, ?> jwkMap) {
-                if (jwkMap.containsKey("d")
-                        || jwkMap.containsKey("p")
-                        || jwkMap.containsKey("q")
-                        || jwkMap.containsKey("dp")
-                        || jwkMap.containsKey("dq")
-                        || jwkMap.containsKey("qi")) {
-                    throw new IllegalArgumentException("Invalid JWT header: JWK must not contain private key material");
-                }
-            }
-        }
+        return hasJwk;
     }
 
 
@@ -165,5 +156,6 @@ public class ProofValidationServiceImpl implements ProofValidationService {
             }
         }
     }
+
 
 }

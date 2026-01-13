@@ -173,7 +173,7 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                             responseUriPresent
                     );
                     //Determina si necesita crypto binding (si es null no lo necesita)
-                    Mono<BindingInfo> bindingInfoMono = determineBindingInfo(proc, md, credentialRequest, accessTokenContext)
+                    Mono<BindingInfo> bindingInfoMono = validateAndDetermineBindingInfo(proc, md, credentialRequest, accessTokenContext)
                                     .doOnNext(bi -> log.info(
                                             "[{}] Binding required -> subjectId={}, cnfKeys={}",
                                             processId,
@@ -230,7 +230,7 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
         return Mono.just(accessTokenContext.jti());
     }
 
-    private Mono<BindingInfo> determineBindingInfo(
+    private Mono<BindingInfo> validateAndDetermineBindingInfo(
             CredentialProcedure credentialProcedure,
             CredentialIssuerMetadata metadata,
             CredentialRequest credentialRequest,
@@ -239,7 +239,7 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
 
         //Resolve the credential type declared in the procedure
         final CredentialType typeEnum;
-        log.debug("determineBindingInfo: credentialType={}", credentialProcedure.getCredentialType());
+        log.debug("validateAndDetermineBindingInfo: credentialType={}", credentialProcedure.getCredentialType());
 
         try {
             typeEnum = CredentialType.valueOf(credentialProcedure.getCredentialType());
@@ -367,33 +367,25 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                 deferred.getResponseUri() != null && !deferred.getResponseUri().isBlank()
         );
         return switch (operationMode) {
-            case ASYNC -> deferredCredentialMetadataService.getProcedureIdByAuthServerNonce(nonce)
-                    .flatMap(procId -> {
-                        Mono<String> emailMono = Mono.fromCallable(() -> {
-                            log.debug("Using procedure email for pending notification: {}", credentialProcedure.getEmail());
-                            return credentialProcedure.getEmail();
-                        });
-
-                        return emailMono.flatMap(email ->
-                                emailService
-                                        .sendPendingCredentialNotification(email, "email.pending-credential")
-                                        .thenReturn(cr)
-                        );
-                    });
-            case SYNC -> deferredCredentialMetadataService.getProcedureIdByAuthServerNonce(nonce)
-                    .flatMap(id -> credentialProcedureService.getCredentialStatusByProcedureId(id)
+            case ASYNC -> {
+                Mono<String> emailMono = Mono.just(credentialProcedure.getEmail());
+                yield emailMono.flatMap(email ->
+                        emailService.sendPendingCredentialNotification(email, "email.pending-credential")
+                                .thenReturn(cr)
+                );
+            }
+            case SYNC -> Mono.just(credentialProcedure)
+                    .flatMap(proc -> credentialProcedureService.getCredentialStatusByProcedureId(proc.getProcedureId().toString())
                             .flatMap(status -> {
-                                log.info("[{}] Current credential status for procedureId={}: {}", processId, id, status);
-
                                 Mono<Void> upd = !PEND_SIGNATURE.toString().equals(status)
-                                        ? credentialProcedureService.updateCredentialProcedureCredentialStatusToValidByProcedureId(id)
+                                        ? credentialProcedureService.updateCredentialProcedureCredentialStatusToValidByProcedureId(proc.getProcedureId().toString())
                                         : Mono.empty();
                                 boolean willUpdate = !PEND_SIGNATURE.equals(status);
 
                                 log.info("[{}] SYNC: statusUpdateNeeded={} (status={})", processId, willUpdate, status);
 
-                                return upd.then(credentialProcedureService.getDecodedCredentialByProcedureId(id)
-                                        .zipWith(credentialProcedureService.getCredentialProcedureById(id)));
+                                return upd.then(credentialProcedureService.getDecodedCredentialByProcedureId(proc.getProcedureId().toString())
+                                        .zipWith(credentialProcedureService.getCredentialProcedureById(proc.getProcedureId().toString())));
                             })
                             .flatMap(tuple -> {
                                 String decoded = tuple.getT1();
