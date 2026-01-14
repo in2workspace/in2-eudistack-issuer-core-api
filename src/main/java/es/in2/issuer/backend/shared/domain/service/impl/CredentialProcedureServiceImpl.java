@@ -59,7 +59,6 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
 
     @Override
     public Mono<String> getCredentialTypeByProcedureId(String procedureId) {
-        System.out.println("XIVATO");
         return credentialProcedureRepository.findById(UUID.fromString(procedureId))
                 .flatMap(this::getCredentialType);
     }
@@ -140,6 +139,7 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
 
     @Override
     public Mono<Void> updateDecodedCredentialByProcedureId(String procedureId, String credential, String format) {
+        System.out.println("XIVATO000");
         return credentialProcedureRepository.findById(UUID.fromString(procedureId))
                 .flatMap(credentialProcedure -> {
                     credentialProcedure.setCredentialDecoded(credential);
@@ -167,7 +167,6 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
 
     @Override
     public Mono<String> getDecodedCredentialByProcedureId(String procedureId) {
-        System.out.println("XIVATO 100");
         return credentialProcedureRepository.findById(UUID.fromString(procedureId))
                 .flatMap(credentialProcedure -> Mono.just(credentialProcedure.getCredentialDecoded()));
     }

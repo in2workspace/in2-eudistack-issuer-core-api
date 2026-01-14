@@ -175,6 +175,7 @@ public class DeferredCredentialMetadataServiceImpl implements DeferredCredential
 
     @Override
     public Mono<Void> updateDeferredCredentialByAuthServerNonce(String authServerNonce, String format) {
+        System.out.println("XIVATO69584");
         return deferredCredentialMetadataRepository.findByAuthServerNonce(authServerNonce)
                 .flatMap(deferredCredentialMetadata -> {
                     deferredCredentialMetadata.setVcFormat(format);
@@ -238,6 +239,7 @@ public class DeferredCredentialMetadataServiceImpl implements DeferredCredential
 
     @Override
     public Mono<String> getFormatByProcedureId(String procedureId) {
+        System.out.println("XIVATO1");
         return deferredCredentialMetadataRepository.findByProcedureId(UUID.fromString(procedureId))
                 .map(DeferredCredentialMetadata::getVcFormat);
     }

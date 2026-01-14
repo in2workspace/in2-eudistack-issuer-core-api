@@ -91,7 +91,6 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
                             String credentialType = tuple.getT1();
                             String decoded = tuple.getT2();
 
-                            System.out.println("XIVATO 5");
                             return bindAndSaveIfNeeded(
                                     processId,
                                     procedureId,
@@ -121,7 +120,6 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
             return Mono.just(decodedCredential);
         }
 
-        System.out.println("XIVATO 3");
         return credentialFactory
                 .bindCryptographicCredentialSubjectId(
                         processId,
@@ -147,6 +145,7 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
             String authServerNonce,
             String token,
             String email) {
+        //AQUI
 
         return deferredCredentialMetadataService
                 .updateDeferredCredentialMetadataByAuthServerNonce(authServerNonce)

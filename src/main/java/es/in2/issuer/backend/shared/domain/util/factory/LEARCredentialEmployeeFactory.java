@@ -46,6 +46,7 @@ public class LEARCredentialEmployeeFactory {
     }
 
     public Mono<String> mapCredentialAndBindIssuerInToTheCredential(String decodedCredentialString, String procedureId, String email) {
+        System.out.println("XIVATO6");
         LEARCredentialEmployee decodedCredential = mapStringToLEARCredentialEmployee(decodedCredentialString);
         return bindIssuerToLearCredentialEmployee(decodedCredential, procedureId, email)
                 .flatMap(this::convertLEARCredentialEmployeeInToString);
@@ -65,6 +66,8 @@ public class LEARCredentialEmployeeFactory {
     //TODO Fix if else cuando se tenga la estructura final de los credenciales en el marketplace
     public LEARCredentialEmployee mapStringToLEARCredentialEmployee(String learCredential) {
         try {
+            System.out.println("XIVATO100");
+
             LEARCredentialEmployee employee;
             if (learCredential.contains("https://trust-framework.dome-marketplace.eu/credentials/learcredentialemployee/v1")) {
                 employee = objectMapper.readValue(learCredential, LEARCredentialEmployee.class);
@@ -84,6 +87,7 @@ public class LEARCredentialEmployeeFactory {
             } else {
                 throw new InvalidCredentialFormatException("Invalid credential format");
             }
+            System.out.println("XIVATO200");
             log.info("✅ {}", employee.toString());
             return employee;
         } catch (JsonProcessingException e) {
