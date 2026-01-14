@@ -11,8 +11,7 @@ import org.springframework.context.annotation.Configuration;
 
 import java.util.concurrent.TimeUnit;
 
-import static es.in2.issuer.backend.shared.domain.util.Constants.CREDENTIAL_PROCEDURE_ID_AND_REFRESH_TOKEN_CACHE_STORE_DURATION_MINUTES;
-import static es.in2.issuer.backend.shared.domain.util.Constants.PRE_AUTH_CODE_EXPIRY_DURATION_MINUTES;
+import static es.in2.issuer.backend.shared.domain.util.Constants.*;
 
 @Configuration
 @RequiredArgsConstructor
@@ -50,7 +49,7 @@ public class CacheStoreConfig {
     }
 
     @Bean
-    public CacheStore<CredentialProcedureIdAndRefreshToken> credentialProcedureIdAndRefreshTokenCacheStore() {
-        return new CacheStore<>(CREDENTIAL_PROCEDURE_ID_AND_REFRESH_TOKEN_CACHE_STORE_DURATION_MINUTES, TimeUnit.MINUTES);
+    public CacheStore<CredentialProcedureIdAndRefreshToken> refreshTokenCacheStore() {
+        return new CacheStore<>(REFRESH_TOKEN_EXPIRATION, REFRESH_TOKEN_EXPIRATION_TIME_UNIT);
     }
 }

@@ -1,6 +1,7 @@
 package es.in2.issuer.backend.shared.domain.util;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 public final class Constants {
     public static final String LEAR_CREDENTIAL = "LEARCredential";
@@ -27,7 +28,8 @@ public final class Constants {
     public static final Integer VERIFIABLE_CREDENTIAL_JWT_CACHE_EXPIRATION_TIME = 10;
     public static final Integer CLIENT_ASSERTION_EXPIRATION_TIME = 2;
     public static final String CLIENT_ASSERTION_EXPIRATION_TIME_UNIT = "MINUTES";
-    public static final long CREDENTIAL_PROCEDURE_ID_AND_REFRESH_TOKEN_CACHE_STORE_DURATION_MINUTES = 10080;
+    public static final long REFRESH_TOKEN_EXPIRATION = 30;
+    public static final TimeUnit REFRESH_TOKEN_EXPIRATION_TIME_UNIT = TimeUnit.DAYS;
 
     private Constants() {
         throw new IllegalStateException("Utility class");
