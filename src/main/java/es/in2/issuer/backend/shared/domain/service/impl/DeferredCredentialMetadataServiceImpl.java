@@ -128,7 +128,8 @@ public class DeferredCredentialMetadataServiceImpl implements DeferredCredential
     @Override
     public Mono<String> getProcedureIdByAuthServerNonce(String authServerNonce) {
         return deferredCredentialMetadataRepository.findByAuthServerNonce(authServerNonce)
-                .flatMap(deferredCredentialMetadata -> Mono.just(deferredCredentialMetadata.getProcedureId().toString()));
+                .flatMap(deferredCredentialMetadata -> Mono.just(deferredCredentialMetadata.getProcedureId().toString()))
+                .doOnNext(deferredCredentialMetadataId -> log.debug("Found DeferredCredentialMetadata id for authServerNonce: {}", deferredCredentialMetadataId));
     }
 
     @Override

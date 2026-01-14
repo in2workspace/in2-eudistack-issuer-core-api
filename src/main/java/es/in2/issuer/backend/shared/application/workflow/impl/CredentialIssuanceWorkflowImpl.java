@@ -203,6 +203,8 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                                     email
                             )));
 
+                    System.out.println("XIVATO 2");
+
                     DeferredCredentialMetadata deferred = new DeferredCredentialMetadata();
                     deferred.setResponseUri(accessTokenContext.responseUri());
                     deferred.setProcedureId(UUID.fromString(procedureId)); // si aplica en tu entidad

@@ -91,6 +91,8 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
                         .flatMap(tuple -> {
                             String credentialType = tuple.getT1();
                             String decoded = tuple.getT2();
+
+                            System.out.println("XIVATO 5");
                             return bindAndSaveIfNeeded(
                                     processId,
                                     procedureId,
@@ -120,6 +122,8 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
         if (subjectDid == null) {
             return Mono.just(decodedCredential);
         }
+
+        System.out.println("XIVATO 3");
         return credentialFactory
                 .bindCryptographicCredentialSubjectId(
                         processId,
