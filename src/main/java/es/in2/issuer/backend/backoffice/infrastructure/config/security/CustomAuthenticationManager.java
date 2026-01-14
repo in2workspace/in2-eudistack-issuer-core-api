@@ -144,7 +144,7 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
     }
 
     private Mono<Jwt> handleIssuerBackendToken(String token) {
-        return Mono.fromCallable(() -> JWSObject.parse(token))
+        return Mono.fromCallable(() -> SignedJWT.parse(token))
                 .flatMap(jwtService::validateJwtSignatureReactive)
                 .flatMap(isValid -> {
                     if (!Boolean.TRUE.equals(isValid)) {

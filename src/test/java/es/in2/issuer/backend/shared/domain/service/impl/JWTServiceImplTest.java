@@ -70,9 +70,9 @@ class JWTServiceImplTest {
     @Test
     void validateJwtSignatureReactive_validSignature_shouldReturnTrue() throws Exception {
         String token = "eyJraWQiOiJkaWQ6a2V5OnpEbmFlZjZUaGprUE1pNXRiNkFoTEo4VHU4WnkzbWhHUUpiZlQ4YXhoSHNIN1NEZHoiLCJhbGciOiJFUzI1NiJ9.eyJpc3MiOiJkaWQ6a2V5OnpEbmFlZjZUaGprUE1pNXRiNkFoTEo4VHU4WnkzbWhHUUpiZlQ4YXhoSHNIN1NEZHoiLCJzdWIiOiJkaWQ6a2V5OnpEbmFlZjZUaGprUE1pNXRiNkFoTEo4VHU4WnkzbWhHUUpiZlQ4YXhoSHNIN1NEZHoiLCJleHAiOjE3NjAwNzkxMzQsImlhdCI6MTcyNTk1MTEzNH0.5dHXb028Vt9PGai2FBluccJVxO3WXsjnreXGuSOSvUpKzzyCRKYGgWK2nMIBindKonxkOAgUkqaasSYby-gGpg";
-        JWSObject jwsObject = JWSObject.parse(token);
+        SignedJWT signedJWT = SignedJWT.parse(token);
 
-        Mono<Boolean> result = jwtService.validateJwtSignatureReactive(jwsObject);
+        Mono<Boolean> result = jwtService.validateJwtSignatureReactive(signedJWT);
 
         StepVerifier.create(result)
                 .expectNext(true)
@@ -81,12 +81,12 @@ class JWTServiceImplTest {
 
     @Test
     void validateJwtSignatureReactive_shouldReturn_False() {
-        JWSObject jwsObjectMock = mock(JWSObject.class);
+        SignedJWT jwtObjectMock = mock(SignedJWT.class);
         JWSHeader headerMock = mock(JWSHeader.class);
-        when(jwsObjectMock.getHeader()).thenReturn(headerMock);
+        when(jwtObjectMock.getHeader()).thenReturn(headerMock);
         when(headerMock.getKeyID()).thenReturn("did:key:zDnaef3ThjkPMi5tb6AhLJ4Tu8Zy3mhGQJbfT8axhHsH7SDda");
 
-        Mono<Boolean> result = jwtService.validateJwtSignatureReactive(jwsObjectMock);
+        Mono<Boolean> result = jwtService.validateJwtSignatureReactive(jwtObjectMock);
 
         StepVerifier.create(result)
                 .expectNext(false)
@@ -95,12 +95,12 @@ class JWTServiceImplTest {
 
     @Test
     void validateJwtSignatureReactive_invalidSignature_with_pad_shouldReturn_IllegalArgumentException() {
-        JWSObject jwsObjectMock = mock(JWSObject.class);
+        SignedJWT jwtObjectMock = mock(SignedJWT.class);
         JWSHeader headerMock = mock(JWSHeader.class);
-        when(jwsObjectMock.getHeader()).thenReturn(headerMock);
+        when(jwtObjectMock.getHeader()).thenReturn(headerMock);
         when(headerMock.getKeyID()).thenReturn("did:key#testEncodedKey");
 
-        Mono<Boolean> result = jwtService.validateJwtSignatureReactive(jwsObjectMock);
+        Mono<Boolean> result = jwtService.validateJwtSignatureReactive(jwtObjectMock);
 
         StepVerifier.create(result)
                 .expectErrorMatches(IllegalArgumentException.class::isInstance)
@@ -109,12 +109,12 @@ class JWTServiceImplTest {
 
     @Test
     void validateJwtSignatureReactive_invalidSignature_no_pad_shouldReturn_IllegalArgumentException() {
-        JWSObject jwsObjectMock = mock(JWSObject.class);
+        SignedJWT jwtObjectMock = mock(SignedJWT.class);
         JWSHeader headerMock = mock(JWSHeader.class);
-        when(jwsObjectMock.getHeader()).thenReturn(headerMock);
+        when(jwtObjectMock.getHeader()).thenReturn(headerMock);
         when(headerMock.getKeyID()).thenReturn("did:key:testEncodedKey");
 
-        Mono<Boolean> result = jwtService.validateJwtSignatureReactive(jwsObjectMock);
+        Mono<Boolean> result = jwtService.validateJwtSignatureReactive(jwtObjectMock);
 
         StepVerifier.create(result)
                 .expectErrorMatches(IllegalArgumentException.class::isInstance)

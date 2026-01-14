@@ -12,7 +12,7 @@ import java.util.Optional;
 public interface JWTService {
 
     String generateJWT(String payload);
-    Mono<Boolean> validateJwtSignatureReactive(JWSObject jwsObject);
+    Mono<Boolean> validateJwtSignatureReactive(SignedJWT signedJWT);
 
     SignedJWT parseJWT(String jwt);
 

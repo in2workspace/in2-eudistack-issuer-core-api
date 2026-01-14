@@ -1,7 +1,6 @@
 package es.in2.issuer.backend.shared.domain.service.impl;
 
-import com.nimbusds.jose.JWSObject;
-import es.in2.issuer.backend.shared.application.workflow.NonceValidationWorkflow;
+import com.nimbusds.jwt.SignedJWT;
 import es.in2.issuer.backend.shared.domain.exception.ProofValidationException;
 import es.in2.issuer.backend.shared.domain.service.JWTService;
 import es.in2.issuer.backend.shared.domain.service.ProofValidationService;
@@ -30,15 +29,15 @@ public class ProofValidationServiceImpl implements ProofValidationService {
     public Mono<Boolean> isProofValid(String jwtProof, Set<String> allowedAlgs, String expectedAudience) {
         return Mono.just(jwtProof)
                 .doOnNext(jwt -> log.debug("Starting validation for JWT: {}", jwt))
-                .flatMap(jwt -> parseAndValidateJwt(jwt, allowedAlgs, expectedAudience))
+                .flatMap(jwt -> parseAndValidateJwt(jwt, expectedAudience))
                 .doOnNext(jws -> log.debug("JWT parsed successfully"))
-                .flatMap(jwsObject ->
-                        jwtService.validateJwtSignatureReactive(jwsObject)
+                .flatMap(signedJWT ->
+                        jwtService.validateJwtSignatureReactive(signedJWT)
                                 .doOnSuccess(isSignatureValid -> log.debug("Signature validation result: {}", isSignatureValid))
-                                .map(isSignatureValid -> Boolean.TRUE.equals(isSignatureValid) ? jwsObject : null)
+                                .map(isSignatureValid -> Boolean.TRUE.equals(isSignatureValid) ? signedJWT : null)
                 )
-                .doOnNext(jwsObject -> {
-                    if (jwsObject == null) log.debug("JWT signature validation failed");
+                .doOnNext(signedJWT -> {
+                    if (signedJWT == null) log.debug("JWT signature validation failed");
                     else log.debug("JWT signature validated, checking nonce...");
                 })
                 .map(Objects::nonNull)
@@ -47,17 +46,17 @@ public class ProofValidationServiceImpl implements ProofValidationService {
                 .onErrorMap(e -> new ProofValidationException("Error during JWT validation"));
     }
 
-    private Mono<JWSObject> parseAndValidateJwt(String jwtProof, Set<String> allowedAlgs, String expectedAudience) {
+    private Mono<SignedJWT> parseAndValidateJwt(String jwtProof, String expectedAudience) {
         return Mono.fromCallable(() -> {
-            JWSObject jwsObject = JWSObject.parse(jwtProof);
-            validateJwtHeader(jwsObject);
-            validatePayload(jwsObject, expectedAudience);
-            return jwsObject;
+            SignedJWT signedJWT = SignedJWT.parse(jwtProof);
+            validateJwtHeader(signedJWT);
+            validatePayload(signedJWT, expectedAudience);
+            return signedJWT;
         });
     }
 
-    private void validateJwtHeader(JWSObject jwsObject) {
-        Map<String, Object> headerParams = jwsObject.getHeader().toJSONObject();
+    private void validateJwtHeader(SignedJWT signedJWT) {
+        Map<String, Object> headerParams = signedJWT.getHeader().toJSONObject();
 
         Object algObj = headerParams.get("alg");
         Object typObj = headerParams.get("typ");
@@ -91,6 +90,10 @@ public class ProofValidationServiceImpl implements ProofValidationService {
             throw new IllegalArgumentException("Invalid JWT header: alg must be asymmetric and not 'none'");
         }
 
+        return isHasJwk(alg, headerParams);
+    }
+
+    private boolean isHasJwk(String alg, Map<String, Object> headerParams) {
         if (!SUPPORTED_PROOF_ALG.equals(alg)) {
             throw new IllegalArgumentException("Invalid JWT header: alg not supported");
         }
@@ -106,8 +109,8 @@ public class ProofValidationServiceImpl implements ProofValidationService {
     }
 
 
-    private void validatePayload(JWSObject jwsObject, String expectedAudience) {
-        var payload = jwsObject.getPayload().toJSONObject();
+    private void validatePayload(SignedJWT signedJWT, String expectedAudience) {
+        var payload = signedJWT.getPayload().toJSONObject();
 
         Object audObj = payload.get("aud");
         if (audObj == null || audObj.toString().isBlank()) {

@@ -88,47 +88,52 @@ public class JWTServiceImpl implements JWTService {
 
     }
 
-
     @Override
-    public Mono<Boolean> validateJwtSignatureReactive(JWSObject jwsObject) {
-        return Mono.fromCallable(() -> {
-                    if (!(jwsObject instanceof SignedJWT signedJWT)) {
-                        throw new IllegalArgumentException("Expected a SignedJWT/JWSObject with signature");
-                    }
-                    return signedJWT;
-                })
-                .flatMap(signedJWT -> {
+    public Mono<Boolean> validateJwtSignatureReactive(SignedJWT signedJWT) {
+        return Mono.defer(() -> {
                     JWSHeader header = signedJWT.getHeader();
 
                     // 1) jwk en header
                     if (header.getJWK() != null) {
-                        return validateWithJwk(signedJWT);
+                        log.debug("Validating JWT signature using 'jwk' header param");
+                        return validateWithJwk(signedJWT); // Mono<Boolean>
                     }
 
                     // 2) x5c en header
-                    List<com.nimbusds.jose.util.Base64> x5c = header.getX509CertChain();
+                    var x5c = header.getX509CertChain();
                     if (x5c != null && !x5c.isEmpty()) {
-                        return validateWithX5c(signedJWT);
+                        log.debug("Validating JWT signature using 'x5c' header param (chain size={})", x5c.size());
+                        return validateWithX5c(signedJWT); // Mono<Boolean>
                     }
 
                     // 3) fallback: kid
                     String kid = header.getKeyID();
                     if (kid == null || kid.isBlank()) {
+                        log.debug("JWT signature validation failed: missing 'kid' and no 'jwk'/'x5c' present");
                         return Mono.just(false);
                     }
 
-                    String encodedPublicKey = extractEncodedPublicKey(kid);
+                    String encodedPublicKey;
+                    try {
+                        encodedPublicKey = extractEncodedPublicKey(kid);
+                    } catch (Exception e) {
+                        log.debug("JWT signature validation failed: invalid kid format: {}", e.getMessage());
+                        return Mono.just(false);
+                    }
 
                     return decodePublicKeyIntoBytes(encodedPublicKey)
-                            .flatMap(publicKeyBytes ->
-                                    validateJwtSignature(signedJWT.serialize(), publicKeyBytes)
-                            );
+                            .flatMap(publicKeyBytes -> validateJwtSignature(signedJWT.serialize(), publicKeyBytes))
+                            .onErrorResume(e -> {
+                                log.debug("JWT signature validation failed in kid branch: {}", e.getMessage());
+                                return Mono.just(false);
+                            });
                 })
                 .onErrorResume(e -> {
-                    log.debug("JWT signature validation failed: {}", e.getMessage());
+                    log.debug("JWT signature validation failed (unexpected error): {}", e.getMessage());
                     return Mono.just(false);
                 });
     }
+
 
     private Mono<Boolean> validateWithJwk(SignedJWT signedJWT) {
         return Mono.fromCallable(() -> {
