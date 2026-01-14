@@ -81,11 +81,10 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
             String subjectDid,
             String authServerNonce,
             String token,
-            String email) {
+            String email,
+            String procedureId) {
         log.debug("buildCredentialResponse - email: {} - processId: {}", email, processId);
-        return deferredCredentialMetadataService
-                .getProcedureIdByAuthServerNonce(authServerNonce)
-                .flatMap(procedureId -> credentialProcedureService
+        return credentialProcedureService
                         .getCredentialTypeByProcedureId(procedureId)
                         .zipWhen(credType -> credentialProcedureService.getDecodedCredentialByProcedureId(procedureId))
                         .flatMap(tuple -> {
@@ -109,8 +108,7 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
                                             token,
                                             email
                                     ));
-                        })
-                );
+                        });
     }
 
     private Mono<String> bindAndSaveIfNeeded(

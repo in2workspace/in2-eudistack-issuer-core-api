@@ -193,21 +193,23 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                                     bi.subjectId(),
                                     nonce,
                                     accessTokenContext.rawToken(),
-                                    email
+                                    email,
+                                    procedureId
                             ))
                             .switchIfEmpty(Mono.defer(() -> verifiableCredentialService.buildCredentialResponse(
                                     processId,
                                     null,
                                     nonce,
                                     accessTokenContext.rawToken(),
-                                    email
+                                    email,
+                                    procedureId
                             )));
 
                     System.out.println("XIVATO 2");
 
                     DeferredCredentialMetadata deferred = new DeferredCredentialMetadata();
                     deferred.setResponseUri(accessTokenContext.responseUri());
-                    deferred.setProcedureId(UUID.fromString(procedureId)); // si aplica en tu entidad
+                    deferred.setProcedureId(UUID.fromString(procedureId));
 
                     return vcMono.flatMap(cr ->
                             handleOperationMode(
