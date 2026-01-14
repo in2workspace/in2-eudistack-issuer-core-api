@@ -45,6 +45,7 @@ public class CredentialController {
                     if (verifiableCredentialResponse.transactionId() != null) {
                         return ResponseEntity.status(HttpStatus.ACCEPTED).body(verifiableCredentialResponse);
                     } else {
+                        System.out.println(verifiableCredentialResponse);
                         return ResponseEntity.status(HttpStatus.OK).body(verifiableCredentialResponse);
                     }
                 })

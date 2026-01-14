@@ -173,7 +173,7 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                             responseUriPresent
                     );
                     //Determina si necesita crypto binding (si es null no lo necesita)
-                    Mono<BindingInfo> bindingInfoMono = validateAndDetermineBindingInfo(proc, md, credentialRequest, accessTokenContext)
+                    Mono<BindingInfo> bindingInfoMono = validateAndDetermineBindingInfo(proc, md, credentialRequest)
                                     .doOnNext(bi -> log.info(
                                             "[{}] Binding required -> subjectId={}, cnfKeys={}",
                                             processId,
@@ -233,8 +233,7 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
     private Mono<BindingInfo> validateAndDetermineBindingInfo(
             CredentialProcedure credentialProcedure,
             CredentialIssuerMetadata metadata,
-            CredentialRequest credentialRequest,
-            AccessTokenContext accessTokenContext
+            CredentialRequest credentialRequest
     ) {
 
         //Resolve the credential type declared in the procedure

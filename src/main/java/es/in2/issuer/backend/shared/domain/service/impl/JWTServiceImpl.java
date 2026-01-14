@@ -88,13 +88,6 @@ public class JWTServiceImpl implements JWTService {
 
     @Override
     public Mono<Boolean> validateJwtSignatureReactive(JWSObject jwsObject) {
-        var h = jwsObject.getHeader();
-        log.debug("proof header: alg={}, typ={}, kid={}, jwkPresent={}, x5cSize={}",
-                h.getAlgorithm(), h.getType(), h.getKeyID(),
-                h.getJWK() != null,
-                h.getX509CertChain() != null ? h.getX509CertChain().size() : 0
-        );
-
         String kid = jwsObject.getHeader().getKeyID();
         log.debug("validateJwtSignatureReactive - kid: {}", kid);
         String encodedPublicKey = extractEncodedPublicKey(kid);
