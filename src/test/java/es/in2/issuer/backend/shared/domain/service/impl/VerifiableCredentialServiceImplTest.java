@@ -466,7 +466,7 @@ class VerifiableCredentialServiceImplTest {
                 .thenReturn(Mono.just(format));
 
         Mono<CredentialResponse> result = verifiableCredentialServiceImpl.buildCredentialResponse(
-                processId, subjectDid, authServerNonce, token, testEmail);
+                processId, subjectDid, authServerNonce, token, testEmail, procedureId);
 
         StepVerifier.create(result)
                 .expectNextMatches(response ->

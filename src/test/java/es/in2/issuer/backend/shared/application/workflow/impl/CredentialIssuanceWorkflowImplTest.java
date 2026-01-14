@@ -677,7 +677,8 @@ class CredentialIssuanceWorkflowImplTest {
                 isNull(),                 // bindingInfo null
                 eq(nonce),
                 eq(accessTokenContext.rawToken()),
-                isNull(String.class)      // email null
+                isNull(String.class)  ,    // email null
+                procedureId
         )).thenReturn(Mono.just(cr));
 
         // the implementation stores using nonce -> procedureId
@@ -776,7 +777,8 @@ class CredentialIssuanceWorkflowImplTest {
                 isNull(),
                 eq(nonce),
                 eq(accessTokenContext.rawToken()),
-                isNull(String.class)
+                isNull(String.class),
+                procedureId
         )).thenReturn(Mono.just(cr));
 
         // In SYNC: status and decoded are queried (the decoded is not used unless it's employee)
