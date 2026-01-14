@@ -42,10 +42,10 @@ public class CredentialController {
                 .flatMap(token ->
                         credentialIssuanceWorkflow.generateVerifiableCredentialResponse(processId, credentialRequest, token))
                 .map(verifiableCredentialResponse -> {
+                    log.info("Process ID: {} - Response: {}", processId, verifiableCredentialResponse);
                     if (verifiableCredentialResponse.transactionId() != null) {
                         return ResponseEntity.status(HttpStatus.ACCEPTED).body(verifiableCredentialResponse);
                     } else {
-                        System.out.println(verifiableCredentialResponse);
                         return ResponseEntity.status(HttpStatus.OK).body(verifiableCredentialResponse);
                     }
                 })
