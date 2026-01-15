@@ -139,7 +139,6 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
 
     @Override
     public Mono<Void> updateDecodedCredentialByProcedureId(String procedureId, String credential, String format) {
-        System.out.println("XIVATO000");
         return credentialProcedureRepository.findById(UUID.fromString(procedureId))
                 .flatMap(credentialProcedure -> {
                     credentialProcedure.setCredentialDecoded(credential);

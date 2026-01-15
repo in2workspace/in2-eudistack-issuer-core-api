@@ -72,7 +72,6 @@ public class CredentialFactory {
             String authServerNonce,
             String email) {
 
-        System.out.println("XIVATO2");
         Mono<String> bindMono = switch (credentialType) {
             case LEAR_CREDENTIAL_EMPLOYEE ->
                     learCredentialEmployeeFactory
@@ -86,8 +85,6 @@ public class CredentialFactory {
             default ->
                     Mono.error(new CredentialTypeUnsupportedException(credentialType));
         };
-        System.out.println("XIVATO9834923");
-
         return bindMono
                 .flatMap(boundCredential -> {
                     log.info("ProcessID: {} - Credential mapped and bind to the issuer: {}", processId, boundCredential);
@@ -100,7 +97,6 @@ public class CredentialFactory {
             String boundCredential,
             String format,
             String authServerNonce) {
-        System.out.println("XIVATO88888");
         return credentialProcedureService
                 .updateDecodedCredentialByProcedureId(procedureId, boundCredential, format)
                 .then(deferredCredentialMetadataService.updateDeferredCredentialByAuthServerNonce(authServerNonce, format)

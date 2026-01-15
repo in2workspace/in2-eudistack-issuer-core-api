@@ -159,7 +159,7 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                     CredentialProcedure proc = tuple.getT1();
                     CredentialIssuerMetadata md = tuple.getT2();
 
-                    String email = proc.getEmail(); //Update to GetEmail
+                    String email = proc.getEmail();
 
                     boolean responseUriPresent = accessTokenContext.responseUri() != null && !accessTokenContext.responseUri().isBlank();
 
@@ -172,7 +172,7 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                             proc.getCredentialType(),
                             responseUriPresent
                     );
-                    //Determina si necesita crypto binding (si es null no lo necesita)
+
                     Mono<BindingInfo> bindingInfoMono = validateAndDetermineBindingInfo(proc, md, credentialRequest)
                                     .doOnNext(bi -> log.info(
                                             "[{}] Binding required -> subjectId={}, cnfKeys={}",
@@ -204,8 +204,6 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                                     email,
                                     procedureId
                             )));
-
-                    System.out.println("XIVATO 2");
 
                     DeferredCredentialMetadata deferred = new DeferredCredentialMetadata();
                     deferred.setResponseUri(accessTokenContext.responseUri());
@@ -325,8 +323,6 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                     //Currently only the first proof is used
                     String jwtProof = jwtList.get(0);
                     String expectedAudience = metadata.credentialIssuer();
-
-                    System.out.println(expectedAudience);
 
                     //Validate the proof according to Issuer configuration
                     return proofValidationService
