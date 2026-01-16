@@ -38,15 +38,6 @@ public class CredentialStatusWorkflowImpl implements CredentialStatusWorkflow {
     private final EmailService emailService;
 
     @Override
-    public Flux<String> getCredentialsByListId(String processId, int listId) {
-        return credentialStatusService.getCredentialsByListId(listId)
-                .doFirst(() -> log.debug("Process ID: {} - Getting Credentials Status...", processId))
-                .doOnComplete(() -> log.debug(
-                        "Process ID: {} - All Credential Status retrieved successfully.",
-                        processId));
-    }
-
-    @Override
     public Mono<Void> revokeCredential(String processId, String bearerToken, String credentialProcedureId, int listId) {
         return accessTokenService.getCleanBearerToken(bearerToken)
                 .flatMap(token -> backofficePdpService.validateRevokeCredential(processId, token, credentialProcedureId)
@@ -56,16 +47,16 @@ public class CredentialStatusWorkflowImpl implements CredentialStatusWorkflow {
                         .thenReturn(credential)
                 )
                 .flatMap(credential -> Mono.just(credential.getCredentialDecoded())
-                .flatMap(decodedCredential -> {
-                    JsonNode credentialStatusNode;
-                    try {
-                        credentialStatusNode = objectMapper.readTree(decodedCredential).get("credentialStatus");
-                    } catch (JsonProcessingException e) {
-                        return Mono.error(new JsonParseException("Error processing credential status json"));
-                    }
-                    CredentialStatus credentialStatus = mapToCredentialStatus(credentialStatusNode);
-                    return revokeAndUpdateCredentialStatus(credential, processId, credentialProcedureId, listId, credentialStatus);
-                }));
+                        .flatMap(decodedCredential -> {
+                            JsonNode credentialStatusNode;
+                            try {
+                                credentialStatusNode = objectMapper.readTree(decodedCredential).get("credentialStatus");
+                            } catch (JsonProcessingException e) {
+                                return Mono.error(new JsonParseException("Error processing credential status json"));
+                            }
+                            CredentialStatus credentialStatus = mapToCredentialStatus(credentialStatusNode);
+                            return revokeAndUpdateCredentialStatus(credential, processId, credentialProcedureId, listId, credentialStatus);
+                        }));
 
     }
 
@@ -89,8 +80,8 @@ public class CredentialStatusWorkflowImpl implements CredentialStatusWorkflow {
                 .then(emailService.notifyIfCredentialStatusChanges(credentialProcedure, REVOKED.toString()))
                 .doOnSuccess(
                         aVoid -> log.debug(
-                        "Process ID: {} - Credential with ID: {} revoked successfully.",
-                        processId,
+                                "Process ID: {} - Credential with ID: {} revoked successfully.",
+                                processId,
                                 credentialProcedureId));
     }
 

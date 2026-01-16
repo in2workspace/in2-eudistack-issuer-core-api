@@ -151,6 +151,7 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
         return deferredCredentialMetadataService
                 .updateDeferredCredentialMetadataByAuthServerNonce(authServerNonce)
                 .flatMap(transactionId -> deferredCredentialMetadataService.getFormatByProcedureId(procedureId)
+                        //todo remove mapCredentialBindIssuerAndUpdateDB, since it is done in signAndUpdate...
                         .flatMap(format -> credentialFactory
                                 .mapCredentialBindIssuerAndUpdateDB(
                                         processId,

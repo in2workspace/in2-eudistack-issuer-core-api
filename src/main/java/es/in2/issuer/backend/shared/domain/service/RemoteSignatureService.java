@@ -7,4 +7,5 @@ import reactor.core.publisher.Mono;
 
 public interface RemoteSignatureService {
     Mono<SignedData> sign(SignatureRequest signatureRequest, String token, String procedureId, String email);
+    Mono<SignedData> signDocument(SignatureRequest signatureRequest, String token);
 }

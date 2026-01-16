@@ -103,6 +103,51 @@ public class RemoteSignatureServiceImpl implements RemoteSignatureService {
                 }));
     }
 
+    @Override
+    public Mono<SignedData> signDocument(SignatureRequest signatureRequest, String token) {
+        return Mono.defer(() -> {
+                    String remoteType = String.valueOf(remoteSignatureConfig.getRemoteSignatureType());
+
+                    int dataLength = 0;
+                    if (signatureRequest != null && signatureRequest.data() != null) {
+                        dataLength = signatureRequest.data().length();
+                    }
+
+                    log.info("Starting remote signing (signDocument). remoteType={}, signatureType={}, dataLength={}",
+                            remoteType,
+                            signatureRequest != null && signatureRequest.configuration() != null
+                                    ? signatureRequest.configuration().type()
+                                    : null,
+                            dataLength
+                    );
+
+                    return executeSigningFlow(signatureRequest, token)
+                            .doOnSuccess(signedData -> {
+                                int signedLength = signedData != null && signedData.data() != null ? signedData.data().length() : 0;
+                                log.info("Remote signing succeeded (signDocument). remoteType={}, resultType={}, signedLength={}",
+                                        remoteType,
+                                        signedData != null ? signedData.type() : null,
+                                        signedLength
+                                );
+                            });
+                })
+                .retryWhen(
+                        Retry.backoff(3, Duration.ofSeconds(1))
+                                .maxBackoff(Duration.ofSeconds(5))
+                                .jitter(0.5)
+                                .filter(this::isRecoverableError)
+                                .doBeforeRetry(retrySignal -> {
+                                    long attempt = retrySignal.totalRetries() + 1;
+                                    Throwable failure = retrySignal.failure();
+                                    String msg = failure != null ? failure.getMessage() : "n/a";
+                                    log.warn("Retrying remote signing (signDocument). attempt={} of 3, reason={}", attempt, msg);
+                                })
+                )
+                .doOnError(ex ->
+                        log.error("Remote signing failed after retries (signDocument). reason={}", ex.getMessage(), ex)
+                );
+    }
+
     public boolean isRecoverableError(Throwable throwable) {
         if (throwable instanceof WebClientResponseException ex) {
             return ex.getStatusCode().is5xxServerError();

@@ -1,0 +1,27 @@
+package es.in2.issuer.backend.statusList.infrastructure.repository;
+
+import org.springframework.data.annotation.Id;
+import org.springframework.data.relational.core.mapping.Column;
+import org.springframework.data.relational.core.mapping.Table;
+
+import java.time.Instant;
+
+@Table("status_list_index")
+public record StatusListIndexRow(
+        @Id
+        Long id,
+
+        @Column("status_list_id")
+        Long statusListId,
+
+        @Column("idx")
+        Integer idx,
+
+        @Column("procedure_id")
+        String procedureId,
+
+        @Column("created_at")
+        Instant createdAt
+) { }
+
+

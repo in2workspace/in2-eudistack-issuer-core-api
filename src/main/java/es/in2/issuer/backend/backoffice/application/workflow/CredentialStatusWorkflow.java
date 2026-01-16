@@ -4,7 +4,5 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 public interface CredentialStatusWorkflow {
-    Flux<String> getCredentialsByListId(String processId, int listId);
-
     Mono<Void> revokeCredential(String processId, String bearerToken, String procedureId, int listId);
 }

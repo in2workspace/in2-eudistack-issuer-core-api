@@ -1,8 +1,9 @@
 package es.in2.issuer.backend.backoffice.infrastructure.controller;
 
 import es.in2.issuer.backend.backoffice.application.workflow.CredentialStatusWorkflow;
-import es.in2.issuer.backend.backoffice.domain.model.dtos.CredentialStatusResponse;
 import es.in2.issuer.backend.backoffice.domain.model.dtos.RevokeCredentialRequest;
+import es.in2.issuer.backend.backoffice.domain.model.dtos.CredentialStatusResponse;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
@@ -20,19 +21,6 @@ import java.util.UUID;
 public class CredentialStatusController {
 
     private final CredentialStatusWorkflow credentialStatusWorkflow;
-
-    @GetMapping("/{listId}")
-    @ResponseStatus(HttpStatus.OK)
-    public Flux<CredentialStatusResponse> getCredentialsByListId(@PathVariable int listId) {
-        String processId = UUID.randomUUID().toString();
-
-        return credentialStatusWorkflow.getCredentialsByListId(processId, listId)
-                .doFirst(() -> log.info("Process ID: {} - Getting Credentials...", processId))
-                .map(CredentialStatusResponse::new)
-                .doOnComplete(() -> log.info(
-                        "Process ID: {} - All Credential retrieved successfully.",
-                        processId));
-    }
 
     @PostMapping("/revoke")
     @ResponseStatus(HttpStatus.CREATED)

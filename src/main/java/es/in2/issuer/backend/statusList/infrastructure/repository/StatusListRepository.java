@@ -1,0 +1,49 @@
+package es.in2.issuer.backend.statusList.infrastructure.repository;
+
+import org.springframework.data.r2dbc.repository.Query;
+import org.springframework.data.repository.reactive.ReactiveCrudRepository;
+import reactor.core.publisher.Mono;
+
+import java.time.Instant;
+
+/**
+ * Spring Data R2DBC repository for table: status_list
+ */
+public interface StatusListRepository extends ReactiveCrudRepository<StatusListRow, Long> {
+
+    @Query("""
+           SELECT *
+           FROM status_list
+           WHERE issuer_id = :issuerId AND purpose = :purpose
+           ORDER BY id DESC
+           LIMIT 1
+           """)
+    Mono<StatusListRow> findLatestByIssuerAndPurpose(String issuerId, String purpose);
+
+    @Query("""
+           UPDATE status_list
+           SET encoded_list = :encodedList,
+               signed_credential = :signedCredential,
+               updated_at = :newUpdatedAt
+           WHERE id = :id
+             AND updated_at = :expectedUpdatedAt
+           """)
+    Mono<Integer> updateSignedAndEncodedIfUnchanged(
+            Long id,
+            String encodedList,
+            String signedCredential,
+            Instant newUpdatedAt,
+            Instant expectedUpdatedAt
+    );
+
+    @Query("""
+       UPDATE status_list
+       SET signed_credential = :signedCredential,
+           updated_at = :newUpdatedAt
+       WHERE id = :id
+       """)
+    Mono<Integer> updateSignedCredential(Long id, String signedCredential, Instant newUpdatedAt);
+
+}
+
+
