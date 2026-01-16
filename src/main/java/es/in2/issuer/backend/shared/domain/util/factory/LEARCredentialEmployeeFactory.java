@@ -24,6 +24,7 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.LEAR_CREDENTIAL_EMPLOYEE_DESCRIPTION;
@@ -39,9 +40,9 @@ public class LEARCredentialEmployeeFactory {
     private final IssuerFactory issuerFactory;
     private final AppConfig appConfig;
 
-    public Mono<String> bindCryptographicCredentialSubjectId(String decodedCredentialString, String mandateeId){
+    public Mono<String> bindCryptographicCredentialSubjectId(String decodedCredentialString, String subjectDid){
         LEARCredentialEmployee decodedCredential = mapStringToLEARCredentialEmployee(decodedCredentialString);
-        return bindSubjectIdToLearCredentialEmployee(decodedCredential, mandateeId)
+        return bindSubjectIdToLearCredentialEmployee(decodedCredential, subjectDid)
                 .flatMap(this::convertLEARCredentialEmployeeInToString);
     }
 
@@ -180,9 +181,13 @@ public class LEARCredentialEmployeeFactory {
     public Mono<LEARCredentialEmployeeJwtPayload> buildLEARCredentialEmployeeJwtPayload(LEARCredentialEmployee learCredentialEmployee) {
         log.debug("buildLEARCredentialEmployeeJwtPayload: {}", learCredentialEmployee);
 
-        String subject = learCredentialEmployee.credentialSubject().id() != null
-                ? learCredentialEmployee.credentialSubject().id()
-                : learCredentialEmployee.credentialSubject().mandate().mandatee().id();
+        String subjectDid = learCredentialEmployee.credentialSubject().id();
+
+        if (subjectDid == null || subjectDid.isBlank()) {
+            return Mono.error(new IllegalStateException("Missing credentialSubject.id (cryptographic binding DID)"));
+        }
+
+        Map<String, Object> cnf = Map.of("kid", subjectDid);
 
         return Mono.just(
                 LEARCredentialEmployeeJwtPayload.builder()
@@ -192,7 +197,8 @@ public class LEARCredentialEmployeeFactory {
                         .issuedAt(parseDateToUnixTime(learCredentialEmployee.validFrom()))
                         .notValidBefore(parseDateToUnixTime(learCredentialEmployee.validFrom()))
                         .issuer(learCredentialEmployee.issuer().getId())
-                        .subject(subject) // Aquí se duplica el identificador en el claim `sub`
+                        .subject(subjectDid)
+                        .cnf(cnf)
                         .build()
         );
     }
