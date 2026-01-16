@@ -40,11 +40,28 @@ public class LEARCredentialEmployeeFactory {
     private final IssuerFactory issuerFactory;
     private final AppConfig appConfig;
 
-    public Mono<String> bindCryptographicCredentialSubjectId(String decodedCredentialString, String subjectDid){
+    public Mono<String> bindCryptographicCredentialSubjectId(String decodedCredentialString, String subjectDid) {
+        log.info("[BIND] called bindCryptographicCredentialSubjectId subjectDid={}", subjectDid);
+
+        if (subjectDid == null || subjectDid.isBlank()) {
+            log.error("[BIND] subjectDid is null/blank -> will NOT be able to bind credentialSubject.id");
+        }
+
         LEARCredentialEmployee decodedCredential = mapStringToLEARCredentialEmployee(decodedCredentialString);
+
+        log.info("[BIND] BEFORE: credentialSubject.id={}, mandatee.id={}",
+                decodedCredential.credentialSubject() != null ? decodedCredential.credentialSubject().id() : null,
+                decodedCredential.credentialSubject() != null ? decodedCredential.credentialSubject().mandate().mandatee().id() : null
+        );
+
         return bindSubjectIdToLearCredentialEmployee(decodedCredential, subjectDid)
-                .flatMap(this::convertLEARCredentialEmployeeInToString);
+                .doOnNext(updated -> log.info("[BIND] AFTER: credentialSubject.id={}",
+                        updated.credentialSubject() != null ? updated.credentialSubject().id() : null
+                ))
+                .flatMap(this::convertLEARCredentialEmployeeInToString)
+                .doOnNext(json -> log.debug("[BIND] JSON contains \"credentialSubject\".id? {}", json.contains("\"credentialSubject\":{\"id\"")));
     }
+
 
     public Mono<String> mapCredentialAndBindIssuerInToTheCredential(String decodedCredentialString, String procedureId, String email) {
         LEARCredentialEmployee decodedCredential = mapStringToLEARCredentialEmployee(decodedCredentialString);
