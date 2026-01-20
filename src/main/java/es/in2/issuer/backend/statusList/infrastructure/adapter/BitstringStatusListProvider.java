@@ -424,7 +424,7 @@ public class BitstringStatusListProvider implements StatusListProvider {
     }
 
     private String buildListUrl(Long listId) {
-        return appConfig.getIssuerBackendUrl() + "/api/v1/status-list";
+        return appConfig.getIssuerBackendUrl() + "/api/v1/status-list" + "/" + listId;
     }
 
     // todo exception for exception global exception handler?
