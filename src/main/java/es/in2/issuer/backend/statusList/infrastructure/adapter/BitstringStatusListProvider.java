@@ -6,6 +6,7 @@ import es.in2.issuer.backend.shared.domain.model.dto.SignatureRequest;
 import es.in2.issuer.backend.shared.domain.model.dto.SignedData;
 import es.in2.issuer.backend.shared.domain.model.enums.SignatureType;
 import es.in2.issuer.backend.shared.domain.service.RemoteSignatureService;
+import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
 import es.in2.issuer.backend.statusList.domain.model.StatusListEntry;
 import es.in2.issuer.backend.statusList.domain.model.StatusPurpose;
 import es.in2.issuer.backend.statusList.domain.spi.StatusListIndexAllocator;
@@ -52,30 +53,24 @@ public class BitstringStatusListProvider implements StatusListProvider {
     private final StatusListIndexAllocator indexAllocator;
     private final RemoteSignatureService remoteSignatureService;
     private final ObjectMapper objectMapper;
+    private final AppConfig appConfig;
 
     private final BitstringEncoder encoder = new BitstringEncoder();
-
-    /**
-     * Example: "https://issuer.example.org/api/v1/status-list"
-     * Final credential URL becomes: {statusListBaseUrl}/{listId}
-     */
-    private final String statusListBaseUrl;
 
     public BitstringStatusListProvider(
             StatusListRepository statusListRepository,
             StatusListIndexRepository statusListIndexRepository,
             StatusListIndexAllocator indexAllocator,
-            String statusListBaseUrl,
             RemoteSignatureService remoteSignatureService,
             ObjectMapper objectMapper,
-            String signatureToken
+            AppConfig appConfig
     ) {
         this.statusListRepository = requireNonNull(statusListRepository);
         this.statusListIndexRepository = requireNonNull(statusListIndexRepository);
         this.indexAllocator = requireNonNull(indexAllocator);
-        this.statusListBaseUrl = requireNonNull(statusListBaseUrl);
         this.remoteSignatureService = requireNonNull(remoteSignatureService);
         this.objectMapper = requireNonNull(objectMapper);
+        this.appConfig = requireNonNull(appConfig);
     }
 
     @Override
@@ -414,8 +409,7 @@ public class BitstringStatusListProvider implements StatusListProvider {
     }
 
     private String buildListUrl(Long listId) {
-        String base = statusListBaseUrl.endsWith("/") ? statusListBaseUrl.substring(0, statusListBaseUrl.length() - 1) : statusListBaseUrl;
-        return base + "/" + listId;
+        return appConfig.getIssuerBackendUrl() + "/api/v1/status-list";
     }
 
     // todo exception for exception global exception handler?
