@@ -222,16 +222,6 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                 });
     }
 
-
-
-    private Mono<String> parseAuthServerNonce(AccessTokenContext accessTokenContext) {
-        log.debug(
-                "Using auth_server_nonce (jti) from access token: {}",
-                accessTokenContext.jti()
-        );
-        return Mono.just(accessTokenContext.jti());
-    }
-
     private Mono<BindingInfo> validateAndDetermineBindingInfo(
             CredentialProcedure credentialProcedure,
             CredentialIssuerMetadata metadata,

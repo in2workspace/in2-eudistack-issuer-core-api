@@ -3,13 +3,18 @@ package es.in2.issuer.backend.shared.application.workflow.impl;
 
 import es.in2.issuer.backend.oidc4vci.domain.model.CredentialIssuerMetadata;
 import es.in2.issuer.backend.shared.domain.model.dto.VerifierOauth2AccessToken;
+import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.Mandator;
+import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.employee.LEARCredentialEmployee;
 import es.in2.issuer.backend.shared.domain.model.entities.CredentialProcedure;
+import org.junit.jupiter.api.Assertions;
 import org.mockito.ArgumentCaptor;
 
 import static es.in2.issuer.backend.shared.domain.util.Constants.LABEL_CREDENTIAL;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
+import java.lang.reflect.Method;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -921,6 +926,271 @@ class CredentialIssuanceWorkflowImplTest {
                 eq(sysTenant)
         );
     }
+
+    @Test
+    void generateVerifiableCredentialDeferredResponse_success_passthrough() {
+        String processId = "p-1";
+        DeferredCredentialRequest req = DeferredCredentialRequest.builder().transactionId("tx-1").build();
+
+        DeferredCredentialResponse expected = DeferredCredentialResponse.builder()
+                .credentials(List.of("cred"))
+                .build();
+
+        when(verifiableCredentialService.generateDeferredCredentialResponse(processId, req))
+                .thenReturn(Mono.just(expected));
+
+        StepVerifier.create(verifiableCredentialIssuanceWorkflow.generateVerifiableCredentialDeferredResponse(processId, req))
+                .expectNext(expected)
+                .verifyComplete();
+    }
+
+    @Test
+    void generateVerifiableCredentialDeferredResponse_error_wrapsRuntimeException() {
+        String processId = "p-err";
+        DeferredCredentialRequest req = DeferredCredentialRequest.builder().transactionId("tx-err").build();
+
+        RuntimeException root = new RuntimeException("boom");
+        when(verifiableCredentialService.generateDeferredCredentialResponse(processId, req))
+                .thenReturn(Mono.error(root));
+
+        StepVerifier.create(verifiableCredentialIssuanceWorkflow.generateVerifiableCredentialDeferredResponse(processId, req))
+                .expectErrorSatisfies(ex -> {
+                    Assertions.assertInstanceOf(RuntimeException.class, ex);
+                    Assertions.assertTrue(ex.getMessage().contains("Failed to process the credential for the next processId: " + processId));
+                    Assertions.assertEquals(root, ex.getCause());
+                })
+                .verify();
+    }
+    @Test
+    void extractBindingInfoFromJwtProof_kid_ok_extractsSubjectIdAndCnf() throws Exception {
+        String kid = "did:key:zDnaeiLt1XYBTBZk123";
+        String jwt = buildDummyJwtWithHeaderJson(
+                "{\"alg\":\"HS256\",\"kid\":\"" + kid + "\"}",
+                "{\"nonce\":\"n\"}"
+        );
+
+        Mono<Object> mono = invokePrivateMono(
+                verifiableCredentialIssuanceWorkflow,
+                "extractBindingInfoFromJwtProof",
+                new Class<?>[]{String.class},
+                jwt
+        );
+
+        StepVerifier.create(mono)
+                .assertNext(obj -> {
+                    // record BindingInfo(String subjectId, Object cnf)
+                    Assertions.assertEquals("BindingInfo", obj.getClass().getSimpleName());
+
+                    // getters de record -> subjectId() cnf()
+                    try {
+                        Method subjectIdM = obj.getClass().getMethod("subjectId");
+                        Method cnfM = obj.getClass().getMethod("cnf");
+                        String subjectId = (String) subjectIdM.invoke(obj);
+                        Object cnf = cnfM.invoke(obj);
+
+                        Assertions.assertEquals(kid, subjectId);
+                        Assertions.assertTrue(cnf.toString().contains("kid"));
+                        Assertions.assertTrue(cnf.toString().contains(kid));
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                })
+                .verifyComplete();
+    }
+
+    @Test
+    void extractBindingInfoFromJwtProof_kid_withFragment_stripsFragment() throws Exception {
+        String kid = "did:key:zDnaeiLt1XYBTBZk123#key-1";
+        String jwt = buildDummyJwtWithHeaderJson(
+                "{\"alg\":\"HS256\",\"kid\":\"" + kid + "\"}",
+                "{\"nonce\":\"n\"}"
+        );
+
+        Mono<Object> mono = invokePrivateMono(
+                verifiableCredentialIssuanceWorkflow,
+                "extractBindingInfoFromJwtProof",
+                new Class<?>[]{String.class},
+                jwt
+        );
+
+        StepVerifier.create(mono)
+                .assertNext(obj -> {
+                    try {
+                        Method subjectIdM = obj.getClass().getMethod("subjectId");
+                        String subjectId = (String) subjectIdM.invoke(obj);
+                        Assertions.assertEquals("did:key:zDnaeiLt1XYBTBZk123", subjectId);
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                })
+                .verifyComplete();
+    }
+
+    @Test
+    void extractBindingInfoFromJwtProof_error_when_no_kid_jwk_x5c() throws Exception {
+        String jwt = buildDummyJwtWithHeaderJson(
+                "{\"alg\":\"HS256\"}",
+                "{\"nonce\":\"n\"}"
+        );
+
+        Mono<Object> mono = invokePrivateMono(
+                verifiableCredentialIssuanceWorkflow,
+                "extractBindingInfoFromJwtProof",
+                new Class<?>[]{String.class},
+                jwt
+        );
+
+        StepVerifier.create(mono)
+                .expectErrorSatisfies(ex -> {
+                    Assertions.assertInstanceOf(IllegalArgumentException.class, ex);
+                    Assertions.assertEquals("Expected exactly one of kid/jwk/x5c in proof header", ex.getMessage());
+                })
+                .verify();
+    }
+
+    @Test
+    void extractBindingInfoFromJwtProof_error_when_x5c_only_present() throws Exception {
+        String jwt = buildDummyJwtWithHeaderJson(
+                "{\"alg\":\"HS256\",\"x5c\":[\"MIIB...\"]}",
+                "{\"nonce\":\"n\"}"
+        );
+
+        Mono<Object> mono = invokePrivateMono(
+                verifiableCredentialIssuanceWorkflow,
+                "extractBindingInfoFromJwtProof",
+                new Class<?>[]{String.class},
+                jwt
+        );
+
+        StepVerifier.create(mono)
+                .expectErrorSatisfies(ex -> {
+                    Assertions.assertInstanceOf(IllegalArgumentException.class, ex);
+                    Assertions.assertEquals("Only kid-based binding is supported for now", ex.getMessage());
+                })
+                .verify();
+    }
+
+    @Test
+    void getMandatorOrganizationIdentifier_whenOrgIdValid_andDidValid_registersDid() throws Exception {
+        String processId = "p-1";
+        String decodedCredential = "{\"vc\":\"decoded\"}";
+        String orgId = "VATES-B26246436";
+        String did = DID_ELSI + orgId;
+
+        // mock LEARCredentialEmployee -> mandate -> mandator -> organizationIdentifier
+        var mandator = Mandator.builder().organizationIdentifier(orgId).build();
+        var mandate = LEARCredentialEmployee.CredentialSubject.Mandate.builder().mandator(mandator).build();
+        var subject = LEARCredentialEmployee.CredentialSubject.builder().mandate(mandate).build();
+        var employee = LEARCredentialEmployee.builder().credentialSubject(subject).build();
+
+        when(credentialEmployeeFactory.mapStringToLEARCredentialEmployee(decodedCredential))
+                .thenReturn(employee);
+
+        when(trustFrameworkService.validateDidFormat(processId, did))
+                .thenReturn(Mono.just(true));
+
+        when(trustFrameworkService.registerDid(processId, did))
+                .thenReturn(Mono.empty());
+
+        Mono<Object> mono = invokePrivateMono(
+                verifiableCredentialIssuanceWorkflow,
+                "getMandatorOrganizationIdentifier",
+                new Class<?>[]{String.class, String.class},
+                processId,
+                decodedCredential
+        );
+
+        StepVerifier.create(mono)
+                .verifyComplete();
+
+        verify(trustFrameworkService).validateDidFormat(processId, did);
+        verify(trustFrameworkService).registerDid(processId, did);
+    }
+
+    @Test
+    void getMandatorOrganizationIdentifier_whenDidInvalid_doesNotRegister() throws Exception {
+        String processId = "p-2";
+        String decodedCredential = "{\"vc\":\"decoded\"}";
+        String orgId = "VATES-B26246436";
+        String did = DID_ELSI + orgId;
+
+        var mandator = Mandator.builder().organizationIdentifier(orgId).build();
+        var mandate = LEARCredentialEmployee.CredentialSubject.Mandate.builder().mandator(mandator).build();
+        var subject = LEARCredentialEmployee.CredentialSubject.builder().mandate(mandate).build();
+        var employee = LEARCredentialEmployee.builder().credentialSubject(subject).build();
+
+        when(credentialEmployeeFactory.mapStringToLEARCredentialEmployee(decodedCredential))
+                .thenReturn(employee);
+
+        when(trustFrameworkService.validateDidFormat(processId, did))
+                .thenReturn(Mono.just(false));
+
+        Mono<Object> mono = invokePrivateMono(
+                verifiableCredentialIssuanceWorkflow,
+                "getMandatorOrganizationIdentifier",
+                new Class<?>[]{String.class, String.class},
+                processId,
+                decodedCredential
+        );
+
+        StepVerifier.create(mono)
+                .verifyComplete();
+
+        verify(trustFrameworkService).validateDidFormat(processId, did);
+        verify(trustFrameworkService, never()).registerDid(anyString(), anyString());
+    }
+
+    @Test
+    void getMandatorOrganizationIdentifier_whenOrgIdBlank_emitsIllegalArgumentException() throws Exception {
+        String processId = "p-3";
+        String decodedCredential = "{\"vc\":\"decoded\"}";
+
+        var mandator = Mandator.builder().organizationIdentifier("   ").build();
+        var mandate = LEARCredentialEmployee.CredentialSubject.Mandate.builder().mandator(mandator).build();
+        var subject = LEARCredentialEmployee.CredentialSubject.builder().mandate(mandate).build();
+        var employee = LEARCredentialEmployee.builder().credentialSubject(subject).build();
+
+        when(credentialEmployeeFactory.mapStringToLEARCredentialEmployee(decodedCredential))
+                .thenReturn(employee);
+
+        Mono<Object> mono = invokePrivateMono(
+                verifiableCredentialIssuanceWorkflow,
+                "getMandatorOrganizationIdentifier",
+                new Class<?>[]{String.class, String.class},
+                processId,
+                decodedCredential
+        );
+
+        StepVerifier.create(mono)
+                .expectErrorSatisfies(ex -> {
+                    Assertions.assertInstanceOf(IllegalArgumentException.class, ex);
+                    Assertions.assertEquals("Organization Identifier not valid", ex.getMessage());
+                })
+                .verify();
+
+        verifyNoInteractions(trustFrameworkService);
+    }
+
+
+
+
+    private static String b64url(String s) {
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(s.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private static String buildDummyJwtWithHeaderJson(String headerJson, String payloadJson) {
+        String h = b64url(headerJson);
+        String p = b64url(payloadJson);
+        return h + "." + p + ".sig";
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Mono<Object> invokePrivateMono(Object target, String methodName, Class<?>[] paramTypes, Object... args) throws Exception {
+        Method m = target.getClass().getDeclaredMethod(methodName, paramTypes);
+        m.setAccessible(true);
+        return (Mono<Object>) m.invoke(target, args);
+    }
+
 
 
 
