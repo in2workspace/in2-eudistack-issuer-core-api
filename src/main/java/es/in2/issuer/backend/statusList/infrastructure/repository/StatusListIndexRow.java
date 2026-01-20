@@ -6,7 +6,8 @@ import org.springframework.data.relational.core.mapping.Table;
 
 import java.time.Instant;
 
-@Table("status_list_index")
+//todo canviar nom
+@Table("status_list_index_new")
 public record StatusListIndexRow(
         @Id
         Long id,
