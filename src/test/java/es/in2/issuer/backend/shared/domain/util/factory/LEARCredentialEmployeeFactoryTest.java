@@ -439,7 +439,6 @@ class LEARCredentialEmployeeFactoryTest {
     @Test
     void buildLEARCredentialEmployeeJwtPayload_whenCredentialSubjectIdNull_emitsIllegalStateException() {
         DetailedIssuer issuer = mock(DetailedIssuer.class);
-        when(issuer.getId()).thenReturn("issuer-id-123");
 
         LEARCredentialEmployee.CredentialSubject subject =
                 LEARCredentialEmployee.CredentialSubject.builder()
