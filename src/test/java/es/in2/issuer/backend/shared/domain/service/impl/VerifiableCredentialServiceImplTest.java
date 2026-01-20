@@ -426,59 +426,67 @@ class VerifiableCredentialServiceImplTest {
 //    }
 
     @Test
-    void buildCredentialResponseSync_RemoteSignatureException_Retry() {
+    void buildCredentialResponseSync_RemoteSignatureException_FallbackToUnsigned() {
         String token = "token";
         String subjectDid = "did:example:123456789";
         String authServerNonce = "auth-server-nonce-789";
         String format = "json";
         String credentialType = "LEARCredentialEmployee";
         String decodedCredential = "decodedCredential";
-        String bindCredential = "bindCredential";
+        String boundCredential = "boundCredential";
         String unsignedCredential = "unsignedCredential";
-        // --- ASYNC ---
-        when(deferredCredentialMetadataService.getProcedureIdByAuthServerNonce(authServerNonce))
-                .thenReturn(Mono.just(procedureId));
+        String transactionId = "transactionId";
+        String procedureId = "procedureId";
+        String processId = "processId";
 
         when(credentialProcedureService.getCredentialTypeByProcedureId(procedureId))
                 .thenReturn(Mono.just(credentialType));
 
         when(credentialProcedureService.getDecodedCredentialByProcedureId(procedureId))
                 .thenReturn(Mono.just(decodedCredential), Mono.just(unsignedCredential));
+        when(credentialFactory.bindCryptographicCredentialSubjectId(
+                processId, credentialType, decodedCredential, subjectDid))
+                .thenReturn(Mono.just(boundCredential));
 
-        when(credentialFactory.bindCryptographicCredentialSubjectId(processId, credentialType, decodedCredential, subjectDid))
-                .thenReturn(Mono.just(bindCredential));
-
-        when(credentialProcedureService.updateDecodedCredentialByProcedureId(procedureId, bindCredential))
+        when(credentialProcedureService.updateDecodedCredentialByProcedureId(procedureId, boundCredential))
                 .thenReturn(Mono.empty());
 
         when(deferredCredentialMetadataService.updateDeferredCredentialMetadataByAuthServerNonce(authServerNonce))
                 .thenReturn(Mono.just(transactionId));
 
-        when(credentialFactory.mapCredentialBindIssuerAndUpdateDB(processId, procedureId, bindCredential, credentialType, format, authServerNonce, testEmail)).thenReturn(Mono.empty());
-
-        when(credentialProcedureService.getOperationModeByProcedureId(procedureId))
-                .thenReturn(Mono.just("S"));
-        // --- SYNC ---
-        when(credentialSignerWorkflow.signAndUpdateCredentialByProcedureId(BEARER_PREFIX + token, procedureId, JWT_VC))
-                .thenReturn(Mono.error(new IllegalArgumentException("Simulated error")));
-
         when(deferredCredentialMetadataService.getFormatByProcedureId(procedureId))
                 .thenReturn(Mono.just(format));
+
+        when(credentialFactory.mapCredentialBindIssuerAndUpdateDB(
+                processId, procedureId, boundCredential, credentialType, format, authServerNonce, testEmail))
+                .thenReturn(Mono.empty());
+
+        when(credentialProcedureService.getOperationModeByProcedureId(procedureId))
+                .thenReturn(Mono.just("S")); // SYNC
+
+        when(credentialSignerWorkflow.signAndUpdateCredentialByProcedureId(BEARER_PREFIX + token, procedureId, JWT_VC))
+                .thenReturn(Mono.error(new IllegalArgumentException("Simulated error")));
 
         Mono<CredentialResponse> result = verifiableCredentialServiceImpl.buildCredentialResponse(
                 processId, subjectDid, authServerNonce, token, testEmail, procedureId);
 
         StepVerifier.create(result)
                 .expectNextMatches(response ->
-                        response.credentials().equals(List.of(CredentialResponse.Credential.builder()
-                                .credential(unsignedCredential)
-                                .build())) &&
-                                response.transactionId().equals(transactionId))
+                        response.transactionId().equals(transactionId)
+                                && response.credentials().equals(List.of(
+                                CredentialResponse.Credential.builder()
+                                        .credential(unsignedCredential)
+                                        .build()
+                        )))
                 .verifyComplete();
 
         verify(credentialSignerWorkflow, times(1))
                 .signAndUpdateCredentialByProcedureId(BEARER_PREFIX + token, procedureId, JWT_VC);
+
+        verify(credentialProcedureService, times(2))
+                .getDecodedCredentialByProcedureId(procedureId);
     }
+
 }
 
 //    @Test

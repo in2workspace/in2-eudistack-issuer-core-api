@@ -1,7 +1,10 @@
 package es.in2.issuer.backend.shared.domain.service.impl;
 
+import com.nimbusds.jwt.SignedJWT;
 import es.in2.issuer.backend.shared.application.workflow.NonceValidationWorkflow;
+import es.in2.issuer.backend.shared.domain.exception.ProofValidationException;
 import es.in2.issuer.backend.shared.domain.service.JWTService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -10,9 +13,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
+import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.util.Base64;
 import java.util.Set;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static es.in2.issuer.backend.backoffice.domain.util.Constants.SUPPORTED_PROOF_ALG;
+import static es.in2.issuer.backend.backoffice.domain.util.Constants.SUPPORTED_PROOF_TYP;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -28,19 +35,284 @@ class ProofValidationServiceImplTest {
     @InjectMocks
     private ProofValidationServiceImpl service;
 
+
+    @BeforeEach
+    void setUp() {
+        service = new ProofValidationServiceImpl(jwtService);
+    }
+
     @Test
-    void isProofValid_valid() {
-        String validProof = "eyJraWQiOiJkaWQ6a2V5OnpEbmFlbURadmk2UFdMbjRLRjY2NlJzZ3ZTSnR5R1B4V05GQW8xenZNSmliTGFCSHYjekRuYWVtRFp2aTZQV0xuNEtGNjY2UnNndlNKdHlHUHhXTkZBbzF6dk1KaWJMYUJIdiIsInR5cCI6Im9wZW5pZDR2Y2ktcHJvb2Yrand0IiwiYWxnIjoiRVMyNTYifQ.eyJpc3MiOiJkaWQ6a2V5OnpEbmFlbURadmk2UFdMbjRLRjY2NlJzZ3ZTSnR5R1B4V05GQW8xenZNSmliTGFCSHYiLCJhdWQiOiJodHRwOi8vbG9jYWxob3N0OjgwNzEiLCJleHAiOjMzMjE3NjMwOTgzLCJpYXQiOjE3MTMxNjY5ODMsIm5vbmNlIjoiLVNReklWbWxRTUNWd2xRak53SnRRUT09In0.hgLg04YCmEMa30JQYTZSz3vEGxTfBNYdx3A3wSNrtuJcb9p-96MtPCmLTpIFBU_CLTI4Wm4_lc-rbRMitIiOxA";
-        Set<String> allowedAlgs = Set.of("ES256");
+    void isProofValid_valid_returnsTrue() {
         String expectedAudience = "aud";
+        long now = Instant.now().getEpochSecond();
 
-        when(jwtService.validateJwtSignatureReactive(any())).thenReturn(Mono.just(true));
+        String jwt = buildValidProofJwt(expectedAudience, now, now + 300);
 
-        Mono<Boolean> result = service.isProofValid(validProof, allowedAlgs, expectedAudience);
-        // Verify the output
-        StepVerifier.create(result)
-                .assertNext(response ->
-                        assertTrue(response, "The response is wrong"))
+        when(jwtService.validateJwtSignatureReactive(any(SignedJWT.class)))
+                .thenReturn(Mono.just(true));
+
+        StepVerifier.create(service.isProofValid(jwt, Set.of(SUPPORTED_PROOF_ALG), expectedAudience))
+                .expectNext(true)
                 .verifyComplete();
     }
+
+    @Test
+    void isProofValid_signatureInvalid_mapsToProofValidationException() {
+        String aud = "aud";
+        long now = Instant.now().getEpochSecond();
+
+        String jwt = buildJwtRaw(
+                """
+                {"alg":"%s","typ":"%s","kid":"did:key:zDummy"}
+                """.formatted(SUPPORTED_PROOF_ALG, SUPPORTED_PROOF_TYP),
+                """
+                {"aud":"%s","iat":%d,"exp":%d}
+                """.formatted(aud, now - 10, now + 600)
+        );
+
+        when(jwtService.validateJwtSignatureReactive(any(SignedJWT.class)))
+                .thenReturn(Mono.just(false));
+
+        StepVerifier.create(service.isProofValid(jwt, Set.of(SUPPORTED_PROOF_ALG), aud))
+                .expectError(ProofValidationException.class)
+                .verify();
+    }
+
+    @Test
+    void isProofValid_headerMissingAlgOrTyp_mapsToProofValidationException() {
+        // Missing typ
+        String jwt = buildJwtRaw(
+                "{\"alg\":\"" + SUPPORTED_PROOF_ALG + "\",\"kid\":\"did:key:zDummy\"}",
+                "{\"aud\":\"aud\",\"iat\":" + Instant.now().getEpochSecond() + "}"
+        );
+
+        StepVerifier.create(service.isProofValid(jwt, Set.of(SUPPORTED_PROOF_ALG), "aud"))
+                .expectError(ProofValidationException.class)
+                .verify();
+    }
+
+    @Test
+    void isProofValid_headerUnsupportedTyp_mapsToProofValidationException() {
+        String jwt = buildJwtRaw(
+                "{\"alg\":\"" + SUPPORTED_PROOF_ALG + "\",\"typ\":\"WRONG\",\"kid\":\"did:key:zDummy\"}",
+                "{\"aud\":\"aud\",\"iat\":" + Instant.now().getEpochSecond() + "}"
+        );
+
+        StepVerifier.create(service.isProofValid(jwt, Set.of(SUPPORTED_PROOF_ALG), "aud"))
+                .expectError(ProofValidationException.class)
+                .verify();
+    }
+
+    @Test
+    void isProofValid_headerAlgNone_mapsToProofValidationException() {
+        String jwt = buildJwtRaw(
+                "{\"alg\":\"none\",\"typ\":\"" + SUPPORTED_PROOF_TYP + "\",\"kid\":\"did:key:zDummy\"}",
+                "{\"aud\":\"aud\",\"iat\":" + Instant.now().getEpochSecond() + "}"
+        );
+
+        StepVerifier.create(service.isProofValid(jwt, Set.of(SUPPORTED_PROOF_ALG), "aud"))
+                .expectError(ProofValidationException.class)
+                .verify();
+    }
+
+    @Test
+    void isProofValid_headerAlgHS256_mapsToProofValidationException() {
+        String jwt = buildJwtRaw(
+                "{\"alg\":\"HS256\",\"typ\":\"" + SUPPORTED_PROOF_TYP + "\",\"kid\":\"did:key:zDummy\"}",
+                "{\"aud\":\"aud\",\"iat\":" + Instant.now().getEpochSecond() + "}"
+        );
+
+        StepVerifier.create(service.isProofValid(jwt, Set.of(SUPPORTED_PROOF_ALG), "aud"))
+                .expectError(ProofValidationException.class)
+                .verify();
+    }
+
+    @Test
+    void isProofValid_headerAlgNotSupported_mapsToProofValidationException() {
+        // Use any alg different than SUPPORTED_PROOF_ALG and not HS*/none
+        String jwt = buildJwtRaw(
+                "{\"alg\":\"ES512\",\"typ\":\"" + SUPPORTED_PROOF_TYP + "\",\"kid\":\"did:key:zDummy\"}",
+                "{\"aud\":\"aud\",\"iat\":" + Instant.now().getEpochSecond() + "}"
+        );
+
+        StepVerifier.create(service.isProofValid(jwt, Set.of(SUPPORTED_PROOF_ALG), "aud"))
+                .expectError(ProofValidationException.class)
+                .verify();
+    }
+
+    @Test
+    void isProofValid_headerKidJwkX5cMustBeExactlyOne_mapsToProofValidationException() {
+        // kid + jwk => invalid (must be exactly one of kid/jwk/x5c)
+        String jwt = buildJwtRaw(
+                "{\"alg\":\"" + SUPPORTED_PROOF_ALG + "\",\"typ\":\"" + SUPPORTED_PROOF_TYP + "\","
+                        + "\"kid\":\"did:key:zDummy\","
+                        + "\"jwk\":{\"kty\":\"EC\",\"crv\":\"P-256\",\"x\":\"x\",\"y\":\"y\"}}",
+                "{\"aud\":\"aud\",\"iat\":" + Instant.now().getEpochSecond() + "}"
+        );
+
+        StepVerifier.create(service.isProofValid(jwt, Set.of(SUPPORTED_PROOF_ALG), "aud"))
+                .expectError(ProofValidationException.class)
+                .verify();
+    }
+
+    @Test
+    void isProofValid_headerJwkWithPrivateMaterial_mapsToProofValidationException() {
+        // jwk with "d" => private key material => invalid
+        String jwt = buildJwtRaw(
+                "{\"alg\":\"" + SUPPORTED_PROOF_ALG + "\",\"typ\":\"" + SUPPORTED_PROOF_TYP + "\","
+                        + "\"jwk\":{\"kty\":\"EC\",\"crv\":\"P-256\",\"x\":\"x\",\"y\":\"y\",\"d\":\"PRIVATE\"}}",
+                "{\"aud\":\"aud\",\"iat\":" + Instant.now().getEpochSecond() + "}"
+        );
+
+        StepVerifier.create(service.isProofValid(jwt, Set.of(SUPPORTED_PROOF_ALG), "aud"))
+                .expectError(ProofValidationException.class)
+                .verify();
+    }
+
+    @Test
+    void isProofValid_payloadAudMissing_mapsToProofValidationException() {
+        String jwt = buildJwtRaw(
+                "{\"alg\":\"" + SUPPORTED_PROOF_ALG + "\",\"typ\":\"" + SUPPORTED_PROOF_TYP + "\",\"kid\":\"did:key:zDummy\"}",
+                "{\"iat\":" + Instant.now().getEpochSecond() + "}"
+        );
+
+        StepVerifier.create(service.isProofValid(jwt, Set.of(SUPPORTED_PROOF_ALG), "aud"))
+                .expectError(ProofValidationException.class)
+                .verify();
+    }
+
+    @Test
+    void isProofValid_payloadAudMismatch_mapsToProofValidationException() {
+        String jwt = buildJwtRaw(
+                "{\"alg\":\"" + SUPPORTED_PROOF_ALG + "\",\"typ\":\"" + SUPPORTED_PROOF_TYP + "\",\"kid\":\"did:key:zDummy\"}",
+                "{\"aud\":\"OTHER\",\"iat\":" + Instant.now().getEpochSecond() + "}"
+        );
+
+        StepVerifier.create(service.isProofValid(jwt, Set.of(SUPPORTED_PROOF_ALG), "aud"))
+                .expectError(ProofValidationException.class)
+                .verify();
+    }
+
+    @Test
+    void isProofValid_payloadAudAsList_matchesExpected_returnsTrue() {
+        String expectedAudience = "aud";
+        long now = Instant.now().getEpochSecond();
+
+        String jwt = buildAudListProofJwt(expectedAudience, now);
+
+        when(jwtService.validateJwtSignatureReactive(any(SignedJWT.class)))
+                .thenReturn(Mono.just(true));
+
+        StepVerifier.create(service.isProofValid(jwt, Set.of(SUPPORTED_PROOF_ALG), expectedAudience))
+                .expectNext(true)
+                .verifyComplete();
+    }
+
+    @Test
+    void isProofValid_payloadIatMissing_mapsToProofValidationException() {
+        String jwt = buildJwtRaw(
+                "{\"alg\":\"" + SUPPORTED_PROOF_ALG + "\",\"typ\":\"" + SUPPORTED_PROOF_TYP + "\",\"kid\":\"did:key:zDummy\"}",
+                "{\"aud\":\"aud\"}"
+        );
+
+        StepVerifier.create(service.isProofValid(jwt, Set.of(SUPPORTED_PROOF_ALG), "aud"))
+                .expectError(ProofValidationException.class)
+                .verify();
+    }
+
+    @Test
+    void isProofValid_payloadIatNotNumeric_mapsToProofValidationException() {
+        String jwt = buildJwtRaw(
+                "{\"alg\":\"" + SUPPORTED_PROOF_ALG + "\",\"typ\":\"" + SUPPORTED_PROOF_TYP + "\",\"kid\":\"did:key:zDummy\"}",
+                "{\"aud\":\"aud\",\"iat\":\"nope\"}"
+        );
+
+        StepVerifier.create(service.isProofValid(jwt, Set.of(SUPPORTED_PROOF_ALG), "aud"))
+                .expectError(ProofValidationException.class)
+                .verify();
+    }
+
+    @Test
+    void isProofValid_payloadIatTooOld_mapsToProofValidationException() {
+        long iat = Instant.now().minusSeconds(301).getEpochSecond();
+        String jwt = buildValidProofJwt("aud", iat, null);
+
+        StepVerifier.create(service.isProofValid(jwt, Set.of(SUPPORTED_PROOF_ALG), "aud"))
+                .expectError(ProofValidationException.class)
+                .verify();
+    }
+
+    @Test
+    void isProofValid_payloadIatTooFuture_mapsToProofValidationException() {
+        long iat = Instant.now().plusSeconds(61).getEpochSecond();
+        String jwt = buildValidProofJwt("aud", iat, null);
+
+        StepVerifier.create(service.isProofValid(jwt, Set.of(SUPPORTED_PROOF_ALG), "aud"))
+                .expectError(ProofValidationException.class)
+                .verify();
+    }
+
+    @Test
+    void isProofValid_payloadExpExpired_mapsToProofValidationException() {
+        long now = Instant.now().getEpochSecond();
+        long exp = now - 1;
+
+        String jwt = buildValidProofJwt("aud", now, exp);
+
+        StepVerifier.create(service.isProofValid(jwt, Set.of(SUPPORTED_PROOF_ALG), "aud"))
+                .expectError(ProofValidationException.class)
+                .verify();
+    }
+
+    @Test
+    void isProofValid_payloadExpNotNumeric_mapsToProofValidationException() {
+        String jwt = buildJwtRaw(
+                "{\"alg\":\"" + SUPPORTED_PROOF_ALG + "\",\"typ\":\"" + SUPPORTED_PROOF_TYP + "\",\"kid\":\"did:key:zDummy\"}",
+                "{\"aud\":\"aud\",\"iat\":" + Instant.now().getEpochSecond() + ",\"exp\":\"bad\"}"
+        );
+
+        StepVerifier.create(service.isProofValid(jwt, Set.of(SUPPORTED_PROOF_ALG), "aud"))
+                .expectError(ProofValidationException.class)
+                .verify();
+    }
+
+    @Test
+    void isProofValid_whenJwtServiceThrows_mapsToProofValidationException() {
+        String expectedAudience = "aud";
+        long now = Instant.now().getEpochSecond();
+
+        String jwt = buildValidProofJwt(expectedAudience, now, now + 300);
+
+        when(jwtService.validateJwtSignatureReactive(any(SignedJWT.class)))
+                .thenReturn(Mono.error(new RuntimeException("boom")));
+
+        StepVerifier.create(service.isProofValid(jwt, Set.of(SUPPORTED_PROOF_ALG), expectedAudience))
+                .expectError(ProofValidationException.class)
+                .verify();
+    }
+
+    // ---------------- helpers ----------------
+
+    private static String buildValidProofJwt(String expectedAudience, long iat, Long exp) {
+        String header = "{\"alg\":\"" + SUPPORTED_PROOF_ALG + "\",\"typ\":\"" + SUPPORTED_PROOF_TYP + "\",\"kid\":\"did:key:zDummy\"}";
+        String payload = "{\"aud\":\"" + expectedAudience + "\",\"iat\":" + iat + (exp != null ? ",\"exp\":" + exp : "") + "}";
+        return buildJwtRaw(header, payload);
+    }
+
+    private static String buildAudListProofJwt(String expectedAudience, long iat) {
+        String header = "{\"alg\":\"" + SUPPORTED_PROOF_ALG + "\",\"typ\":\"" + SUPPORTED_PROOF_TYP + "\",\"kid\":\"did:key:zDummy\"}";
+        String payload = "{\"aud\":[\"x\",\"" + expectedAudience + "\"],\"iat\":" + iat + "}";
+        return buildJwtRaw(header, payload);
+    }
+
+    private static String buildJwtRaw(String headerJson, String payloadJson) {
+        String h = Base64.getUrlEncoder().withoutPadding()
+                .encodeToString(headerJson.getBytes(StandardCharsets.UTF_8));
+        String p = Base64.getUrlEncoder().withoutPadding()
+                .encodeToString(payloadJson.getBytes(StandardCharsets.UTF_8));
+        String s = Base64.getUrlEncoder().withoutPadding()
+                .encodeToString("signature".getBytes(StandardCharsets.UTF_8));
+        return h + "." + p + "." + s;
+    }
+
 }

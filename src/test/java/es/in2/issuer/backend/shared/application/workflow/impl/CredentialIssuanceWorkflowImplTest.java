@@ -617,24 +617,21 @@ class CredentialIssuanceWorkflowImplTest {
 
     @Test
     void generateVerifiableCredentialResponse_PersistsEncodedAndFormat_AfterBuild() {
-        // given
         String processId = "proc-1";
         String nonce = "nonce-save-001";
 
-        // NEW: build AccessTokenContext instead of raw token with jti inside
+        String procedureId = UUID.randomUUID().toString(); // <-- IMPORTANT: UUID
         AccessTokenContext accessTokenContext = new AccessTokenContext(
-                "raw-token",     // rawToken
-                nonce,           // jti == nonce
-                "procedure-ctx",  // procedureId (not used in this test)
-                "responseUri"
+                "raw-token",
+                nonce,
+                procedureId,
+                null
         );
 
-        // metadata so it does NOT require a proof (thus bindingInfo = null and direct path)
+        // metadata no proof
         CredentialIssuerMetadata metadata = mock(CredentialIssuerMetadata.class);
-        CredentialIssuerMetadata.CredentialConfiguration cfg =
-                mock(CredentialIssuerMetadata.CredentialConfiguration.class);
-        CredentialIssuerMetadata.CredentialConfiguration.CredentialDefinition def =
-                mock(CredentialIssuerMetadata.CredentialConfiguration.CredentialDefinition.class);
+        CredentialIssuerMetadata.CredentialConfiguration cfg = mock(CredentialIssuerMetadata.CredentialConfiguration.class);
+        CredentialIssuerMetadata.CredentialConfiguration.CredentialDefinition def = mock(CredentialIssuerMetadata.CredentialConfiguration.CredentialDefinition.class);
 
         String typeId = CredentialType.LEAR_CREDENTIAL_MACHINE.getTypeId();
         when(cfg.credentialDefinition()).thenReturn(def);
@@ -645,27 +642,16 @@ class CredentialIssuanceWorkflowImplTest {
         map.put("cfg1", cfg);
         when(metadata.credentialConfigurationsSupported()).thenReturn(map);
 
-        // deferred with procedureId and without responseUri (no delivery needed)
-        String procedureId = "save-me";
-        DeferredCredentialMetadata deferred = mock(DeferredCredentialMetadata.class);
-        when(deferred.getProcedureId()).thenReturn(java.util.UUID.randomUUID());
-        when(deferred.getResponseUri()).thenReturn(null);
-
-        // procedure mock
         CredentialProcedure proc = mock(CredentialProcedure.class);
-        when(proc.getOperationMode()).thenReturn("S"); // SYNC
+        when(proc.getOperationMode()).thenReturn("S");
         when(proc.getCredentialType()).thenReturn(CredentialType.LEAR_CREDENTIAL_MACHINE.name());
-        when(proc.getUpdatedBy()).thenReturn(null); // email comes from updatedBy in workflow
+        when(proc.getEmail()).thenReturn(null);
+        when(proc.getProcedureId()).thenReturn(UUID.fromString(procedureId));
 
-        // services: fetch deferred + procedure + metadata
-        when(deferredCredentialMetadataService.getDeferredCredentialMetadataByAuthServerNonce(nonce))
-                .thenReturn(Mono.just(deferred));
-        when(credentialProcedureService.getCredentialProcedureById(anyString()))
-                .thenReturn(Mono.just(proc));
-        when(credentialIssuerMetadataService.getCredentialIssuerMetadata(processId))
-                .thenReturn(Mono.just(metadata));
+        when(credentialProcedureService.getCredentialProcedureById(procedureId)).thenReturn(Mono.just(proc));
+        when(credentialIssuerMetadataService.getCredentialIssuerMetadata(processId)).thenReturn(Mono.just(metadata));
 
-        // VC response that MUST be PERSISTED (encoded + format)
+        // CR
         String encodedJwt = "eyJhbGciOiJ...encoded.jwt...";
         CredentialResponse cr = CredentialResponse.builder()
                 .credentials(List.of(CredentialResponse.Credential.builder().credential(encodedJwt).build()))
@@ -674,18 +660,14 @@ class CredentialIssuanceWorkflowImplTest {
 
         when(verifiableCredentialService.buildCredentialResponse(
                 eq(processId),
-                isNull(),                 // bindingInfo null
+                isNull(),
                 eq(nonce),
                 eq(accessTokenContext.rawToken()),
-                isNull(String.class)  ,    // email null
-                procedureId
+                isNull(String.class),
+                eq(procedureId)
         )).thenReturn(Mono.just(cr));
 
-        // the implementation stores using nonce -> procedureId
-        when(deferredCredentialMetadataService.getProcedureIdByAuthServerNonce(nonce))
-                .thenReturn(Mono.just(procedureId));
-
-        // in SYNC it updates status (if not PEND_SIGNATURE) and reads decoded (no impact)
+        // SYNC path mocks
         when(credentialProcedureService.getCredentialStatusByProcedureId(procedureId))
                 .thenReturn(Mono.just(CredentialStatusEnum.DRAFT.toString()));
         when(credentialProcedureService.updateCredentialProcedureCredentialStatusToValidByProcedureId(procedureId))
@@ -693,60 +675,42 @@ class CredentialIssuanceWorkflowImplTest {
         when(credentialProcedureService.getDecodedCredentialByProcedureId(procedureId))
                 .thenReturn(Mono.just("{\"vc\":\"decoded\"}"));
 
-        // when
         StepVerifier.create(
-                        verifiableCredentialIssuanceWorkflow.generateVerifiableCredentialResponse(
-                                processId,
-                                CredentialRequest.builder().credentialConfigurationId(JWT_VC_JSON).build(),
-                                accessTokenContext
-                        )
+                verifiableCredentialIssuanceWorkflow.generateVerifiableCredentialResponse(
+                        processId,
+                        CredentialRequest.builder().credentialConfigurationId(JWT_VC_JSON).build(),
+                        accessTokenContext
                 )
-                .expectNext(cr)
-                .verifyComplete();
+        ).expectNext(cr).verifyComplete();
 
-        // and it was NOT attempted to be sent (no responseUri)
         verifyNoInteractions(credentialDeliveryService);
     }
 
-
-
     @Test
     void generateVerifiableCredentialResponse_UsesEncodedCredentialOnDelivery() {
-        // --- Minimal setup so the flow reaches the send to responseUri with ENCODED ---
         String processId = "p-1";
         String nonce = "nonce123";
+        String responseUri = "https://wallet.example.com/callback";
 
-        // NEW: AccessTokenContext
+        String procedureId = UUID.randomUUID().toString(); // ✅ UUID
         AccessTokenContext accessTokenContext = new AccessTokenContext(
                 "raw-token",
                 nonce,
-                "procedure-ctx",
-                "responseUri"
+                procedureId,
+                responseUri
         );
 
-        // Deferred -> points to our procedureId and has a responseUri
-        String procedureId = "proc-99";
-        String responseUri = "https://wallet.example.com/callback";
-
-        // CredentialProcedure mock
         CredentialProcedure proc = mock(CredentialProcedure.class);
-        when(proc.getOperationMode()).thenReturn("S"); // SYNC
+        when(proc.getOperationMode()).thenReturn("S");
         when(proc.getCredentialType()).thenReturn(CredentialType.LEAR_CREDENTIAL_MACHINE.name());
         when(proc.getEmail()).thenReturn("owner@in2.es");
-        when(proc.getCredentialEncoded()).thenReturn("ENCODED_JWT_VALUE"); // <- what we want to be sent
-        when(proc.getUpdatedBy()).thenReturn(null); // email (updatedBy) null in buildCredentialResponse call
+        when(proc.getCredentialEncoded()).thenReturn("ENCODED_JWT_VALUE");
+        when(proc.getProcedureId()).thenReturn(UUID.fromString(procedureId));
 
-        // Deferred metadata mock
-        DeferredCredentialMetadata deferred = mock(DeferredCredentialMetadata.class);
-        when(deferred.getProcedureId()).thenReturn(java.util.UUID.randomUUID());
-        when(deferred.getResponseUri()).thenReturn(responseUri);
-
-        // ---- Metadata mock configuration without deep stubs ----
+        // metadata no proof
         CredentialIssuerMetadata metadata = mock(CredentialIssuerMetadata.class);
-        CredentialIssuerMetadata.CredentialConfiguration cfg =
-                mock(CredentialIssuerMetadata.CredentialConfiguration.class);
-        CredentialIssuerMetadata.CredentialConfiguration.CredentialDefinition def =
-                mock(CredentialIssuerMetadata.CredentialConfiguration.CredentialDefinition.class);
+        CredentialIssuerMetadata.CredentialConfiguration cfg = mock(CredentialIssuerMetadata.CredentialConfiguration.class);
+        CredentialIssuerMetadata.CredentialConfiguration.CredentialDefinition def = mock(CredentialIssuerMetadata.CredentialConfiguration.CredentialDefinition.class);
 
         String typeId = CredentialType.LEAR_CREDENTIAL_MACHINE.getTypeId();
         when(cfg.credentialDefinition()).thenReturn(def);
@@ -756,17 +720,10 @@ class CredentialIssuanceWorkflowImplTest {
         Map<String, CredentialIssuerMetadata.CredentialConfiguration> map = new HashMap<>();
         map.put("cfg1", cfg);
         when(metadata.credentialConfigurationsSupported()).thenReturn(map);
-        // ---- end of configuration ----
 
-        // Service chains
-        when(deferredCredentialMetadataService.getDeferredCredentialMetadataByAuthServerNonce(nonce))
-                .thenReturn(Mono.just(deferred));
-        when(credentialProcedureService.getCredentialProcedureById(anyString()))
-                .thenReturn(Mono.just(proc));
-        when(credentialIssuerMetadataService.getCredentialIssuerMetadata(processId))
-                .thenReturn(Mono.just(metadata));
+        when(credentialProcedureService.getCredentialProcedureById(procedureId)).thenReturn(Mono.just(proc));
+        when(credentialIssuerMetadataService.getCredentialIssuerMetadata(processId)).thenReturn(Mono.just(metadata));
 
-        // buildCredentialResponse doesn't need bindingInfo (config without proof)
         CredentialResponse cr = CredentialResponse.builder()
                 .credentials(List.of(CredentialResponse.Credential.builder().credential("whatever").build()))
                 .transactionId("t-1")
@@ -777,13 +734,9 @@ class CredentialIssuanceWorkflowImplTest {
                 isNull(),
                 eq(nonce),
                 eq(accessTokenContext.rawToken()),
-                isNull(String.class),
-                procedureId
+                eq("owner@in2.es"),
+                eq(procedureId)
         )).thenReturn(Mono.just(cr));
-
-        // In SYNC: status and decoded are queried (the decoded is not used unless it's employee)
-        when(deferredCredentialMetadataService.getProcedureIdByAuthServerNonce(nonce))
-                .thenReturn(Mono.just(procedureId));
 
         when(credentialProcedureService.getCredentialStatusByProcedureId(procedureId))
                 .thenReturn(Mono.just(CredentialStatusEnum.DRAFT.toString()));
@@ -792,14 +745,10 @@ class CredentialIssuanceWorkflowImplTest {
         when(credentialProcedureService.getDecodedCredentialByProcedureId(procedureId))
                 .thenReturn(Mono.just("DECODED_SHOULD_NOT_BE_USED"));
 
-        // getCredentialId for sending
         when(credentialProcedureService.getCredentialId(proc)).thenReturn(Mono.just("cred-777"));
-
-        // M2M token for sending
         when(m2MTokenService.getM2MToken())
                 .thenReturn(Mono.just(new VerifierOauth2AccessToken("access-token-value", "", "")));
 
-        // capture the parameters passed to the send call
         ArgumentCaptor<String> responseUriCap = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<String> encodedCap = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<String> credIdCap = ArgumentCaptor.forClass(String.class);
@@ -814,24 +763,22 @@ class CredentialIssuanceWorkflowImplTest {
                 accessTokenCap.capture()
         )).thenReturn(Mono.empty());
 
-        // when
         StepVerifier.create(
-                        verifiableCredentialIssuanceWorkflow.generateVerifiableCredentialResponse(
-                                processId,
-                                CredentialRequest.builder().credentialConfigurationId(JWT_VC_JSON).build(),
-                                accessTokenContext
-                        )
+                verifiableCredentialIssuanceWorkflow.generateVerifiableCredentialResponse(
+                        processId,
+                        CredentialRequest.builder().credentialConfigurationId(JWT_VC_JSON).build(),
+                        accessTokenContext
                 )
-                .expectNext(cr)
-                .verifyComplete();
+        ).expectNext(cr).verifyComplete();
 
-        // then: the ENCODED was used (not the decoded)
-        assert responseUriCap.getValue().equals(responseUri);
-        assert encodedCap.getValue().equals("ENCODED_JWT_VALUE");
-        assert credIdCap.getValue().equals("cred-777");
-        assert emailCap.getValue().equals("owner@in2.es");
-        assert accessTokenCap.getValue().equals("access-token-value");
+        // asserts
+        org.junit.jupiter.api.Assertions.assertEquals(responseUri, responseUriCap.getValue());
+        org.junit.jupiter.api.Assertions.assertEquals("ENCODED_JWT_VALUE", encodedCap.getValue());
+        org.junit.jupiter.api.Assertions.assertEquals("cred-777", credIdCap.getValue());
+        org.junit.jupiter.api.Assertions.assertEquals("owner@in2.es", emailCap.getValue());
+        org.junit.jupiter.api.Assertions.assertEquals("access-token-value", accessTokenCap.getValue());
     }
+
 
 
     /** Helper: minimal compact JWT with "jti" in the payload that Nimbus can parse without validating the signature */
