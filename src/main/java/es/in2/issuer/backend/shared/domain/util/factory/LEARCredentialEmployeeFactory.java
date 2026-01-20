@@ -196,29 +196,27 @@ public class LEARCredentialEmployeeFactory {
     }
 
     public Mono<LEARCredentialEmployeeJwtPayload> buildLEARCredentialEmployeeJwtPayload(LEARCredentialEmployee learCredentialEmployee) {
-        log.debug("buildLEARCredentialEmployeeJwtPayload: {}", learCredentialEmployee);
+        return Mono.fromCallable(() -> {
+            String subjectDid = learCredentialEmployee.credentialSubject().id();
+            if (subjectDid == null || subjectDid.isBlank()) {
+                throw new IllegalStateException("Missing credentialSubject.id (cryptographic binding DID)");
+            }
 
-        String subjectDid = learCredentialEmployee.credentialSubject().id();
+            Map<String, Object> cnf = Map.of("kid", subjectDid);
 
-        if (subjectDid == null || subjectDid.isBlank()) {
-            return Mono.error(new IllegalStateException("Missing credentialSubject.id (cryptographic binding DID)"));
-        }
-
-        Map<String, Object> cnf = Map.of("kid", subjectDid);
-
-        return Mono.just(
-                LEARCredentialEmployeeJwtPayload.builder()
-                        .JwtId(UUID.randomUUID().toString())
-                        .learCredentialEmployee(learCredentialEmployee)
-                        .expirationTime(parseDateToUnixTime(learCredentialEmployee.validUntil()))
-                        .issuedAt(parseDateToUnixTime(learCredentialEmployee.validFrom()))
-                        .notValidBefore(parseDateToUnixTime(learCredentialEmployee.validFrom()))
-                        .issuer(learCredentialEmployee.issuer().getId())
-                        .subject(subjectDid)
-                        .cnf(cnf)
-                        .build()
-        );
+            return LEARCredentialEmployeeJwtPayload.builder()
+                    .JwtId(UUID.randomUUID().toString())
+                    .learCredentialEmployee(learCredentialEmployee)
+                    .expirationTime(parseDateToUnixTime(learCredentialEmployee.validUntil()))
+                    .issuedAt(parseDateToUnixTime(learCredentialEmployee.validFrom()))
+                    .notValidBefore(parseDateToUnixTime(learCredentialEmployee.validFrom()))
+                    .issuer(learCredentialEmployee.issuer().getId())
+                    .subject(subjectDid)
+                    .cnf(cnf)
+                    .build();
+        });
     }
+
 
     private long parseDateToUnixTime(String date) {
         ZonedDateTime zonedDateTime = ZonedDateTime.parse(date, DateTimeFormatter.ISO_ZONED_DATE_TIME);
