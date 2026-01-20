@@ -2,6 +2,7 @@ package es.in2.issuer.backend.shared.application.workflow.impl;
 
 
 import es.in2.issuer.backend.oidc4vci.domain.model.CredentialIssuerMetadata;
+import es.in2.issuer.backend.shared.domain.exception.InvalidOrMissingProofException;
 import es.in2.issuer.backend.shared.domain.model.dto.VerifierOauth2AccessToken;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.Mandator;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.employee.LEARCredentialEmployee;
@@ -1171,7 +1172,222 @@ class CredentialIssuanceWorkflowImplTest {
         verifyNoInteractions(trustFrameworkService);
     }
 
+    @Test
+    void validateAndDetermineBindingInfo_whenProofSigningAlgsMissing_throwsConfigurationException() {
+        // given
+        CredentialProcedure proc = mock(CredentialProcedure.class);
+        when(proc.getCredentialType()).thenReturn(CredentialType.LEAR_CREDENTIAL_MACHINE.name());
 
+        CredentialIssuerMetadata md = mock(CredentialIssuerMetadata.class);
+
+        var cfg = mock(CredentialIssuerMetadata.CredentialConfiguration.class);
+        var def = mock(CredentialIssuerMetadata.CredentialConfiguration.CredentialDefinition.class);
+
+        when(def.type()).thenReturn(Set.of(CredentialType.LEAR_CREDENTIAL_MACHINE.getTypeId()));
+        when(cfg.credentialDefinition()).thenReturn(def);
+
+        // needsProof = true
+        when(cfg.cryptographicBindingMethodsSupported()).thenReturn(Set.of("did"));
+
+        // proofTypesSupported jwt present but NO algs
+        when(cfg.proofTypesSupported()).thenReturn(Map.of("jwt", jwtProofCfg(Collections.emptySet())));
+
+        when(md.credentialConfigurationsSupported()).thenReturn(Map.of("cfg1", cfg));
+
+        CredentialRequest req = CredentialRequest.builder()
+                .proofs(Proofs.builder().jwt(List.of(buildDummyJwtProofWithKid("did:key:z123#k1"))).build())
+                .build();
+
+        // when
+        Mono<CredentialIssuanceWorkflowImpl.BindingInfo> mono =
+                callValidateAndDetermineBindingInfo(proc, md, req);
+
+        // then
+        StepVerifier.create(mono)
+                .expectErrorSatisfies(ex ->
+                        org.junit.jupiter.api.Assertions.assertInstanceOf(javax.naming.ConfigurationException.class, ex)
+                )
+                .verify();
+
+        verifyNoInteractions(proofValidationService);
+    }
+
+    @Test
+    void validateAndDetermineBindingInfo_whenProofsNull_throwsInvalidOrMissingProofException() throws Exception {
+        // given
+        CredentialProcedure proc = mock(CredentialProcedure.class);
+        when(proc.getCredentialType()).thenReturn(CredentialType.LEAR_CREDENTIAL_MACHINE.name());
+
+        CredentialIssuerMetadata md = mock(CredentialIssuerMetadata.class);
+
+        var cfg = mock(CredentialIssuerMetadata.CredentialConfiguration.class);
+        var def = mock(CredentialIssuerMetadata.CredentialConfiguration.CredentialDefinition.class);
+
+        when(def.type()).thenReturn(Set.of(CredentialType.LEAR_CREDENTIAL_MACHINE.getTypeId()));
+        when(cfg.credentialDefinition()).thenReturn(def);
+
+        // needsProof = true
+        when(cfg.cryptographicBindingMethodsSupported()).thenReturn(Set.of("did"));
+
+        // ✅ CONFIG OK: proofTypesSupported(jwt) con algs NO vacíos
+        when(cfg.proofTypesSupported()).thenReturn(
+                Map.of("jwt", jwtProofCfg(Set.of("ES256")))
+        );
+
+        when(md.credentialConfigurationsSupported()).thenReturn(Map.of("cfg1", cfg));
+
+        CredentialRequest req = CredentialRequest.builder()
+                .proofs(null) // 👈 missing proofs
+                .build();
+
+        // when
+        Mono<CredentialIssuanceWorkflowImpl.BindingInfo> mono =
+                callValidateAndDetermineBindingInfo(proc, md, req);
+
+        // then
+        StepVerifier.create(mono)
+                .expectErrorSatisfies(ex -> {
+                    org.junit.jupiter.api.Assertions.assertInstanceOf(InvalidOrMissingProofException.class, ex);
+                    org.junit.jupiter.api.Assertions.assertEquals(
+                            "Missing proof for type " + CredentialType.LEAR_CREDENTIAL_MACHINE.name(),
+                            ex.getMessage()
+                    );
+                })
+                .verify();
+
+        verifyNoInteractions(proofValidationService);
+    }
+
+
+
+    @Test
+    void validateAndDetermineBindingInfo_whenProofInvalid_throwsInvalidOrMissingProofException() {
+        // given
+        CredentialProcedure proc = mock(CredentialProcedure.class);
+        when(proc.getCredentialType()).thenReturn(CredentialType.LEAR_CREDENTIAL_MACHINE.name());
+
+        CredentialIssuerMetadata md = mock(CredentialIssuerMetadata.class);
+        when(md.credentialIssuer()).thenReturn("https://issuer.example");
+
+        CredentialIssuerMetadata.CredentialConfiguration cfg =
+                mock(CredentialIssuerMetadata.CredentialConfiguration.class);
+        CredentialIssuerMetadata.CredentialConfiguration.CredentialDefinition def =
+                mock(CredentialIssuerMetadata.CredentialConfiguration.CredentialDefinition.class);
+
+        when(def.type()).thenReturn(Set.of(CredentialType.LEAR_CREDENTIAL_MACHINE.getTypeId()));
+        when(cfg.credentialDefinition()).thenReturn(def);
+
+        when(cfg.cryptographicBindingMethodsSupported()).thenReturn(Set.of("did"));
+        when(cfg.proofTypesSupported()).thenReturn(Map.of("jwt", jwtProofCfg(Set.of("ES256"))));
+
+        when(md.credentialConfigurationsSupported()).thenReturn(Map.of("cfg1", cfg));
+
+        String jwtProof = buildDummyJwtProofWithKid("did:key:z123#k1");
+        CredentialRequest req = CredentialRequest.builder()
+                .proofs(Proofs.builder().jwt(List.of(jwtProof)).build())
+                .build();
+
+        when(proofValidationService.isProofValid(eq(jwtProof), eq(Set.of("ES256")), eq("https://issuer.example")))
+                .thenReturn(Mono.just(false));
+
+        // when
+        Mono<CredentialIssuanceWorkflowImpl.BindingInfo> mono =
+                callValidateAndDetermineBindingInfo(proc, md, req);
+
+        // then
+        StepVerifier.create(mono)
+                .expectErrorSatisfies(ex -> {
+                    Assertions.assertInstanceOf(InvalidOrMissingProofException.class, ex);
+                    Assertions.assertEquals("Invalid proof", ex.getMessage());
+                })
+                .verify();
+    }
+
+
+    @Test
+    void validateAndDetermineBindingInfo_whenProofValid_returnsBindingInfoWithKidSubjectId() {
+        // given
+        CredentialProcedure proc = mock(CredentialProcedure.class);
+        when(proc.getCredentialType()).thenReturn(CredentialType.LEAR_CREDENTIAL_MACHINE.name());
+
+        CredentialIssuerMetadata md = mock(CredentialIssuerMetadata.class);
+        when(md.credentialIssuer()).thenReturn("https://issuer.example");
+
+        CredentialIssuerMetadata.CredentialConfiguration cfg =
+                mock(CredentialIssuerMetadata.CredentialConfiguration.class);
+        CredentialIssuerMetadata.CredentialConfiguration.CredentialDefinition def =
+                mock(CredentialIssuerMetadata.CredentialConfiguration.CredentialDefinition.class);
+
+        when(def.type()).thenReturn(Set.of(CredentialType.LEAR_CREDENTIAL_MACHINE.getTypeId()));
+        when(cfg.credentialDefinition()).thenReturn(def);
+
+        when(cfg.cryptographicBindingMethodsSupported()).thenReturn(Set.of("did"));
+        when(cfg.proofTypesSupported()).thenReturn(Map.of("jwt", jwtProofCfg(Set.of("ES256"))));
+
+        when(md.credentialConfigurationsSupported()).thenReturn(Map.of("cfg1", cfg));
+
+        String kid = "did:key:zDnaeiLt1XYBTBZkvfYQ5AABYFqouxpv63LYKkiw2xad9rReK#key-1";
+        String jwtProof = buildDummyJwtProofWithKid(kid);
+
+        CredentialRequest req = CredentialRequest.builder()
+                .proofs(Proofs.builder().jwt(List.of(jwtProof)).build())
+                .build();
+
+        when(proofValidationService.isProofValid(eq(jwtProof), eq(Set.of("ES256")), eq("https://issuer.example")))
+                .thenReturn(Mono.just(true));
+
+        // when
+        Mono<CredentialIssuanceWorkflowImpl.BindingInfo> mono =
+                callValidateAndDetermineBindingInfo(proc, md, req);
+
+        // then
+        StepVerifier.create(mono)
+                .assertNext(bi -> {
+                    Assertions.assertEquals(kid.split("#")[0], bi.subjectId());
+                    Assertions.assertTrue(bi.cnf() instanceof Map<?, ?>);
+                    Map<?, ?> cnf = (Map<?, ?>) bi.cnf();
+                    Assertions.assertEquals(kid, cnf.get("kid"));
+                })
+                .verifyComplete();
+    }
+
+
+    @SuppressWarnings("unchecked")
+    private Mono<CredentialIssuanceWorkflowImpl.BindingInfo> callValidateAndDetermineBindingInfo(
+            CredentialProcedure proc,
+            CredentialIssuerMetadata md,
+            CredentialRequest req
+    ) {
+        try {
+            Method m = CredentialIssuanceWorkflowImpl.class.getDeclaredMethod(
+                    "validateAndDetermineBindingInfo",
+                    CredentialProcedure.class,
+                    CredentialIssuerMetadata.class,
+                    CredentialRequest.class
+            );
+            m.setAccessible(true);
+            return (Mono<CredentialIssuanceWorkflowImpl.BindingInfo>) m.invoke(
+                    verifiableCredentialIssuanceWorkflow, // tu @InjectMocks
+                    proc, md, req
+            );
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+    private static CredentialIssuerMetadata.CredentialConfiguration.ProofSigninAlgValuesSupported jwtProofCfg(Set<String> algs) {
+        return new CredentialIssuerMetadata.CredentialConfiguration.ProofSigninAlgValuesSupported(algs);
+    }
+
+
+    private static String buildDummyJwtProofWithKid(String kid) {
+        String header = "{\"alg\":\"HS256\",\"kid\":\"" + kid + "\"}";
+        String payload = "{\"iss\":\"did:example:holder\",\"aud\":\"https://issuer.example\",\"iat\":1700000000,\"exp\":2000000000}";
+        String h = Base64.getUrlEncoder().withoutPadding()
+                .encodeToString(header.getBytes(StandardCharsets.UTF_8));
+        String p = Base64.getUrlEncoder().withoutPadding()
+                .encodeToString(payload.getBytes(StandardCharsets.UTF_8));
+        return h + "." + p + ".sig";
+    }
 
 
     private static String b64url(String s) {
