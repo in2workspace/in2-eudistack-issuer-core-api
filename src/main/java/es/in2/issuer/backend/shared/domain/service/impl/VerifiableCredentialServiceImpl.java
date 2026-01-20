@@ -146,46 +146,34 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
         return deferredCredentialMetadataService
                 .updateDeferredCredentialMetadataByAuthServerNonce(authServerNonce)
                 .onErrorResume(e -> {
-                    log.error("Error actualizando metadatos diferidos con authServerNonce: {}", e.getMessage(), e);
-                    return Mono.error(new RuntimeException("No se pudieron actualizar los metadatos diferidos", e));
+                    log.error("Error updating deferred metadata with authServerNonce: {}", e.getMessage(), e);
+                    return Mono.error(new RuntimeException("Failed to update deferred metadata", e));
                 })
-                .switchIfEmpty(Mono.error(new RuntimeException("No se encontró el ID de transacción tras actualizar los metadatos")))
-                .flatMap(transactionId -> {
-                    return deferredCredentialMetadataService.getFormatByProcedureId(procedureId)
-                            .onErrorResume(e -> {
-                                log.error("Error obteniendo el formato por procedureId: {}", e.getMessage(), e);
-                                return Mono.error(new RuntimeException("No se pudo obtener el formato", e));
-                            })
-                            .switchIfEmpty(Mono.error(new RuntimeException("Formato no encontrado para el procedureId: " + procedureId)))
-                            .flatMap(format -> {
-                                return credentialFactory
-                                        .mapCredentialBindIssuerAndUpdateDB(
-                                                processId,
+                .switchIfEmpty(Mono.error(new RuntimeException("TransactionId not found after updating deferred metadata")))
+                .flatMap(transactionId -> deferredCredentialMetadataService.getFormatByProcedureId(procedureId)
+                        .onErrorResume(e -> {
+                            log.error("Error mapping/binding issuer and updating credential: {}", e.getMessage(), e);
+                            return Mono.error(new RuntimeException("Failed to retrieve credential format", e));
+                        })
+                        .switchIfEmpty(Mono.error(new RuntimeException("Credential format not found for procedureId: " + procedureId)))
+                        .flatMap(format -> credentialFactory
+                                .mapCredentialBindIssuerAndUpdateDB(
+                                        processId,
+                                        procedureId,
+                                        boundCredential,
+                                        credentialType,
+                                        format,
+                                        authServerNonce,
+                                        email
+                                )
+                                .then(credentialProcedureService.getOperationModeByProcedureId(procedureId)
+                                        .switchIfEmpty(Mono.error(new RuntimeException("Operation mode not found for procedureId: " + procedureId)))
+                                        .flatMap(mode -> buildCredentialResponseBasedOnOperationMode(
+                                                mode,
                                                 procedureId,
-                                                boundCredential,
-                                                credentialType,
-                                                format,
-                                                authServerNonce,
-                                                email
-                                        )
-                                        .onErrorResume(e -> {
-                                            log.error("Error mapeando y actualizando el credential: {}", e.getMessage(), e);
-                                            return Mono.error(new RuntimeException("No se pudo mapear o actualizar el credential", e));
-                                        })
-                                        .then(credentialProcedureService.getOperationModeByProcedureId(procedureId)
-                                                .onErrorResume(e -> {
-                                                    log.error("Error obteniendo el modo de operación: {}", e.getMessage(), e);
-                                                    return Mono.error(new RuntimeException("No se pudo obtener el modo de operación", e));
-                                                })
-                                                .switchIfEmpty(Mono.error(new RuntimeException("Modo de operación no encontrado para el procedureId: " + procedureId)))
-                                                .flatMap(mode -> buildCredentialResponseBasedOnOperationMode(
-                                                        mode,
-                                                        procedureId,
-                                                        transactionId,
-                                                        token
-                                                )));
-                            });
-                });
+                                                transactionId,
+                                                token
+                                        )))));
     }
 
 
