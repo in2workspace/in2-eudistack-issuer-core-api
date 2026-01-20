@@ -15,6 +15,7 @@ import es.in2.issuer.backend.statusList.infrastructure.repository.StatusListInde
 import es.in2.issuer.backend.statusList.infrastructure.repository.StatusListIndexRow;
 import es.in2.issuer.backend.statusList.infrastructure.repository.StatusListRepository;
 import es.in2.issuer.backend.statusList.infrastructure.repository.StatusListRow;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
@@ -38,6 +39,7 @@ import static java.util.Objects.requireNonNull;
  * - Revoke a credential by setting its bit to 1 in encodedList.
  * - Build the Status List Credential payload for the GET endpoint.
  */
+@Slf4j
 @Component
 public class BitstringStatusListProvider implements StatusListProvider {
 
@@ -75,9 +77,11 @@ public class BitstringStatusListProvider implements StatusListProvider {
 
     @Override
     public Mono<String> getSignedStatusListCredential(Long listId) {
+        log.info("BitstringStatusListProvider - getSignedStatusListCredential, listId: {}", listId);
         requireNonNull(listId, "listId cannot be null");
 
         return statusListRepository.findById(listId)
+                //todo fer 404
                 .switchIfEmpty(Mono.error(new IllegalArgumentException("Status list not found: " + listId)))
                 .flatMap(row -> {
                     String signed = row.signedCredential();
@@ -91,6 +95,8 @@ public class BitstringStatusListProvider implements StatusListProvider {
 
     @Override
     public Mono<StatusListEntry> allocateEntry(String issuerId, StatusPurpose purpose, String procedureId, String token) {
+        log.info("BitstringStatusListProvider - allocateEntry");
+
         requireNonNull(issuerId, "issuerId cannot be null");
         requireNonNull(purpose, "purpose cannot be null");
         requireNonNull(procedureId, "procedureId cannot be null");
@@ -111,6 +117,7 @@ public class BitstringStatusListProvider implements StatusListProvider {
         requireNonNull(listId, "listId cannot be null");
 
         return statusListRepository.findById(listId)
+                //todo fer 404
                 .switchIfEmpty(Mono.error(new IllegalArgumentException("Status list not found: " + listId)))
                 .map(row -> {
                     String listUrl = buildListUrl(row.id());
@@ -139,6 +146,7 @@ public class BitstringStatusListProvider implements StatusListProvider {
 
     @Override
     public Mono<Void> revoke(String procedureId, String token) {
+        log.info("BitstringStatusListProvider - revoke");
         requireNonNull(procedureId, "procedureId cannot be null");
         requireNonNull(token, "token cannot be null");
 
@@ -161,6 +169,7 @@ public class BitstringStatusListProvider implements StatusListProvider {
 
     private Mono<Void> revokeOnce(Long statusListId, Integer idx, String token) {
         return statusListRepository.findById(statusListId)
+                //todo fer 404
                 .switchIfEmpty(Mono.error(new IllegalArgumentException("Status list not found: " + statusListId)))
                 .flatMap(currentRow -> {
                     String updatedEncoded = encoder.setBit(currentRow.encodedList(), idx, true);
@@ -262,6 +271,7 @@ public class BitstringStatusListProvider implements StatusListProvider {
     }
 
     private Mono<StatusListRow> createNewList(String issuerId, StatusPurpose purpose, String token) {
+        log.info("BitstringStatusListProvider - createNewList");
         String emptyEncodedList = encoder.createEmptyEncodedList(CAPACITY_BITS);
         Instant now = Instant.now();
 
@@ -274,10 +284,13 @@ public class BitstringStatusListProvider implements StatusListProvider {
                 now,
                 now
         );
+        log.info("row to insert: {}", rowToInsert);
 
         return statusListRepository.save(rowToInsert)
                 .flatMap(saved -> {
+                    log.info("inserted: {}", saved);
                     Map<String, Object> payload = buildUnsignedCredential(saved);
+                    log.info("Signature request payload: {}", payload);
 
                     return toSignatureRequest(payload)
                             .flatMap(req -> remoteSignatureService.signDocument(req, token))
@@ -313,10 +326,12 @@ public class BitstringStatusListProvider implements StatusListProvider {
 
 
     private Mono<StatusListRow> pickListForAllocation(String issuerId, StatusPurpose purpose, String token) {
+        log.info("pickListForAllocation");
         return findOrCreateLatestList(issuerId, purpose, token)
                 .flatMap(list ->
                         statusListIndexRepository.countByStatusListId(list.id())
                                 .flatMap(count -> {
+                                    log.info("count: {}", count);
                                     long threshold = (long) Math.floor(CAPACITY_BITS * NEW_LIST_THRESHOLD);
                                     if (count != null && count >= threshold) {
                                         return createNewList(issuerId, purpose, token);

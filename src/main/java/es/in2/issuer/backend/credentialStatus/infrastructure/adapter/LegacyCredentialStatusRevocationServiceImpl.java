@@ -5,11 +5,13 @@ import es.in2.issuer.backend.credentialStatus.domain.service.LegacyCredentialSta
 import es.in2.issuer.backend.credentialStatus.infrastructure.repository.LegacyCredentialStatusRepository;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.CredentialStatus;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
 import static java.util.Objects.requireNonNull;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class LegacyCredentialStatusRevocationServiceImpl implements LegacyCredentialStatusRevocationService {
@@ -18,6 +20,7 @@ public class LegacyCredentialStatusRevocationServiceImpl implements LegacyCreden
 
     @Override
     public Mono<Void> revoke(int listId, CredentialStatus credentialStatus) {
+        log.info("LegacyCredentialStatusRevocationServiceImpl.revoke");
         requireNonNull(credentialStatus, "credentialStatus cannot be null");
 
         String nonce = credentialStatus.statusListIndex();

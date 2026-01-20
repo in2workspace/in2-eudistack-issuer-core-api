@@ -11,6 +11,7 @@ import es.in2.issuer.backend.shared.domain.service.EmailService;
 import es.in2.issuer.backend.statusList.application.policies.StatusListPdpService;
 import es.in2.issuer.backend.statusList.domain.spi.StatusListProvider;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 import es.in2.issuer.backend.credentialStatus.domain.service.LegacyCredentialStatusRevocationService;
@@ -18,6 +19,7 @@ import es.in2.issuer.backend.credentialStatus.domain.service.LegacyCredentialSta
 
 import static java.util.Objects.requireNonNull;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class RevocationService {
@@ -39,6 +41,7 @@ public class RevocationService {
     private record Context(String token, CredentialProcedure procedure) { }
 
     public Mono<Void> revoke(String processId, String bearerToken, String credentialProcedureId, int listId) {
+        log.info("RevocationService - revoke");
         requireNonNull(processId, "processId cannot be null");
         requireNonNull(bearerToken, "bearerToken cannot be null");
         requireNonNull(credentialProcedureId, "credentialProcedureId cannot be null");
@@ -62,6 +65,7 @@ public class RevocationService {
     }
 
     private Mono<Void> routeRevocation(int listId, CredentialStatus credentialStatus, String token, String procedureId) {
+        log.info("routeRevocation, listId: {}, credentialStatus: {}, procedureId: {}", listId, credentialStatus, procedureId);
         if (BITSTRING_ENTRY_TYPE.equals(credentialStatus.type())) {
             return statusListProvider.revoke(procedureId, token);
         }
@@ -71,14 +75,15 @@ public class RevocationService {
     /**
      * Optional helper for internal callers that already have procedureId + token.
      */
-    public Mono<Void> revokeByprocedureId(String procedureId, String token) {
-        requireNonNull(procedureId, "procedureId cannot be null");
-        requireNonNull(token, "token cannot be null");
-        return statusListProvider.revoke(procedureId, token);
-    }
+//    public Mono<Void> revokeByprocedureId(String procedureId, String token) {
+//        requireNonNull(procedureId, "procedureId cannot be null");
+//        requireNonNull(token, "token cannot be null");
+//        return statusListProvider.revoke(procedureId, token);
+//    }
 
     //todo look for similar functions to avoid duplication
     private CredentialStatus parseCredentialStatus(String decodedCredential) {
+        log.info("RevocationService - parseCredentialStatus: {}", decodedCredential);
         requireNonNull(decodedCredential, "decodedCredential cannot be null");
 
         JsonNode credentialStatusNode;

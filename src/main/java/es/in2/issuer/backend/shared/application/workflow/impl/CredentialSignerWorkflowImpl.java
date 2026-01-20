@@ -76,6 +76,7 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
 
     public Mono<String> signAndUpdateCredentialByProcedureId(String token, String procedureId, String format, String mandateeEmail) {
         log.debug("signAndUpdateCredentialByProcedureId");
+        log.info("procedureId: {}, mandateeEmail: {}", procedureId, mandateeEmail);
 
         return credentialProcedureRepository.findByProcedureId(UUID.fromString(procedureId))
                 .switchIfEmpty(Mono.error(new CredentialProcedureNotFoundException(
@@ -115,6 +116,8 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
             String mandateeEmail
     ) {
         String credentialType = proc.getCredentialType();
+        log.info("CredentialSignerWorkflowImpl - enrichDecodedCredentialBeforeSigning");
+        log.info("CP: {}, procedureId: {}, token: {}, mandateeEmail: {}", proc, procedureId, token, mandateeEmail);
 
         return resolveIssuerForType(credentialType, procedureId, mandateeEmail)
                 .switchIfEmpty(Mono.error(new IllegalStateException(
