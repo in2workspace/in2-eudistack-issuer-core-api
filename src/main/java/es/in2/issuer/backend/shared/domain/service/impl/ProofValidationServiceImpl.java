@@ -43,7 +43,7 @@ public class ProofValidationServiceImpl implements ProofValidationService {
                     return jwtService.validateJwtSignatureReactive(signedJWT);
                 })
                 .defaultIfEmpty(false)
-                // TODO: aquí irá validación nonce cuando la implementes
+                // TODO: Check nonce when implemented
                 .doOnSuccess(result -> log.debug("Final validation result: {}", result))
                 .onErrorMap(e -> (e instanceof ProofValidationException) ? e
                         : new ProofValidationException("Error during JWT validation"));

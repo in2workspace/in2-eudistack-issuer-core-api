@@ -225,114 +225,127 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
             CredentialRequest credentialRequest
     ) {
 
-        //Resolve the credential type declared in the procedure
-        final CredentialType typeEnum;
         log.debug("validateAndDetermineBindingInfo: credentialType={}", credentialProcedure.getCredentialType());
 
+        return resolveCredentialType(credentialProcedure)
+                .flatMap(typeEnum -> findIssuerConfig(metadata, typeEnum)
+                        .flatMap(cfg -> evaluateCryptographicBinding(cfg, typeEnum, metadata, credentialRequest))
+                );
+    }
+
+    private Mono<CredentialType> resolveCredentialType(CredentialProcedure credentialProcedure) {
+        final CredentialType typeEnum;
         try {
             typeEnum = CredentialType.valueOf(credentialProcedure.getCredentialType());
         } catch (IllegalArgumentException e) {
             return Mono.error(new FormatUnsupportedException(
-                    "Unknown credential type: " + credentialProcedure.getCredentialType()));
+                    "Unknown credential type: " + credentialProcedure.getCredentialType()
+            ));
         }
+        return Mono.just(typeEnum);
+    }
 
-        //Find the Issuer configuration that matches this credential type
+    private Mono<CredentialIssuerMetadata.CredentialConfiguration> findIssuerConfig(CredentialIssuerMetadata metadata, CredentialType typeEnum) {
         return Mono.justOrEmpty(
                         metadata.credentialConfigurationsSupported()
                                 .values()
                                 .stream()
-                                .filter(cfg ->
-                                        cfg.credentialDefinition().type().contains(typeEnum.getTypeId())
-                                )
+                                .filter(cfg -> cfg.credentialDefinition().type().contains(typeEnum.getTypeId()))
                                 .findFirst()
                 )
                 .switchIfEmpty(Mono.error(new FormatUnsupportedException(
                         "No configuration for typeId: " + typeEnum.getTypeId()
-                )))
+                )));
+    }
 
-                //Evaluate cryptographic binding requirements
-                .flatMap(cfg -> {
+    private Mono<BindingInfo> evaluateCryptographicBinding(
+            CredentialIssuerMetadata.CredentialConfiguration cfg,
+            CredentialType typeEnum,
+            CredentialIssuerMetadata metadata,
+            CredentialRequest credentialRequest
+    ) {
+        var cryptoMethods = cfg.cryptographicBindingMethodsSupported();
 
-                    //crypto binding methods configured by the Issuer
-                    var cryptoMethods = cfg.cryptographicBindingMethodsSupported();
+        boolean needsProof = cryptoMethods != null && !cryptoMethods.isEmpty();
+        log.info("Binding requirement for {}: needsProof={}", typeEnum.name(), needsProof);
 
-                    boolean needsProof = cryptoMethods != null && !cryptoMethods.isEmpty();
-                    log.info("Binding requirement for {}: needsProof={}", typeEnum.name(), needsProof);
+        if (!needsProof) {
+            return Mono.empty();
+        }
 
-                    //If no cryptographic binding is required
-                    if (!needsProof) {
-                        return Mono.empty();
+        String cryptoBindingMethod = selectCryptoBindingMethod(cryptoMethods, typeEnum);
+        log.debug("Crypto binding method for {}: {}", typeEnum.name(), cryptoBindingMethod);
+
+        Set<String> proofSigningAlgoritms = resolveProofSigningAlgorithms(cfg, typeEnum);
+        log.debug("Proof signing algs for {}: {}", typeEnum.name(), proofSigningAlgoritms);
+
+        String jwtProof = extractFirstJwtProof(credentialRequest);
+        String expectedAudience = metadata.credentialIssuer();
+
+        return validateProofAndExtractBindingInfo(jwtProof, proofSigningAlgoritms, expectedAudience, typeEnum);
+    }
+
+    private String selectCryptoBindingMethod(Set<String> cryptoMethods, CredentialType typeEnum) {
+        String cryptoBindingMethod;
+        try {
+            cryptoBindingMethod = cryptoMethods.stream()
+                    .findFirst()
+                    .orElseThrow(() -> new ConfigurationException(
+                            "No cryptographic binding method configured for " + typeEnum.name()
+                    ));
+        } catch (ConfigurationException e) {
+            throw new RuntimeException(e);
+        }
+        return cryptoBindingMethod;
+    }
+
+    private Set<String> resolveProofSigningAlgorithms(CredentialIssuerMetadata.CredentialConfiguration cfg, CredentialType typeEnum) {
+        var proofTypes = cfg.proofTypesSupported();
+        var jwtProofConfig = (proofTypes != null) ? proofTypes.get("jwt") : null;
+
+        return (jwtProofConfig != null) ? jwtProofConfig.proofSigningAlgValuesSupported() : null;
+    }
+
+    private String extractFirstJwtProof(CredentialRequest credentialRequest) {
+        List<String> jwtList = credentialRequest.proofs() != null
+                ? credentialRequest.proofs().jwt()
+                : Collections.emptyList();
+
+        return jwtList.isEmpty() ? null : jwtList.get(0);
+    }
+
+    private Mono<BindingInfo> validateProofAndExtractBindingInfo(
+            String jwtProof,
+            Set<String> proofSigningAlgoritms,
+            String expectedAudience,
+            CredentialType typeEnum
+    ) {
+        if (proofSigningAlgoritms == null || proofSigningAlgoritms.isEmpty()) {
+            return Mono.error(new ConfigurationException(
+                    "No proof_signing_alg_values_supported configured for proof type 'jwt' " +
+                            "and credential type " + typeEnum.name()
+            ));
+        }
+
+        if (jwtProof == null) {
+            return Mono.error(new InvalidOrMissingProofException(
+                    "Missing proof for type " + typeEnum.name()
+            ));
+        }
+
+        return proofValidationService
+                .isProofValid(jwtProof, proofSigningAlgoritms, expectedAudience)
+                .doOnNext(valid ->
+                        log.info("Proof validation result for {}: {}", typeEnum.name(), valid)
+                )
+                .flatMap(valid -> {
+                    if (!Boolean.TRUE.equals(valid)) {
+                        return Mono.error(new InvalidOrMissingProofException("Invalid proof"));
                     }
-
-                    //Select the cryptographic binding method
-                    String cryptoBindingMethod;
-                    try {
-                        cryptoBindingMethod = cryptoMethods.stream()
-                                .findFirst()
-                                .orElseThrow(() -> new ConfigurationException(
-                                        "No cryptographic binding method configured for " + typeEnum.name()
-                                ));
-                    } catch (ConfigurationException e) {
-                        throw new RuntimeException(e);
-                    }
-
-                    log.debug("Crypto binding method for {}: {}", typeEnum.name(), cryptoBindingMethod);
-
-                    //Resolve proof configuration for JWT proofs
-                    var proofTypes = cfg.proofTypesSupported();
-                    var jwtProofConfig = (proofTypes != null) ? proofTypes.get("jwt") : null;
-
-                    //Allowed signing algorithms for the JWT proof
-                    Set<String> proofSigningAlgoritms = (jwtProofConfig != null) ? jwtProofConfig.proofSigningAlgValuesSupported() : null;
-
-                    //Fail if the Issuer configuration is incomplete
-                    if (proofSigningAlgoritms == null || proofSigningAlgoritms.isEmpty()) {
-                        return Mono.error(new ConfigurationException(
-                                "No proof_signing_alg_values_supported configured for proof type 'jwt' " +
-                                        "and credential type " + typeEnum.name()
-                        ));
-                    }
-
-                    log.debug("Proof signing algs for {}: {}", typeEnum.name(), proofSigningAlgoritms);
-
-                    //Extract the proof(s) provided by the wallet
-                    List<String> jwtList = credentialRequest.proofs() != null
-                            ? credentialRequest.proofs().jwt()
-                            : Collections.emptyList();
-
-                    //Wallet did not provide a proof although it is required
-                    if (jwtList.isEmpty()) {
-                        return Mono.error(new InvalidOrMissingProofException(
-                                "Missing proof for type " + typeEnum.name()
-                        ));
-                    }
-
-                    //Currently only the first proof is used
-                    String jwtProof = jwtList.get(0);
-                    String expectedAudience = metadata.credentialIssuer();
-
-                    //Validate the proof according to Issuer configuration
-                    return proofValidationService
-                            .isProofValid(
-                                    jwtProof,
-                                    proofSigningAlgoritms,
-                                    expectedAudience
-                            )
-                            .doOnNext(valid ->
-                                    log.info("Proof validation result for {}: {}", typeEnum.name(), valid)
-                            )
-
-                            //If the proof is invalid, reject the request
-                            .flatMap(valid -> {
-                                if (!Boolean.TRUE.equals(valid)) {
-                                    return Mono.error(new InvalidOrMissingProofException("Invalid proof"));
-                                }
-
-                                //Extract binding information from the JWT proof
-                                return extractBindingInfoFromJwtProof(jwtProof);
-                            });
+                    return extractBindingInfoFromJwtProof(jwtProof);
                 });
     }
+
 
 
 

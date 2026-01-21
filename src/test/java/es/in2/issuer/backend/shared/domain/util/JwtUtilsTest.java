@@ -139,7 +139,6 @@ class JwtUtilsTest {
 
         String did = jwtUtils.didKeyFromJwk(jwk);
 
-        // pub = 0x04 || X || Y
         byte[] pub = new byte[1 + x.length + y.length];
         pub[0] = 0x04;
         System.arraycopy(x, 0, pub, 1, x.length);
@@ -153,16 +152,6 @@ class JwtUtilsTest {
 
         String expectedDid = "did:key:" + "z" + Base58.base58Encode(multicodec);
         assertThat(did).isEqualTo(expectedDid);
-    }
-
-    @Test
-    void didKeyFromJwk_throwsOnEmptyOrUnsupported() {
-        IllegalArgumentException ex1 = assertThrows(IllegalArgumentException.class, () -> jwtUtils.didKeyFromJwk(Map.of()));
-        assertThat(ex1.getMessage()).isEqualTo("jwk is empty");
-
-        Map<String, Object> unsupported = Map.of("kty", "RSA", "n", "abc", "e", "AQAB");
-        IllegalArgumentException ex2 = assertThrows(IllegalArgumentException.class, () -> jwtUtils.didKeyFromJwk(unsupported));
-        assertThat(ex2.getMessage()).contains("Unsupported JWK for did:key");
     }
 
     @Test

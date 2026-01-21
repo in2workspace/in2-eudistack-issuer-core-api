@@ -468,8 +468,7 @@ class CredentialSignerWorkflowImplTest {
 
     @Test
     void signAndUpdateCredentialByProcedureId_setsSub_whenCredentialSubjectIdPresent_object() throws Exception {
-        String procedureId = UUID.randomUUID().toString();
-        String token = "token";
+        String procId = UUID.randomUUID().toString();
 
         String unsignedCredential = """
             {"iss":"issuer","vc":{"credentialSubject":{"id":"did:key:zAlice","name":"Alice"}}}
@@ -480,7 +479,7 @@ class CredentialSignerWorkflowImplTest {
         when(credentialProcedure.getCredentialDecoded()).thenReturn("decoded");
         when(credentialProcedure.getUpdatedBy()).thenReturn("alice@example.com");
 
-        when(credentialProcedureRepository.findByProcedureId(UUID.fromString(procedureId)))
+        when(credentialProcedureRepository.findByProcedureId(UUID.fromString(procId)))
                 .thenReturn(Mono.just(credentialProcedure));
 
 
@@ -504,8 +503,7 @@ class CredentialSignerWorkflowImplTest {
         when(idNode.isTextual()).thenReturn(true);
         when(idNode.asText()).thenReturn("did:key:zAlice");
 
-        // when setting sub -> workflow calls root.put("sub", ...)
-        when(root.put(eq("sub"), eq("did:key:zAlice"))).thenReturn(root);
+        when(root.put("sub", "did:key:zAlice")).thenReturn(root);
 
         // stringify modified JSON
         String expectedPayloadToSign = """
@@ -513,16 +511,16 @@ class CredentialSignerWorkflowImplTest {
         """;
         when(objectMapper.writeValueAsString(root)).thenReturn(expectedPayloadToSign);
 
-        when(remoteSignatureService.sign(any(SignatureRequest.class), eq(token), eq(procedureId), anyString()))
+        when(remoteSignatureService.sign(any(SignatureRequest.class), eq("some-token"), eq(procId), anyString()))
                 .thenReturn(Mono.just(new SignedData(SignatureType.JADES, "signed")));
-        when(deferredCredentialWorkflow.updateSignedCredentials(any(), eq(procedureId))).thenReturn(Mono.empty());
+        when(deferredCredentialWorkflow.updateSignedCredentials(any(), eq(procId))).thenReturn(Mono.empty());
 
-        StepVerifier.create(credentialSignerWorkflow.signAndUpdateCredentialByProcedureId(token, procedureId, JWT_VC))
+        StepVerifier.create(credentialSignerWorkflow.signAndUpdateCredentialByProcedureId("some-token", procId, JWT_VC))
                 .expectNext("signed")
                 .verifyComplete();
 
         ArgumentCaptor<SignatureRequest> captor = ArgumentCaptor.forClass(SignatureRequest.class);
-        verify(remoteSignatureService).sign(captor.capture(), eq(token), eq(procedureId), anyString());
+        verify(remoteSignatureService).sign(captor.capture(), eq("some-token"), eq(procId), anyString());
 
         assertEquals(expectedPayloadToSign, captor.getValue().data());
         verify(root).put("sub", "did:key:zAlice");
@@ -531,8 +529,8 @@ class CredentialSignerWorkflowImplTest {
 
     @Test
     void signAndUpdateCredentialByProcedureId_doesNotSetSub_whenCredentialSubjectIdMissing() throws Exception {
-        String procedureId = UUID.randomUUID().toString();
-        String token = "token";
+        String procID = UUID.randomUUID().toString();
+        
 
         String unsignedCredential = """
             {"iss":"issuer","vc":{"credentialSubject":{"name":"NoId"}}}
@@ -543,7 +541,7 @@ class CredentialSignerWorkflowImplTest {
         when(credentialProcedure.getCredentialDecoded()).thenReturn("decoded");
         when(credentialProcedure.getUpdatedBy()).thenReturn("alice@example.com");
 
-        when(credentialProcedureRepository.findByProcedureId(UUID.fromString(procedureId)))
+        when(credentialProcedureRepository.findByProcedureId(UUID.fromString(procID)))
                 .thenReturn(Mono.just(credentialProcedure));
 
         when(learCredentialEmployeeFactory.mapStringToLEARCredentialEmployee(anyString()))
@@ -565,16 +563,16 @@ class CredentialSignerWorkflowImplTest {
         when(cs.path("id")).thenReturn(idNode);
         when(idNode.isTextual()).thenReturn(false); // no id textual
 
-        when(remoteSignatureService.sign(any(SignatureRequest.class), eq(token), eq(procedureId), anyString()))
+        when(remoteSignatureService.sign(any(SignatureRequest.class), eq(token), eq(procID), anyString()))
                 .thenReturn(Mono.just(new SignedData(SignatureType.JADES, "signed")));
-        when(deferredCredentialWorkflow.updateSignedCredentials(any(), eq(procedureId))).thenReturn(Mono.empty());
+        when(deferredCredentialWorkflow.updateSignedCredentials(any(), eq(procID))).thenReturn(Mono.empty());
 
-        StepVerifier.create(credentialSignerWorkflow.signAndUpdateCredentialByProcedureId(token, procedureId, JWT_VC))
+        StepVerifier.create(credentialSignerWorkflow.signAndUpdateCredentialByProcedureId(token, procID, JWT_VC))
                 .expectNext("signed")
                 .verifyComplete();
 
         ArgumentCaptor<SignatureRequest> captor = ArgumentCaptor.forClass(SignatureRequest.class);
-        verify(remoteSignatureService).sign(captor.capture(), eq(token), eq(procedureId), anyString());
+        verify(remoteSignatureService).sign(captor.capture(), eq(token), eq(procID), anyString());
 
         // should be original payload (since setSub returns original when no id)
         assertEquals(unsignedCredential, captor.getValue().data());
@@ -584,8 +582,8 @@ class CredentialSignerWorkflowImplTest {
 
     @Test
     void signAndUpdateCredentialByProcedureId_keepsOriginalPayload_whenInvalidJson() throws Exception {
-        String procedureId = UUID.randomUUID().toString();
-        String token = "token";
+        String procId = UUID.randomUUID().toString();
+  
 
         String unsignedCredential = "{\"vc\":{\"credentialSubject\":{\"id\":\"did:key:zAlice\"}}"; // invalid json
 
@@ -594,7 +592,7 @@ class CredentialSignerWorkflowImplTest {
         when(credentialProcedure.getCredentialDecoded()).thenReturn("decoded");
         when(credentialProcedure.getUpdatedBy()).thenReturn("alice@example.com");
 
-        when(credentialProcedureRepository.findByProcedureId(UUID.fromString(procedureId)))
+        when(credentialProcedureRepository.findByProcedureId(UUID.fromString(procId)))
                 .thenReturn(Mono.just(credentialProcedure));
 
         when(learCredentialEmployeeFactory.mapStringToLEARCredentialEmployee(anyString()))
@@ -609,16 +607,16 @@ class CredentialSignerWorkflowImplTest {
                 .readTree(unsignedCredential);
 
 
-        when(remoteSignatureService.sign(any(SignatureRequest.class), eq(token), eq(procedureId), anyString()))
+        when(remoteSignatureService.sign(any(SignatureRequest.class), eq(token), eq(procId), anyString()))
                 .thenReturn(Mono.just(new SignedData(SignatureType.JADES, "signed")));
-        when(deferredCredentialWorkflow.updateSignedCredentials(any(), eq(procedureId))).thenReturn(Mono.empty());
+        when(deferredCredentialWorkflow.updateSignedCredentials(any(), eq(procId))).thenReturn(Mono.empty());
 
-        StepVerifier.create(credentialSignerWorkflow.signAndUpdateCredentialByProcedureId(token, procedureId, JWT_VC))
+        StepVerifier.create(credentialSignerWorkflow.signAndUpdateCredentialByProcedureId(token, procId, JWT_VC))
                 .expectNext("signed")
                 .verifyComplete();
 
         ArgumentCaptor<SignatureRequest> captor = ArgumentCaptor.forClass(SignatureRequest.class);
-        verify(remoteSignatureService).sign(captor.capture(), eq(token), eq(procedureId), anyString());
+        verify(remoteSignatureService).sign(captor.capture(), eq(token), eq(procId), anyString());
 
         // unchanged payload
         assertEquals(unsignedCredential, captor.getValue().data());
@@ -627,8 +625,8 @@ class CredentialSignerWorkflowImplTest {
     @Test
     void signAndUpdateCredentialByProcedureId_setsSub_whenCredentialSubjectIsArray_firstNonBlankId() {
         // Arrange
-        String procedureId = UUID.randomUUID().toString();
-        String token = "token";
+        String procId = UUID.randomUUID().toString();
+        
 
         String unsignedCredential =
                 """
@@ -649,7 +647,7 @@ class CredentialSignerWorkflowImplTest {
         when(cp.getCredentialDecoded()).thenReturn("decoded");
         when(cp.getUpdatedBy()).thenReturn("alice@example.com");
 
-        when(credentialProcedureRepository.findByProcedureId(UUID.fromString(procedureId)))
+        when(credentialProcedureRepository.findByProcedureId(UUID.fromString(procId)))
                 .thenReturn(Mono.just(cp));
 
         when(learCredentialEmployeeFactory.mapStringToLEARCredentialEmployee(anyString()))
@@ -659,32 +657,31 @@ class CredentialSignerWorkflowImplTest {
         when(learCredentialEmployeeFactory.convertLEARCredentialEmployeeJwtPayloadInToString(any()))
                 .thenReturn(Mono.just(unsignedCredential));
 
-        when(remoteSignatureService.sign(any(SignatureRequest.class), eq(token), eq(procedureId), anyString()))
+        when(remoteSignatureService.sign(any(SignatureRequest.class), eq(token), eq(procId), anyString()))
                 .thenReturn(Mono.just(new SignedData(SignatureType.JADES, "signed")));
 
         doReturn(Mono.empty())
                 .when(deferredCredentialWorkflow)
-                .updateSignedCredentials(any(SignedCredentials.class), eq(procedureId));
+                .updateSignedCredentials(any(SignedCredentials.class), eq(procId));
 
-        StepVerifier.create(credentialSignerWorkflow.signAndUpdateCredentialByProcedureId(token, procedureId, JWT_VC))
+        StepVerifier.create(credentialSignerWorkflow.signAndUpdateCredentialByProcedureId(token, procId, JWT_VC))
                 .expectNext("signed")
                 .verifyComplete();
 
         ArgumentCaptor<SignatureRequest> captor = ArgumentCaptor.forClass(SignatureRequest.class);
-        verify(remoteSignatureService).sign(captor.capture(), eq(token), eq(procedureId), anyString());
+        verify(remoteSignatureService).sign(captor.capture(), eq(token), eq(procId), anyString());
 
         String payloadToSign = captor.getValue().data();
 
         assertTrue(payloadToSign.contains("\"sub\":\"did:key:zBob\""));
         assertFalse(payloadToSign.contains("\"sub\":\"did:key:zCharlie\""));
 
-        verify(deferredCredentialWorkflow).updateSignedCredentials(any(SignedCredentials.class), eq(procedureId));
+        verify(deferredCredentialWorkflow).updateSignedCredentials(any(SignedCredentials.class), eq(procId));
     }
 
     @Test
     void signAndUpdateCredentialByProcedureId_doesNotSetSub_whenCredentialSubjectArray_hasNoValidId() {
-        String procedureId = UUID.randomUUID().toString();
-        String token = "token";
+        String procId = UUID.randomUUID().toString();
 
         String unsignedCredential =
                 """
@@ -710,7 +707,7 @@ class CredentialSignerWorkflowImplTest {
         when(cp.getUpdatedBy()).thenReturn("alice@example.com");
 
 
-        when(credentialProcedureRepository.findByProcedureId(UUID.fromString(procedureId)))
+        when(credentialProcedureRepository.findByProcedureId(UUID.fromString(procId)))
                 .thenReturn(Mono.just(cp));
 
         when(learCredentialEmployeeFactory.mapStringToLEARCredentialEmployee(anyString()))
@@ -720,15 +717,15 @@ class CredentialSignerWorkflowImplTest {
         when(learCredentialEmployeeFactory.convertLEARCredentialEmployeeJwtPayloadInToString(any()))
                 .thenReturn(Mono.just(unsignedCredential));
 
-        when(remoteSignatureService.sign(any(SignatureRequest.class), eq(token), eq(procedureId), anyString()))
+        when(remoteSignatureService.sign(any(SignatureRequest.class), eq(token), eq(procId), anyString()))
                 .thenReturn(Mono.just(new SignedData(SignatureType.JADES, "signed")));
 
-        StepVerifier.create(credentialSignerWorkflow.signAndUpdateCredentialByProcedureId(token, procedureId, JWT_VC))
+        StepVerifier.create(credentialSignerWorkflow.signAndUpdateCredentialByProcedureId(token, procId, JWT_VC))
                 .expectNext("signed")
                 .verifyComplete();
 
         ArgumentCaptor<SignatureRequest> captor = ArgumentCaptor.forClass(SignatureRequest.class);
-        verify(remoteSignatureService).sign(captor.capture(), eq(token), eq(procedureId), anyString());
+        verify(remoteSignatureService).sign(captor.capture(), eq(token), eq(procId), anyString());
 
         String payloadToSign = captor.getValue().data();
 

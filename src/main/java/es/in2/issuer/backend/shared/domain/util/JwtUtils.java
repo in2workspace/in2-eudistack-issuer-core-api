@@ -52,7 +52,6 @@ public class JwtUtils {
             byte[] x = b64uDecodeRequired(jwk, "x");
             byte[] y = b64uDecodeRequired(jwk, "y");
 
-            // Uncompressed point: 0x04 || X || Y
             byte[] pub = new byte[1 + x.length + y.length];
             pub[0] = 0x04;
             System.arraycopy(x, 0, pub, 1, x.length);
