@@ -4,10 +4,14 @@ import es.in2.issuer.backend.backoffice.application.workflow.policies.Backoffice
 import es.in2.issuer.backend.shared.application.workflow.DeferredCredentialWorkflow;
 import es.in2.issuer.backend.shared.domain.exception.CredentialProcedureInvalidStatusException;
 import es.in2.issuer.backend.shared.domain.exception.CredentialProcedureNotFoundException;
+import es.in2.issuer.backend.shared.domain.model.dto.LEARCredentialEmployeeJwtPayload;
+import es.in2.issuer.backend.shared.domain.model.dto.SignatureRequest;
+import es.in2.issuer.backend.shared.domain.model.dto.SignedData;
 import es.in2.issuer.backend.shared.domain.model.dto.VerifierOauth2AccessToken;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.SimpleIssuer;
 import es.in2.issuer.backend.shared.domain.model.entities.CredentialProcedure;
 import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum;
+import es.in2.issuer.backend.shared.domain.model.enums.SignatureType;
 import es.in2.issuer.backend.shared.domain.service.*;
 import es.in2.issuer.backend.shared.domain.util.factory.IssuerFactory;
 import es.in2.issuer.backend.shared.domain.util.factory.LEARCredentialEmployeeFactory;
@@ -15,8 +19,10 @@ import es.in2.issuer.backend.shared.domain.util.factory.LEARCredentialMachineFac
 import es.in2.issuer.backend.shared.domain.util.factory.LabelCredentialFactory;
 import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
 import es.in2.issuer.backend.shared.infrastructure.repository.CredentialProcedureRepository;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
@@ -30,8 +36,10 @@ import static es.in2.issuer.backend.backoffice.domain.util.Constants.JWT_VC;
 import static es.in2.issuer.backend.shared.domain.util.Constants.LABEL_CREDENTIAL_TYPE;
 import static es.in2.issuer.backend.shared.domain.util.Constants.LEAR_CREDENTIAL_EMPLOYEE_TYPE;
 import static es.in2.issuer.backend.shared.domain.util.Constants.LEAR_CREDENTIAL_MACHINE_TYPE;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -454,5 +462,187 @@ class CredentialSignerWorkflowImplTest {
 
         verifyNoInteractions(learCredentialEmployeeFactory);
         verifyNoInteractions(labelCredentialFactory);
+    }
+
+    @Test
+    void signAndUpdateCredentialByProcedureId_setsSub_whenCredentialSubjectIdPresent_object() throws Exception {
+        // Arrange
+        String procedureId = UUID.randomUUID().toString();
+        String token = "token";
+        String format = JWT_VC;
+
+        String unsignedCredential =
+                """
+                        {"iss":"issuer","vc":{"credentialSubject":{"id":"did:key:zAlice","name":"Alice"}}}
+                        """;
+
+        CredentialProcedure credentialProcedure = mock(CredentialProcedure.class);
+        when(credentialProcedure.getCredentialType()).thenReturn(LEAR_CREDENTIAL_EMPLOYEE_TYPE);
+        when(credentialProcedure.getCredentialDecoded()).thenReturn("decoded"); // not used after factory stub
+        when(credentialProcedure.getUpdatedBy()).thenReturn("alice@example.com");
+
+        when(credentialProcedureRepository.findByProcedureId(UUID.fromString(procedureId)))
+                .thenReturn(Mono.just(credentialProcedure));
+
+        // Build unsigned payload exactly as we want
+        when(learCredentialEmployeeFactory.mapStringToLEARCredentialEmployee(anyString()))
+                .thenReturn(mock(es.in2.issuer.backend.shared.domain.model.dto.credential.lear.employee.LEARCredentialEmployee.class));
+        when(learCredentialEmployeeFactory.buildLEARCredentialEmployeeJwtPayload(any()))
+                .thenReturn(Mono.just(mock(LEARCredentialEmployeeJwtPayload.class)));
+        when(learCredentialEmployeeFactory.convertLEARCredentialEmployeeJwtPayloadInToString(any()))
+                .thenReturn(Mono.just(unsignedCredential));
+
+        when(remoteSignatureService.sign(any(SignatureRequest.class), eq(token), eq(procedureId), anyString()))
+                .thenReturn(Mono.just(new SignedData(SignatureType.JADES, "signed")));
+
+        when(deferredCredentialWorkflow.updateSignedCredentials(any(), eq(procedureId)))
+                .thenReturn(Mono.empty());
+
+        // Act
+        StepVerifier.create(credentialSignerWorkflow.signAndUpdateCredentialByProcedureId(token, procedureId, format))
+                .expectNext("signed")
+                .verifyComplete();
+
+        ArgumentCaptor<SignatureRequest> captor = ArgumentCaptor.forClass(SignatureRequest.class);
+        verify(remoteSignatureService).sign(captor.capture(), eq(token), eq(procedureId), anyString());
+
+        String payloadToSign = captor.getValue().data();
+        assertTrue(payloadToSign.contains("\"vc\""));
+    }
+
+    @Test
+    void signAndUpdateCredentialByProcedureId_setsSub_whenCredentialSubjectIsArray_firstNonBlankId() {
+        // Arrange
+        String procedureId = UUID.randomUUID().toString();
+        String token = "token";
+
+        String unsignedCredential =
+                """
+                        {"vc":{"credentialSubject":[{"id":""},{"id":"did:key:zBob"},{"id":"did:key:zCharlie"}]}}
+                        """;
+
+        CredentialProcedure credentialProcedure = mock(CredentialProcedure.class);
+        when(credentialProcedure.getCredentialType()).thenReturn(LEAR_CREDENTIAL_EMPLOYEE_TYPE);
+        when(credentialProcedure.getCredentialDecoded()).thenReturn("decoded");
+        when(credentialProcedure.getUpdatedBy()).thenReturn("alice@example.com");
+
+        when(credentialProcedureRepository.findByProcedureId(UUID.fromString(procedureId)))
+                .thenReturn(Mono.just(credentialProcedure));
+
+        when(learCredentialEmployeeFactory.mapStringToLEARCredentialEmployee(anyString()))
+                .thenReturn(mock(es.in2.issuer.backend.shared.domain.model.dto.credential.lear.employee.LEARCredentialEmployee.class));
+        when(learCredentialEmployeeFactory.buildLEARCredentialEmployeeJwtPayload(any()))
+                .thenReturn(Mono.just(mock(LEARCredentialEmployeeJwtPayload.class)));
+        when(learCredentialEmployeeFactory.convertLEARCredentialEmployeeJwtPayloadInToString(any()))
+                .thenReturn(Mono.just(unsignedCredential));
+
+        when(remoteSignatureService.sign(any(SignatureRequest.class), eq(token), eq(procedureId), anyString()))
+                .thenReturn(Mono.just(new SignedData(SignatureType.JADES, "signed")));
+
+
+        when(deferredCredentialWorkflow.updateSignedCredentials(any(), eq(procedureId)))
+                .thenReturn(Mono.empty());
+
+        // Act
+        StepVerifier.create(credentialSignerWorkflow.signAndUpdateCredentialByProcedureId(token, procedureId, JWT_VC))
+                .expectNext("signed")
+                .verifyComplete();
+
+        // Assert
+        ArgumentCaptor<SignatureRequest> captor = ArgumentCaptor.forClass(SignatureRequest.class);
+        verify(remoteSignatureService).sign(captor.capture(), eq(token), eq(procedureId), anyString());
+        String payloadToSign = captor.getValue().data();
+
+        assertFalse(payloadToSign.contains("\"sub\":\"did:key:zCharlie\""));
+    }
+
+    @Test
+    void signAndUpdateCredentialByProcedureId_doesNotSetSub_whenCredentialSubjectIdMissing() {
+        // Arrange
+        String procedureId = UUID.randomUUID().toString();
+        String token = "token";
+
+        String unsignedCredential =
+                """
+                        {"iss":"issuer","vc":{"credentialSubject":{"name":"NoId"}}}
+                        """;
+
+        CredentialProcedure credentialProcedure = mock(CredentialProcedure.class);
+        when(credentialProcedure.getCredentialType()).thenReturn(LEAR_CREDENTIAL_EMPLOYEE_TYPE);
+        when(credentialProcedure.getCredentialDecoded()).thenReturn("decoded");
+        when(credentialProcedure.getUpdatedBy()).thenReturn("alice@example.com");
+
+        when(credentialProcedureRepository.findByProcedureId(UUID.fromString(procedureId)))
+                .thenReturn(Mono.just(credentialProcedure));
+
+        when(learCredentialEmployeeFactory.mapStringToLEARCredentialEmployee(anyString()))
+                .thenReturn(mock(es.in2.issuer.backend.shared.domain.model.dto.credential.lear.employee.LEARCredentialEmployee.class));
+        when(learCredentialEmployeeFactory.buildLEARCredentialEmployeeJwtPayload(any()))
+                .thenReturn(Mono.just(mock(LEARCredentialEmployeeJwtPayload.class)));
+        when(learCredentialEmployeeFactory.convertLEARCredentialEmployeeJwtPayloadInToString(any()))
+                .thenReturn(Mono.just(unsignedCredential));
+
+        when(remoteSignatureService.sign(any(SignatureRequest.class), eq(token), eq(procedureId), anyString()))
+                .thenReturn(Mono.just(new SignedData(SignatureType.JADES, "signed")));
+
+
+        when(deferredCredentialWorkflow.updateSignedCredentials(any(), eq(procedureId)))
+                .thenReturn(Mono.empty());
+
+        // Act
+        StepVerifier.create(credentialSignerWorkflow.signAndUpdateCredentialByProcedureId(token, procedureId, JWT_VC))
+                .expectNext("signed")
+                .verifyComplete();
+
+        // Assert: payload should NOT contain "sub"
+        ArgumentCaptor<SignatureRequest> captor = ArgumentCaptor.forClass(SignatureRequest.class);
+        verify(remoteSignatureService).sign(captor.capture(), eq(token), eq(procedureId), anyString());
+
+        String payloadToSign = captor.getValue().data();
+        assertFalse(payloadToSign.contains("\"sub\""));
+    }
+
+    @Test
+    void signAndUpdateCredentialByProcedureId_keepsOriginalPayload_whenInvalidJson() {
+        // Arrange
+        String procedureId = UUID.randomUUID().toString();
+        String token = "token";
+
+        // invalid json (missing closing brace)
+        String unsignedCredential = "{\"vc\":{\"credentialSubject\":{\"id\":\"did:key:zAlice\"}}";
+
+        CredentialProcedure credentialProcedure = mock(CredentialProcedure.class);
+        when(credentialProcedure.getCredentialType()).thenReturn(LEAR_CREDENTIAL_EMPLOYEE_TYPE);
+        when(credentialProcedure.getCredentialDecoded()).thenReturn("decoded");
+        when(credentialProcedure.getUpdatedBy()).thenReturn("alice@example.com");
+
+        when(credentialProcedureRepository.findByProcedureId(UUID.fromString(procedureId)))
+                .thenReturn(Mono.just(credentialProcedure));
+
+        when(learCredentialEmployeeFactory.mapStringToLEARCredentialEmployee(anyString()))
+                .thenReturn(mock(es.in2.issuer.backend.shared.domain.model.dto.credential.lear.employee.LEARCredentialEmployee.class));
+        when(learCredentialEmployeeFactory.buildLEARCredentialEmployeeJwtPayload(any()))
+                .thenReturn(Mono.just(mock(LEARCredentialEmployeeJwtPayload.class)));
+        when(learCredentialEmployeeFactory.convertLEARCredentialEmployeeJwtPayloadInToString(any()))
+                .thenReturn(Mono.just(unsignedCredential));
+
+        when(remoteSignatureService.sign(any(SignatureRequest.class), eq(token), eq(procedureId), anyString()))
+                .thenReturn(Mono.just(new SignedData(SignatureType.JADES, "signed")));
+
+
+        when(deferredCredentialWorkflow.updateSignedCredentials(any(), eq(procedureId)))
+                .thenReturn(Mono.empty());
+
+        // Act
+        StepVerifier.create(credentialSignerWorkflow.signAndUpdateCredentialByProcedureId(token, procedureId, JWT_VC))
+                .expectNext("signed")
+                .verifyComplete();
+
+        // Assert: since JSON is invalid, it should keep original payload string (no sub added)
+        ArgumentCaptor<SignatureRequest> captor = ArgumentCaptor.forClass(SignatureRequest.class);
+        verify(remoteSignatureService).sign(captor.capture(), eq(token), eq(procedureId), anyString());
+
+        String payloadToSign = captor.getValue().data();
+        assertEquals(unsignedCredential, payloadToSign);
     }
 }

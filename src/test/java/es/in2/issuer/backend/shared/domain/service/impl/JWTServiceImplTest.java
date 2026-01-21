@@ -4,14 +4,23 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.nimbusds.jose.JOSEObjectType;
+import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.Payload;
+import com.nimbusds.jose.crypto.ECDSASigner;
+import com.nimbusds.jose.crypto.Ed25519Signer;
 import com.nimbusds.jose.jwk.Curve;
 import com.nimbusds.jose.jwk.ECKey;
+import com.nimbusds.jose.jwk.OctetKeyPair;
+import com.nimbusds.jose.jwk.gen.ECKeyGenerator;
+import com.nimbusds.jose.jwk.gen.OctetKeyPairGenerator;
+import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import es.in2.issuer.backend.shared.domain.exception.JWTClaimMissingException;
 import es.in2.issuer.backend.shared.domain.exception.JWTCreationException;
 import es.in2.issuer.backend.shared.domain.exception.JWTParsingException;
+import es.in2.issuer.backend.shared.domain.exception.ProofValidationException;
 import es.in2.issuer.backend.shared.infrastructure.crypto.CryptoComponent;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -25,6 +34,7 @@ import reactor.test.StepVerifier;
 
 import java.text.ParseException;
 import java.time.Instant;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -336,4 +346,100 @@ class JWTServiceImplTest {
         Optional<String> email = jwtService.extractMandateeEmail(jwt);
         assertTrue(email.isEmpty());
     }
+    @Test
+    void validateJwtSignatureWithJwkReactive_ES256_validSignature_returnsTrue() throws Exception {
+        // Generate EC P-256 key
+        ECKey ecJwk = new ECKeyGenerator(Curve.P_256)
+                .keyID("ec-kid-1")
+                .generate();
+
+        // Build signed JWT with ES256
+        JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.ES256)
+                .keyID(ecJwk.getKeyID())
+                .type(JOSEObjectType.JWT)
+                .build();
+
+        JWTClaimsSet claims = new JWTClaimsSet.Builder()
+                .issuer("issuer")
+                .subject("subject")
+                .issueTime(new Date())
+                .build();
+
+        SignedJWT jwt = new SignedJWT(header, claims);
+        jwt.sign(new ECDSASigner(ecJwk));
+
+        String token = jwt.serialize();
+
+        // Verify using PUBLIC JWK map
+        Map<String, Object> jwkMap = ecJwk.toPublicJWK().toJSONObject();
+
+        Mono<Boolean> result = jwtService.validateJwtSignatureWithJwkReactive(token, jwkMap);
+
+        StepVerifier.create(result)
+                .expectNext(true)
+                .verifyComplete();
+    }
+
+    @Test
+    void validateJwtSignatureWithJwkReactive_ES256_invalidSignature_returnsFalse() throws Exception {
+        // Sign with key A, verify with key B
+        ECKey signerKey = new ECKeyGenerator(Curve.P_256).keyID("signer").generate();
+        ECKey verifierKey = new ECKeyGenerator(Curve.P_256).keyID("verifier").generate();
+
+        JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.ES256).keyID("signer").build();
+        JWTClaimsSet claims = new JWTClaimsSet.Builder().subject("s").issueTime(new Date()).build();
+
+        SignedJWT jwt = new SignedJWT(header, claims);
+        jwt.sign(new ECDSASigner(signerKey));
+
+        String token = jwt.serialize();
+        Map<String, Object> wrongPublicJwkMap = verifierKey.toPublicJWK().toJSONObject();
+
+        Mono<Boolean> result = jwtService.validateJwtSignatureWithJwkReactive(token, wrongPublicJwkMap);
+
+        StepVerifier.create(result)
+                .expectNext(false)
+                .verifyComplete();
+    }
+
+    @Test
+    void validateJwtSignatureWithJwkReactive_privateJwk_shouldError() throws Exception {
+        ECKey ecJwk = new ECKeyGenerator(Curve.P_256).keyID("ec-private").generate();
+
+        // Sign something valid
+        JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.ES256).keyID("ec-private").build();
+        SignedJWT jwt = new SignedJWT(header, new JWTClaimsSet.Builder().issueTime(new Date()).build());
+        jwt.sign(new ECDSASigner(ecJwk));
+        String token = jwt.serialize();
+
+        // Pass PRIVATE jwk map (contains d) -> must error
+        Map<String, Object> privateJwkMap = ecJwk.toJSONObject();
+
+        Mono<Boolean> result = jwtService.validateJwtSignatureWithJwkReactive(token, privateJwkMap);
+
+        StepVerifier.create(result)
+                .expectErrorMatches(err ->
+                        err instanceof ProofValidationException &&
+                                err.getMessage().contains("jwk must not contain private key material")
+                )
+                .verify();
+    }
+
+
+
+    @Test
+    void validateJwtSignatureWithJwkReactive_malformedJwtOrJwk_shouldError() {
+        String badJwt = "not-a-jwt";
+        Map<String, Object> badJwk = Map.of("kty", "EC"); // missing x/y/crv
+
+        Mono<Boolean> result = jwtService.validateJwtSignatureWithJwkReactive(badJwt, badJwk);
+
+        StepVerifier.create(result)
+                .expectErrorMatches(err ->
+                        err instanceof ProofValidationException &&
+                                err.getMessage().contains("malformed jwt or jwk")
+                )
+                .verify();
+    }
+
 }
