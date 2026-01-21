@@ -102,51 +102,72 @@ public class JWTServiceImpl implements JWTService {
 
     @Override
     public Mono<Boolean> validateJwtSignatureWithJwkReactive(String jwt, Map<String, Object> jwkMap) {
-        return Mono.fromCallable(() -> {
-            try {
-                SignedJWT signedJWT = SignedJWT.parse(jwt);
-                JWSHeader header = signedJWT.getHeader();
-                JWSAlgorithm alg = header.getAlgorithm();
-
-                JWK jwk = JWK.parse(jwkMap);
-
-                if (jwk.isPrivate()) {
-                    throw new ProofValidationException("invalid_proof: jwk must not contain private key material");
-                }
-
-                final JWSVerifier verifier;
-
-                if (jwk instanceof ECKey ecKey) {
-                    if (alg == null || !alg.getName().startsWith("ES")) {
-                        throw new ProofValidationException("invalid_proof: alg not compatible with EC JWK");
-                    }
-                    verifier = new ECDSAVerifier(ecKey.toECPublicKey());
-
-                } else if (jwk instanceof OctetKeyPair okp) {
-                    // Only Ed25519 is valid for signatures; X25519 is key agreement only
-                    if (okp.getCurve() == null || !Curve.Ed25519.equals(okp.getCurve())) {
-                        throw new ProofValidationException("invalid_proof: only Ed25519 OKP keys are supported for signatures");
-                    }
-                    if (!JWSAlgorithm.EdDSA.equals(alg)) {
-                        throw new ProofValidationException("invalid_proof: alg not compatible with Ed25519 JWK");
-                    }
-                    verifier = new Ed25519Verifier(okp);
-
-                } else {
-                    throw new ProofValidationException("invalid_proof: jwk kty not supported");
-                }
-
-                return signedJWT.verify(verifier);
-
-            } catch (ParseException e) {
-                throw new ProofValidationException("invalid_proof: malformed jwt or jwk");
-            } catch (ProofValidationException e) {
-                throw e;
-            } catch (Exception e) {
-                throw new ProofValidationException("invalid_proof: signature validation error");
-            }
-        }).subscribeOn(Schedulers.boundedElastic());
+        return Mono.fromCallable(() -> validateJwtSignatureWithJwk(jwt, jwkMap))
+                .subscribeOn(Schedulers.boundedElastic());
     }
+
+    private boolean validateJwtSignatureWithJwk(String jwt, Map<String, Object> jwkMap) throws ProofValidationException {
+        try {
+            SignedJWT signedJWT = SignedJWT.parse(jwt);
+            JWSAlgorithm alg = signedJWT.getHeader().getAlgorithm();
+
+            JWK jwk = parsePublicJwkOrThrow(jwkMap);
+            JWSVerifier verifier = buildVerifierOrThrow(jwk, alg);
+
+            return signedJWT.verify(verifier);
+
+        } catch (ParseException e) {
+            throw new ProofValidationException("invalid_proof: malformed jwt or jwk");
+        } catch (ProofValidationException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new ProofValidationException("invalid_proof: signature validation error");
+        }
+    }
+
+    private JWK parsePublicJwkOrThrow(Map<String, Object> jwkMap) throws ParseException, ProofValidationException {
+        JWK jwk = JWK.parse(jwkMap);
+        if (jwk.isPrivate()) {
+            throw new ProofValidationException("invalid_proof: jwk must not contain private key material");
+        }
+        return jwk;
+    }
+
+    private JWSVerifier buildVerifierOrThrow(JWK jwk, JWSAlgorithm alg) throws Exception {
+        if (jwk instanceof ECKey ecKey) {
+            validateAlgForEc(alg);
+            return new ECDSAVerifier(ecKey.toECPublicKey());
+        }
+
+        if (jwk instanceof OctetKeyPair okp) {
+            validateOkpEd25519(okp);
+            validateAlgForEd25519(alg);
+            return new Ed25519Verifier(okp);
+        }
+
+        throw new ProofValidationException("invalid_proof: jwk kty not supported");
+    }
+
+    private void validateAlgForEc(JWSAlgorithm alg) throws ProofValidationException {
+        if (alg == null || !alg.getName().startsWith("ES")) {
+            throw new ProofValidationException("invalid_proof: alg not compatible with EC JWK");
+        }
+    }
+
+    private void validateOkpEd25519(OctetKeyPair okp) throws ProofValidationException {
+        if (okp.getCurve() == null || !Curve.Ed25519.equals(okp.getCurve())) {
+            throw new ProofValidationException(
+                    "invalid_proof: only Ed25519 OKP keys are supported for signatures"
+            );
+        }
+    }
+
+    private void validateAlgForEd25519(JWSAlgorithm alg) throws ProofValidationException {
+        if (!JWSAlgorithm.EdDSA.equals(alg)) {
+            throw new ProofValidationException("invalid_proof: alg not compatible with Ed25519 JWK");
+        }
+    }
+
 
     public String extractEncodedPublicKey(String kid) {
         String prefix = DID_KEY;

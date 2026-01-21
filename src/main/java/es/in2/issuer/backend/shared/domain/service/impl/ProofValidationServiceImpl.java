@@ -56,7 +56,7 @@ public class ProofValidationServiceImpl implements ProofValidationService {
                     try {
                         validateJwtHeader(jwt, allowedAlgs);
                     } catch (ProofValidationException e) {
-                        throw new RuntimeException(e);
+                        return Mono.error(e);
                     }
                     validatePayload(jwt, expectedAudience);
                     return Mono.just(jwt);
@@ -67,15 +67,36 @@ public class ProofValidationServiceImpl implements ProofValidationService {
         var header = signedJWT.getHeader();
 
         String alg = getAlg(header);
+        validateAlgAllowed(alg, allowedAlgs);
 
+        Map<String, Object> headerParams = header.toJSONObject();
+        HeaderKeyMaterial km = resolveKeyMaterial(header, headerParams);
+
+        // FUTURO: x5c
+        if (km.type() == KeyMaterialType.X5C) {
+            throw new ProofValidationException("invalid_proof: x5c not supported");
+        }
+
+        if (km.type() == KeyMaterialType.JWK) {
+            validateJwkIsPublicOnly(km.value());
+        }
+    }
+
+    private void validateAlgAllowed(String alg, Set<String> allowedAlgs) throws ProofValidationException {
         if (allowedAlgs == null || allowedAlgs.isEmpty() || !allowedAlgs.contains(alg)) {
             throw new ProofValidationException("invalid_proof: alg not allowed by configuration");
         }
+    }
 
-        Map<String, Object> headerParams = header.toJSONObject();
+    private HeaderKeyMaterial resolveKeyMaterial(
+            JWSHeader header,
+            Map<String, Object> headerParams
+    ) throws ProofValidationException {
 
         boolean hasKid = header.getKeyID() != null;
-        boolean hasJwk = headerParams.get("jwk") != null;
+        Object jwkObj = headerParams.get("jwk");
+        boolean hasJwk = jwkObj != null;
+
         Object x5cObj = headerParams.get("x5c");
         boolean hasX5c = (x5cObj instanceof java.util.List<?> list && !list.isEmpty());
 
@@ -84,30 +105,33 @@ public class ProofValidationServiceImpl implements ProofValidationService {
             throw new ProofValidationException("invalid_proof: exactly one of kid, jwk or x5c must be present");
         }
 
-        // FUTURO: x5c
-        if (hasX5c) {
-            throw new ProofValidationException("invalid_proof: x5c not supported");
+        if (hasKid) return new HeaderKeyMaterial(KeyMaterialType.KID, header.getKeyID());
+        if (hasX5c) return new HeaderKeyMaterial(KeyMaterialType.X5C, x5cObj);
+        return new HeaderKeyMaterial(KeyMaterialType.JWK, jwkObj);
+    }
+
+    private void validateJwkIsPublicOnly(Object jwkObj) throws ProofValidationException {
+        if (!(jwkObj instanceof Map<?, ?> jwkMap)) {
+            throw new ProofValidationException("invalid_proof: jwk must be a JSON object");
         }
 
-        if (hasJwk) {
-            Object jwkObj = headerParams.get("jwk");
-            if (jwkObj instanceof Map<?, ?> jwkMap) {
-                boolean hasPrivate =
-                        jwkMap.containsKey("d")  ||
-                                jwkMap.containsKey("p")  ||
-                                jwkMap.containsKey("q")  ||
-                                jwkMap.containsKey("dp") ||
-                                jwkMap.containsKey("dq") ||
-                                jwkMap.containsKey("qi");
+        boolean hasPrivate =
+                jwkMap.containsKey("d")  ||
+                        jwkMap.containsKey("p")  ||
+                        jwkMap.containsKey("q")  ||
+                        jwkMap.containsKey("dp") ||
+                        jwkMap.containsKey("dq") ||
+                        jwkMap.containsKey("qi");
 
-                if (hasPrivate) {
-                    throw new ProofValidationException("invalid_proof: JWK must not contain private key material");
-                }
-            } else {
-                throw new ProofValidationException("invalid_proof: jwk must be a JSON object");
-            }
+        if (hasPrivate) {
+            throw new ProofValidationException("invalid_proof: JWK must not contain private key material");
         }
     }
+
+    private enum KeyMaterialType { KID, JWK, X5C }
+
+    private record HeaderKeyMaterial(KeyMaterialType type, Object value) {}
+
 
     private @NotNull String getAlg(JWSHeader header) throws ProofValidationException {
         String typ = header.getType() != null ? header.getType().toString() : null;

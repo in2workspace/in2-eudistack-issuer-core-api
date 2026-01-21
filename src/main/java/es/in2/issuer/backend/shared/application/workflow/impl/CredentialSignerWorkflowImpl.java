@@ -158,25 +158,7 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
                 return unsignedCredential;
             }
 
-            JsonNode vcNode = rootObj.path("vc");
-            JsonNode csNode = vcNode.path("credentialSubject");
-
-            String subjectDid = null;
-
-            if (csNode.isObject()) {
-                subjectDid = csNode.path("id").isTextual() ? csNode.path("id").asText() : null;
-            } else if (csNode.isArray()) {
-                ArrayNode arr = (ArrayNode) csNode;
-                for (JsonNode item : arr) {
-                    if (item != null && item.isObject()) {
-                        JsonNode idNode = item.path("id");
-                        if (idNode.isTextual() && !idNode.asText().isBlank()) {
-                            subjectDid = idNode.asText();
-                            break;
-                        }
-                    }
-                }
-            }
+            String subjectDid = extractSubjectDid(rootObj);
 
             if (subjectDid != null && !subjectDid.isBlank()) {
                 rootObj.put("sub", subjectDid);
@@ -185,11 +167,44 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
 
             return unsignedCredential;
         } catch (Exception e) {
-            log.warn("Could not set 'sub' from vc.credentialSubject.id. Keeping original payload. Reason: {}", e.getMessage());
+            log.warn(
+                    "Could not set 'sub' from vc.credentialSubject.id. Keeping original payload. Reason: {}",
+                    e.getMessage()
+            );
             return unsignedCredential;
         }
     }
 
+    private String extractSubjectDid(ObjectNode rootObj) {
+        JsonNode csNode = rootObj.path("vc").path("credentialSubject");
+
+        if (csNode.isObject()) {
+            return extractIdFromObject(csNode);
+        }
+
+        if (csNode.isArray()) {
+            return extractIdFromArray((ArrayNode) csNode);
+        }
+
+        return null;
+    }
+
+    private String extractIdFromObject(JsonNode csNode) {
+        JsonNode idNode = csNode.path("id");
+        return idNode.isTextual() ? idNode.asText() : null;
+    }
+
+    private String extractIdFromArray(ArrayNode arrayNode) {
+        for (JsonNode item : arrayNode) {
+            if (item != null && item.isObject()) {
+                JsonNode idNode = item.path("id");
+                if (idNode.isTextual() && !idNode.asText().isBlank()) {
+                    return idNode.asText();
+                }
+            }
+        }
+        return null;
+    }
 
     /**
      * Generate CBOR payload for COSE.
