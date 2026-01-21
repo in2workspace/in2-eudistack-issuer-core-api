@@ -369,9 +369,6 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                                 Mono<Void> upd = !PEND_SIGNATURE.toString().equals(status)
                                         ? credentialProcedureService.updateCredentialProcedureCredentialStatusToValidByProcedureId(proc.getProcedureId().toString())
                                         : Mono.empty();
-                                boolean willUpdate = !PEND_SIGNATURE.equals(status);
-
-                                log.info("[{}] SYNC: statusUpdateNeeded={} (status={})", processId, willUpdate, status);
 
                                 return upd.then(credentialProcedureService.getDecodedCredentialByProcedureId(proc.getProcedureId().toString())
                                         .zipWith(credentialProcedureService.getCredentialProcedureById(proc.getProcedureId().toString())));
