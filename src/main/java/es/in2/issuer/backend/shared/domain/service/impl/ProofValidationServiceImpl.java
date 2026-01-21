@@ -72,7 +72,7 @@ public class ProofValidationServiceImpl implements ProofValidationService {
         Map<String, Object> headerParams = header.toJSONObject();
         HeaderKeyMaterial km = resolveKeyMaterial(header, headerParams);
 
-        // FUTURO: x5c
+        // Not implemented: x5c
         if (km.type() == KeyMaterialType.X5C) {
             throw new ProofValidationException("invalid_proof: x5c not supported");
         }
