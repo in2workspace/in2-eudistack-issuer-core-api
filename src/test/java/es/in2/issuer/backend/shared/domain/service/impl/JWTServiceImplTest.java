@@ -370,7 +370,6 @@ class JWTServiceImplTest {
 
         String token = jwt.serialize();
 
-        // Verify using PUBLIC JWK map
         Map<String, Object> jwkMap = ecJwk.toPublicJWK().toJSONObject();
 
         Mono<Boolean> result = jwtService.validateJwtSignatureWithJwkReactive(token, jwkMap);
@@ -382,7 +381,7 @@ class JWTServiceImplTest {
 
     @Test
     void validateJwtSignatureWithJwkReactive_ES256_invalidSignature_returnsFalse() throws Exception {
-        // Sign with key A, verify with key B
+
         ECKey signerKey = new ECKeyGenerator(Curve.P_256).keyID("signer").generate();
         ECKey verifierKey = new ECKeyGenerator(Curve.P_256).keyID("verifier").generate();
 
@@ -406,13 +405,11 @@ class JWTServiceImplTest {
     void validateJwtSignatureWithJwkReactive_privateJwk_shouldError() throws Exception {
         ECKey ecJwk = new ECKeyGenerator(Curve.P_256).keyID("ec-private").generate();
 
-        // Sign something valid
         JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.ES256).keyID("ec-private").build();
         SignedJWT jwt = new SignedJWT(header, new JWTClaimsSet.Builder().issueTime(new Date()).build());
         jwt.sign(new ECDSASigner(ecJwk));
         String token = jwt.serialize();
 
-        // Pass PRIVATE jwk map (contains d) -> must error
         Map<String, Object> privateJwkMap = ecJwk.toJSONObject();
 
         Mono<Boolean> result = jwtService.validateJwtSignatureWithJwkReactive(token, privateJwkMap);
@@ -441,5 +438,103 @@ class JWTServiceImplTest {
                 )
                 .verify();
     }
+    @Test
+    void validateJwtSignatureWithJwkReactive_algMismatch_ecKeyWithEdDsaToken_shouldError_withoutTink() throws Exception {
+
+        String token = dummyJwtWithAlg("EdDSA");
+
+        ECKey ec = new ECKeyGenerator(Curve.P_256).keyID("ec").generate();
+        Map<String, Object> ecPublic = ec.toPublicJWK().toJSONObject();
+
+        Mono<Boolean> result = jwtService.validateJwtSignatureWithJwkReactive(token, ecPublic);
+
+        StepVerifier.create(result)
+                .expectErrorMatches(err ->
+                        err instanceof ProofValidationException &&
+                                err.getMessage().contains("invalid_proof: alg not compatible with EC JWK")
+                )
+                .verify();
+    }
+
+    @Test
+    void validateJwtSignatureWithJwkReactive_okpEd25519WithEs256Token_shouldError_withoutTink() {
+
+        String token = dummyJwtWithAlg("ES256");
+
+        Map<String, Object> jwkEd25519 = new HashMap<>();
+        jwkEd25519.put("kty", "OKP");
+        jwkEd25519.put("crv", "Ed25519");
+        jwkEd25519.put("x", "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
+
+        Mono<Boolean> result = jwtService.validateJwtSignatureWithJwkReactive(token, jwkEd25519);
+
+        StepVerifier.create(result)
+                .expectErrorMatches(err ->
+                        err instanceof ProofValidationException &&
+                                err.getMessage().contains("invalid_proof: alg not compatible with Ed25519 JWK")
+                )
+                .verify();
+    }
+
+
+    @Test
+    void validateJwtSignatureWithJwkReactive_okpWrongCurve_X25519_shouldError_withoutTink() {
+        String token = dummyJwtWithAlg("EdDSA");
+
+        Map<String, Object> x25519PublicJwk = Map.of(
+                "kty", "OKP",
+                "crv", "X25519",
+                "x", "AQIDBAUGBwgJCgsMDQ4PEA"
+        );
+
+        Mono<Boolean> result = jwtService.validateJwtSignatureWithJwkReactive(token, x25519PublicJwk);
+
+        StepVerifier.create(result)
+                .expectErrorMatches(err ->
+                        err instanceof ProofValidationException &&
+                                err.getMessage().contains("invalid_proof: only Ed25519 OKP keys are supported for signatures")
+                )
+                .verify();
+    }
+
+    @Test
+    void validateJwtSignatureWithJwkReactive_unsupportedKty_shouldError() throws Exception {
+
+        ECKey ecSigner = new ECKeyGenerator(Curve.P_256).keyID("ec").generate();
+        SignedJWT jwt = new SignedJWT(
+                new JWSHeader.Builder(JWSAlgorithm.ES256).keyID("ec").build(),
+                new JWTClaimsSet.Builder().issueTime(new Date()).build()
+        );
+        jwt.sign(new ECDSASigner(ecSigner));
+        String token = jwt.serialize();
+
+        Map<String, Object> rsaLikeJwk = Map.of(
+                "kty", "RSA",
+                "n", "AQAB",
+                "e", "AQAB"
+        );
+
+        Mono<Boolean> result = jwtService.validateJwtSignatureWithJwkReactive(token, rsaLikeJwk);
+
+        StepVerifier.create(result)
+                .expectErrorMatches(err ->
+                        err instanceof ProofValidationException &&
+                                err.getMessage().contains("invalid_proof: jwk kty not supported")
+                )
+                .verify();
+    }
+
+    private static String b64Url(String json) {
+        return java.util.Base64.getUrlEncoder().withoutPadding()
+                .encodeToString(json.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+    }
+
+    private static String dummyJwtWithAlg(String alg) {
+        String header = b64Url("{\"alg\":\"" + alg + "\"}");
+        String payload = b64Url("{\"sub\":\"s\"}");
+        String sig = "aa";
+        return header + "." + payload + "." + sig;
+    }
+
 
 }
