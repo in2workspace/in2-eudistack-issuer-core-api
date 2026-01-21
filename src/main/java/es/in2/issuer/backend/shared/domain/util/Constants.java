@@ -16,6 +16,7 @@ public final class Constants {
     public static final String LEAR_CREDENTIAL_MACHINE_TYPE = "LEAR_CREDENTIAL_MACHINE";
 
     public static final String GRANT_TYPE = "urn:ietf:params:oauth:grant-type:pre-authorized_code";
+    public static final String REFRESH_TOKEN_GRANT_TYPE = "refresh_token";
     public static final String CREDENTIALS_CONTEXT_V2 = "https://www.w3.org/ns/credentials/v2";
     public static final String CREDENTIALS_EUDISTACK_CONTEXT = "https://credentials.eudistack.eu/.well-known/credentials";
     public static final String CREDENTIALS_EUDISTACK_LEAR_CREDENTIAL_EMPLOYEE_CONTEXT = CREDENTIALS_EUDISTACK_CONTEXT + "/lear_credential_employee/w3c/v3";
@@ -39,4 +40,6 @@ public final class Constants {
     public static final String ENGLISH = "en";
     public static final String DEFAULT_USER_NAME = "Cloud Provider";
     public static final String LEAR_CREDENTIAL_MACHINE_DESCRIPTION = "Verifiable Credential for machines";
+
+    public static final Long DEFERRED_CREDENTIAL_POLLING_INTERVAL = 3600L;
 }

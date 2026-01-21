@@ -45,7 +45,8 @@ class TokenControllerTest {
         when(tokenService.generateTokenResponse(
                 grantType,
                 preAuthorizedCode,
-                txCode))
+                txCode
+                , ""))
                 .thenReturn(Mono.just(tokenResponse));
 
         webTestClient

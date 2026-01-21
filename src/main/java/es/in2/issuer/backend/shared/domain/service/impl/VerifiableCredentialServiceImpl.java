@@ -23,6 +23,7 @@ import java.text.ParseException;
 import java.util.List;
 
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.*;
+import static es.in2.issuer.backend.shared.domain.util.Constants.DEFERRED_CREDENTIAL_POLLING_INTERVAL;
 
 
 @Service
@@ -195,6 +196,7 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
                                                         .build()
                                         ))
                                         .transactionId(transactionId)
+                                        .interval(DEFERRED_CREDENTIAL_POLLING_INTERVAL)
                                         .build()
                         );
                     });
@@ -220,18 +222,12 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
                                 if (error instanceof RemoteSignatureException
                                         || error instanceof IllegalArgumentException) {
                                     log.info("Error in SYNC mode, falling back to unsigned");
-                                    return credentialProcedureService
-                                            .getDecodedCredentialByProcedureId(procId)
-                                            .flatMap(unsigned -> Mono.just(
-                                                    CredentialResponse.builder()
-                                                            .credentials(List.of(
-                                                                    CredentialResponse.Credential.builder()
-                                                                            .credential(unsigned)
-                                                                            .build()
-                                                            ))
-                                                            .transactionId(transactionId)
-                                                            .build()
-                                            ));
+                                    return Mono.just(
+                                            CredentialResponse.builder()
+                                                    .transactionId(transactionId)
+                                                    .interval(DEFERRED_CREDENTIAL_POLLING_INTERVAL)
+                                                    .build()
+                                    );
                                 }
                                 return Mono.error(error);
                             })

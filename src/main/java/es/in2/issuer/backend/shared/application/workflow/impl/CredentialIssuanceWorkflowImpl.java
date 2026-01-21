@@ -24,8 +24,6 @@ import reactor.util.function.Tuples;
 
 import javax.naming.OperationNotSupportedException;
 import java.text.ParseException;
-import java.util.Collections;
-import java.util.List;
 
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.*;
 import static es.in2.issuer.backend.shared.domain.util.Constants.*;
@@ -113,12 +111,12 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
         return switch (schema) {
             case LEAR_CREDENTIAL_EMPLOYEE -> {
                 String email = payload.get(MANDATEE).get(EMAIL).asText();
-                String org   = payload.get(MANDATOR).get(ORGANIZATION).asText();
+                String org = payload.get(MANDATOR).get(ORGANIZATION).asText();
                 yield new CredentialOfferEmailNotificationInfo(email, org);
             }
             case LEAR_CREDENTIAL_MACHINE -> {
                 String email;
-                if(preSubmittedCredentialDataRequest.email() == null || preSubmittedCredentialDataRequest.email().isBlank()) {
+                if (preSubmittedCredentialDataRequest.email() == null || preSubmittedCredentialDataRequest.email().isBlank()) {
                     email = payload.get(MANDATOR).get(EMAIL).asText();
                     log.debug("No credential owner email found in presubmitted data. Using mandator email: {}", payload.get(MANDATOR).get(EMAIL).asText());
                 } else {
@@ -128,10 +126,10 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                 yield new CredentialOfferEmailNotificationInfo(email, org);
             }
             case LABEL_CREDENTIAL -> {
-                    if(preSubmittedCredentialDataRequest.email() == null || preSubmittedCredentialDataRequest.email().isBlank()) {
-                        throw new MissingEmailOwnerException("Email owner email is required for gx:LabelCredential schema");
-                    }
-                    String email = preSubmittedCredentialDataRequest.email();
+                if (preSubmittedCredentialDataRequest.email() == null || preSubmittedCredentialDataRequest.email().isBlank()) {
+                    throw new MissingEmailOwnerException("Email owner email is required for gx:LabelCredential schema");
+                }
+                String email = preSubmittedCredentialDataRequest.email();
                 yield new CredentialOfferEmailNotificationInfo(email, appConfig.getSysTenant());
             }
             default -> throw new FormatUnsupportedException(
@@ -165,9 +163,9 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
 
                     Mono<CredentialResponse> vcMono = subjectDidMono
                             .flatMap(did ->
-                                        verifiableCredentialService.buildCredentialResponse(
-                                                processId, did, nonce, token, email
-                                        )
+                                    verifiableCredentialService.buildCredentialResponse(
+                                            processId, did, nonce, token, email
+                                    )
                             )
                             .switchIfEmpty(
                                     verifiableCredentialService.buildCredentialResponse(
@@ -231,16 +229,8 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                         return Mono.empty();
                     }
 
-                    List<String> jwtList = credentialRequest.proofs() != null
-                            ? credentialRequest.proofs().jwt()
-                            : Collections.emptyList();
+                    String jwtProof = credentialRequest.proof().jwt();
 
-                    if (jwtList.isEmpty()) {
-                        return Mono.error(new InvalidOrMissingProofException(
-                                "Missing proof for type " + typeEnum.name()));
-                    }
-
-                    String jwtProof = jwtList.get(0);
                     return proofValidationService.isProofValid(jwtProof, token)
                             .flatMap(valid -> {
                                 if (!Boolean.TRUE.equals(valid)) {

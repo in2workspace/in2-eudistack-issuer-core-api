@@ -6,5 +6,6 @@ import lombok.Builder;
 @Builder
 public record CredentialRequest(
         @JsonProperty(value = "credential_configuration_id", required = true) String credentialConfigurationId,
-        @JsonProperty("proofs") Proofs proofs) {
+        @JsonProperty(value = "format", required = true) String format,
+        @JsonProperty(value = "proof", required = true) Proof proof) {
 }

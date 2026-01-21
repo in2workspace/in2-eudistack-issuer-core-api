@@ -7,9 +7,11 @@ import org.mockito.InjectMocks;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
+import java.util.Base64;
 
 import static es.in2.issuer.backend.shared.domain.util.Constants.REFRESH_TOKEN_EXPIRATION;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 
 @ExtendWith(MockitoExtension.class)
 class RefreshTokenServiceImplTest {
@@ -35,8 +37,10 @@ class RefreshTokenServiceImplTest {
     @Test
     void generateRefreshToken_ShouldReturnBase64EncodedToken() {
         String refreshToken = refreshTokenService.generateRefreshToken();
+        assertThatCode(() ->
+                Base64.getUrlDecoder().decode(refreshToken)
+        ).doesNotThrowAnyException();
 
-        assertThat(refreshToken).matches("[A-Za-z0-9+/=]+");
     }
 
     @Test

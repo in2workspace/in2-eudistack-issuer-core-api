@@ -1,11 +1,11 @@
 package es.in2.issuer.backend.shared.domain.service.impl;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import es.in2.issuer.backend.backoffice.domain.util.Constants;
 import es.in2.issuer.backend.shared.application.workflow.CredentialSignerWorkflow;
-import es.in2.issuer.backend.shared.domain.model.dto.*;
-import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.employee.LEARCredentialEmployee;
+import es.in2.issuer.backend.shared.domain.model.dto.CredentialResponse;
+import es.in2.issuer.backend.shared.domain.model.dto.DeferredCredentialMetadataDeferredResponse;
+import es.in2.issuer.backend.shared.domain.model.dto.DeferredCredentialRequest;
+import es.in2.issuer.backend.shared.domain.model.dto.DeferredCredentialResponse;
 import es.in2.issuer.backend.shared.domain.service.CredentialProcedureService;
 import es.in2.issuer.backend.shared.domain.service.DeferredCredentialMetadataService;
 import es.in2.issuer.backend.shared.domain.util.factory.CredentialFactory;
@@ -34,6 +34,7 @@ class VerifiableCredentialServiceImplTest {
     private final String processId = "process-id-123";
     private final String preAuthCode = "pre-auth-code-456";
     private final String transactionId = "transaction-id-789";
+    private final Long interval = 3600L;
     private final String deferredResponseId = "deferred-response-id-456";
     private final String procedureId = "procedure-id-321";
     private final String vcValue = "vc-value-123";
@@ -176,7 +177,7 @@ class VerifiableCredentialServiceImplTest {
         // Assert: Verify the result
         StepVerifier.create(result)
                 .expectNextMatches(response ->
-                        response.credentials().equals(List.of(vcValue)))
+                        response.credentials().equals(List.of(new DeferredCredentialResponse.Credential(vcValue))))
                 .verifyComplete();
 
         // Verify the interactions
@@ -470,10 +471,8 @@ class VerifiableCredentialServiceImplTest {
 
         StepVerifier.create(result)
                 .expectNextMatches(response ->
-                        response.credentials().equals(List.of(CredentialResponse.Credential.builder()
-                                .credential(unsignedCredential)
-                                .build())) &&
-                                response.transactionId().equals(transactionId))
+                        response.transactionId().equals(transactionId)
+                                && response.interval().equals(interval))
                 .verifyComplete();
 
         verify(credentialSignerWorkflow, times(1))

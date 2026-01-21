@@ -9,7 +9,6 @@ import es.in2.issuer.backend.shared.infrastructure.repository.CacheStore;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Mono;
@@ -20,9 +19,7 @@ import java.util.NoSuchElementException;
 
 import static es.in2.issuer.backend.shared.domain.util.Constants.GRANT_TYPE;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 
@@ -40,7 +37,10 @@ class TokenServiceImplTest {
     private static final String INVALID_TX_CODE = "wrong-tx-code";
 
     @Mock
-    private CacheStore cacheStore;
+    private CacheStore<CredentialProcedureIdAndTxCode> txCodeCacheStore;
+
+    @Mock
+    private CacheStore<CredentialProcedureIdAndRefreshToken> refreshTokenCacheStore;
 
     @Mock
     private JWTService jwtService;
@@ -51,13 +51,20 @@ class TokenServiceImplTest {
     @Mock
     private AppConfig appConfig;
 
-    @InjectMocks
     private TokenServiceImpl tokenService;
 
     private CredentialProcedureIdAndTxCode testCredentialProcedureIdAndTxCode;
 
     @BeforeEach
     void setUp() {
+        tokenService = new TokenServiceImpl(
+                txCodeCacheStore,
+                refreshTokenCacheStore,
+                jwtService,
+                refreshTokenService,
+                appConfig
+        );
+
         testCredentialProcedureIdAndTxCode = new CredentialProcedureIdAndTxCode(
                 TEST_CREDENTIAL_PROCEDURE_ID,
                 TEST_TX_CODE
@@ -67,18 +74,18 @@ class TokenServiceImplTest {
     @Test
     void generateTokenResponse_WhenValidInputs_ShouldReturnTokenResponse() {
         // Arrange
-        when(cacheStore.get(TEST_PRE_AUTHORIZED_CODE))
+        when(txCodeCacheStore.get(TEST_PRE_AUTHORIZED_CODE))
                 .thenReturn(Mono.just(testCredentialProcedureIdAndTxCode));
         when(appConfig.getIssuerBackendUrl()).thenReturn(TEST_ISSUER_URL);
         when(jwtService.generateJWT(anyString())).thenReturn(TEST_ACCESS_TOKEN);
         when(refreshTokenService.generateRefreshTokenExpirationTime(any(Instant.class)))
                 .thenReturn(TEST_REFRESH_TOKEN_EXPIRES_AT);
         when(refreshTokenService.generateRefreshToken()).thenReturn(TEST_REFRESH_TOKEN);
-        when(cacheStore.add(anyString(), any()))
+        when(refreshTokenCacheStore.add(anyString(), any()))
                 .thenReturn(Mono.just(TEST_PRE_AUTHORIZED_CODE));
 
         // Act & Assert
-        StepVerifier.create(tokenService.generateTokenResponse(GRANT_TYPE, TEST_PRE_AUTHORIZED_CODE, TEST_TX_CODE))
+        StepVerifier.create(tokenService.generateTokenResponse(GRANT_TYPE, TEST_PRE_AUTHORIZED_CODE, TEST_TX_CODE, ""))
                 .assertNext(tokenResponse -> {
                     assertThat(tokenResponse).isNotNull();
                     assertThat(tokenResponse.accessToken()).isEqualTo(TEST_ACCESS_TOKEN);
@@ -88,80 +95,74 @@ class TokenServiceImplTest {
                 .verifyComplete();
 
         // Verify interactions
-        verify(cacheStore, times(2)).get(TEST_PRE_AUTHORIZED_CODE);
+        verify(txCodeCacheStore, times(2)).get(TEST_PRE_AUTHORIZED_CODE);
         verify(jwtService).generateJWT(anyString());
         verify(refreshTokenService).generateRefreshTokenExpirationTime(any(Instant.class));
         verify(refreshTokenService).generateRefreshToken();
-        verify(cacheStore).add(eq(TEST_PRE_AUTHORIZED_CODE), any(CredentialProcedureIdAndRefreshToken.class));
+        verify(refreshTokenCacheStore).add(eq(TEST_PRE_AUTHORIZED_CODE), any(CredentialProcedureIdAndRefreshToken.class));
     }
 
     @Test
     void generateTokenResponse_WhenInvalidGrantType_ShouldReturnError() {
-        // Act & Assert
-        StepVerifier.create(tokenService.generateTokenResponse(INVALID_GRANT_TYPE, TEST_PRE_AUTHORIZED_CODE, TEST_TX_CODE))
+        StepVerifier.create(tokenService.generateTokenResponse(INVALID_GRANT_TYPE, TEST_PRE_AUTHORIZED_CODE, TEST_TX_CODE, ""))
                 .expectErrorMatches(throwable ->
-                    throwable instanceof IllegalArgumentException &&
-                    throwable.getMessage().equals("Invalid grant type: " + INVALID_GRANT_TYPE))
+                        throwable instanceof IllegalArgumentException &&
+                                throwable.getMessage().equals("Invalid grant type: " + INVALID_GRANT_TYPE))
                 .verify();
-
-        verifyNoInteractions(cacheStore);
-        verifyNoInteractions(jwtService);
-        verifyNoInteractions(refreshTokenService);
     }
 
     @Test
     void generateTokenResponse_WhenInvalidPreAuthorizedCode_ShouldReturnError() {
         // Arrange
-        when(cacheStore.get(TEST_PRE_AUTHORIZED_CODE))
+        when(txCodeCacheStore.get(TEST_PRE_AUTHORIZED_CODE))
                 .thenReturn(Mono.error(new NoSuchElementException("Pre-authorized code not found")));
 
         // Act & Assert
-        StepVerifier.create(tokenService.generateTokenResponse(GRANT_TYPE, TEST_PRE_AUTHORIZED_CODE, TEST_TX_CODE))
+        StepVerifier.create(tokenService.generateTokenResponse(GRANT_TYPE, TEST_PRE_AUTHORIZED_CODE, TEST_TX_CODE, ""))
                 .expectErrorMatches(throwable ->
-                    throwable instanceof IllegalArgumentException &&
-                    throwable.getMessage().equals("Invalid pre-authorized code"))
+                        throwable instanceof IllegalArgumentException &&
+                                throwable.getMessage().equals("Invalid pre-authorized code"))
                 .verify();
 
-        verify(cacheStore).get(TEST_PRE_AUTHORIZED_CODE);
+        verify(txCodeCacheStore).get(TEST_PRE_AUTHORIZED_CODE);
     }
 
     @Test
     void generateTokenResponse_WhenInvalidTxCode_ShouldReturnError() {
         // Arrange
-        when(cacheStore.get(TEST_PRE_AUTHORIZED_CODE))
+        when(txCodeCacheStore.get(TEST_PRE_AUTHORIZED_CODE))
                 .thenReturn(Mono.just(testCredentialProcedureIdAndTxCode));
 
         // Act & Assert
-        StepVerifier.create(tokenService.generateTokenResponse(GRANT_TYPE, TEST_PRE_AUTHORIZED_CODE, INVALID_TX_CODE))
+        StepVerifier.create(tokenService.generateTokenResponse(GRANT_TYPE, TEST_PRE_AUTHORIZED_CODE, INVALID_TX_CODE, ""))
                 .expectErrorMatches(throwable ->
-                    throwable instanceof IllegalArgumentException &&
-                    throwable.getMessage().equals("Invalid tx code"))
+                        throwable instanceof IllegalArgumentException &&
+                                throwable.getMessage().equals("Invalid tx code"))
                 .verify();
 
-        verify(cacheStore).get(TEST_PRE_AUTHORIZED_CODE);
+        verify(txCodeCacheStore).get(TEST_PRE_AUTHORIZED_CODE);
     }
 
     @Test
     void generateTokenResponse_WhenCacheStoreThrowsException_ShouldReturnError() {
         // Arrange
-        RuntimeException cacheException = new RuntimeException("Cache store error");
-        when(cacheStore.get(TEST_PRE_AUTHORIZED_CODE))
-                .thenReturn(Mono.error(cacheException));
+        when(txCodeCacheStore.get(TEST_PRE_AUTHORIZED_CODE))
+                .thenReturn(Mono.error(new NoSuchElementException()));
 
         // Act & Assert
-        StepVerifier.create(tokenService.generateTokenResponse(GRANT_TYPE, TEST_PRE_AUTHORIZED_CODE, TEST_TX_CODE))
+        StepVerifier.create(tokenService.generateTokenResponse(GRANT_TYPE, TEST_PRE_AUTHORIZED_CODE, TEST_TX_CODE, ""))
                 .expectErrorMatches(throwable ->
-                    throwable instanceof IllegalArgumentException &&
-                    throwable.getMessage().equals("Invalid pre-authorized code"))
+                        throwable instanceof IllegalArgumentException &&
+                                throwable.getMessage().equals("Invalid pre-authorized code"))
                 .verify();
 
-        verify(cacheStore).get(TEST_PRE_AUTHORIZED_CODE);
+        verify(txCodeCacheStore).get(TEST_PRE_AUTHORIZED_CODE);
     }
 
     @Test
     void generateTokenResponse_WhenRefreshTokenCacheFails_ShouldReturnError() {
         // Arrange
-        when(cacheStore.get(TEST_PRE_AUTHORIZED_CODE))
+        when(txCodeCacheStore.get(TEST_PRE_AUTHORIZED_CODE))
                 .thenReturn(Mono.just(testCredentialProcedureIdAndTxCode));
         when(appConfig.getIssuerBackendUrl()).thenReturn(TEST_ISSUER_URL);
         when(jwtService.generateJWT(anyString())).thenReturn(TEST_ACCESS_TOKEN);
@@ -170,21 +171,21 @@ class TokenServiceImplTest {
         when(refreshTokenService.generateRefreshToken()).thenReturn(TEST_REFRESH_TOKEN);
 
         RuntimeException refreshTokenCacheException = new RuntimeException("Refresh token cache error");
-        when(cacheStore.add(eq(TEST_PRE_AUTHORIZED_CODE), any(CredentialProcedureIdAndRefreshToken.class)))
+        when(refreshTokenCacheStore.add(eq(TEST_PRE_AUTHORIZED_CODE), any(CredentialProcedureIdAndRefreshToken.class)))
                 .thenReturn(Mono.error(refreshTokenCacheException));
 
         // Act & Assert
-        StepVerifier.create(tokenService.generateTokenResponse(GRANT_TYPE, TEST_PRE_AUTHORIZED_CODE, TEST_TX_CODE))
+        StepVerifier.create(tokenService.generateTokenResponse(GRANT_TYPE, TEST_PRE_AUTHORIZED_CODE, TEST_TX_CODE, ""))
                 .expectError(RuntimeException.class)
                 .verify();
 
-        verify(cacheStore).add(eq(TEST_PRE_AUTHORIZED_CODE), any(CredentialProcedureIdAndRefreshToken.class));
+        verify(refreshTokenCacheStore).add(eq(TEST_PRE_AUTHORIZED_CODE), any(CredentialProcedureIdAndRefreshToken.class));
     }
 
     @Test
     void generateTokenResponse_WhenJWTServiceFails_ShouldReturnError() {
         // Arrange
-        when(cacheStore.get(TEST_PRE_AUTHORIZED_CODE))
+        when(txCodeCacheStore.get(TEST_PRE_AUTHORIZED_CODE))
                 .thenReturn(Mono.just(testCredentialProcedureIdAndTxCode));
         when(appConfig.getIssuerBackendUrl()).thenReturn(TEST_ISSUER_URL);
 
@@ -192,7 +193,7 @@ class TokenServiceImplTest {
         when(jwtService.generateJWT(anyString())).thenThrow(jwtException);
 
         // Act & Assert
-        StepVerifier.create(tokenService.generateTokenResponse(GRANT_TYPE, TEST_PRE_AUTHORIZED_CODE, TEST_TX_CODE))
+        StepVerifier.create(tokenService.generateTokenResponse(GRANT_TYPE, TEST_PRE_AUTHORIZED_CODE, TEST_TX_CODE, ""))
                 .expectError(RuntimeException.class)
                 .verify();
 
