@@ -187,7 +187,6 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
             return credentialProcedureService
                     .getDecodedCredentialByProcedureId(procedureId)
                     .flatMap(decodedCredential -> {
-                        log.debug("ASYNC Credential JSON: {}", decodedCredential);
                         return Mono.just(
                                 CredentialResponse.builder()
                                         .credentials(List.of(

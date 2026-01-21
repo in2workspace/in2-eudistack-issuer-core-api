@@ -393,7 +393,7 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                                         return Mono.error(new IllegalStateException("Encoded credential not found for procedureId: " + updatedCredentialProcedure.getProcedureId()));
                                     }
 
-                                    log.info("Sending VC to response URI: {}", deferred.getResponseUri());
+
                                     return credentialProcedureService.getCredentialId(credentialProcedure)
                                             .doOnNext(credentialId -> log.debug("Using credentialId for delivery: {}", credentialId))
                                             .flatMap(credentialId ->
@@ -471,7 +471,6 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
 
 
     private Mono<Void> getMandatorOrganizationIdentifier(String processId, String decodedCredential) {
-        log.info("ProcessID: {} Decoded Credential: {}", processId, decodedCredential);
 
         LEARCredentialEmployee learCredentialEmployee = credentialEmployeeFactory.mapStringToLEARCredentialEmployee(decodedCredential);
 
