@@ -57,7 +57,7 @@ class ProofValidationServiceImplTest {
     }
 
     @Test
-    void isProofValid_signatureInvalid_mapsToProofValidationException() {
+    void isProofValid_signatureInvalid_returnsFalse() {
         String aud = "aud";
         long now = Instant.now().getEpochSecond();
 
@@ -74,9 +74,10 @@ class ProofValidationServiceImplTest {
                 .thenReturn(Mono.just(false));
 
         StepVerifier.create(service.isProofValid(jwt, Set.of(SUPPORTED_PROOF_ALG), aud))
-                .expectError(ProofValidationException.class)
-                .verify();
+                .expectNext(false)
+                .verifyComplete();
     }
+
 
     @Test
     void isProofValid_headerMissingAlgOrTyp_mapsToProofValidationException() {

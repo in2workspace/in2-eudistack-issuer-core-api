@@ -7,6 +7,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import reactor.core.publisher.Mono;
 
 
+import java.util.Map;
 import java.util.Optional;
 
 public interface JWTService {
@@ -14,6 +15,8 @@ public interface JWTService {
     String generateJWT(String payload);
 
     Mono<Boolean> validateJwtSignatureReactive(JWSObject jwsObject);
+
+    Mono<Boolean> validateJwtSignatureWithJwkReactive(String jwt, Map<String,Object> jwkMap);
 
     SignedJWT parseJWT(String jwt);
 

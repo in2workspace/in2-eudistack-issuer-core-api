@@ -83,7 +83,6 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
             String token,
             String email,
             String procedureId) {
-        log.debug("buildCredentialResponse - email: {} - processId: {}", email, processId);
         return credentialProcedureService
                         .getCredentialTypeByProcedureId(procedureId)
                         .zipWhen(credType -> credentialProcedureService.getDecodedCredentialByProcedureId(procedureId))

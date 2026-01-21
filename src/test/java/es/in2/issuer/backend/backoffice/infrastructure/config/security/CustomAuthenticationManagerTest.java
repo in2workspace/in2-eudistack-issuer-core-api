@@ -1,7 +1,6 @@
 package es.in2.issuer.backend.backoffice.infrastructure.config.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.nimbusds.jose.JWSObject;
 import com.nimbusds.jwt.SignedJWT;
 import es.in2.issuer.backend.shared.domain.service.JWTService;
 import es.in2.issuer.backend.shared.domain.service.VerifierService;

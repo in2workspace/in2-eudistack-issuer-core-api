@@ -1050,7 +1050,7 @@ class CredentialIssuanceWorkflowImplTest {
         StepVerifier.create(mono)
                 .expectErrorSatisfies(ex -> {
                     Assertions.assertInstanceOf(IllegalArgumentException.class, ex);
-                    Assertions.assertEquals("Only kid-based binding is supported for now", ex.getMessage());
+                    Assertions.assertEquals("x5c not supported yet", ex.getMessage());
                 })
                 .verify();
     }

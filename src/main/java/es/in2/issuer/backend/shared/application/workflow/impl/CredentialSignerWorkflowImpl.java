@@ -1,6 +1,10 @@
 package es.in2.issuer.backend.shared.application.workflow.impl;
 
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.upokecenter.cbor.CBORObject;
 import es.in2.issuer.backend.backoffice.application.workflow.policies.BackofficePdpService;
 import es.in2.issuer.backend.shared.application.workflow.CredentialSignerWorkflow;
@@ -19,7 +23,6 @@ import es.in2.issuer.backend.shared.domain.util.factory.IssuerFactory;
 import es.in2.issuer.backend.shared.domain.util.factory.LEARCredentialEmployeeFactory;
 import es.in2.issuer.backend.shared.domain.util.factory.LEARCredentialMachineFactory;
 import es.in2.issuer.backend.shared.domain.util.factory.LabelCredentialFactory;
-import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
 import es.in2.issuer.backend.shared.infrastructure.repository.CredentialProcedureRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -47,7 +50,7 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
 
     private final AccessTokenService accessTokenService;
     private final BackofficePdpService backofficePdpService;
-    private final AppConfig appConfig;
+    private final ObjectMapper objectMapper;
     private final DeferredCredentialWorkflow deferredCredentialWorkflow;
     private final RemoteSignatureService remoteSignatureService;
     private final LEARCredentialEmployeeFactory learCredentialEmployeeFactory;
@@ -119,11 +122,13 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
     private Mono<String> signCredentialOnRequestedFormat(String unsignedCredential, String format, String token, String procedureId, String email) {
         return Mono.defer(() -> {
             if (format.equals(JWT_VC)) {
+                String payloadToSign = setSubIfCredentialSubjectIdPresent(unsignedCredential);
+
                 log.debug("Credential Payload {}", unsignedCredential);
                 log.info("Signing credential in JADES remotely ...");
                 SignatureRequest signatureRequest = new SignatureRequest(
                         new SignatureConfiguration(SignatureType.JADES, Collections.emptyMap()),
-                        unsignedCredential
+                        payloadToSign
                 );
 
                 return remoteSignatureService.sign(signatureRequest, token, procedureId, email)
@@ -147,6 +152,46 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
             }
         });
     }
+
+    private String setSubIfCredentialSubjectIdPresent(String unsignedCredential) {
+        try {
+            JsonNode root = objectMapper.readTree(unsignedCredential);
+            if (!(root instanceof ObjectNode rootObj)) {
+                return unsignedCredential;
+            }
+
+            JsonNode vcNode = rootObj.path("vc");
+            JsonNode csNode = vcNode.path("credentialSubject");
+
+            String subjectDid = null;
+
+            if (csNode.isObject()) {
+                subjectDid = csNode.path("id").isTextual() ? csNode.path("id").asText() : null;
+            } else if (csNode.isArray()) {
+                ArrayNode arr = (ArrayNode) csNode;
+                for (JsonNode item : arr) {
+                    if (item != null && item.isObject()) {
+                        JsonNode idNode = item.path("id");
+                        if (idNode.isTextual() && !idNode.asText().isBlank()) {
+                            subjectDid = idNode.asText();
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if (subjectDid != null && !subjectDid.isBlank()) {
+                rootObj.put("sub", subjectDid);
+                return objectMapper.writeValueAsString(rootObj);
+            }
+
+            return unsignedCredential;
+        } catch (Exception e) {
+            log.warn("Could not set 'sub' from vc.credentialSubject.id. Keeping original payload. Reason: {}", e.getMessage());
+            return unsignedCredential;
+        }
+    }
+
 
     /**
      * Generate CBOR payload for COSE.
