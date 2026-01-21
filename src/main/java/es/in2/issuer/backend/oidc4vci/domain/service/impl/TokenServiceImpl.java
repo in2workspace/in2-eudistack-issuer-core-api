@@ -102,10 +102,12 @@ public class TokenServiceImpl implements TokenService {
         Instant issueTime = Instant.now();
         long accessTokenExpirationTime = generateAccessTokenExpirationTime(issueTime);
         String accessToken = generateAccessToken(preAuthorizedCode, issueTime.getEpochSecond(), accessTokenExpirationTime);
+        long refreshTokenExpiresAt = refreshTokenService.generateRefreshTokenExpirationTime(issueTime);
+        String refreshToken = refreshTokenService.generateRefreshToken();
 
         return getCredentialProcedureId(preAuthorizedCode)
-                .flatMap(credentialProcedureId -> createRefreshTokenEntry(credentialProcedureId, issueTime, preAuthorizedCode))
-                .then(Mono.fromCallable(() -> buildTokenResponse(accessToken, accessTokenExpirationTime)));
+                .flatMap(credentialProcedureId -> createRefreshTokenEntry(credentialProcedureId, preAuthorizedCode, refreshToken, refreshTokenExpiresAt))
+                .then(Mono.fromCallable(() -> buildTokenResponse(accessToken, accessTokenExpirationTime, refreshToken)));
     }
 
     private long generateAccessTokenExpirationTime(Instant issueTime) {
@@ -132,10 +134,7 @@ public class TokenServiceImpl implements TokenService {
                 .doOnError(error -> log.warn("Failed to retrieve credential procedure ID for PreAuthorizedCode: {}", preAuthorizedCode));
     }
 
-    private Mono<Void> createRefreshTokenEntry(String credentialProcedureId, Instant issueTime, String preAuthorizedCode) {
-        long refreshTokenExpiresAt = refreshTokenService.generateRefreshTokenExpirationTime(issueTime);
-        String refreshToken = refreshTokenService.generateRefreshToken();
-
+    private Mono<Void> createRefreshTokenEntry(String credentialProcedureId, String preAuthorizedCode, String refreshToken, long refreshTokenExpiresAt) {
         CredentialProcedureIdAndRefreshToken credentialProcedureIdAndRefreshToken =
                 CredentialProcedureIdAndRefreshToken.builder()
                         .preAuthorizedCode(preAuthorizedCode)
@@ -147,12 +146,13 @@ public class TokenServiceImpl implements TokenService {
         return refreshTokenCacheStore.add(refreshToken, credentialProcedureIdAndRefreshToken).then();
     }
 
-    private TokenResponse buildTokenResponse(String accessToken, long accessTokenExpirationTime) {
+    private TokenResponse buildTokenResponse(String accessToken, long accessTokenExpirationTime, String refreshToken) {
         long expiresIn = accessTokenExpirationTime - Instant.now().getEpochSecond();
         return TokenResponse.builder()
                 .accessToken(accessToken)
                 .tokenType(TOKEN_TYPE)
                 .expiresIn(expiresIn)
+                .refreshToken(refreshToken)
                 .build();
     }
 }
