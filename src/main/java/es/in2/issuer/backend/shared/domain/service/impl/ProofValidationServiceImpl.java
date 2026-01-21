@@ -54,11 +54,13 @@ public class ProofValidationServiceImpl implements ProofValidationService {
         return Mono.fromCallable(() -> SignedJWT.parse(jwtProof))
                 .flatMap(jwt -> {
                     try {
+                        System.out.println("XIvato1");
                         validateJwtHeader(jwt, allowedAlgs);
                     } catch (ProofValidationException e) {
                         throw new RuntimeException(e);
                     }
                     validatePayload(jwt, expectedAudience);
+                    System.out.println("XIvato2");
                     return Mono.just(jwt);
                 });
     }
@@ -67,6 +69,7 @@ public class ProofValidationServiceImpl implements ProofValidationService {
         var header = signedJWT.getHeader();
 
         String alg = getAlg(header);
+
         if (allowedAlgs == null || allowedAlgs.isEmpty() || !allowedAlgs.contains(alg)) {
             throw new ProofValidationException("invalid_proof: alg not allowed by configuration");
         }
@@ -82,6 +85,8 @@ public class ProofValidationServiceImpl implements ProofValidationService {
         if (present != 1) {
             throw new ProofValidationException("invalid_proof: exactly one of kid, jwk or x5c must be present");
         }
+
+        System.out.println("XIvato3");
 
         // FUTURO: x5c
         if (hasX5c) {
@@ -155,6 +160,8 @@ public class ProofValidationServiceImpl implements ProofValidationService {
         if (iat.isBefore(now.minusSeconds(300)) || iat.isAfter(now.plusSeconds(60))) {
             throw new IllegalArgumentException("Invalid JWT payload: iat outside acceptable time window");
         }
+
+        System.out.println("XIvato5");
 
         if (payload.containsKey("exp")) {
             Object expObj = payload.get("exp");
