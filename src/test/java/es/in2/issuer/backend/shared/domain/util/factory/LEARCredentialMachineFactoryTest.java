@@ -273,6 +273,24 @@ class LEARCredentialMachineFactoryTest {
                 .verify();
     }
 
+    @Test
+    void bindCryptographicCredentialSubjectId_whenReadValueFails_throwsInvalidCredentialFormatException() throws Exception {
+        // Arrange
+        String decoded = "bad-json";
+        String subjectId = "did:example:machine-123";
+
+        when(objectMapper.readValue(decoded, LEARCredentialMachine.class))
+                .thenThrow(new JsonProcessingException("boom") {});
+
+        org.junit.jupiter.api.Assertions.assertThrows(
+                InvalidCredentialFormatException.class,
+                () -> learCredentialMachineFactory.bindCryptographicCredentialSubjectId(decoded, subjectId)
+        );
+
+        verify(objectMapper).readValue(decoded, LEARCredentialMachine.class);
+        verify(objectMapper, never()).writeValueAsString(any());
+    }
+
 
 
 

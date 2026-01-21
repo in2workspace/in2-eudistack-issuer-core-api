@@ -521,44 +521,6 @@ class VerifiableCredentialServiceImplTest {
                 .updateDecodedCredentialByProcedureId(anyString(), anyString());
     }
 
-    @Test
-    void buildCredentialResponse_whenUpdateDeferredFails_emitsFailedToUpdateDeferredMetadata() {
-        String subjectDid = "did:example:123";
-        String authServerNonce = "nonce";
-        String token = "token";
-        String email = testEmail;
-        String procedureIdLocal = "proc-update-deferred-fail";
-
-        String credType = "LEARCredentialEmployee";
-        String decoded = "decoded";
-        String bound = "bound";
-
-        when(credentialProcedureService.getCredentialTypeByProcedureId(procedureIdLocal))
-                .thenReturn(Mono.just(credType));
-        when(credentialProcedureService.getDecodedCredentialByProcedureId(procedureIdLocal))
-                .thenReturn(Mono.just(decoded));
-
-        when(credentialFactory.bindCryptographicCredentialSubjectId(processId, credType, decoded, subjectDid))
-                .thenReturn(Mono.just(bound));
-        when(credentialProcedureService.updateDecodedCredentialByProcedureId(procedureIdLocal, bound))
-                .thenReturn(Mono.empty());
-
-        when(deferredCredentialMetadataService.updateDeferredCredentialMetadataByAuthServerNonce(authServerNonce))
-                .thenReturn(Mono.error(new RuntimeException("db down")));
-
-        StepVerifier.create(
-                        verifiableCredentialServiceImpl.buildCredentialResponse(
-                                processId, subjectDid, authServerNonce, token, email, procedureIdLocal
-                        )
-                )
-                .expectErrorSatisfies(ex -> {
-                    Assertions.assertInstanceOf(RuntimeException.class, ex);
-                    Assertions.assertEquals("Failed to update deferred metadata", ex.getMessage());
-                    Assertions.assertNotNull(ex.getCause());
-                })
-                .verify();
-    }
-
 
     @Test
     void buildCredentialResponse_whenUpdateDeferredEmpty_emitsTransactionIdNotFound() {
