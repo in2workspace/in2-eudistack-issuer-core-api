@@ -1,5 +1,8 @@
 package es.in2.issuer.backend.shared.domain.service.impl;
 
+import com.nimbusds.jose.crypto.ECDSASigner;
+import com.nimbusds.jose.jwk.gen.ECKeyGenerator;
+import com.nimbusds.jose.util.Base64URL;
 import com.nimbusds.jwt.SignedJWT;
 import es.in2.issuer.backend.shared.application.workflow.NonceValidationWorkflow;
 import es.in2.issuer.backend.shared.domain.exception.ProofValidationException;
@@ -20,8 +23,22 @@ import java.util.Set;
 
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.SUPPORTED_PROOF_ALG;
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.SUPPORTED_PROOF_TYP;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
+import com.nimbusds.jose.*;
+import com.nimbusds.jose.jwk.*;
+import com.nimbusds.jwt.JWTClaimsSet;
+import com.nimbusds.jwt.SignedJWT;
+
+import java.util.Date;
+
+import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.*;
+
+
 
 @ExtendWith(MockitoExtension.class)
 class ProofValidationServiceImplTest {
@@ -266,6 +283,62 @@ class ProofValidationServiceImplTest {
                 .expectError(ProofValidationException.class)
                 .verify();
     }
+    @Test
+    void isProofValid_withJwk_whenJwtServiceThrows_callsJwkVerifier_andMapsToProofValidationException() throws Exception {
+        String expectedAudience = "aud";
+        long now = Instant.now().getEpochSecond();
+
+        String jwt = buildNimbusSignedJwtWithPublicEcJwk(expectedAudience, now);
+
+        when(jwtService.validateJwtSignatureWithJwkReactive(anyString(), anyMap()))
+                .thenReturn(Mono.error(new RuntimeException("boom")));
+
+        StepVerifier.create(service.isProofValid(jwt, Set.of(SUPPORTED_PROOF_ALG), expectedAudience))
+                .expectError(ProofValidationException.class)
+                .verify();
+
+        verify(jwtService).validateJwtSignatureWithJwkReactive(anyString(), anyMap());
+        verify(jwtService, never()).validateJwtSignatureReactive(any(SignedJWT.class));
+    }
+
+    @Test
+    void isProofValid_withJwk_usesValidateJwtSignatureWithJwkReactive_returnsTrue() throws Exception {
+        String expectedAudience = "aud";
+        long now = Instant.now().getEpochSecond();
+
+        String jwt = buildNimbusSignedJwtWithPublicEcJwk(expectedAudience, now);
+
+        when(jwtService.validateJwtSignatureWithJwkReactive(anyString(), anyMap()))
+                .thenReturn(Mono.just(true));
+
+        StepVerifier.create(service.isProofValid(jwt, Set.of(SUPPORTED_PROOF_ALG), expectedAudience))
+                .expectNext(true)
+                .verifyComplete();
+
+        verify(jwtService).validateJwtSignatureWithJwkReactive(anyString(), anyMap());
+        verify(jwtService, never()).validateJwtSignatureReactive(any(SignedJWT.class));
+    }
+    @Test
+    void isProofValid_withJwk_signatureInvalid_returnsFalse() throws Exception {
+        String expectedAudience = "aud";
+        long now = Instant.now().getEpochSecond();
+
+        String jwt = buildNimbusSignedJwtWithPublicEcJwk(expectedAudience, now);
+
+        when(jwtService.validateJwtSignatureWithJwkReactive(anyString(), anyMap()))
+                .thenReturn(Mono.just(false));
+
+        StepVerifier.create(service.isProofValid(jwt, Set.of(SUPPORTED_PROOF_ALG), expectedAudience))
+                .expectNext(false)
+                .verifyComplete();
+
+        verify(jwtService).validateJwtSignatureWithJwkReactive(anyString(), anyMap());
+        verify(jwtService, never()).validateJwtSignatureReactive(any(SignedJWT.class));
+    }
+
+
+
+
 
     // ---------------- helpers ----------------
 
@@ -291,4 +364,28 @@ class ProofValidationServiceImplTest {
         return h + "." + p + "." + s;
     }
 
+    private static String buildNimbusSignedJwtWithPublicEcJwk(String expectedAudience, long nowEpochSec) throws Exception {
+        // Keypair real P-256
+        ECKey ecKey = new ECKeyGenerator(Curve.P_256)
+                .keyUse(KeyUse.SIGNATURE)
+                .generate();
+
+        // Header con jwk público (sin material privado)
+        JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.ES256)
+                .type(new JOSEObjectType(SUPPORTED_PROOF_TYP))
+                .jwk(ecKey.toPublicJWK())
+                .build();
+
+        JWTClaimsSet claims = new JWTClaimsSet.Builder()
+                .audience(expectedAudience)
+                .issueTime(new Date((nowEpochSec - 1) * 1000))
+                .expirationTime(new Date((nowEpochSec + 300) * 1000))
+                .build();
+
+        SignedJWT jwt = new SignedJWT(header, claims);
+
+        jwt.sign(new ECDSASigner(ecKey));
+
+        return jwt.serialize();
+    }
 }

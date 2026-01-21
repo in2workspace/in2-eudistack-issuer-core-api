@@ -27,8 +27,6 @@ public class ProofValidationServiceImpl implements ProofValidationService {
 
     @Override
     public Mono<Boolean> isProofValid(String jwtProof, Set<String> allowedAlgs, String expectedAudience) {
-
-        System.out.println("XIvatoyhyy1 "+ jwtProof);
         return Mono.just(jwtProof)
                 .flatMap(jwt -> parseAndValidateJwt(jwt, expectedAudience, allowedAlgs))
                 .doOnNext(jws -> log.debug("JWT parsed successfully"))
@@ -53,17 +51,14 @@ public class ProofValidationServiceImpl implements ProofValidationService {
 
 
     private Mono<SignedJWT> parseAndValidateJwt(String jwtProof, String expectedAudience, Set<String> allowedAlgs) {
-        System.out.println("XIvato");
         return Mono.fromCallable(() -> SignedJWT.parse(jwtProof))
                 .flatMap(jwt -> {
                     try {
-                        System.out.println("XIvato1");
                         validateJwtHeader(jwt, allowedAlgs);
                     } catch (ProofValidationException e) {
                         throw new RuntimeException(e);
                     }
                     validatePayload(jwt, expectedAudience);
-                    System.out.println("XIvato2");
                     return Mono.just(jwt);
                 });
     }
@@ -88,8 +83,6 @@ public class ProofValidationServiceImpl implements ProofValidationService {
         if (present != 1) {
             throw new ProofValidationException("invalid_proof: exactly one of kid, jwk or x5c must be present");
         }
-
-        System.out.println("XIvato3");
 
         // FUTURO: x5c
         if (hasX5c) {
@@ -163,8 +156,6 @@ public class ProofValidationServiceImpl implements ProofValidationService {
         if (iat.isBefore(now.minusSeconds(300)) || iat.isAfter(now.plusSeconds(60))) {
             throw new IllegalArgumentException("Invalid JWT payload: iat outside acceptable time window");
         }
-
-        System.out.println("XIvato5");
 
         if (payload.containsKey("exp")) {
             Object expObj = payload.get("exp");
