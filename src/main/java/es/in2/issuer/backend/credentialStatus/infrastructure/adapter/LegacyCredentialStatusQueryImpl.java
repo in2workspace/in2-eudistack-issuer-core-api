@@ -1,5 +1,6 @@
 package es.in2.issuer.backend.credentialStatus.infrastructure.adapter;
 
+
 import es.in2.issuer.backend.backoffice.domain.model.entities.StatusListIndex;
 import es.in2.issuer.backend.credentialStatus.domain.service.LegacyCredentialStatusQuery;
 import es.in2.issuer.backend.credentialStatus.infrastructure.repository.LegacyCredentialStatusRepository;
@@ -16,8 +17,8 @@ public class LegacyCredentialStatusQueryImpl implements LegacyCredentialStatusQu
     private final LegacyCredentialStatusRepository  legacyCredentialStatusRepository;
 
     @Override
-    public Flux<String> getNoncesByListId(int listId) {
-        log.info("LegacyCredentialStatusQueryImpl - getNoncesByListId: {}", listId);
+    public Flux<String> getNoncesByListId(String processId, int listId) {
+        log.info("Process ID: {} - LegacyCredentialStatusQueryImpl - getNoncesByListId: {}", processId, listId);
         return legacyCredentialStatusRepository.findByListId(listId)
                 .map(StatusListIndex::getNonce);
     }

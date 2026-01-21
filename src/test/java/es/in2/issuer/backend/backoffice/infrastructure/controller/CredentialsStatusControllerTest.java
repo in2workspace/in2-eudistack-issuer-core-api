@@ -1,7 +1,7 @@
 //package es.in2.issuer.backend.backoffice.infrastructure.controller;
 //
 //import es.in2.issuer.backend.credentialStatus.application.workflow.CredentialStatusWorkflow;
-//import es.in2.issuer.backend.backoffice.domain.model.dtos.CredentialStatusResponse;
+//import es.in2.issuer.backend.credentialStatus.domain.model.entities.dto.CredentialStatusResponse;
 //import es.in2.issuer.backend.credentialStatus.domain.model.dtos.RevokeCredentialRequest;
 //import es.in2.issuer.backend.shared.infrastructure.controller.error.ErrorResponseFactory;
 //import org.junit.jupiter.api.Test;

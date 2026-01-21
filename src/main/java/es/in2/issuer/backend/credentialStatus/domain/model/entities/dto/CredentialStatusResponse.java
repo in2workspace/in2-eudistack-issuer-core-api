@@ -1,4 +1,4 @@
-package es.in2.issuer.backend.backoffice.domain.model.dtos;
+package es.in2.issuer.backend.credentialStatus.domain.model.entities.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
