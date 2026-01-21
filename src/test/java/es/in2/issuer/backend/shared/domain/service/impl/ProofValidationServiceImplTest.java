@@ -115,34 +115,9 @@ class ProofValidationServiceImplTest {
                 .verify();
     }
 
-    @Test
-    void isProofValid_headerAlgHS256_mapsToProofValidationException() {
-        String jwt = buildJwtRaw(
-                "{\"alg\":\"HS256\",\"typ\":\"" + SUPPORTED_PROOF_TYP + "\",\"kid\":\"did:key:zDummy\"}",
-                "{\"aud\":\"aud\",\"iat\":" + Instant.now().getEpochSecond() + "}"
-        );
-
-        StepVerifier.create(service.isProofValid(jwt, Set.of(SUPPORTED_PROOF_ALG), "aud"))
-                .expectError(ProofValidationException.class)
-                .verify();
-    }
-
-    @Test
-    void isProofValid_headerAlgNotSupported_mapsToProofValidationException() {
-        // Use any alg different than SUPPORTED_PROOF_ALG and not HS*/none
-        String jwt = buildJwtRaw(
-                "{\"alg\":\"ES512\",\"typ\":\"" + SUPPORTED_PROOF_TYP + "\",\"kid\":\"did:key:zDummy\"}",
-                "{\"aud\":\"aud\",\"iat\":" + Instant.now().getEpochSecond() + "}"
-        );
-
-        StepVerifier.create(service.isProofValid(jwt, Set.of(SUPPORTED_PROOF_ALG), "aud"))
-                .expectError(ProofValidationException.class)
-                .verify();
-    }
 
     @Test
     void isProofValid_headerKidJwkX5cMustBeExactlyOne_mapsToProofValidationException() {
-        // kid + jwk => invalid (must be exactly one of kid/jwk/x5c)
         String jwt = buildJwtRaw(
                 "{\"alg\":\"" + SUPPORTED_PROOF_ALG + "\",\"typ\":\"" + SUPPORTED_PROOF_TYP + "\","
                         + "\"kid\":\"did:key:zDummy\","

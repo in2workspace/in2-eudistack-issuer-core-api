@@ -3,7 +3,6 @@ package es.in2.issuer.backend.backoffice.infrastructure.config.security;
 import brave.internal.Nullable;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.nimbusds.jose.JWSObject;
 import com.nimbusds.jwt.SignedJWT;
 import es.in2.issuer.backend.shared.domain.service.VerifierService;
 import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;

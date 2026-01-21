@@ -25,7 +25,6 @@ import es.in2.issuer.backend.shared.application.workflow.CredentialSignerWorkflo
 import es.in2.issuer.backend.shared.domain.exception.EmailCommunicationException;
 import es.in2.issuer.backend.shared.domain.exception.FormatUnsupportedException;
 import es.in2.issuer.backend.shared.domain.model.dto.*;
-import es.in2.issuer.backend.shared.domain.model.entities.DeferredCredentialMetadata;
 import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum;
 import es.in2.issuer.backend.shared.domain.model.enums.CredentialType;
 import es.in2.issuer.backend.shared.domain.service.*;
@@ -785,21 +784,6 @@ class CredentialIssuanceWorkflowImplTest {
         org.junit.jupiter.api.Assertions.assertEquals("access-token-value", accessTokenCap.getValue());
     }
 
-
-
-    /** Helper: minimal compact JWT with "jti" in the payload that Nimbus can parse without validating the signature */
-    private static String buildDummyJwtWithJti(String jti) {
-        String h = java.util.Base64.getUrlEncoder().withoutPadding()
-                .encodeToString("{\"alg\":\"HS256\"}".getBytes(java.nio.charset.StandardCharsets.UTF_8));
-        String p = java.util.Base64.getUrlEncoder().withoutPadding()
-                .encodeToString(("{\"jti\":\"" + jti + "\"}").getBytes(java.nio.charset.StandardCharsets.UTF_8));
-        // dummy signature
-        String s = "sig";
-        return h + "." + p + "." + s;
-    }
-
-
-
     @Test
     void bindAccessTokenByPreAuthorizedCodeSuccess() {
         String processId = "1234";
@@ -1213,7 +1197,7 @@ class CredentialIssuanceWorkflowImplTest {
     }
 
     @Test
-    void validateAndDetermineBindingInfo_whenProofsNull_throwsInvalidOrMissingProofException() throws Exception {
+    void validateAndDetermineBindingInfo_whenProofsNull_throwsInvalidOrMissingProofException() {
         // given
         CredentialProcedure proc = mock(CredentialProcedure.class);
         when(proc.getCredentialType()).thenReturn(CredentialType.LEAR_CREDENTIAL_MACHINE.name());
@@ -1229,7 +1213,6 @@ class CredentialIssuanceWorkflowImplTest {
         // needsProof = true
         when(cfg.cryptographicBindingMethodsSupported()).thenReturn(Set.of("did"));
 
-        // ✅ CONFIG OK: proofTypesSupported(jwt) con algs NO vacíos
         when(cfg.proofTypesSupported()).thenReturn(
                 Map.of("jwt", jwtProofCfg(Set.of("ES256")))
         );
@@ -1237,7 +1220,7 @@ class CredentialIssuanceWorkflowImplTest {
         when(md.credentialConfigurationsSupported()).thenReturn(Map.of("cfg1", cfg));
 
         CredentialRequest req = CredentialRequest.builder()
-                .proofs(null) // 👈 missing proofs
+                .proofs(null)
                 .build();
 
         // when
@@ -1287,7 +1270,7 @@ class CredentialIssuanceWorkflowImplTest {
                 .proofs(Proofs.builder().jwt(List.of(jwtProof)).build())
                 .build();
 
-        when(proofValidationService.isProofValid(eq(jwtProof), eq(Set.of("ES256")), eq("https://issuer.example")))
+        when(proofValidationService.isProofValid(jwtProof, Set.of("ES256"), "https://issuer.example"))
                 .thenReturn(Mono.just(false));
 
         // when
@@ -1333,7 +1316,7 @@ class CredentialIssuanceWorkflowImplTest {
                 .proofs(Proofs.builder().jwt(List.of(jwtProof)).build())
                 .build();
 
-        when(proofValidationService.isProofValid(eq(jwtProof), eq(Set.of("ES256")), eq("https://issuer.example")))
+        when(proofValidationService.isProofValid(jwtProof, Set.of("ES256"), "https://issuer.example"))
                 .thenReturn(Mono.just(true));
 
         // when

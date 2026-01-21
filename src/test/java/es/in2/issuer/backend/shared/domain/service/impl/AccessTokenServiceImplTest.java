@@ -285,14 +285,13 @@ class AccessTokenServiceImplTest {
     }
 
     @Test
-    void testValidateAndResolveProcedure_ValidToken() throws Exception {
+    void testValidateAndResolveProcedure_ValidToken(){
         // Arrange
         String validToken = "validToken";
         String authorizationHeader = "Bearer " + validToken;
 
         String jti = "jti123";
         long exp = Instant.now().plusSeconds(3600).getEpochSecond();
-        String procedureIdValue = "proc123";
         String responseUri = "http://response.uri";
 
         JWSObject mockJwsObject = mock(JWSObject.class);

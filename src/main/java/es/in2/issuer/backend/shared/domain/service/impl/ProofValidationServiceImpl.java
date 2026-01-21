@@ -71,12 +71,10 @@ public class ProofValidationServiceImpl implements ProofValidationService {
 
         if (hasJwk) {
             Object jwkObj = headerParams.get("jwk");
-            if (jwkObj instanceof Map<?, ?> jwkMap) {
-                if (jwkMap.containsKey("d") || jwkMap.containsKey("p") ||
+            if (jwkObj instanceof Map<?, ?> jwkMap && (jwkMap.containsKey("d") || jwkMap.containsKey("p") ||
                         jwkMap.containsKey("q") || jwkMap.containsKey("dp") ||
-                        jwkMap.containsKey("dq") || jwkMap.containsKey("qi")) {
+                        jwkMap.containsKey("dq") || jwkMap.containsKey("qi"))) {
                     throw new IllegalArgumentException("Invalid JWT header: JWK must not contain private key material");
-                }
             }
         }
     }

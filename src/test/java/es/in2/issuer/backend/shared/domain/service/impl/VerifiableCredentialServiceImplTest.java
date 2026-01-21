@@ -18,10 +18,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
 import java.util.List;
-import java.util.Map;
 
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.BEARER_PREFIX;
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.JWT_VC;
@@ -436,44 +433,44 @@ class VerifiableCredentialServiceImplTest {
         String decodedCredential = "decodedCredential";
         String boundCredential = "boundCredential";
         String unsignedCredential = "unsignedCredential";
-        String transactionId = "transactionId";
-        String procedureId = "procedureId";
-        String processId = "processId";
+        String transId = "transactionId";
+        String procId = "procedureId";
+        String proceId = "processId";
 
-        when(credentialProcedureService.getCredentialTypeByProcedureId(procedureId))
+        when(credentialProcedureService.getCredentialTypeByProcedureId(procId))
                 .thenReturn(Mono.just(credentialType));
 
-        when(credentialProcedureService.getDecodedCredentialByProcedureId(procedureId))
+        when(credentialProcedureService.getDecodedCredentialByProcedureId(procId))
                 .thenReturn(Mono.just(decodedCredential), Mono.just(unsignedCredential));
         when(credentialFactory.bindCryptographicCredentialSubjectId(
-                processId, credentialType, decodedCredential, subjectDid))
+                proceId, credentialType, decodedCredential, subjectDid))
                 .thenReturn(Mono.just(boundCredential));
 
-        when(credentialProcedureService.updateDecodedCredentialByProcedureId(procedureId, boundCredential))
+        when(credentialProcedureService.updateDecodedCredentialByProcedureId(procId, boundCredential))
                 .thenReturn(Mono.empty());
 
         when(deferredCredentialMetadataService.updateDeferredCredentialMetadataByAuthServerNonce(authServerNonce))
-                .thenReturn(Mono.just(transactionId));
+                .thenReturn(Mono.just(transId));
 
-        when(deferredCredentialMetadataService.getFormatByProcedureId(procedureId))
+        when(deferredCredentialMetadataService.getFormatByProcedureId(procId))
                 .thenReturn(Mono.just(format));
 
         when(credentialFactory.mapCredentialBindIssuerAndUpdateDB(
-                processId, procedureId, boundCredential, credentialType, format, authServerNonce, testEmail))
+                proceId, procId, boundCredential, credentialType, format, authServerNonce, testEmail))
                 .thenReturn(Mono.empty());
 
-        when(credentialProcedureService.getOperationModeByProcedureId(procedureId))
+        when(credentialProcedureService.getOperationModeByProcedureId(procId))
                 .thenReturn(Mono.just("S")); // SYNC
 
-        when(credentialSignerWorkflow.signAndUpdateCredentialByProcedureId(BEARER_PREFIX + token, procedureId, JWT_VC))
+        when(credentialSignerWorkflow.signAndUpdateCredentialByProcedureId(BEARER_PREFIX + token, procId, JWT_VC))
                 .thenReturn(Mono.error(new IllegalArgumentException("Simulated error")));
 
         Mono<CredentialResponse> result = verifiableCredentialServiceImpl.buildCredentialResponse(
-                processId, subjectDid, authServerNonce, token, testEmail, procedureId);
+                proceId, subjectDid, authServerNonce, token, testEmail, procId);
 
         StepVerifier.create(result)
                 .expectNextMatches(response ->
-                        response.transactionId().equals(transactionId)
+                        response.transactionId().equals(transId)
                                 && response.credentials().equals(List.of(
                                 CredentialResponse.Credential.builder()
                                         .credential(unsignedCredential)
@@ -482,10 +479,10 @@ class VerifiableCredentialServiceImplTest {
                 .verifyComplete();
 
         verify(credentialSignerWorkflow, times(1))
-                .signAndUpdateCredentialByProcedureId(BEARER_PREFIX + token, procedureId, JWT_VC);
+                .signAndUpdateCredentialByProcedureId(BEARER_PREFIX + token, procId, JWT_VC);
 
         verify(credentialProcedureService, times(2))
-                .getDecodedCredentialByProcedureId(procedureId);
+                .getDecodedCredentialByProcedureId(procId);
     }
 
 

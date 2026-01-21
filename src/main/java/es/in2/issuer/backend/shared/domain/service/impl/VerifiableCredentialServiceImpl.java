@@ -186,18 +186,16 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
         if (ASYNC.equals(operationMode)) {
             return credentialProcedureService
                     .getDecodedCredentialByProcedureId(procedureId)
-                    .flatMap(decodedCredential -> {
-                        return Mono.just(
-                                CredentialResponse.builder()
-                                        .credentials(List.of(
-                                                CredentialResponse.Credential.builder()
-                                                        .credential(decodedCredential)
-                                                        .build()
-                                        ))
-                                        .transactionId(transactionId)
-                                        .build()
-                        );
-                    });
+                    .flatMap(decodedCredential -> Mono.just(
+                            CredentialResponse.builder()
+                                    .credentials(List.of(
+                                            CredentialResponse.Credential.builder()
+                                                    .credential(decodedCredential)
+                                                    .build()
+                                    ))
+                                    .transactionId(transactionId)
+                                    .build()
+                    ));
         } else if (SYNC.equals(operationMode)) {
             return credentialSignerWorkflow
                     .signAndUpdateCredentialByProcedureId(

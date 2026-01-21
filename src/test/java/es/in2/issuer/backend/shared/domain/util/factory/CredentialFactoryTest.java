@@ -130,7 +130,6 @@ class CredentialFactoryTest {
         String boundCredential = "boundCredential";
         String format = "format";
         String authServerNonce = "nonce";
-        String subjectDid = "did";
 
         when(learCredentialEmployeeFactory.mapCredentialAndBindIssuerInToTheCredential(decodedCredential, procedureId, ""))
                 .thenReturn(Mono.just(boundCredential));
@@ -155,7 +154,6 @@ class CredentialFactoryTest {
         String credentialType = "unsupportedType";
         String format = "format";
         String authServerNonce = "nonce";
-        String subjectDid = "did";
 
         StepVerifier.create(credentialFactory.mapCredentialBindIssuerAndUpdateDB(processId, procedureId, decodedCredential, credentialType, format, authServerNonce, ""))
                 .expectError(CredentialTypeUnsupportedException.class)
@@ -173,7 +171,6 @@ class CredentialFactoryTest {
         String decodedCredential = "decodedCredential";
         String format = "format";
         String authServerNonce = "nonce";
-        String subjectDid = "did";
 
         when(learCredentialEmployeeFactory.mapCredentialAndBindIssuerInToTheCredential(decodedCredential, procedureId, ""))
                 .thenReturn(Mono.error(new RuntimeException("Binding error")));
@@ -195,7 +192,6 @@ class CredentialFactoryTest {
         String boundCredential = "boundCredential";
         String format = "format";
         String authServerNonce = "nonce";
-        String subjectDid = "did";
 
         when(learCredentialEmployeeFactory.mapCredentialAndBindIssuerInToTheCredential(decodedCredential, procedureId, ""))
                 .thenReturn(Mono.just(boundCredential));
