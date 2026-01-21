@@ -2,16 +2,12 @@ package es.in2.issuer.backend.shared.application.workflow.impl;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import es.in2.issuer.backend.backoffice.application.workflow.policies.BackofficePdpService;
 import es.in2.issuer.backend.shared.application.workflow.DeferredCredentialWorkflow;
 import es.in2.issuer.backend.shared.domain.exception.CredentialProcedureInvalidStatusException;
 import es.in2.issuer.backend.shared.domain.exception.CredentialProcedureNotFoundException;
-import es.in2.issuer.backend.shared.domain.model.dto.LEARCredentialEmployeeJwtPayload;
-import es.in2.issuer.backend.shared.domain.model.dto.SignatureRequest;
-import es.in2.issuer.backend.shared.domain.model.dto.SignedData;
-import es.in2.issuer.backend.shared.domain.model.dto.VerifierOauth2AccessToken;
+import es.in2.issuer.backend.shared.domain.model.dto.*;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.SimpleIssuer;
 import es.in2.issuer.backend.shared.domain.model.entities.CredentialProcedure;
 import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum;
@@ -23,7 +19,6 @@ import es.in2.issuer.backend.shared.domain.util.factory.LEARCredentialMachineFac
 import es.in2.issuer.backend.shared.domain.util.factory.LabelCredentialFactory;
 import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
 import es.in2.issuer.backend.shared.infrastructure.repository.CredentialProcedureRepository;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -92,8 +87,8 @@ class CredentialSignerWorkflowImplTest {
     @Mock
     private AppConfig appConfig;
 
-    @Mock
-    ObjectMapper objectMapper;
+    @Spy
+    private ObjectMapper objectMapper = new ObjectMapper();
 
     @Mock
     private SimpleIssuer simpleIssuer;
@@ -609,7 +604,10 @@ class CredentialSignerWorkflowImplTest {
         when(learCredentialEmployeeFactory.convertLEARCredentialEmployeeJwtPayloadInToString(any()))
                 .thenReturn(Mono.just(unsignedCredential));
 
-        when(objectMapper.readTree(unsignedCredential)).thenThrow(new RuntimeException("boom"));
+        doThrow(new RuntimeException("boom"))
+                .when(objectMapper)
+                .readTree(unsignedCredential);
+
 
         when(remoteSignatureService.sign(any(SignatureRequest.class), eq(token), eq(procedureId), anyString()))
                 .thenReturn(Mono.just(new SignedData(SignatureType.JADES, "signed")));
@@ -625,5 +623,116 @@ class CredentialSignerWorkflowImplTest {
         // unchanged payload
         assertEquals(unsignedCredential, captor.getValue().data());
         verify(objectMapper, never()).writeValueAsString(any());
+    }
+    @Test
+    void signAndUpdateCredentialByProcedureId_setsSub_whenCredentialSubjectIsArray_firstNonBlankId() {
+        // Arrange
+        String procedureId = UUID.randomUUID().toString();
+        String token = "token";
+
+        String unsignedCredential =
+                """
+                {
+                  "iss":"issuer",
+                  "vc":{
+                    "credentialSubject":[
+                      {"id":""},
+                      {"id":"did:key:zBob"},
+                      {"id":"did:key:zCharlie"}
+                    ]
+                  }
+                }
+                """;
+
+        CredentialProcedure cp = mock(CredentialProcedure.class);
+        when(cp.getCredentialType()).thenReturn(LEAR_CREDENTIAL_EMPLOYEE_TYPE);
+        when(cp.getCredentialDecoded()).thenReturn("decoded");
+        when(cp.getUpdatedBy()).thenReturn("alice@example.com");
+
+        when(credentialProcedureRepository.findByProcedureId(UUID.fromString(procedureId)))
+                .thenReturn(Mono.just(cp));
+
+        when(learCredentialEmployeeFactory.mapStringToLEARCredentialEmployee(anyString()))
+                .thenReturn(mock(es.in2.issuer.backend.shared.domain.model.dto.credential.lear.employee.LEARCredentialEmployee.class));
+        when(learCredentialEmployeeFactory.buildLEARCredentialEmployeeJwtPayload(any()))
+                .thenReturn(Mono.just(mock(es.in2.issuer.backend.shared.domain.model.dto.LEARCredentialEmployeeJwtPayload.class)));
+        when(learCredentialEmployeeFactory.convertLEARCredentialEmployeeJwtPayloadInToString(any()))
+                .thenReturn(Mono.just(unsignedCredential));
+
+        when(remoteSignatureService.sign(any(SignatureRequest.class), eq(token), eq(procedureId), anyString()))
+                .thenReturn(Mono.just(new SignedData(SignatureType.JADES, "signed")));
+
+        doReturn(Mono.empty())
+                .when(deferredCredentialWorkflow)
+                .updateSignedCredentials(any(SignedCredentials.class), eq(procedureId));
+
+        StepVerifier.create(credentialSignerWorkflow.signAndUpdateCredentialByProcedureId(token, procedureId, JWT_VC))
+                .expectNext("signed")
+                .verifyComplete();
+
+        ArgumentCaptor<SignatureRequest> captor = ArgumentCaptor.forClass(SignatureRequest.class);
+        verify(remoteSignatureService).sign(captor.capture(), eq(token), eq(procedureId), anyString());
+
+        String payloadToSign = captor.getValue().data();
+
+        assertTrue(payloadToSign.contains("\"sub\":\"did:key:zBob\""));
+        assertFalse(payloadToSign.contains("\"sub\":\"did:key:zCharlie\""));
+
+        verify(deferredCredentialWorkflow).updateSignedCredentials(any(SignedCredentials.class), eq(procedureId));
+    }
+
+    @Test
+    void signAndUpdateCredentialByProcedureId_doesNotSetSub_whenCredentialSubjectArray_hasNoValidId() {
+        String procedureId = UUID.randomUUID().toString();
+        String token = "token";
+
+        String unsignedCredential =
+                """
+                {
+                  "iss":"issuer",
+                  "vc":{
+                    "credentialSubject":[
+                      {"id":""},
+                      {"id":"   "},
+                      {"id":null},
+                      {"name":"NoIdHere"}
+                    ]
+                  }
+                }
+                """;
+        when(deferredCredentialWorkflow.updateSignedCredentials(any(), anyString()))
+                .thenReturn(Mono.empty());
+
+
+        CredentialProcedure cp = mock(CredentialProcedure.class);
+        when(cp.getCredentialType()).thenReturn(LEAR_CREDENTIAL_EMPLOYEE_TYPE);
+        when(cp.getCredentialDecoded()).thenReturn("decoded");
+        when(cp.getUpdatedBy()).thenReturn("alice@example.com");
+
+
+        when(credentialProcedureRepository.findByProcedureId(UUID.fromString(procedureId)))
+                .thenReturn(Mono.just(cp));
+
+        when(learCredentialEmployeeFactory.mapStringToLEARCredentialEmployee(anyString()))
+                .thenReturn(mock(es.in2.issuer.backend.shared.domain.model.dto.credential.lear.employee.LEARCredentialEmployee.class));
+        when(learCredentialEmployeeFactory.buildLEARCredentialEmployeeJwtPayload(any()))
+                .thenReturn(Mono.just(mock(es.in2.issuer.backend.shared.domain.model.dto.LEARCredentialEmployeeJwtPayload.class)));
+        when(learCredentialEmployeeFactory.convertLEARCredentialEmployeeJwtPayloadInToString(any()))
+                .thenReturn(Mono.just(unsignedCredential));
+
+        when(remoteSignatureService.sign(any(SignatureRequest.class), eq(token), eq(procedureId), anyString()))
+                .thenReturn(Mono.just(new SignedData(SignatureType.JADES, "signed")));
+
+        StepVerifier.create(credentialSignerWorkflow.signAndUpdateCredentialByProcedureId(token, procedureId, JWT_VC))
+                .expectNext("signed")
+                .verifyComplete();
+
+        ArgumentCaptor<SignatureRequest> captor = ArgumentCaptor.forClass(SignatureRequest.class);
+        verify(remoteSignatureService).sign(captor.capture(), eq(token), eq(procedureId), anyString());
+
+        String payloadToSign = captor.getValue().data();
+
+        assertFalse(payloadToSign.contains("\"sub\""),
+                "No debe añadir sub si no encuentra ningún credentialSubject.id válido en el array");
     }
 }

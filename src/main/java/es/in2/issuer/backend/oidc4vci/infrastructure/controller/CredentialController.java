@@ -30,14 +30,6 @@ public class CredentialController {
             @RequestHeader(HttpHeaders.AUTHORIZATION) String authorizationHeader,
             @RequestBody CredentialRequest credentialRequest) {
         String processId = UUID.randomUUID().toString();
-        log.debug(
-                "Process ID: {} - /credential called. credentialConfigurationId={}, hasProofJwt={}",
-                processId,
-                credentialRequest.credentialConfigurationId(),
-                credentialRequest.proofs() != null &&
-                        credentialRequest.proofs().jwt() != null &&
-                        !credentialRequest.proofs().jwt().isEmpty()
-        );
         return accessTokenService.validateAndResolveProcedure(authorizationHeader)
                 .flatMap(token ->
                         credentialIssuanceWorkflow.generateVerifiableCredentialResponse(processId, credentialRequest, token))
