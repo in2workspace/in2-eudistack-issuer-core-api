@@ -87,12 +87,12 @@ class JwtUtilsTest {
         );
     }
 
-    /*@Test
+    @Test
     void testAreJsonsEqual_NullJsons() {
         boolean result = jwtUtils.areJsonsEqual(null, null);
 
-        assertThat(result).isTrue();
-    }*/
+        assertThat(result).isFalse();
+    }
 
     private static String b64u(byte[] bytes) {
         return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
