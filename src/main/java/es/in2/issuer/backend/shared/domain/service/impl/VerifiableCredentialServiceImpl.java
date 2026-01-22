@@ -188,17 +188,7 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
                     .getDecodedCredentialByProcedureId(procedureId)
                     .flatMap(decodedCredential -> {
                         log.debug("ASYNC Credential JSON: {}", decodedCredential);
-                        return Mono.just(
-                                CredentialResponse.builder()
-                                        .credentials(List.of(
-                                                CredentialResponse.Credential.builder()
-                                                        .credential(decodedCredential)
-                                                        .build()
-                                        ))
-                                        .transactionId(transactionId)
-                                        .interval(DEFERRED_CREDENTIAL_POLLING_INTERVAL)
-                                        .build()
-                        );
+                        return getAsyncCredentialResponseMono(transactionId);
                     });
         } else if (SYNC.equals(operationMode)) {
             return deferredCredentialMetadataService
@@ -222,12 +212,7 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
                                 if (error instanceof RemoteSignatureException
                                         || error instanceof IllegalArgumentException) {
                                     log.info("Error in SYNC mode, falling back to unsigned");
-                                    return Mono.just(
-                                            CredentialResponse.builder()
-                                                    .transactionId(transactionId)
-                                                    .interval(DEFERRED_CREDENTIAL_POLLING_INTERVAL)
-                                                    .build()
-                                    );
+                                    return getAsyncCredentialResponseMono(transactionId);
                                 }
                                 return Mono.error(error);
                             })
@@ -237,5 +222,14 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
                     "Unknown operation mode: " + operationMode
             ));
         }
+    }
+
+    private Mono<CredentialResponse> getAsyncCredentialResponseMono(String transactionId) {
+        return Mono.just(
+                CredentialResponse.builder()
+                        .transactionId(transactionId)
+                        .interval(DEFERRED_CREDENTIAL_POLLING_INTERVAL)
+                        .build()
+        );
     }
 }
