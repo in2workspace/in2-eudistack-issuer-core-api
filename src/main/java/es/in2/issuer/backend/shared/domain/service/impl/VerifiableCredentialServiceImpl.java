@@ -91,12 +91,15 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
         log.debug("buildCredentialResponse - email: {} - processId: {}", email, processId);
         return deferredCredentialMetadataService
                 .getProcedureIdByAuthServerNonce(authServerNonce)
-                .flatMap(procedureId -> credentialProcedureService
-                        .getCredentialTypeByProcedureId(procedureId)
-                        .zipWhen(credType -> credentialProcedureService.getDecodedCredentialByProcedureId(procedureId))
-                        .flatMap(tuple -> {
-                            String credentialType = tuple.getT1();
-                            String decoded = tuple.getT2();
+                .flatMap(procedureId ->
+                        Mono.zip(
+                                credentialProcedureService.getCredentialTypeByProcedureId(procedureId),
+                                credentialProcedureService.getDecodedCredentialByProcedureId(procedureId),
+                                credentialProcedureService.getNotificationIdByProcedureId(procedureId)
+                        ).flatMap(tuple3 -> {
+                            String credentialType = tuple3.getT1();
+                            String decoded = tuple3.getT2();
+                            String notificationId = tuple3.getT3();
                             return bindAndSaveIfNeeded(
                                     processId,
                                     procedureId,
@@ -111,7 +114,8 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
                                             boundCred,
                                             authServerNonce,
                                             token,
-                                            email
+                                            email,
+                                            notificationId
                                     ));
                         })
                 );
@@ -146,7 +150,8 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
             String boundCredential,
             String authServerNonce,
             String token,
-            String email) {
+            String email,
+            String notificationId) {
 
         return deferredCredentialMetadataService
                 .updateDeferredCredentialMetadataByAuthServerNonce(authServerNonce)
@@ -167,7 +172,8 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
                                         procedureId,
                                         transactionId,
                                         authServerNonce,
-                                        token
+                                        token,
+                                        notificationId
                                 ))
                         )
                 );
@@ -178,7 +184,8 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
             String procedureId,
             String transactionId,
             String authServerNonce,
-            String token) {
+            String token,
+            String notificationId) {
         if (ASYNC.equals(operationMode)) {
             return credentialProcedureService
                     .getDecodedCredentialByProcedureId(procedureId)
@@ -192,6 +199,7 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
                                                         .build()
                                         ))
                                         .transactionId(transactionId)
+                                        .notificationId(notificationId)
                                         .build()
                         );
                     });
@@ -227,6 +235,7 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
                                                                             .build()
                                                             ))
                                                             .transactionId(transactionId)
+                                                            .notificationId(notificationId)
                                                             .build()
                                             ));
                                 }
