@@ -333,7 +333,7 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                     String nonce = tuple4.getT1();
                     DeferredCredentialMetadata deferredCredentialMetadata = tuple4.getT2();
                     CredentialProcedure proc = tuple4.getT3();
-                    String email = proc.getUpdatedBy();
+                    String email = proc.getEmail();
                     log.debug("email (from udpatedBy): {}", email);
 
                     return verifiableCredentialService.signCredential(deferredCredentialRequest.transactionId(), token, proc.getProcedureId().toString())
