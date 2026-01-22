@@ -2,7 +2,7 @@ package es.in2.issuer.backend.oidc4vci.infrastructure.controller;
 
 import es.in2.issuer.backend.shared.application.workflow.CredentialIssuanceWorkflow;
 import es.in2.issuer.backend.shared.domain.model.dto.DeferredCredentialRequest;
-import es.in2.issuer.backend.shared.domain.model.dto.DeferredCredentialResponse;
+import es.in2.issuer.backend.shared.domain.model.dto.CredentialResponse;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -33,13 +33,13 @@ class DeferredCredentialControllerTest {
         DeferredCredentialRequest deferredCredentialRequest = DeferredCredentialRequest.builder()
                 .transactionId(newTransactionId)
                 .build();
-        DeferredCredentialResponse credentialResponse = DeferredCredentialResponse.builder()
+        CredentialResponse credentialResponse = CredentialResponse.builder()
                 .credentials(List.of(
-                        DeferredCredentialResponse.Credential.builder().credential("sampleCredential").build()))
+                        CredentialResponse.Credential.builder().credential("sampleCredential").build()))
                 .build();
         when(credentialIssuanceWorkflow.generateVerifiableCredentialDeferredResponse(anyString(), eq(deferredCredentialRequest), anyString())).thenReturn(Mono.just(credentialResponse));
 
-        Mono<DeferredCredentialResponse> result = deferredCredentialController.getCredential("", deferredCredentialRequest);
+        Mono<CredentialResponse> result = deferredCredentialController.getCredential("", deferredCredentialRequest);
 
         StepVerifier.create(result)
                 .assertNext(response -> assertEquals(credentialResponse, response))

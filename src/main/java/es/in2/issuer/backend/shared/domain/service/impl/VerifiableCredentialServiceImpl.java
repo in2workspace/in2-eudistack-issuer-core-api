@@ -4,8 +4,6 @@ import com.nimbusds.jose.JWSObject;
 import es.in2.issuer.backend.shared.application.workflow.CredentialSignerWorkflow;
 import es.in2.issuer.backend.shared.domain.exception.RemoteSignatureException;
 import es.in2.issuer.backend.shared.domain.model.dto.CredentialResponse;
-import es.in2.issuer.backend.shared.domain.model.dto.DeferredCredentialRequest;
-import es.in2.issuer.backend.shared.domain.model.dto.DeferredCredentialResponse;
 import es.in2.issuer.backend.shared.domain.model.dto.PreSubmittedCredentialDataRequest;
 import es.in2.issuer.backend.shared.domain.service.CredentialProcedureService;
 import es.in2.issuer.backend.shared.domain.service.DeferredCredentialMetadataService;
@@ -51,26 +49,6 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
                                 credentialProcedureService.updateFormatByProcedureId(procedureId, preSubmittedCredentialDataRequest.format())
                                         .then(deferredCredentialMetadataService.updateFormatByProcedureId(procedureId, preSubmittedCredentialDataRequest.format()))
                                         .thenReturn(transactionCode)));
-    }
-
-    @Override
-    public Mono<DeferredCredentialResponse> generateDeferredCredentialResponse(String processId, DeferredCredentialRequest deferredCredentialRequest) {
-        return deferredCredentialMetadataService.getVcByTransactionId(deferredCredentialRequest.transactionId())
-                .flatMap(deferredCredentialMetadataDeferredResponse -> {
-                    if (deferredCredentialMetadataDeferredResponse.vc() != null) {
-                        return credentialProcedureService.updateCredentialProcedureCredentialStatusToValidByProcedureId(deferredCredentialMetadataDeferredResponse.procedureId())
-                                .then(deferredCredentialMetadataService.deleteDeferredCredentialMetadataById(deferredCredentialMetadataDeferredResponse.id()))
-                                .then(Mono.just(DeferredCredentialResponse.builder()
-                                        .credentials(List.of(
-                                                DeferredCredentialResponse.Credential.builder()
-                                                        .credential(deferredCredentialMetadataDeferredResponse.vc())
-                                                        .build()))
-                                        .build()));
-                    } else {
-                        return Mono.just(DeferredCredentialResponse.builder()
-                                .build());
-                    }
-                });
     }
 
     @Override
@@ -193,35 +171,40 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
         } else if (SYNC.equals(operationMode)) {
             return deferredCredentialMetadataService
                     .getProcedureIdByAuthServerNonce(authServerNonce)
-                    .flatMap(procId -> credentialSignerWorkflow
-                            .signAndUpdateCredentialByProcedureId(
-                                    BEARER_PREFIX + token,
-                                    procId,
-                                    JWT_VC
-                            )
-                            .flatMap(signed -> Mono.just(
-                                    CredentialResponse.builder()
-                                            .credentials(List.of(
-                                                    CredentialResponse.Credential.builder()
-                                                            .credential(signed)
-                                                            .build()
-                                            ))
-                                            .build()
-                            ))
-                            .onErrorResume(error -> {
-                                if (error instanceof RemoteSignatureException
-                                        || error instanceof IllegalArgumentException) {
-                                    log.info("Error in SYNC mode, falling back to unsigned");
-                                    return getAsyncCredentialResponseMono(transactionId);
-                                }
-                                return Mono.error(error);
-                            })
-                    );
+                    .flatMap(procId ->
+                            signCredential(transactionId, token, procId));
         } else {
             return Mono.error(new IllegalArgumentException(
                     "Unknown operation mode: " + operationMode
             ));
         }
+    }
+
+    @Override
+    public Mono<CredentialResponse> signCredential(String transactionId, String token, String procId) {
+        return credentialSignerWorkflow
+                .signAndUpdateCredentialByProcedureId(
+                        BEARER_PREFIX + token,
+                        procId,
+                        JWT_VC
+                )
+                .flatMap(signed -> Mono.just(
+                        CredentialResponse.builder()
+                                .credentials(List.of(
+                                        CredentialResponse.Credential.builder()
+                                                .credential(signed)
+                                                .build()
+                                ))
+                                .build()
+                ))
+                .onErrorResume(error -> {
+                    if (error instanceof RemoteSignatureException
+                            || error instanceof IllegalArgumentException) {
+                        log.info("Error in SYNC mode, falling back to unsigned");
+                        return getAsyncCredentialResponseMono(transactionId);
+                    }
+                    return Mono.error(error);
+                });
     }
 
     private Mono<CredentialResponse> getAsyncCredentialResponseMono(String transactionId) {

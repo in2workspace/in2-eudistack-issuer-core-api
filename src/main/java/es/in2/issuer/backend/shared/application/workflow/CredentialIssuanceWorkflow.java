@@ -10,7 +10,7 @@ public interface CredentialIssuanceWorkflow {
     // Refactor
     Mono<CredentialResponse> generateVerifiableCredentialResponse(String processId, CredentialRequest credentialRequest, String token);
 
-    Mono<DeferredCredentialResponse> generateVerifiableCredentialDeferredResponse(String processId, DeferredCredentialRequest deferredCredentialRequest, String token);
+    Mono<CredentialResponse> generateVerifiableCredentialDeferredResponse(String processId, DeferredCredentialRequest deferredCredentialRequest, String token);
 
     Mono<Void> bindAccessTokenByPreAuthorizedCode(String processId, AuthServerNonceRequest authServerNonceRequest);
 }

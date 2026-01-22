@@ -319,51 +319,34 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
     }
 
     @Override
-    public Mono<DeferredCredentialResponse> generateVerifiableCredentialDeferredResponse(String processId, DeferredCredentialRequest deferredCredentialRequest, String token) {
+    public Mono<CredentialResponse> generateVerifiableCredentialDeferredResponse(String processId, DeferredCredentialRequest deferredCredentialRequest, String token) {
+        log.debug("generateVerifiableCredentialResponse");
         return parseAuthServerNonce(token)
                 .flatMap(nonce -> deferredCredentialMetadataService.getDeferredCredentialMetadataByAuthServerNonce(nonce)
                         .flatMap(deferred -> credentialProcedureService.getCredentialProcedureById(deferred.getProcedureId().toString())
-                                .map(credentialProcedure -> Tuples.of(nonce, deferred, credentialProcedure))
+                                .zipWhen(proc -> credentialIssuerMetadataService.getCredentialIssuerMetadata(processId))
+                                .map(tuple -> Tuples.of(nonce, deferred, tuple.getT1(), tuple.getT2()))
                         )
                 )
                 .flatMap(tuple4 -> {
+                    System.out.println("issuer holaaa");
                     String nonce = tuple4.getT1();
                     DeferredCredentialMetadata deferredCredentialMetadata = tuple4.getT2();
                     CredentialProcedure proc = tuple4.getT3();
                     String email = proc.getUpdatedBy();
                     log.debug("email (from udpatedBy): {}", email);
 
-                    Mono<CredentialResponse> vcMono = verifiableCredentialService.buildCredentialResponse(
-                            processId, null, nonce, token, email);
-
-                    return vcMono.flatMap(cr ->
+                    return verifiableCredentialService.signCredential(deferredCredentialRequest.transactionId(), token, proc.getProcedureId().toString())
+                            .flatMap(credentialResponse ->
                                     handleOperationMode(
                                             proc.getOperationMode(),
                                             processId,
                                             nonce,
-                                            cr,
+                                            credentialResponse,
                                             proc,
                                             deferredCredentialMetadata
-                                    )
-                            )
-                            .flatMap(credentialResponse ->
-                                    deferredCredentialMetadataService.deleteDeferredCredentialMetadataById(deferredCredentialMetadata.getId().toString())
-                                            .thenReturn(credentialResponse))
-                            .flatMap(credentialResponse ->
-                                    Mono.just(DeferredCredentialResponse.builder()
-                                            .credentials(credentialResponse.credentials().stream()
-                                                    .map(c ->
-                                                            DeferredCredentialResponse.Credential.builder()
-                                                                    .credential(c.credential()).build())
-                                                    .toList())
-                                            .transactionId(credentialResponse.transactionId())
-                                            .interval(credentialResponse.interval())
-                                            .build()));
+                                    ));
                 });
-
-
-//                verifiableCredentialService.generateDeferredCredentialResponse(processId, deferredCredentialRequest)
-//                .onErrorResume(e -> Mono.error(new RuntimeException("Failed to process the credential for the next processId: " + processId, e)));
     }
 
     private Mono<String> extractDidFromJwtProof(String jwtProof) {
