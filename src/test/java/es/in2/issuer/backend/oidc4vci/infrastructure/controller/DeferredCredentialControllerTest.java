@@ -37,9 +37,9 @@ class DeferredCredentialControllerTest {
                 .credentials(List.of(
                         DeferredCredentialResponse.Credential.builder().credential("sampleCredential").build()))
                 .build();
-        when(credentialIssuanceWorkflow.generateVerifiableCredentialDeferredResponse(anyString(), eq(deferredCredentialRequest))).thenReturn(Mono.just(credentialResponse));
+        when(credentialIssuanceWorkflow.generateVerifiableCredentialDeferredResponse(anyString(), eq(deferredCredentialRequest), anyString())).thenReturn(Mono.just(credentialResponse));
 
-        Mono<DeferredCredentialResponse> result = deferredCredentialController.getCredential(deferredCredentialRequest);
+        Mono<DeferredCredentialResponse> result = deferredCredentialController.getCredential("", deferredCredentialRequest);
 
         StepVerifier.create(result)
                 .assertNext(response -> assertEquals(credentialResponse, response))

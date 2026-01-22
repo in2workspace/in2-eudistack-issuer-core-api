@@ -9,9 +9,12 @@ import java.util.List;
 @Builder
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record DeferredCredentialResponse(
-        @JsonProperty(value = "credentials", required = true) List<Credential> credentials) {
+        @JsonProperty(value = "credentials") List<Credential> credentials,
+        @JsonProperty("transaction_id") String transactionId,
+        @JsonProperty("interval") Long interval) {
 
     @Builder
     public record Credential(@JsonProperty String credential) {
+
     }
 }
