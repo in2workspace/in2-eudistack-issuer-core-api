@@ -133,7 +133,7 @@ public class JWTServiceImpl implements JWTService {
         return jwk;
     }
 
-    private JWSVerifier buildVerifierOrThrow(JWK jwk, JWSAlgorithm alg) throws Exception {
+    private JWSVerifier buildVerifierOrThrow(JWK jwk, JWSAlgorithm alg) throws JOSEException, ProofValidationException {
         if (jwk instanceof ECKey ecKey) {
             validateAlgForEc(alg);
             return new ECDSAVerifier(ecKey.toECPublicKey());

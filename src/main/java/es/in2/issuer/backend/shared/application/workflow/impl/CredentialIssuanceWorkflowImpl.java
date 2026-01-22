@@ -210,7 +210,6 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                             handleOperationMode(
                                     proc.getOperationMode(),
                                     processId,
-                                    nonce,
                                     cr,
                                     proc,
                                     deferred
@@ -352,7 +351,6 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
     private Mono<CredentialResponse> handleOperationMode(
             String operationMode,
             String processId,
-            String nonce,
             CredentialResponse cr,
             CredentialProcedure credentialProcedure,
             DeferredCredentialMetadata deferred

@@ -80,7 +80,7 @@ class ArchUnitTest {
     static final ArchRule testClassesShouldResideInTheSamePackageAsImplementation =
             GeneralCodingRules.testClassesShouldResideInTheSamePackageAsImplementation();
 
-    /*@Test
+    @Test
     void classesInSharedMustBeUsedBySharedOrByBothBackofficeAndOidc4vci() {
         var classes = new ClassFileImporter().importPackages(BASE_PACKAGE);
 
@@ -109,7 +109,7 @@ class ArchUnitTest {
                             " is not used by both packages nor shared.")
                     .isTrue();
         }
-    }*/
+    }
 
     private Set<JavaClass> filterClassesByPackage(JavaClasses classes, String packageName) {
         return classes.stream()
