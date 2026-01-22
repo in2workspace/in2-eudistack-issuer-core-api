@@ -210,7 +210,6 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                             handleOperationMode(
                                     proc.getOperationMode(),
                                     processId,
-                                    nonce,
                                     cr,
                                     proc,
                                     deferred
@@ -276,7 +275,7 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
         String cryptoBindingMethod = selectCryptoBindingMethod(cryptoMethods, typeEnum);
         log.debug("Crypto binding method for {}: {}", typeEnum.name(), cryptoBindingMethod);
 
-        Set<String> proofSigningAlgoritms = resolveProofSigningAlgorithms(cfg, typeEnum);
+        Set<String> proofSigningAlgoritms = resolveProofSigningAlgorithms(cfg);
         log.debug("Proof signing algs for {}: {}", typeEnum.name(), proofSigningAlgoritms);
 
         String jwtProof = extractFirstJwtProof(credentialRequest);
@@ -294,12 +293,12 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                             "No cryptographic binding method configured for " + typeEnum.name()
                     ));
         } catch (ConfigurationException e) {
-            throw new RuntimeException(e);
+            throw new InvalidCredentialFormatException("No cryptographic binding method configured");
         }
         return cryptoBindingMethod;
     }
 
-    private Set<String> resolveProofSigningAlgorithms(CredentialIssuerMetadata.CredentialConfiguration cfg, CredentialType typeEnum) {
+    private Set<String> resolveProofSigningAlgorithms(CredentialIssuerMetadata.CredentialConfiguration cfg) {
         var proofTypes = cfg.proofTypesSupported();
         var jwtProofConfig = (proofTypes != null) ? proofTypes.get("jwt") : null;
 
@@ -352,19 +351,11 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
     private Mono<CredentialResponse> handleOperationMode(
             String operationMode,
             String processId,
-            String nonce,
             CredentialResponse cr,
             CredentialProcedure credentialProcedure,
             DeferredCredentialMetadata deferred
     ) {
-        log.info(
-                "[{}] handleOperationMode start: mode={}, nonce(jti)={}, credentialType={}, responseUriPresent={}",
-                processId,
-                operationMode,
-                nonce,
-                credentialProcedure.getCredentialType(),
-                deferred.getResponseUri() != null && !deferred.getResponseUri().isBlank()
-        );
+
         return switch (operationMode) {
             case ASYNC -> {
                 Mono<String> emailMono = Mono.just(credentialProcedure.getEmail());
