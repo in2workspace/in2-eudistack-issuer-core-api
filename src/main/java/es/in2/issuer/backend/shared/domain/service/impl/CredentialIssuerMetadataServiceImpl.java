@@ -31,6 +31,7 @@ public class CredentialIssuerMetadataServiceImpl implements CredentialIssuerMeta
                 .issuanceEndpoint(credentialIssuerUrl + VCI_ISSUANCES_PATH)
                 .credentialEndpoint(credentialIssuerUrl + OID4VCI_CREDENTIAL_PATH)
                 .deferredCredentialEndpoint(credentialIssuerUrl + OID4VCI_DEFERRED_CREDENTIAL_PATH)
+                .notificationEndpoint(credentialIssuerUrl + OID4VCI_NOTIFICATION_PATH)
                 .credentialConfigurationsSupported(Map.of(
                         LEAR_CREDENTIAL_EMPLOYEE, buildLearCredentialEmployeeCredentialConfiguration(),
                         LEAR_CREDENTIAL_MACHINE, buildLearCredentialMachineCredentialConfiguration(),
