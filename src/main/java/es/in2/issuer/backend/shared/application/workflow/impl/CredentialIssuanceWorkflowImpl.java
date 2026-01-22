@@ -129,10 +129,10 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                 yield new CredentialOfferEmailNotificationInfo(email, org);
             }
             case LABEL_CREDENTIAL -> {
-                    if(preSubmittedCredentialDataRequest.email() == null || preSubmittedCredentialDataRequest.email().isBlank()) {
-                        throw new MissingEmailOwnerException("Email owner email is required for gx:LabelCredential schema");
-                    }
-                    String email = preSubmittedCredentialDataRequest.email();
+                if(preSubmittedCredentialDataRequest.email() == null || preSubmittedCredentialDataRequest.email().isBlank()) {
+                    throw new MissingEmailOwnerException("Email owner email is required for gx:LabelCredential schema");
+                }
+                String email = preSubmittedCredentialDataRequest.email();
                 yield new CredentialOfferEmailNotificationInfo(email, appConfig.getSysTenant());
             }
             default -> throw new FormatUnsupportedException(
@@ -171,18 +171,18 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                     );
 
                     Mono<BindingInfo> bindingInfoMono = validateAndDetermineBindingInfo(proc, md, credentialRequest)
-                                    .doOnNext(bi -> log.info(
-                                            "[{}] Binding required -> subjectId={}, cnfKeys={}",
-                                            processId,
-                                            bi.subjectId(),
-                                            (bi.cnf() instanceof java.util.Map<?, ?> m) ? m.keySet() : "unknown"
-                                    ))
-                                    .doOnSuccess(bi -> {
-                                        if (bi == null) {
-                                            log.info("[{}] No cryptographic binding required for credentialType={}",
-                                                    processId, proc.getCredentialType());
-                                        }
-                                    });
+                            .doOnNext(bi -> log.info(
+                                    "[{}] Binding required -> subjectId={}, cnfKeys={}",
+                                    processId,
+                                    bi.subjectId(),
+                                    (bi.cnf() instanceof java.util.Map<?, ?> m) ? m.keySet() : "unknown"
+                            ))
+                            .doOnSuccess(bi -> {
+                                if (bi == null) {
+                                    log.info("[{}] No cryptographic binding required for credentialType={}",
+                                            processId, proc.getCredentialType());
+                                }
+                            });
 
                     Mono<CredentialResponse> vcMono = bindingInfoMono
                             .flatMap(bi -> verifiableCredentialService.buildCredentialResponse(
@@ -210,6 +210,7 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                             handleOperationMode(
                                     proc.getOperationMode(),
                                     processId,
+                                    nonce,
                                     cr,
                                     proc,
                                     deferred
@@ -275,7 +276,7 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
         String cryptoBindingMethod = selectCryptoBindingMethod(cryptoMethods, typeEnum);
         log.debug("Crypto binding method for {}: {}", typeEnum.name(), cryptoBindingMethod);
 
-        Set<String> proofSigningAlgoritms = resolveProofSigningAlgorithms(cfg);
+        Set<String> proofSigningAlgoritms = resolveProofSigningAlgorithms(cfg, typeEnum);
         log.debug("Proof signing algs for {}: {}", typeEnum.name(), proofSigningAlgoritms);
 
         String jwtProof = extractFirstJwtProof(credentialRequest);
@@ -293,12 +294,12 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                             "No cryptographic binding method configured for " + typeEnum.name()
                     ));
         } catch (ConfigurationException e) {
-            throw new InvalidCredentialFormatException("No cryptographic binding method configured");
+            throw new RuntimeException(e);
         }
         return cryptoBindingMethod;
     }
 
-    private Set<String> resolveProofSigningAlgorithms(CredentialIssuerMetadata.CredentialConfiguration cfg) {
+    private Set<String> resolveProofSigningAlgorithms(CredentialIssuerMetadata.CredentialConfiguration cfg, CredentialType typeEnum) {
         var proofTypes = cfg.proofTypesSupported();
         var jwtProofConfig = (proofTypes != null) ? proofTypes.get("jwt") : null;
 
@@ -351,11 +352,19 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
     private Mono<CredentialResponse> handleOperationMode(
             String operationMode,
             String processId,
+            String nonce,
             CredentialResponse cr,
             CredentialProcedure credentialProcedure,
             DeferredCredentialMetadata deferred
     ) {
-
+        log.info(
+                "[{}] handleOperationMode start: mode={}, nonce(jti)={}, credentialType={}, responseUriPresent={}",
+                processId,
+                operationMode,
+                nonce,
+                credentialProcedure.getCredentialType(),
+                deferred.getResponseUri() != null && !deferred.getResponseUri().isBlank()
+        );
         return switch (operationMode) {
             case ASYNC -> {
                 Mono<String> emailMono = Mono.just(credentialProcedure.getEmail());
@@ -439,69 +448,55 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
             Object jwk = header.get("jwk");
             Object x5c = header.get("x5c");
 
-            logCnfPresence(kid, jwk, x5c);
-            CnfType cnfType = determineCnfTypeOrThrow(kid, jwk, x5c);
+            int count = (kid != null ? 1 : 0) + (jwk != null ? 1 : 0) + (x5c != null ? 1 : 0);
+            log.debug("Proof header cnf fields present: kid={}, jwk={}, x5c={}, count={}",
+                    kid != null, jwk != null, x5c != null, count);
 
-            return switch (cnfType) {
-                case KID -> buildFromKid(kid);
-                case X5C -> buildFromX5c();
-                case JWK -> buildFromJwk(jwk);
-            };
+            if (count != 1) {
+                throw new IllegalArgumentException("Expected exactly one of kid/jwk/x5c in proof header");
+            }
+
+            // 1) kid
+            if (kid != null) {
+                String kidStr = kid.toString();
+                String subjectId = kidStr.contains("#") ? kidStr.split("#")[0] : kidStr;
+
+                log.info("Binding extracted from proof: cnfType=kid, subjectId={}, kidPrefix={}",
+                        subjectId,
+                        kidStr.length() > 20 ? kidStr.substring(0, 20) : kidStr
+                );
+
+                return new BindingInfo(subjectId, java.util.Map.of("kid", kidStr));
+            }
+
+
+            // 2) x5c
+            else if (x5c != null) {
+                throw new IllegalArgumentException("x5c not supported yet");
+            }
+
+            // 3) jwk
+            else if (jwk != null) {
+                if (!(jwk instanceof java.util.Map<?, ?> jwkMap)) {
+                    throw new IllegalArgumentException("jwk must be a JSON object");
+                }
+
+                var jwkObj = (java.util.Map<String, Object>) jwkMap;
+
+                String subjectIdFromJwk = jwtUtils.didKeyFromJwk(jwkObj);
+                if (subjectIdFromJwk == null || subjectIdFromJwk.isBlank()) {
+                    throw new IllegalArgumentException("Unable to derive did:key from jwk");
+                }
+
+                log.info("Binding extracted from proof: cnfType=jwk, subjectId={}", subjectIdFromJwk);
+
+                return new BindingInfo(subjectIdFromJwk, java.util.Map.of("jwk", jwkObj));
+            }
+
+            throw new IllegalArgumentException("No key material found in proof header");
         });
     }
 
-    private enum CnfType { KID, JWK, X5C }
-
-    private void logCnfPresence(Object kid, Object jwk, Object x5c) {
-        int count = (kid != null ? 1 : 0) + (jwk != null ? 1 : 0) + (x5c != null ? 1 : 0);
-        log.debug("Proof header cnf fields present: kid={}, jwk={}, x5c={}, count={}",
-                kid != null, jwk != null, x5c != null, count);
-    }
-
-    private CnfType determineCnfTypeOrThrow(Object kid, Object jwk, Object x5c) {
-        int count = (kid != null ? 1 : 0) + (jwk != null ? 1 : 0) + (x5c != null ? 1 : 0);
-        if (count != 1) {
-            throw new IllegalArgumentException("Expected exactly one of kid/jwk/x5c in proof header");
-        }
-        if (kid != null) return CnfType.KID;
-        if (x5c != null) return CnfType.X5C;
-        if (jwk != null) return CnfType.JWK;
-
-        throw new IllegalArgumentException("No key material found in proof header");
-    }
-
-    private BindingInfo buildFromKid(Object kid) {
-        String kidStr = kid.toString();
-        String subjectId = kidStr.contains("#") ? kidStr.split("#")[0] : kidStr;
-
-        log.info("Binding extracted from proof: cnfType=kid, subjectId={}, kidPrefix={}",
-                subjectId,
-                kidStr.length() > 20 ? kidStr.substring(0, 20) : kidStr
-        );
-
-        return new BindingInfo(subjectId, java.util.Map.of("kid", kidStr));
-    }
-
-    private BindingInfo buildFromX5c() {
-        throw new IllegalArgumentException("x5c not supported yet");
-    }
-
-    private BindingInfo buildFromJwk(Object jwk) {
-        if (!(jwk instanceof java.util.Map<?, ?> jwkMap)) {
-            throw new IllegalArgumentException("jwk must be a JSON object");
-        }
-
-        var jwkObj = (java.util.Map<String, Object>) jwkMap;
-
-        String subjectIdFromJwk = jwtUtils.didKeyFromJwk(jwkObj);
-        if (subjectIdFromJwk == null || subjectIdFromJwk.isBlank()) {
-            throw new IllegalArgumentException("Unable to derive did:key from jwk");
-        }
-
-        log.info("Binding extracted from proof: cnfType=jwk, subjectId={}", subjectIdFromJwk);
-
-        return new BindingInfo(subjectIdFromJwk, java.util.Map.of("jwk", jwkObj));
-    }
 
     private Mono<Void> getMandatorOrganizationIdentifier(String processId, String decodedCredential) {
 
