@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 
@@ -25,19 +26,26 @@ public class DeferredCredentialController {
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseStatus(HttpStatus.OK)
-    public Mono<CredentialResponse> getCredential(
+    public Mono<ResponseEntity<CredentialResponse>> getCredential(
             @RequestHeader(HttpHeaders.AUTHORIZATION) String authorizationHeader,
             @RequestBody DeferredCredentialRequest deferredCredentialRequest) {
         String processId = UUID.randomUUID().toString();
         return accessTokenService.getCleanBearerToken(authorizationHeader)
                 .flatMap(token ->
                         credentialIssuanceWorkflow.generateVerifiableCredentialDeferredResponse(
-                                        processId,
-                                        deferredCredentialRequest,
-                                        token)
-                                .doFirst(() ->
-                                        log.info("Process ID: {} - Creating Deferred Verifiable Credential...", processId))
-                                .doOnSuccess(credentialOffer ->
-                                        log.info("Process ID: {} - Deferred Verifiable Credential created successfully.", processId)));
+                                processId,
+                                deferredCredentialRequest,
+                                token))
+                .map(verifiableCredentialResponse -> {
+                    if (verifiableCredentialResponse.transactionId() != null) {
+                        return ResponseEntity.status(HttpStatus.ACCEPTED).body(verifiableCredentialResponse);
+                    } else {
+                        return ResponseEntity.status(HttpStatus.OK).body(verifiableCredentialResponse);
+                    }
+                })
+                .doFirst(() ->
+                        log.info("Process ID: {} - Creating Deferred Verifiable Credential...", processId))
+                .doOnSuccess(credentialOffer ->
+                        log.info("Process ID: {} - Deferred Verifiable Credential created successfully.", processId));
     }
 }

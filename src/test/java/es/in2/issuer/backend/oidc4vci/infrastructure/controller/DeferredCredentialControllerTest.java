@@ -8,6 +8,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.ResponseEntity;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
@@ -39,7 +40,7 @@ class DeferredCredentialControllerTest {
                 .build();
         when(credentialIssuanceWorkflow.generateVerifiableCredentialDeferredResponse(anyString(), eq(deferredCredentialRequest), anyString())).thenReturn(Mono.just(credentialResponse));
 
-        Mono<CredentialResponse> result = deferredCredentialController.getCredential("", deferredCredentialRequest);
+        Mono<ResponseEntity<CredentialResponse>> result = deferredCredentialController.getCredential("", deferredCredentialRequest);
 
         StepVerifier.create(result)
                 .assertNext(response -> assertEquals(credentialResponse, response))
