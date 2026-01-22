@@ -440,8 +440,6 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
             Object x5c = header.get("x5c");
 
             int count = (kid != null ? 1 : 0) + (jwk != null ? 1 : 0) + (x5c != null ? 1 : 0);
-            log.debug("Proof header cnf fields present: kid={}, jwk={}, x5c={}, count={}",
-                    kid != null, jwk != null, x5c != null, count);
 
             if (count != 1) {
                 throw new IllegalArgumentException("Expected exactly one of kid/jwk/x5c in proof header");
@@ -449,43 +447,46 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
 
             // 1) kid
             if (kid != null) {
-                String kidStr = kid.toString();
-                String subjectId = kidStr.contains("#") ? kidStr.split("#")[0] : kidStr;
-
-                log.info("Binding extracted from proof: cnfType=kid, subjectId={}, kidPrefix={}",
-                        subjectId,
-                        kidStr.length() > 20 ? kidStr.substring(0, 20) : kidStr
-                );
-
-                return new BindingInfo(subjectId, java.util.Map.of("kid", kidStr));
+                return buildFromKid(kid);
             }
-
-
             // 2) x5c
             else if (x5c != null) {
-                throw new IllegalArgumentException("x5c not supported yet");
+                return buildFromX5c();
             }
-
             // 3) jwk
             else if (jwk != null) {
-                if (!(jwk instanceof java.util.Map<?, ?> jwkMap)) {
-                    throw new IllegalArgumentException("jwk must be a JSON object");
-                }
-
-                var jwkObj = (java.util.Map<String, Object>) jwkMap;
-
-                String subjectIdFromJwk = jwtUtils.didKeyFromJwk(jwkObj);
-                if (subjectIdFromJwk == null || subjectIdFromJwk.isBlank()) {
-                    throw new IllegalArgumentException("Unable to derive did:key from jwk");
-                }
-
-                log.info("Binding extracted from proof: cnfType=jwk, subjectId={}", subjectIdFromJwk);
-
-                return new BindingInfo(subjectIdFromJwk, java.util.Map.of("jwk", jwkObj));
+                return buildFromJwk(jwk);
             }
 
             throw new IllegalArgumentException("No key material found in proof header");
         });
+    }
+
+    private BindingInfo buildFromKid(Object kid) {
+        String kidStr = kid.toString();
+        String subjectId = kidStr.contains("#") ? kidStr.split("#")[0] : kidStr;
+
+        log.info("Binding extracted from proof: cnfType=kid, subjectId={}, kidPrefix={}",
+                subjectId,
+                kidStr.length() > 20 ? kidStr.substring(0, 20) : kidStr
+        );
+
+        return new BindingInfo(subjectId, java.util.Map.of("kid", kidStr));
+    }
+    private BindingInfo buildFromX5c() {
+        throw new IllegalArgumentException("x5c not supported yet");
+    }
+    private BindingInfo buildFromJwk(Object jwk) {
+        if (!(jwk instanceof java.util.Map<?, ?> jwkMap)) {
+            throw new IllegalArgumentException("jwk must be a JSON object");
+        }
+        var jwkObj = (java.util.Map<String, Object>) jwkMap;
+        String subjectIdFromJwk = jwtUtils.didKeyFromJwk(jwkObj);
+        if (subjectIdFromJwk == null || subjectIdFromJwk.isBlank()) {
+            throw new IllegalArgumentException("Unable to derive did:key from jwk");
+        }
+        log.info("Binding extracted from proof: cnfType=jwk, subjectId={}", subjectIdFromJwk);
+        return new BindingInfo(subjectIdFromJwk, java.util.Map.of("jwk", jwkObj));
     }
 
 
