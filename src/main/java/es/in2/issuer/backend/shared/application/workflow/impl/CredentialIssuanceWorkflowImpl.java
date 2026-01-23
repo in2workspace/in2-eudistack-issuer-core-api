@@ -338,25 +338,27 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                     String procedureId = proc.getProcedureId().toString();
                     System.out.println("HOLAAA 1");
                     System.out.println("Type: " + proc.getCredentialType());
-                    return verifiableCredentialService.signDeferredCredential(
-                                    processId,
-                                    procedureId,
-                                    proc.getCredentialType(),
-                                    proc.getCredentialDecoded(),
-                                    proc.getCredentialFormat(),
-                                    nonce,
-                                    deferredCredentialRequest.transactionId(),
-                                    token
-                            )
-                            .flatMap(credentialResponse ->
-                                    handleOperationMode(
-                                            proc.getOperationMode(),
-                                            processId,
-                                            nonce,
-                                            credentialResponse,
-                                            proc,
-                                            deferredCredentialMetadata
-                                    ));
+                    return credentialProcedureService.getCredentialTypeByProcedureId(procedureId)
+                            .flatMap(credentialType ->
+                                    verifiableCredentialService.signDeferredCredential(
+                                                    processId,
+                                                    procedureId,
+                                                    credentialType,
+                                                    proc.getCredentialDecoded(),
+                                                    proc.getCredentialFormat(),
+                                                    nonce,
+                                                    deferredCredentialRequest.transactionId(),
+                                                    token
+                                            )
+                                            .flatMap(credentialResponse ->
+                                                    handleOperationMode(
+                                                            proc.getOperationMode(),
+                                                            processId,
+                                                            nonce,
+                                                            credentialResponse,
+                                                            proc,
+                                                            deferredCredentialMetadata
+                                                    )));
                 });
     }
 
