@@ -3,6 +3,7 @@ package es.in2.issuer.backend.shared.application.workflow.impl;
 
 import es.in2.issuer.backend.oidc4vci.domain.model.CredentialIssuerMetadata;
 import es.in2.issuer.backend.shared.domain.exception.InvalidOrMissingProofException;
+import es.in2.issuer.backend.shared.domain.exception.ProofValidationException;
 import es.in2.issuer.backend.shared.domain.model.dto.VerifierOauth2AccessToken;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.Mandator;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.employee.LEARCredentialEmployee;
@@ -1027,7 +1028,7 @@ class CredentialIssuanceWorkflowImplTest {
 
         StepVerifier.create(mono)
                 .expectErrorSatisfies(ex -> {
-                    Assertions.assertInstanceOf(IllegalArgumentException.class, ex);
+                    Assertions.assertInstanceOf(ProofValidationException.class, ex);
                     Assertions.assertEquals("Expected exactly one of kid/jwk/x5c in proof header", ex.getMessage());
                 })
                 .verify();
@@ -1049,7 +1050,7 @@ class CredentialIssuanceWorkflowImplTest {
 
         StepVerifier.create(mono)
                 .expectErrorSatisfies(ex -> {
-                    Assertions.assertInstanceOf(IllegalArgumentException.class, ex);
+                    Assertions.assertInstanceOf(ProofValidationException.class, ex);
                     Assertions.assertEquals("x5c not supported yet", ex.getMessage());
                 })
                 .verify();
