@@ -19,7 +19,7 @@ public record CredentialIssuerMetadata(
     public record CredentialConfiguration(
             @JsonProperty("format") String format,
             @JsonProperty("scope") String scope,
-            @JsonProperty("cryptographic_binding_methods_supported") Set<String> cryptographicBindingMethodsSupported, // es null o vacío → Esa credencial NO requiere cryptographic binding
+            @JsonProperty("cryptographic_binding_methods_supported") Set<String> cryptographicBindingMethodsSupported,
             @JsonProperty("credential_signing_alg_values_supported") Set<String> credentialSigningAlgValuesSupported,
             @JsonProperty("credential_definition") CredentialDefinition credentialDefinition,
             @JsonProperty("proof_types_supported") Map<String, ProofSigninAlgValuesSupported> proofTypesSupported

@@ -289,10 +289,10 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
         try {
             cryptoBindingMethod = cryptoMethods.stream()
                     .findFirst()
-                    .orElseThrow(() -> new ConfigurationException(
+                    .orElseThrow(() -> new InvalidCredentialFormatException(
                             "No cryptographic binding method configured for " + typeEnum.name()
                     ));
-        } catch (ConfigurationException e) {
+        } catch (InvalidCredentialFormatException e) {
             throw new InvalidCredentialFormatException("No cryptographic binding method configured");
         }
         return cryptoBindingMethod;
@@ -442,7 +442,7 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
             int count = (kid != null ? 1 : 0) + (jwk != null ? 1 : 0) + (x5c != null ? 1 : 0);
 
             if (count != 1) {
-                throw new IllegalArgumentException("Expected exactly one of kid/jwk/x5c in proof header");
+                throw new InvalidOrMissingProofException("Expected exactly one of kid/jwk/x5c in proof header");
             }
 
             // 1) kid
@@ -458,7 +458,7 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                 return buildFromJwk(jwk);
             }
 
-            throw new IllegalArgumentException("No key material found in proof header");
+            throw new InvalidOrMissingProofException("No key material found in proof header");
         });
     }
 
@@ -476,9 +476,9 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
     private BindingInfo buildFromX5c() {
         throw new IllegalArgumentException("x5c not supported yet");
     }
-    private BindingInfo buildFromJwk(Object jwk) {
+    private BindingInfo buildFromJwk(Object jwk) throws InvalidOrMissingProofException {
         if (!(jwk instanceof java.util.Map<?, ?> jwkMap)) {
-            throw new IllegalArgumentException("jwk must be a JSON object");
+            throw new InvalidOrMissingProofException("jwk must be a JSON object");
         }
         var jwkObj = (java.util.Map<String, Object>) jwkMap;
         String subjectIdFromJwk = jwtUtils.didKeyFromJwk(jwkObj);

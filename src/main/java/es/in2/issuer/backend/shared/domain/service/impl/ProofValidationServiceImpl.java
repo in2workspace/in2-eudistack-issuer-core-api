@@ -58,7 +58,11 @@ public class ProofValidationServiceImpl implements ProofValidationService {
                     } catch (ProofValidationException e) {
                         return Mono.error(e);
                     }
-                    validatePayload(jwt, expectedAudience);
+                    try {
+                        validatePayload(jwt, expectedAudience);
+                    } catch (ProofValidationException e) {
+                        return Mono.error(e);
+                    }
                     return Mono.just(jwt);
                 });
     }
@@ -146,39 +150,39 @@ public class ProofValidationServiceImpl implements ProofValidationService {
         return alg;
     }
 
-    private void validatePayload(SignedJWT signedJWT, String expectedAudience) {
+    private void validatePayload(SignedJWT signedJWT, String expectedAudience) throws ProofValidationException {
         var payload = signedJWT.getPayload().toJSONObject();
 
         Object audObj = payload.get("aud");
         if (audObj == null || audObj.toString().isBlank()) {
-            throw new IllegalArgumentException("Invalid JWT payload: aud is missing");
+            throw new ProofValidationException("Invalid JWT payload: aud is missing");
         }
 
         boolean audMatches = (audObj instanceof String s && s.equals(expectedAudience)) || (audObj instanceof java.util.List<?> list && list.stream().anyMatch(a -> expectedAudience.equals(String.valueOf(a))));
 
         if (!audMatches) {
-            throw new IllegalArgumentException(
+            throw new ProofValidationException(
                     "Invalid JWT payload: aud must be '" + expectedAudience + "' but was " + audObj
             );
         }
 
         Object iatObj = payload.get("iat");
         if (iatObj == null) {
-            throw new IllegalArgumentException("Invalid JWT payload: iat is missing");
+            throw new ProofValidationException("Invalid JWT payload: iat is missing");
         }
 
         long iatEpoch;
         try {
             iatEpoch = Long.parseLong(iatObj.toString());
         } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("Invalid JWT payload: iat must be a numeric epoch value", e);
+            throw new ProofValidationException("Invalid JWT payload: iat must be a numeric epoch value");
         }
 
         Instant iat = Instant.ofEpochSecond(iatEpoch);
         Instant now = Instant.now();
 
         if (iat.isBefore(now.minusSeconds(300)) || iat.isAfter(now.plusSeconds(60))) {
-            throw new IllegalArgumentException("Invalid JWT payload: iat outside acceptable time window");
+            throw new ProofValidationException("Invalid JWT payload: iat outside acceptable time window");
         }
 
         if (payload.containsKey("exp")) {
@@ -187,12 +191,12 @@ public class ProofValidationServiceImpl implements ProofValidationService {
             try {
                 expEpoch = Long.parseLong(expObj.toString());
             } catch (NumberFormatException e) {
-                throw new IllegalArgumentException("Invalid JWT payload: exp must be a numeric epoch value", e);
+                throw new ProofValidationException("Invalid JWT payload: exp must be a numeric epoch value");
             }
 
             Instant exp = Instant.ofEpochSecond(expEpoch);
             if (now.isAfter(exp)) {
-                throw new IllegalArgumentException("Invalid JWT payload: proof has expired");
+                throw new ProofValidationException("Invalid JWT payload: proof has expired");
             }
         }
     }
