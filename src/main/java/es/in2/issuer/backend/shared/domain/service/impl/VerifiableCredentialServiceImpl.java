@@ -180,8 +180,7 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
         }
     }
 
-    @Override
-    public Mono<CredentialResponse> signCredential(String transactionId, String token, String procId) {
+    private Mono<CredentialResponse> signCredential(String transactionId, String token, String procId) {
         return credentialSignerWorkflow
                 .signAndUpdateCredentialByProcedureId(
                         BEARER_PREFIX + token,
@@ -205,6 +204,28 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
                     }
                     return Mono.error(error);
                 });
+    }
+
+    @Override
+    public Mono<CredentialResponse> signDeferredCredential(
+            String processId,
+            String procedureId,
+            String credentialType,
+            String boundCredential,
+            String format,
+            String authServerNonce,
+            String transactionId,
+            String token) {
+        return credentialFactory
+                .mapCredentialBindIssuerAndUpdateDB(
+                        processId,
+                        procedureId,
+                        boundCredential,
+                        credentialType,
+                        format,
+                        authServerNonce,
+                        null)
+                .then(signCredential(transactionId, token, procedureId));
     }
 
     private Mono<CredentialResponse> getAsyncCredentialResponseMono(String transactionId) {
