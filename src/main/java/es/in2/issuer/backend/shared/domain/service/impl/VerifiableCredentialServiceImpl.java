@@ -211,7 +211,7 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
             String processId,
             String procedureId,
             String credentialType,
-            String boundCredential,
+            String decodedCredential,
             String format,
             String authServerNonce,
             String transactionId,
@@ -220,7 +220,7 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
                 .mapCredentialBindIssuerAndUpdateDB(
                         processId,
                         procedureId,
-                        boundCredential,
+                        decodedCredential,
                         credentialType,
                         format,
                         authServerNonce,

@@ -337,6 +337,7 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                     log.debug("email (from udpatedBy): {}", email);
 
                     String procedureId = proc.getProcedureId().toString();
+                    System.out.println("HOLAAA 1");
                     return verifiableCredentialService.signDeferredCredential(
                                     processId,
                                     procedureId,
