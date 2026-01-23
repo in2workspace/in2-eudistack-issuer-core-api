@@ -4,5 +4,5 @@ import es.in2.issuer.backend.shared.domain.model.dto.NotificationRequest;
 import reactor.core.publisher.Mono;
 
 public interface NotificationService{
-    Mono<Void> handleNotification(NotificationRequest request);
+    Mono<Void> handleNotification(String processId, String bearerToken, NotificationRequest request);
 }
