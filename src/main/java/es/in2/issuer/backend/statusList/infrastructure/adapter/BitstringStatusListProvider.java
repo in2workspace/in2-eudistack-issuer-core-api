@@ -172,6 +172,12 @@ public class BitstringStatusListProvider implements StatusListProvider {
                 //todo fer 404
                 .switchIfEmpty(Mono.error(new IllegalArgumentException("Status list not found: " + statusListId)))
                 .flatMap(currentRow -> {
+
+                    // if already revoked, do nothing
+                    if (encoder.getBit(currentRow.encodedList(), idx)) {
+                        return Mono.empty();
+                    }
+
                     String updatedEncoded = encoder.setBit(currentRow.encodedList(), idx, true);
 
                     StatusListRow rowForSigning = new StatusListRow(
@@ -184,7 +190,13 @@ public class BitstringStatusListProvider implements StatusListProvider {
                             currentRow.updatedAt()
                     );
 
-                    Map<String, Object> payload = buildUnsignedCredential(rowForSigning);
+                    Map<String, Object> payload = buildUnsignedCredential(
+                            currentRow.id(),
+                            currentRow.issuerId(),
+                            currentRow.purpose(),
+                            updatedEncoded
+                    );
+
 
                     return toSignatureRequest(payload)
                             .flatMap(req -> remoteSignatureService.signDocument(req, token))
@@ -241,13 +253,18 @@ public class BitstringStatusListProvider implements StatusListProvider {
     }
 
 
-    private Map<String, Object> buildUnsignedCredential(StatusListRow row) {
-        String listUrl = buildListUrl(row.id());
+    private Map<String, Object> buildUnsignedCredential(
+            Long listId,
+            String issuerId,
+            String purpose,
+            String encodedList
+    ) {
+        String listUrl = buildListUrl(listId);
 
         Map<String, Object> credentialSubject = new LinkedHashMap<>();
         credentialSubject.put("type", STATUS_LIST_SUBJECT_TYPE);
-        credentialSubject.put("statusPurpose", row.purpose());
-        credentialSubject.put("encodedList", row.encodedList());
+        credentialSubject.put("statusPurpose", purpose);
+        credentialSubject.put("encodedList", encodedList);
 
         Map<String, Object> vc = new LinkedHashMap<>();
         vc.put("@context", new Object[]{
@@ -256,7 +273,7 @@ public class BitstringStatusListProvider implements StatusListProvider {
         });
         vc.put("id", listUrl);
         vc.put("type", new Object[]{VC_TYPE, STATUS_LIST_CREDENTIAL_TYPE});
-        vc.put("issuer", row.issuerId());
+        vc.put("issuer", issuerId);
         vc.put("credentialSubject", credentialSubject);
         return vc;
     }
@@ -266,6 +283,7 @@ public class BitstringStatusListProvider implements StatusListProvider {
     // ----------------------
 
     private Mono<StatusListRow> findOrCreateLatestList(String issuerId, StatusPurpose purpose, String token) {
+        // Since we won't have many rows (probably only 1), we don't need and index for this
         return statusListRepository.findLatestByIssuerAndPurpose(issuerId, purpose.value())
                 .switchIfEmpty(createNewList(issuerId, purpose, token));
     }
@@ -289,7 +307,13 @@ public class BitstringStatusListProvider implements StatusListProvider {
         return statusListRepository.save(rowToInsert)
                 .flatMap(saved -> {
                     log.info("inserted: {}", saved);
-                    Map<String, Object> payload = buildUnsignedCredential(saved);
+                    Map<String, Object> payload = buildUnsignedCredential(
+                            saved.id(),
+                            saved.issuerId(),
+                            saved.purpose(),
+                            saved.encodedList()
+                    );
+
                     log.info("Signature request payload: {}", payload);
 
                     return toSignatureRequest(payload)
@@ -371,7 +395,7 @@ public class BitstringStatusListProvider implements StatusListProvider {
 
     private Mono<StatusListIndexRow> reserveOnSpecificList(Long statusListId, String procedureId) {
         // We keep this small; if collisions spike, we treat it as "exhausted".
-        int maxAttempts = 100;
+        int maxAttempts = 30; //0.001% de probabilitat de col·lisió
 
         return Mono.defer(() -> tryReserveOnce(statusListId, procedureId))
                 .retryWhen(
@@ -412,8 +436,6 @@ public class BitstringStatusListProvider implements StatusListProvider {
         String listUrl = buildListUrl(listId);
         String id = listUrl + "#" + idx;
 
-        // Assuming your StatusListEntry is a record with builder or canonical ctor.
-        // Adjust to your exact constructor/builder.
         return StatusListEntry.builder()
                 .id(id)
                 .type(ENTRY_TYPE)

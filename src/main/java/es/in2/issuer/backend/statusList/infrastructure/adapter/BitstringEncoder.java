@@ -28,26 +28,16 @@ public class BitstringEncoder {
     public static final char MULTIBASE_BASE64URL_PREFIX = 'u';
 
     public boolean getBit(String encodedList, int idx) {
-        if (encodedList == null) {
-            throw new IllegalArgumentException("encodedList cannot be null");
+        if (encodedList == null || encodedList.isBlank()) {
+            throw new IllegalArgumentException("encodedList cannot be blank");
         }
         if (idx < 0) {
             throw new IllegalArgumentException("idx must be >= 0");
         }
-
-        byte[] bytes = decodeEncodedListToBytes(encodedList);
-
-        int byteIndex = idx / 8;
-        int bitIndex = idx % 8;
-
-        if (byteIndex >= bytes.length) {
-            throw new IllegalArgumentException("idx out of bounds for encodedList");
-        }
-
-        // Bit numbering: LSB-first within each byte (common in bitstring encodings)
-        int mask = 1 << bitIndex;
-        return (bytes[byteIndex] & mask) != 0;
+        byte[] rawBytes = decodeToRawBytes(encodedList);
+        return isBitSet(rawBytes, idx);
     }
+
 
     private byte[] decodeEncodedListToBytes(String encodedList) {
         byte[] gzipped;
