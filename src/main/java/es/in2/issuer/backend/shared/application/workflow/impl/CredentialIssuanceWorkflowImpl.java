@@ -329,7 +329,6 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                         )
                 )
                 .flatMap(tuple4 -> {
-                    System.out.println("issuer holaaa");
                     String nonce = tuple4.getT1();
                     DeferredCredentialMetadata deferredCredentialMetadata = tuple4.getT2();
                     CredentialProcedure proc = tuple4.getT3();
@@ -338,6 +337,7 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
 
                     String procedureId = proc.getProcedureId().toString();
                     System.out.println("HOLAAA 1");
+                    System.out.println("Type: " + proc.getCredentialType());
                     return verifiableCredentialService.signDeferredCredential(
                                     processId,
                                     procedureId,
