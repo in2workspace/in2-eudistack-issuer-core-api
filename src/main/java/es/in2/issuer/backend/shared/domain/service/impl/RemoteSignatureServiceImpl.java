@@ -1,6 +1,5 @@
 package es.in2.issuer.backend.shared.domain.service.impl;
 
-import brave.internal.Nullable;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -17,7 +16,6 @@ import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
 import es.in2.issuer.backend.shared.infrastructure.config.RemoteSignatureConfig;
 import es.in2.issuer.backend.shared.infrastructure.repository.CredentialProcedureRepository;
 import es.in2.issuer.backend.shared.infrastructure.repository.DeferredCredentialMetadataRepository;
-import jakarta.validation.constraints.Null;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
@@ -40,7 +38,6 @@ import java.nio.charset.StandardCharsets;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.time.Duration;
-import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.TimeoutException;
 import java.util.regex.Matcher;
@@ -571,19 +568,23 @@ public class RemoteSignatureServiceImpl implements RemoteSignatureService {
 
         // Send email using provided email or fallback to updatedBy value
         Mono<Void> sendEmail = cachedProc.flatMap(cp -> {
-            String org = cp.getOrganizationIdentifier();
-            String updatedBy = cp.getUpdatedBy();
-            log.debug("updatedBy in procedure: {}", updatedBy);
+            if (email != null) {
+                String org = cp.getOrganizationIdentifier();
+                String updatedBy = cp.getUpdatedBy();
+                log.debug("updatedBy in procedure: {}", updatedBy);
 
-            String targetEmail = (email != null && !email.isBlank()) ? email : updatedBy;
-            log.info("Preparing email for org {} (to {})", org, targetEmail);
+                String targetEmail = !email.isBlank() ? email : updatedBy;
+                log.info("Preparing email for org {} (to {})", org, targetEmail);
 
-            return emailService.sendPendingSignatureCredentialNotification(
-                    targetEmail,
-                    "email.pending-credential-notification",
-                    procedureId,
-                    domain
-            );
+                return emailService.sendPendingSignatureCredentialNotification(
+                        targetEmail,
+                        "email.pending-credential-notification",
+                        procedureId,
+                        domain
+                );
+            } else {
+                return Mono.empty();
+            }
         });
 
         return updateOperationMode
