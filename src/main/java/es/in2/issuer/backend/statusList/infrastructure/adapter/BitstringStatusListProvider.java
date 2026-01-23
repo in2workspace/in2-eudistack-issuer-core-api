@@ -202,13 +202,11 @@ public class BitstringStatusListProvider implements StatusListProvider {
                             .flatMap(req -> remoteSignatureService.signDocument(req, token))
                             .flatMap(signedData -> {
                                 String signedJwt = extractJwt(signedData);
-                                Instant newUpdatedAt = Instant.now();
 
                                 return statusListRepository.updateSignedAndEncodedIfUnchanged(
                                                 currentRow.id(),
                                                 updatedEncoded,
                                                 signedJwt,
-                                                newUpdatedAt,
                                                 currentRow.updatedAt()
                                         )
                                         .flatMap(rows -> {
@@ -322,7 +320,7 @@ public class BitstringStatusListProvider implements StatusListProvider {
                                 String signedJwt = extractJwt(signedData);
                                 Instant updatedAt = Instant.now();
 
-                                return statusListRepository.updateSignedCredential(saved.id(), signedJwt, updatedAt)
+                                return statusListRepository.updateSignedCredential(saved.id(), signedJwt)
                                         .flatMap(rows -> {
                                             if (rows != null && rows == 1) {
                                                 return Mono.just(new StatusListRow(

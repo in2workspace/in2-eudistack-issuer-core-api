@@ -21,28 +21,27 @@ public interface StatusListRepository extends ReactiveCrudRepository<StatusListR
     Mono<StatusListRow> findLatestByIssuerAndPurpose(String issuerId, String purpose);
 
     @Query("""
-           UPDATE status_list
-           SET encoded_list = :encodedList,
-               signed_credential = :signedCredential,
-               updated_at = :newUpdatedAt
-           WHERE id = :id
-             AND updated_at = :expectedUpdatedAt
-           """)
+       UPDATE status_list
+       SET encoded_list = :encodedList,
+           signed_credential = :signedCredential,
+           updated_at = NOW()
+       WHERE id = :id
+         AND updated_at = :expectedUpdatedAt
+       """)
     Mono<Integer> updateSignedAndEncodedIfUnchanged(
             Long id,
             String encodedList,
             String signedCredential,
-            Instant newUpdatedAt,
             Instant expectedUpdatedAt
     );
 
     @Query("""
        UPDATE status_list
        SET signed_credential = :signedCredential,
-           updated_at = :newUpdatedAt
+           updated_at = NOW()
        WHERE id = :id
        """)
-    Mono<Integer> updateSignedCredential(Long id, String signedCredential, Instant newUpdatedAt);
+    Mono<Integer> updateSignedCredential(Long id, String signedCredential);
 
 }
 
