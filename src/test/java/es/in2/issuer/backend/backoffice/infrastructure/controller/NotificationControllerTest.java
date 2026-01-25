@@ -1,6 +1,6 @@
 package es.in2.issuer.backend.backoffice.infrastructure.controller;
 
-import es.in2.issuer.backend.backoffice.domain.service.NotificationService;
+import es.in2.issuer.backend.backoffice.domain.service.NotificationService2;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -18,7 +18,7 @@ import static org.mockito.Mockito.when;
 class NotificationControllerTest {
 
     @Mock
-    private NotificationService notificationService;
+    private NotificationService2 notificationService;
 
     @InjectMocks
     private NotificationController2 notificationController;

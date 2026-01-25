@@ -52,7 +52,7 @@ class NotificationServiceImplTest {
     @Mock private DeferredCredentialMetadataService deferredCredentialMetadataService;
 
     @InjectMocks
-    private NotificationServiceImpl notificationService;
+    private NotificationServiceImpl2 notificationService;
 
     @BeforeEach
     void setup() {
