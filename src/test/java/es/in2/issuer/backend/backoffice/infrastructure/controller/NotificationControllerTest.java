@@ -21,7 +21,7 @@ class NotificationControllerTest {
     private NotificationService notificationService;
 
     @InjectMocks
-    private NotificationController notificationController;
+    private NotificationController2 notificationController;
 
     @Test
     void sendEmailNotification_completesSuccessfully() {
