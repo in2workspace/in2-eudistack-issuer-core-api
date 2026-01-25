@@ -1,7 +1,7 @@
 package es.in2.issuer.backend.backoffice.domain.service.impl;
 
 import es.in2.issuer.backend.backoffice.application.workflow.policies.BackofficePdpService;
-import es.in2.issuer.backend.backoffice.domain.service.NotificationService;
+import es.in2.issuer.backend.backoffice.domain.service.NotificationService2;
 import es.in2.issuer.backend.shared.domain.exception.EmailCommunicationException;
 import es.in2.issuer.backend.shared.domain.service.*;
 import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
@@ -15,7 +15,7 @@ import static es.in2.issuer.backend.backoffice.domain.util.Constants.*;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class NotificationServiceImpl implements NotificationService {
+public class NotificationServiceImpl2 implements NotificationService2 {
 
     private final AppConfig appConfig;
     private final AccessTokenService accessTokenService;
