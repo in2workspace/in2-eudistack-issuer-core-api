@@ -219,7 +219,6 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
                                                             .credential(signed)
                                                             .build()
                                             ))
-                                            .transactionId(transactionId)
                                             .notificationId(notificationId)
                                             .build()
                             ))
