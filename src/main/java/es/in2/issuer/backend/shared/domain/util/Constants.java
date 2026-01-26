@@ -6,6 +6,7 @@ public final class Constants {
     public static final String LEAR_CREDENTIAL = "LEARCredential";
     public static final String JWT_VC_JSON = "jwt_vc_json";
     public static final String VERIFIABLE_CREDENTIAL = "VerifiableCredential";
+    public static final String LEAR = "LEAR";
     public static final String LEAR_CREDENTIAL_EMPLOYEE = "LEARCredentialEmployee";
     public static final String LEAR_CREDENTIAL_MACHINE = "LEARCredentialMachine";
     public static final String LABEL_CREDENTIAL = "gx:LabelCredential";

@@ -18,7 +18,7 @@ import static java.util.Objects.requireNonNull;
 //todo fix path, probably with "/status-list/v1/status"
 @Slf4j
 @RestController
-@RequestMapping("/api/v1/status")
+@RequestMapping("/api/v1/status-list")
 public class StatusListController {
 
     private static final MediaType VC_JWT = MediaType.parseMediaType("application/vc+jwt");

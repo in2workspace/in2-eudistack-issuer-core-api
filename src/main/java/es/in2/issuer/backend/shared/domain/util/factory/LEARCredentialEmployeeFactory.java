@@ -114,8 +114,7 @@ public class LEARCredentialEmployeeFactory {
 
         String credentialId = "urn:uuid:" + UUID.randomUUID();
 
-        return buildCredentialStatus()
-                .map(credentialStatus -> LEARCredentialEmployee.builder()
+        return Mono.just(LEARCredentialEmployee.builder()
                         .context(LEAR_CREDENTIAL_EMPLOYEE_CONTEXT)
                         .id(credentialId)
                         .type(List.of(LEAR_CREDENTIAL_EMPLOYEE, VERIFIABLE_CREDENTIAL))
@@ -123,19 +122,6 @@ public class LEARCredentialEmployeeFactory {
                         .credentialSubject(credentialSubject)
                         .validFrom(validFrom)
                         .validUntil(validUntil)
-                        .credentialStatus(credentialStatus)
-                        .build());
-    }
-
-    private Mono<CredentialStatus> buildCredentialStatus() {
-        String statusListCredential = appConfig.getIssuerBackendUrl() + "/backoffice/v1/credentials/status/1";
-        return generateCustomNonce()
-                .map(nonce -> CredentialStatus.builder()
-                        .id(statusListCredential + "#" + nonce)
-                        .type("PlainListEntity")
-                        .statusPurpose("revocation")
-                        .statusListIndex(nonce)
-                        .statusListCredential(statusListCredential)
                         .build());
     }
 

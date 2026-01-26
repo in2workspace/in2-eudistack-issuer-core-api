@@ -77,61 +77,65 @@ public class RemoteSignatureServiceImpl implements RemoteSignatureService {
 
     @Override
     //TODO Cuando se implementen los "settings" del issuer, se debe pasar el clientId, secret, etc. como parámetros en lugar de var entorno
-    public Mono<SignedData> sign(SignatureRequest signatureRequest, String token, String procedureId, String email) {
-        log.info("RemoteSignatureServiceImpl - sign, signatureRequest: {}, token: {}, procedureId: {}, email: {}", signatureRequest, token, procedureId, email);
-        clientId = remoteSignatureConfig.getRemoteSignatureClientId();
-        clientSecret = remoteSignatureConfig.getRemoteSignatureClientSecret();
-        return Mono.defer(() -> executeSigningFlow(signatureRequest, token)
+    public Mono<SignedData> signIssuedCredential(
+            SignatureRequest signatureRequest,
+            String token,
+            String procedureId,
+            String email
+    ) {
+        log.info(
+                "RemoteSignatureServiceImpl - signIssuedCredential, signatureRequest: {}, token: {}, procedureId: {}, email: {}",
+                signatureRequest, token, procedureId, email
+        );
+
+        return signWithRetry(signatureRequest, token, "signIssuedCredential")
                 .doOnSuccess(result -> {
                     log.info("Successfully Signed");
                     log.info("Procedure with id: {}", procedureId);
                     log.info("at time: {}", new Date());
                     deferredCredentialMetadataService.deleteDeferredCredentialMetadataById(procedureId);
                 })
-                .retryWhen(Retry.backoff(3, Duration.ofSeconds(1))
-                        .maxBackoff(Duration.ofSeconds(5))
-                        .jitter(0.5)
-                        .filter(this::isRecoverableError)   // Retry only on recoverable errors
-                        .doBeforeRetry(retrySignal -> {
-                            long attempt = retrySignal.totalRetries() + 1;
-                            log.info("Retrying signing process due to recoverable error (Attempt #{} of 3)", attempt);
-                        }))
                 .onErrorResume(throwable -> {
                     log.error("Error after 3 retries, switching to ASYNC mode.");
                     log.error("Error Time: {}", new Date());
                     return handlePostRecoverError(procedureId, email)
-                            .then(Mono.error(new RemoteSignatureException("Signature Failed, changed to ASYNC mode", throwable)));
-                }));
+                            .then(Mono.error(new RemoteSignatureException(
+                                    "Signature Failed, changed to ASYNC mode",
+                                    throwable
+                            )));
+                });
     }
 
     @Override
-    public Mono<SignedData> signDocument(SignatureRequest signatureRequest, String token) {
-        log.info("RemoteSignatureServiceImpl - signDocument, signatureRequest: {}, token: {}:", signatureRequest, token);
-        return Mono.defer(() -> {
-                    String remoteType = String.valueOf(remoteSignatureConfig.getRemoteSignatureType());
+    public Mono<SignedData> signSystemCredential(
+            SignatureRequest signatureRequest,
+            String token
+    ) {
+        log.debug(
+                "RemoteSignatureServiceImpl - signSystemCredential, signatureRequest: {}, token: {}",
+                signatureRequest, token
+        );
 
-                    int dataLength = 0;
-                    if (signatureRequest != null && signatureRequest.data() != null) {
-                        dataLength = signatureRequest.data().length();
-                    }
+        return signWithRetry(signatureRequest, token, "signSystemCredential");
+    }
 
-                    log.info("Starting remote signing (signDocument). remoteType={}, signatureType={}, dataLength={}",
-                            remoteType,
-                            signatureRequest != null && signatureRequest.configuration() != null
-                                    ? signatureRequest.configuration().type()
-                                    : null,
-                            dataLength
+    private Mono<SignedData> signWithRetry(
+            SignatureRequest signatureRequest,
+            String token,
+            String operationName
+    ) {
+        return Mono.defer(() -> executeSigningFlow(signatureRequest, token))
+                .doOnSuccess(signedData -> {
+                    int signedLength = (signedData != null && signedData.data() != null)
+                            ? signedData.data().length()
+                            : 0;
+
+                    log.info(
+                            "Remote signing succeeded ({}). resultType={}, signedLength={}",
+                            operationName,
+                            signedData != null ? signedData.type() : null,
+                            signedLength
                     );
-
-                    return executeSigningFlow(signatureRequest, token)
-                            .doOnSuccess(signedData -> {
-                                int signedLength = signedData != null && signedData.data() != null ? signedData.data().length() : 0;
-                                log.info("Remote signing succeeded (signDocument). remoteType={}, resultType={}, signedLength={}",
-                                        remoteType,
-                                        signedData != null ? signedData.type() : null,
-                                        signedLength
-                                );
-                            });
                 })
                 .retryWhen(
                         Retry.backoff(3, Duration.ofSeconds(1))
@@ -142,11 +146,18 @@ public class RemoteSignatureServiceImpl implements RemoteSignatureService {
                                     long attempt = retrySignal.totalRetries() + 1;
                                     Throwable failure = retrySignal.failure();
                                     String msg = failure != null ? failure.getMessage() : "n/a";
-                                    log.warn("Retrying remote signing (signDocument). attempt={} of 3, reason={}", attempt, msg);
+
+                                    log.warn(
+                                            "Retrying remote signing ({}). attempt={} of 3, reason={}",
+                                            operationName, attempt, msg
+                                    );
                                 })
                 )
                 .doOnError(ex ->
-                        log.error("Remote signing failed after retries (signDocument). reason={}", ex.getMessage(), ex)
+                        log.error(
+                                "Remote signing failed after retries ({}). reason={}",
+                                operationName, ex.getMessage(), ex
+                        )
                 );
     }
 

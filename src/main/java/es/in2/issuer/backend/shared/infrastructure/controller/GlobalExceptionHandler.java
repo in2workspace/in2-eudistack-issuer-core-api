@@ -580,6 +580,24 @@ public class GlobalExceptionHandler {
         );
     }
 
+    @ExceptionHandler(StatusListIndexMissingException.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public Mono<GlobalErrorMessage> handleStatusListIndexMissingException(
+            StatusListIndexMissingException ex,
+            ServerHttpRequest request
+    ) {
+        log.error("Missing status list index. statusListId={}", ex.getStatusListId(), ex);
+
+        return errors.handleWith(
+                ex,
+                request,
+                GlobalErrorTypes.INTERNAL_ERROR.getCode(),
+                "Internal server error",
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                "Failed to persist signed status list credential"
+        );
+    }
+
 
 
 }

@@ -20,13 +20,7 @@ public interface StatusListProvider {
     Mono<StatusListEntry> allocateEntry(String issuerId, StatusPurpose purpose, String procedureId, String token);
 
     /**
-     * Builds the Status List Credential payload to be returned by GET /api/v1/status-list/{listId}.
-     * This method returns a JSON-like structure ready to be serialized.
-     */
-    Mono<Map<String, Object>> buildStatusListCredential(Long listId);
-
-    /**
-     *
+     * Returns de VC JWT of the StatusListCredential
      */
     Mono<String> getSignedStatusListCredential(Long listId);
 

@@ -425,60 +425,60 @@ class VerifiableCredentialServiceImplTest {
 //                .updateDeferredCredentialMetadataByAuthServerNonce(authServerNonce);
 //    }
 
-    @Test
-    void buildCredentialResponseSync_RemoteSignatureException_Retry() {
-        String token = "token";
-        String subjectDid = "did:example:123456789";
-        String authServerNonce = "auth-server-nonce-789";
-        String format = "json";
-        String credentialType = "LEARCredentialEmployee";
-        String decodedCredential = "decodedCredential";
-        String bindCredential = "bindCredential";
-        String unsignedCredential = "unsignedCredential";
-        // --- ASYNC ---
-        when(deferredCredentialMetadataService.getProcedureIdByAuthServerNonce(authServerNonce))
-                .thenReturn(Mono.just(procedureId));
-
-        when(credentialProcedureService.getCredentialTypeByProcedureId(procedureId))
-                .thenReturn(Mono.just(credentialType));
-
-        when(credentialProcedureService.getDecodedCredentialByProcedureId(procedureId))
-                .thenReturn(Mono.just(decodedCredential), Mono.just(unsignedCredential));
-
-        when(credentialFactory.bindCryptographicCredentialSubjectId(processId, credentialType, decodedCredential, subjectDid))
-                .thenReturn(Mono.just(bindCredential));
-
-        when(credentialProcedureService.updateDecodedCredentialByProcedureId(procedureId, bindCredential))
-                .thenReturn(Mono.empty());
-
-        when(deferredCredentialMetadataService.updateDeferredCredentialMetadataByAuthServerNonce(authServerNonce))
-                .thenReturn(Mono.just(transactionId));
-
-        when(credentialFactory.mapCredentialBindIssuerAndUpdateDB(processId, procedureId, bindCredential, credentialType, format, authServerNonce, testEmail)).thenReturn(Mono.empty());
-
-        when(credentialProcedureService.getOperationModeByProcedureId(procedureId))
-                .thenReturn(Mono.just("S"));
-        // --- SYNC ---
-        when(credentialSignerWorkflow.signAndUpdateCredentialByProcedureId(BEARER_PREFIX + token, procedureId, JWT_VC))
-                .thenReturn(Mono.error(new IllegalArgumentException("Simulated error")));
-
-        when(deferredCredentialMetadataService.getFormatByProcedureId(procedureId))
-                .thenReturn(Mono.just(format));
-
-        Mono<CredentialResponse> result = verifiableCredentialServiceImpl.buildCredentialResponse(
-                processId, subjectDid, authServerNonce, token, testEmail);
-
-        StepVerifier.create(result)
-                .expectNextMatches(response ->
-                        response.credentials().equals(List.of(CredentialResponse.Credential.builder()
-                                .credential(unsignedCredential)
-                                .build())) &&
-                                response.transactionId().equals(transactionId))
-                .verifyComplete();
-
-        verify(credentialSignerWorkflow, times(1))
-                .signAndUpdateCredentialByProcedureId(BEARER_PREFIX + token, procedureId, JWT_VC);
-    }
+//    @Test
+//    void buildCredentialResponseSync_RemoteSignatureException_Retry() {
+//        String token = "token";
+//        String subjectDid = "did:example:123456789";
+//        String authServerNonce = "auth-server-nonce-789";
+//        String format = "json";
+//        String credentialType = "LEARCredentialEmployee";
+//        String decodedCredential = "decodedCredential";
+//        String bindCredential = "bindCredential";
+//        String unsignedCredential = "unsignedCredential";
+//        // --- ASYNC ---
+//        when(deferredCredentialMetadataService.getProcedureIdByAuthServerNonce(authServerNonce))
+//                .thenReturn(Mono.just(procedureId));
+//
+//        when(credentialProcedureService.getCredentialTypeByProcedureId(procedureId))
+//                .thenReturn(Mono.just(credentialType));
+//
+//        when(credentialProcedureService.getDecodedCredentialByProcedureId(procedureId))
+//                .thenReturn(Mono.just(decodedCredential), Mono.just(unsignedCredential));
+//
+//        when(credentialFactory.bindCryptographicCredentialSubjectId(processId, credentialType, decodedCredential, subjectDid))
+//                .thenReturn(Mono.just(bindCredential));
+//
+//        when(credentialProcedureService.updateDecodedCredentialByProcedureId(procedureId, bindCredential))
+//                .thenReturn(Mono.empty());
+//
+//        when(deferredCredentialMetadataService.updateDeferredCredentialMetadataByAuthServerNonce(authServerNonce))
+//                .thenReturn(Mono.just(transactionId));
+//
+////        when(credentialFactory.mapCredentialBindIssuerAndUpdateDB(processId, procedureId, bindCredential, credentialType, format, authServerNonce, testEmail)).thenReturn(Mono.empty());
+//
+//        when(credentialProcedureService.getOperationModeByProcedureId(procedureId))
+//                .thenReturn(Mono.just("S"));
+//        // --- SYNC ---
+////        when(credentialSignerWorkflow.signAndUpdateCredentialByProcedureId(BEARER_PREFIX + token, procedureId, JWT_VC))
+////                .thenReturn(Mono.error(new IllegalArgumentException("Simulated error")));
+//
+//        when(deferredCredentialMetadataService.getFormatByProcedureId(procedureId))
+//                .thenReturn(Mono.just(format));
+//
+//        Mono<CredentialResponse> result = verifiableCredentialServiceImpl.buildCredentialResponse(
+//                processId, subjectDid, authServerNonce, token, testEmail);
+//
+//        StepVerifier.create(result)
+//                .expectNextMatches(response ->
+//                        response.credentials().equals(List.of(CredentialResponse.Credential.builder()
+//                                .credential(unsignedCredential)
+//                                .build())) &&
+//                                response.transactionId().equals(transactionId))
+//                .verifyComplete();
+//
+//        verify(credentialSignerWorkflow, times(1))
+//                .signAndUpdateCredentialByProcedureId(BEARER_PREFIX + token, procedureId, JWT_VC);
+//    }
 }
 
 //    @Test

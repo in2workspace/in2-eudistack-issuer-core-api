@@ -5,9 +5,9 @@ import reactor.core.publisher.Mono;
 
 import es.in2.issuer.backend.shared.domain.model.dto.credential.CredentialStatus;
 
-public interface CredentialPreSignEnricher {
+public interface CredentialStatusAllocator {
 
-    Mono<CredentialStatus> allocateCredentialStatus(
+    Mono<CredentialStatus> allocate(
             String issuerId,
             String credentialId,
             String token

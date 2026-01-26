@@ -1,7 +1,7 @@
 package es.in2.issuer.backend.statusList.application;
 
 import es.in2.issuer.backend.shared.domain.model.dto.credential.CredentialStatus;
-import es.in2.issuer.backend.shared.domain.spi.CredentialPreSignEnricher;
+import es.in2.issuer.backend.shared.domain.spi.CredentialStatusAllocator;
 import es.in2.issuer.backend.statusList.domain.model.StatusPurpose;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -12,11 +12,11 @@ import static java.util.Objects.requireNonNull;
 
 @Component
 @RequiredArgsConstructor
-public class StatusListPreSignEnricher implements CredentialPreSignEnricher {
+public class StatusListAllocator implements CredentialStatusAllocator {
     private final StatusListWorkflow statusListWorkflow;
 
     @Override
-    public Mono<CredentialStatus> allocateCredentialStatus(String issuerId, String procedureId, String token) {
+    public Mono<CredentialStatus> allocate(String issuerId, String procedureId, String token) {
         requireNonNull(issuerId, "issuerId cannot be null");
         requireNonNull(procedureId, "procedureId cannot be null");
 

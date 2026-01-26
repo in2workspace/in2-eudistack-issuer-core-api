@@ -55,15 +55,13 @@ public class LabelCredentialFactory {
 
     private Mono<LabelCredential> buildLabelCredential(LabelCredential credential) {
         // Build the LabelCredential object
-        return buildCredentialStatus()
-                .map(credentialStatus -> LabelCredential.builder()
+        return Mono.just(LabelCredential.builder()
                 .context(LABEL_CREDENTIAL_CONTEXT)
                 .id("urn:uuid:" + UUID.randomUUID())
                 .type(LABEL_CREDENTIAL_TYPES)
                 .credentialSubject(credential.credentialSubject())
                 .validFrom(credential.validFrom())
                 .validUntil(credential.validUntil())
-                .credentialStatus(credentialStatus)
                 .build());
     }
 

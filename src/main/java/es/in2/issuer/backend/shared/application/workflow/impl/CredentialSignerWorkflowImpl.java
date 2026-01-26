@@ -13,7 +13,6 @@ import es.in2.issuer.backend.shared.domain.exception.CredentialProcedureInvalidS
 import es.in2.issuer.backend.shared.domain.exception.CredentialProcedureNotFoundException;
 import es.in2.issuer.backend.shared.domain.model.dto.*;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.CredentialStatus;
-import es.in2.issuer.backend.shared.domain.model.dto.credential.DetailedIssuer;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.Issuer;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.LabelCredential;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.employee.LEARCredentialEmployee;
@@ -22,7 +21,7 @@ import es.in2.issuer.backend.shared.domain.model.entities.CredentialProcedure;
 import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum;
 import es.in2.issuer.backend.shared.domain.model.enums.SignatureType;
 import es.in2.issuer.backend.shared.domain.service.*;
-import es.in2.issuer.backend.shared.domain.spi.CredentialPreSignEnricher;
+import es.in2.issuer.backend.shared.domain.spi.CredentialStatusAllocator;
 import es.in2.issuer.backend.shared.domain.util.factory.IssuerFactory;
 import es.in2.issuer.backend.shared.domain.util.factory.LEARCredentialEmployeeFactory;
 import es.in2.issuer.backend.shared.domain.util.factory.LEARCredentialMachineFactory;
@@ -65,18 +64,18 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
     private final CredentialDeliveryService credentialDeliveryService;
     private final DeferredCredentialMetadataService deferredCredentialMetadataService;
     private final IssuerFactory issuerFactory;
-    private final CredentialPreSignEnricher credentialPreSignEnricher;
+    private final CredentialStatusAllocator credentialStatusAllocator;
     private final ObjectMapper objectMapper;
 
     @Override
-    public Mono<String> signAndUpdateCredentialByProcedureId(String token, String procedureId, String format) {
-        return signAndUpdateCredentialByProcedureId(token, procedureId, format, null);
-    }
-
-
-    public Mono<String> signAndUpdateCredentialByProcedureId(String token, String procedureId, String format, String mandateeEmail) {
-        log.debug("signAndUpdateCredentialByProcedureId");
-        log.info("procedureId: {}, mandateeEmail: {}", procedureId, mandateeEmail);
+    public Mono<String> signAndUpdateCredentialByProcedureId(String processId, String token, String procedureId, String format, String mandateeEmail) {
+        log.debug(
+                "Starting credential signing and update [processId={}, procedureId={}, format={}, mandateeEmail={}]",
+                processId,
+                procedureId,
+                format,
+                mandateeEmail
+        );
 
         return credentialProcedureRepository.findByProcedureId(UUID.fromString(procedureId))
                 .switchIfEmpty(Mono.error(new CredentialProcedureNotFoundException(
@@ -86,8 +85,7 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
                     String signerEmail = (mandateeEmail != null && !mandateeEmail.isBlank())
                             ? mandateeEmail
                             : proc.getUpdatedBy();
-
-                    return enrichDecodedCredentialBeforeSigning(proc, procedureId, token, signerEmail)
+                    return bindIssuerAndStatusIntoDecodedCredential(proc, procedureId, token, signerEmail)
                             .flatMap(updatedDecoded ->
                                     credentialProcedureService
                                             .updateDecodedCredentialByProcedureId(procedureId, updatedDecoded, JWT_VC)
@@ -99,17 +97,13 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
                             );
                 })
                 .flatMap(signedCredential ->
-                        updateSignedCredential(signedCredential, procedureId).thenReturn(signedCredential)
+                        updateSignedCredential(signedCredential, procedureId)
+                                .thenReturn(signedCredential)
                 )
                 .doOnSuccess(x -> log.info("Credential Signed and updated successfully."));
     }
 
-    /**
-     * - Fetch issuerId (DID) from certificate via issuerFactory
-     * - Allocate credentialStatus via credentialPreSignEnricher
-     * - Inject both issuer and credentialStatus into credentialDecoded JSON
-     */
-    private Mono<String> enrichDecodedCredentialBeforeSigning(
+    private Mono<String> bindIssuerAndStatusIntoDecodedCredential(
             CredentialProcedure proc,
             String procedureId,
             String token,
@@ -125,8 +119,8 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
                 )))
                 .flatMap(issuer -> {
                     String issuerId = issuer.getId();
-                    return credentialPreSignEnricher
-                            .allocateCredentialStatus(issuerId, procedureId, token)
+                    return credentialStatusAllocator
+                            .allocate(issuerId, procedureId, token)
                             .map(credentialStatus -> Tuples.of(issuer, credentialStatus));
                 })
                 .flatMap(tuple -> {
@@ -136,11 +130,6 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
                 });
     }
 
-    /**
-     * Resolve issuer object depending on VC type:
-     * - LABEL uses SimpleIssuer serialized as string (via @JsonValue).
-     * - LEAR uses DetailedIssuer object.
-     */
     private Mono<Issuer> resolveIssuerForType(String credentialType, String procedureId, String mandateeEmail) {
         if (LABEL_CREDENTIAL_TYPE.equals(credentialType)) {
             return issuerFactory.createSimpleIssuer(procedureId, mandateeEmail).cast(Issuer.class);
@@ -165,10 +154,6 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
         });
     }
 
-    /**
-     * Builds the "unsigned credential" payload that remote signer expects.
-     * This is the same as you had, but now it uses the enriched decoded JSON.
-     */
     private Mono<String> buildUnsignedPayloadFromDecoded(String credentialType, String updatedDecodedCredential) {
         try {
             log.info("Building JWT payload for credential signing for credential with type: {}", credentialType);
@@ -216,7 +201,7 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
                         unsignedCredential
                 );
 
-                return remoteSignatureService.sign(signatureRequest, token, procedureId, email)
+                return remoteSignatureService.signIssuedCredential(signatureRequest, token, procedureId, email)
                         .doOnSubscribe(s -> {
                         })
                         .doOnNext(data -> {
@@ -262,7 +247,7 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
                 new SignatureConfiguration(SignatureType.COSE, Collections.emptyMap()),
                 cborBase64
         );
-        return remoteSignatureService.sign(signatureRequest, token, "", email).map(signedData -> Base64.getDecoder().decode(signedData.data()));
+        return remoteSignatureService.signIssuedCredential(signatureRequest, token, "", email).map(signedData -> Base64.getDecoder().decode(signedData.data()));
     }
 
     /**
@@ -290,47 +275,50 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
     public Mono<Void> retrySignUnsignedCredential(String processId, String authorizationHeader, String procedureId) {
         log.info("Retrying to sign credential. processId={} procedureId={}", processId, procedureId);
 
-        return accessTokenService.getCleanBearerToken(authorizationHeader)
-                .flatMap(token ->
-                        backofficePdpService.validateSignCredential(processId, token, procedureId)
-                                .then(Mono.just(token))
-                                .zipWhen(t -> accessTokenService.getMandateeEmail(authorizationHeader))
-                )
-                .flatMap(tupleTokenEmail -> {
-                    String token = tupleTokenEmail.getT1();
-                    String email = tupleTokenEmail.getT2();
+        UUID uuid = UUID.fromString(procedureId);
 
-                    return credentialProcedureRepository.findByProcedureId(UUID.fromString(procedureId))
-                            .switchIfEmpty(Mono.error(new CredentialProcedureNotFoundException(
-                                    "Credential procedure with ID " + procedureId + " was not found"
-                            )))
-                            .doOnNext(credentialProcedure ->
-                                    log.info("ProcessID: {} - Current credential status: {}",
-                                            processId, credentialProcedure.getCredentialStatus())
-                            )
-                            .filter(credentialProcedure ->
-                                    credentialProcedure.getCredentialStatus() == CredentialStatusEnum.PEND_SIGNATURE
-                            )
-                            .switchIfEmpty(Mono.error(new CredentialProcedureInvalidStatusException(
-                                    "Credential procedure with ID " + procedureId + " is not in PEND_SIGNATURE status"
-                            )))
-                            .flatMap(cp ->
-                                    this.signAndUpdateCredentialByProcedureId(token, procedureId, JWT_VC, email)
+        return credentialProcedureRepository.findByProcedureId(uuid)
+                .switchIfEmpty(Mono.error(new CredentialProcedureNotFoundException(
+                        "Credential procedure with ID " + procedureId + " was not found"
+                )))
+                .doOnNext(credentialProcedure ->
+                        log.info("ProcessID: {} - Current credential status: {}",
+                                processId, credentialProcedure.getCredentialStatus())
+                )
+                .flatMap(credentialProcedure ->
+                        accessTokenService.getCleanBearerToken(authorizationHeader)
+                                .flatMap(token ->
+                                        backofficePdpService
+                                                .validateSignCredential(processId, token, credentialProcedure)
+                                                .thenReturn(token)
+                                )
+                                .zipWhen(t -> accessTokenService.getMandateeEmail(authorizationHeader))
+                                .flatMap(tupleTokenEmail -> {
+                                    String token = tupleTokenEmail.getT1();
+                                    String email = tupleTokenEmail.getT2();
+
+                                    return this.signAndUpdateCredentialByProcedureId(
+                                                    processId,
+                                                    token,
+                                                    procedureId,
+                                                    JWT_VC,
+                                                    email
+                                            )
                                             .flatMap(signedVc ->
                                                     credentialProcedureService
                                                             .updateCredentialProcedureCredentialStatusToValidByProcedureId(procedureId)
                                                             .thenReturn(signedVc)
                                             )
                                             .flatMap(signedVc ->
-                                                    credentialProcedureRepository.findByProcedureId(UUID.fromString(procedureId))
-                                                            .flatMap(updated -> credentialProcedureRepository.save(updated).thenReturn(updated))
+                                                    credentialProcedureRepository.findByProcedureId(uuid)
                                                             .flatMap(updatedCredentialProcedure -> {
                                                                 String credentialType = updatedCredentialProcedure.getCredentialType();
                                                                 if (!LABEL_CREDENTIAL_TYPE.equals(credentialType)) {
                                                                     return Mono.empty();
                                                                 }
 
-                                                                return deferredCredentialMetadataService.getResponseUriByProcedureId(procedureId)
+                                                                return deferredCredentialMetadataService
+                                                                        .getResponseUriByProcedureId(procedureId)
                                                                         .switchIfEmpty(Mono.error(new IllegalStateException(
                                                                                 "Missing responseUri for procedureId: " + procedureId
                                                                         )))
@@ -338,7 +326,8 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
                                                                             try {
                                                                                 String companyEmail = updatedCredentialProcedure.getEmail();
 
-                                                                                return credentialProcedureService.getCredentialId(updatedCredentialProcedure)
+                                                                                return credentialProcedureService
+                                                                                        .getCredentialId(updatedCredentialProcedure)
                                                                                         .flatMap(credentialId ->
                                                                                                 m2mTokenService.getM2MToken()
                                                                                                         .flatMap(m2mToken ->
@@ -359,11 +348,12 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
                                                                             }
                                                                         });
                                                             })
-                                            )
-                            );
-                })
+                                            );
+                                })
+                )
                 .then();
     }
+
 
     private Mono<Void> updateDecodedCredentialByProcedureId(String procedureId, String bindCredential) {
         log.info("ProcessID: {} - Credential mapped and bound to the issuer: {}", procedureId, bindCredential);

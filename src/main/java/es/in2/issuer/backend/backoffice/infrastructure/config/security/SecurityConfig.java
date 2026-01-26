@@ -146,6 +146,7 @@ public class SecurityConfig {
         http
                 .securityMatcher(ServerWebExchangeMatchers.pathMatchers(
                         BACKOFFICE_PATH,
+//todo                        STATUS_LIST_PATH,
                         HEALTH_PATH,
                         PROMETHEUS_PATH,
                         SPRINGDOC_PATH
@@ -158,6 +159,8 @@ public class SecurityConfig {
                                 SPRINGDOC_PATH
                         ).permitAll()
                         .pathMatchers(HttpMethod.GET, BACKOFFICE_STATUS_CREDENTIALS).permitAll()
+// todo                        .pathMatchers(HttpMethod.GET, STATUS_LIST_BASE + "/*").permitAll()
+// todo                        .pathMatchers(STATUS_LIST_BASE + "/**" ).authenticated()
                         .pathMatchers(HttpMethod.GET, BACKOFFICE_PATH).authenticated()
                         .pathMatchers(HttpMethod.POST, BACKOFFICE_PATH ).authenticated()
                         .pathMatchers(HttpMethod.PUT, BACKOFFICE_PATH).authenticated()
