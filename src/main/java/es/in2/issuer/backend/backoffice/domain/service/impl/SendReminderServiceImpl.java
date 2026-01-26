@@ -1,7 +1,7 @@
 package es.in2.issuer.backend.backoffice.domain.service.impl;
 
 import es.in2.issuer.backend.backoffice.application.workflow.policies.BackofficePdpService;
-import es.in2.issuer.backend.backoffice.domain.service.NotificationService2;
+import es.in2.issuer.backend.backoffice.domain.service.SendReminderService;
 import es.in2.issuer.backend.shared.domain.exception.EmailCommunicationException;
 import es.in2.issuer.backend.shared.domain.service.*;
 import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
@@ -15,7 +15,7 @@ import static es.in2.issuer.backend.backoffice.domain.util.Constants.*;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class NotificationServiceImpl2 implements NotificationService2 {
+public class SendReminderServiceImpl implements SendReminderService {
 
     private final AppConfig appConfig;
     private final AccessTokenService accessTokenService;
@@ -25,7 +25,7 @@ public class NotificationServiceImpl2 implements NotificationService2 {
     private final DeferredCredentialMetadataService deferredCredentialMetadataService;
 
     @Override
-    public Mono<Void> sendNotification(String processId, String procedureId, String bearerToken) {
+    public Mono<Void> sendReminder(String processId, String procedureId, String bearerToken) {
         // TODO this flow doesn't udpate the credential procedure, but we should consider updating the "udpated_by" field for auditing and maybe have the last person to send a reminder to receive the failed signature email
         log.info("sendNotification processId={} organizationId={}", processId, procedureId);
 
