@@ -3,6 +3,8 @@ package es.in2.issuer.backend.statusList.infrastructure.controller;
 import es.in2.issuer.backend.statusList.application.RevocationWorkflow;
 import es.in2.issuer.backend.statusList.application.StatusListWorkflow;
 import es.in2.issuer.backend.backoffice.domain.model.dtos.RevokeCredentialRequest;
+import jakarta.annotation.PostConstruct;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -13,10 +15,9 @@ import reactor.core.publisher.Mono;
 
 import java.util.UUID;
 
-import static java.util.Objects.requireNonNull;
-
 //todo fix path, probably with "/status-list/v1/status"
 @Slf4j
+@RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/v1/status-list")
 public class StatusListController {
@@ -27,12 +28,10 @@ public class StatusListController {
     private final StatusListWorkflow statusListWorkflow;
     private final RevocationWorkflow revocationService;
 
-    public StatusListController(
-            StatusListWorkflow statusListWorkflow,
-            RevocationWorkflow revocationService
-    ) {
-        this.statusListWorkflow = requireNonNull(statusListWorkflow, "statusListService cannot be null");
-        this.revocationService = requireNonNull(revocationService, "revocationService cannot be null");
+
+    @PostConstruct
+    void init() {
+        log.info("StatusListController initialized with base path: /api/v1/status-list");
     }
 
     /**
