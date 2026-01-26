@@ -18,7 +18,6 @@ import reactor.core.publisher.Mono;
 
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.*;
 
-
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -30,47 +29,43 @@ public class NotificationServiceImpl implements NotificationService {
 
     @Override
     public Mono<Void> handleNotification(String processId, String bearerToken, NotificationRequest request) {
-        return Mono.defer(() -> {
-            try {
-                validateRequestDefensively(request);
-            } catch (InvalidNotificationRequestException e) {
-                log.warn("AUDIT notification_rejected errorCode=invalid_notification_request errorDescription={} notificationId={} event={}",
-                        e.getMessage(),
-                        (request.notificationId()),
-                        (request.event())
-                );
-                return Mono.error(e);
-            }
+        return Mono.justOrEmpty(request)
+                .switchIfEmpty(Mono.error(new InvalidNotificationRequestException("Request body is required")))
+                .doOnNext(this::validateRequest)
+                .flatMap(req -> {
+                    final String notificationId = req.notificationId();
+                    final NotificationEvent event = req.event();
+                    final String eventDescription = req.eventDescription();
 
-            final String notificationId = request.notificationId();
-            final NotificationEvent event = request.event(); //TODO: gestionar error para event no soportado
-            final String eventDescription = request.eventDescription();
+                    log.info("AUDIT notification_received notificationId={} event={} eventDescription={}",
+                            notificationId, event, eventDescription
+                    );
 
-            log.info("AUDIT notification_received notificationId={} event={} eventDescription={}",
-                    notificationId, event, eventDescription
-            );
+                    return credentialProcedureService.getCredentialProcedureByNotificationId(notificationId)
+                            .switchIfEmpty(Mono.defer(() -> {
+                                log.warn("AUDIT notification_rejected errorCode=invalid_notification_id errorDescription={} notificationId={} event={}",
+                                        "The notification_id is not recognized", notificationId, event
+                                );
+                                return Mono.error(new InvalidNotificationIdException(
+                                        "The notification_id is not recognized: " + notificationId
+                                ));
+                            }))
+                            .flatMap(proc -> applyIdempotentUpdate(processId, bearerToken, proc, event, eventDescription));
+                })
+                .onErrorResume(InvalidNotificationRequestException.class, e -> {
 
-            return credentialProcedureService.getCredentialProcedureByNotificationId(notificationId)
-                    .switchIfEmpty(Mono.defer(() -> {
-                        log.warn("AUDIT notification_rejected errorCode=invalid_notification_id errorDescription={} notificationId={} event={}",
-                                "The notification_id is not recognized",
-                                notificationId,
-                                event
-                        );
-                        return Mono.error(new InvalidNotificationIdException(
-                                "The notification_id is not recognized: " + notificationId
-                        ));
-                    }))
-                    .flatMap(procedure -> applyIdempotentUpdate(procedure, event, eventDescription, bearerToken))
-                    .then();
-        });
+                    String nid = request != null ? request.notificationId() : null;
+                    NotificationEvent ev = request != null ? request.event() : null;
+
+                    log.warn("AUDIT notification_rejected errorCode=invalid_notification_request errorDescription={} notificationId={} event={}",
+                            e.getMessage(), nid, ev
+                    );
+                    return Mono.error(e);
+                })
+                .then();
     }
 
-    //Revisar si es correcto / repetido en servicio
-    private void validateRequestDefensively(NotificationRequest request) {
-        if (request == null) {
-            throw new InvalidNotificationRequestException("Request body is required");
-        }
+    private void validateRequest(NotificationRequest request) {
         if (request.notificationId() == null || request.notificationId().isBlank()) {
             throw new InvalidNotificationRequestException("notification_id is required");
         }
@@ -79,66 +74,59 @@ public class NotificationServiceImpl implements NotificationService {
         }
     }
 
-    private Mono<Void> applyIdempotentUpdate(CredentialProcedure credentialProcedure,NotificationEvent event,String bearerToken,String processId) {
+    private Mono<Void> applyIdempotentUpdate(String processId,
+                                             String bearerToken,
+                                             CredentialProcedure procedure,
+                                             NotificationEvent event,
+                                             String eventDescription) {
 
-        final CredentialStatusEnum before = credentialProcedure.getCredentialStatus();
-        final CredentialStatusEnum after = mapEventToCredentialStatus(event);
-        final boolean idempotent = (before == after);
+        final CredentialStatusEnum before = procedure.getCredentialStatus();
+        final CredentialStatusEnum mappedAfter = mapEventToCredentialStatus(event);
+        final boolean idempotent = (before == mappedAfter);
 
         log.info("AUDIT notification_processing credentialProcedureId={} notificationId={} event={} idempotent={} statusBefore={} statusAfter={}",
-                credentialProcedure.getProcedureId(),
-                credentialProcedure.getNotificationId(),
+                procedure.getProcedureId(),
+                procedure.getNotificationId(),
                 event,
                 idempotent,
                 before,
-                after
+                mappedAfter
         );
 
         if (idempotent) {
             log.info("AUDIT notification_idempotent credentialProcedureId={} notificationId={} event={} status={}",
-                    credentialProcedure.getProcedureId(),
-                    credentialProcedure.getNotificationId(),
+                    procedure.getProcedureId(),
+                    procedure.getNotificationId(),
                     event,
                     before
             );
             return Mono.empty();
         }
 
-        // TODO: Que pasa en caso de error?
-        if (event != NotificationEvent.CREDENTIAL_DELETED) {
-            log.info("AUDIT notification_no_external_action processId={} credentialProcedureId={} notificationId={} event={}",
-                    processId, credentialProcedure.getProcedureId(), credentialProcedure.getNotificationId(), event
+        if (event == NotificationEvent.CREDENTIAL_ACCEPTED) {
+            log.info("AUDIT notification_no_external_action processId={} credentialProcedureId={} notificationId={} event={} eventDescription={}",
+                    processId, procedure.getProcedureId(), procedure.getNotificationId(), event, eventDescription
             );
             return Mono.empty();
         }
 
-        return revokeCredentialFromDecoded(processId, bearerToken, credentialProcedure);
+        return switch (event) {
+            case CREDENTIAL_FAILURE -> credentialProcedureService.updateCredentialProcedureCredentialStatusToIssued(procedure);
+            case CREDENTIAL_DELETED -> revokeCredentialFromDecoded(processId, bearerToken, procedure);
+            default -> throw new IllegalStateException("Unexpected value: " + event);
+        };
     }
-
 
     private CredentialStatusEnum mapEventToCredentialStatus(NotificationEvent event) {
         return switch (event) {
             case CREDENTIAL_ACCEPTED -> CredentialStatusEnum.VALID;
-            case CREDENTIAL_FAILURE -> CredentialStatusEnum.DRAFT; //TODO: revisar estado adecuado
+            case CREDENTIAL_FAILURE -> CredentialStatusEnum.ISSUED;
             case CREDENTIAL_DELETED -> CredentialStatusEnum.REVOKED;
         };
     }
 
-    private Mono<Void> revokeCredentialFromDecoded(String processId, String bearerToken,CredentialProcedure procedure) {
-
-        return Mono.fromCallable(() -> {
-                    JsonNode credential = objectMapper.readTree(procedure.getCredentialDecoded());
-
-                    JsonNode statusNode = credential.has(VC)
-                            ? credential.path(VC).path(CREDENTIAL_STATUS)
-                            : credential.path(CREDENTIAL_STATUS);
-
-                    if (statusNode.isMissingNode() || statusNode.isNull()) {
-                        throw new IllegalArgumentException("Credential status node not found in decoded credential");
-                    }
-
-                    return extractListId(statusNode);
-                })
+    private Mono<Void> revokeCredentialFromDecoded(String processId, String bearerToken, CredentialProcedure procedure) {
+        return extractListIdFromDecodedCredential(procedure)
                 .flatMap(listId -> credentialStatusWorkflow.revokeCredential(
                                         processId,
                                         bearerToken,
@@ -154,18 +142,32 @@ public class NotificationServiceImpl implements NotificationService {
                 .doOnError(e -> log.warn("Process ID: {} - revokeCredentialFromDecoded failed: {}", processId, e.getMessage(), e));
     }
 
-    private Integer extractListId(JsonNode statusNode) {
-        JsonNode slcNode = statusNode.path(STATUS_LIST_CREDENTIAL);
-        String slc = slcNode.asText();
+    private Mono<Integer> extractListIdFromDecodedCredential(CredentialProcedure procedure) {
+        return Mono.fromCallable(() -> {
+            JsonNode credential = objectMapper.readTree(procedure.getCredentialDecoded());
 
-        char lastChar = slc.charAt(slc.length() - 1);
-        if (!Character.isDigit(lastChar)) {
-            throw new IllegalArgumentException("Last character of status_list_credential is not a digit: " + slc);
-        }
+            JsonNode statusNode = credential.has(VC)
+                    ? credential.path(VC).path(CREDENTIAL_STATUS)
+                    : credential.path(CREDENTIAL_STATUS);
 
-        return Character.getNumericValue(lastChar);
+            if (statusNode.isMissingNode() || statusNode.isNull()) {
+                throw new IllegalArgumentException("Credential status node not found in decoded credential");
+            }
+
+            JsonNode slcNode = statusNode.path(STATUS_LIST_CREDENTIAL);
+            String slc = slcNode.asText();
+
+            if (slc == null || slc.isBlank()) {
+                throw new IllegalArgumentException("status_list_credential is missing/blank");
+            }
+
+            char lastChar = slc.charAt(slc.length() - 1);
+            if (!Character.isDigit(lastChar)) {
+                throw new IllegalArgumentException("Last character of status_list_credential is not a digit: " + slc);
+            }
+
+            return Character.getNumericValue(lastChar);
+        });
     }
-
-
-
 }
+
