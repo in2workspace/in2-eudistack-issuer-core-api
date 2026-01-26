@@ -119,15 +119,16 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
                 )))
                 .flatMap(issuer -> {
                     String issuerId = issuer.getId();
-                    return credentialStatusAllocator
-                            .allocate(issuerId, procedureId, token)
-                            .map(credentialStatus -> Tuples.of(issuer, credentialStatus));
-                })
-                .flatMap(tuple -> {
-                    Issuer issuer = tuple.getT1();
-                    CredentialStatus credentialStatus = tuple.getT2();
-                    return injectIssuerAndCredentialStatus(proc.getCredentialDecoded(), issuer, credentialStatus);
+                    return Mono.error(new RuntimeException("Forced allocation error"));
+//                    return credentialStatusAllocator
+//                            .allocate(issuerId, procedureId, token)
+//                            .map(credentialStatus -> Tuples.of(issuer, credentialStatus));
                 });
+//                .flatMap(tuple -> {
+//                    Issuer issuer = tuple.getT1();
+//                    CredentialStatus credentialStatus = tuple.getT2();
+//                    return injectIssuerAndCredentialStatus(proc.getCredentialDecoded(), issuer, credentialStatus);
+//                });
     }
 
     private Mono<Issuer> resolveIssuerForType(String credentialType, String procedureId, String mandateeEmail) {
