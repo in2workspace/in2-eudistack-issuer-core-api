@@ -5,11 +5,9 @@ import reactor.core.publisher.Mono;
 
 public interface StatusListIndexRepository extends ReactiveCrudRepository<StatusListIndexRow, Long> {
 
-    Mono<StatusListIndexRow> findByprocedureId(String procedureId);
+    Mono<StatusListIndexRow> findByProcedureId(String procedureId);
 
     Mono<Long> countByStatusListId(Long statusListId);
-
-    Mono<Boolean> existsByStatusListIdAndIdx(Long statusListId, Integer idx);
 }
 
 

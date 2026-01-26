@@ -4,6 +4,7 @@ import es.in2.issuer.backend.shared.domain.exception.*;
 import es.in2.issuer.backend.shared.domain.model.dto.GlobalErrorMessage;
 import es.in2.issuer.backend.shared.domain.util.GlobalErrorTypes;
 import es.in2.issuer.backend.shared.infrastructure.controller.error.ErrorResponseFactory;
+import es.in2.issuer.backend.statusList.domain.exception.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -401,5 +402,184 @@ public class GlobalExceptionHandler {
                 "The requested credential procedure was not found"
         );
     }
+
+    @ExceptionHandler(NullPointerException.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public Mono<GlobalErrorMessage> handleNpe(
+            NullPointerException ex,
+            ServerHttpRequest request
+    ) {
+        return errors.handleWith(
+                ex, request,
+                GlobalErrorTypes.INTERNAL_ERROR.getCode(),
+                "Internal error",
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                "A required value was null"
+        );
+    }
+
+    @ExceptionHandler(CredentialStatusMissingException.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public Mono<GlobalErrorMessage> handleCredentialStatusMissing(
+            CredentialStatusMissingException ex,
+            ServerHttpRequest request
+    ) {
+        return errors.handleWith(
+                ex, request,
+                GlobalErrorTypes.PARSE_ERROR.getCode(),
+                "Credential data is invalid",
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                "Stored credential is missing credentialStatus"
+        );
+    }
+
+    @ExceptionHandler(CredentialDecodedInvalidJsonException.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public Mono<GlobalErrorMessage> handleCredentialDecodedInvalidJson(
+            CredentialDecodedInvalidJsonException ex,
+            ServerHttpRequest request
+    ) {
+        log.error(
+                "Credential decoded JSON is invalid. procedureId={}",
+                ex.getProcedureId(),
+                ex
+        );
+
+        return errors.handleWith(
+                ex,
+                request,
+                GlobalErrorTypes.PARSE_ERROR.getCode(),
+                "Credential data is invalid",
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                "Stored credential could not be parsed"
+        );
+    }
+
+    @ExceptionHandler(StatusListNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public Mono<GlobalErrorMessage> handleStatusListNotFound(
+            StatusListNotFoundException ex,
+            ServerHttpRequest request
+    ) {
+        log.info(
+                "Status list not found. listId={}",
+                ex.getListId()
+        );
+
+        return errors.handleWith(
+                ex,
+                request,
+                GlobalErrorTypes.STATUS_LIST_NOT_FOUND.getCode(),
+                "Status list not found",
+                HttpStatus.NOT_FOUND,
+                "The requested status list does not exist"
+        );
+    }
+
+    @ExceptionHandler(SignedStatusListCredentialNotAvailableException.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public Mono<GlobalErrorMessage> handleSignedStatusListCredentialNotAvailable(
+            SignedStatusListCredentialNotAvailableException ex,
+            ServerHttpRequest request
+    ) {
+        log.error(
+                "Signed status list credential not available. listId={}",
+                ex.getListId(),
+                ex
+        );
+
+        return errors.handleWith(
+                ex,
+                request,
+                GlobalErrorTypes.INTERNAL_ERROR.getCode(),
+                "Internal server error",
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                "Signed status list credential is not available"
+        );
+    }
+
+    @ExceptionHandler(StatusListIndexNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public Mono<GlobalErrorMessage> handleStatusListIndexNotFound(
+            StatusListIndexNotFoundException ex,
+            ServerHttpRequest request
+    ) {
+        log.info(
+                "Status list index not found. procedureId={}",
+                ex.getProcedureId()
+        );
+
+        return errors.handleWith(
+                ex,
+                request,
+                GlobalErrorTypes.STATUS_LIST_INDEX_NOT_FOUND.getCode(),
+                "Status list index not found",
+                HttpStatus.NOT_FOUND,
+                "No status list index exists for the given credential procedure"
+        );
+    }
+
+    @ExceptionHandler(ConcurrentStatusListUpdateException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public Mono<GlobalErrorMessage> handleConcurrentStatusListUpdate(
+            ConcurrentStatusListUpdateException ex,
+            ServerHttpRequest request
+    ) {
+        log.warn(
+                "Concurrent status list update. statusListId={} idx={}",
+                ex.getStatusListId(),
+                ex.getIdx()
+        );
+
+        return errors.handleWith(
+                ex,
+                request,
+                GlobalErrorTypes.CONCURRENT_UPDATE.getCode(),
+                "Concurrent update",
+                HttpStatus.CONFLICT,
+                "Status list was updated concurrently. Please retry."
+        );
+    }
+
+    @ExceptionHandler(RemoteSignatureException.class)
+    @ResponseStatus(HttpStatus.BAD_GATEWAY)
+    public Mono<GlobalErrorMessage> handleRemoteSignature(
+            RemoteSignatureException ex,
+            ServerHttpRequest request
+    ) {
+        log.error(
+                "Remote signature failed.",
+                ex
+        );
+
+        return errors.handleWith(
+                ex,
+                request,
+                GlobalErrorTypes.REMOTE_SIGNATURE.getCode(),
+                "Remote signature failed",
+                HttpStatus.BAD_GATEWAY,
+                "Signing service failed to sign the credential"
+        );
+    }
+
+    @ExceptionHandler(StatusListSigningPersistenceException.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public Mono<GlobalErrorMessage> handleStatusListSigningPersistence(
+            StatusListSigningPersistenceException ex,
+            ServerHttpRequest request
+    ) {
+        log.error("Failed to persist signed status list credential. statusListId={}", ex.getStatusListId(), ex);
+
+        return errors.handleWith(
+                ex,
+                request,
+                GlobalErrorTypes.INTERNAL_ERROR.getCode(),
+                "Internal server error",
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                "Failed to persist signed status list credential"
+        );
+    }
+
+
 
 }

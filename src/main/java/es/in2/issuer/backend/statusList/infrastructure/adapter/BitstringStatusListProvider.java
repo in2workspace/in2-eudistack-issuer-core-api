@@ -1,12 +1,14 @@
 package es.in2.issuer.backend.statusList.infrastructure.adapter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import es.in2.issuer.backend.shared.domain.exception.RemoteSignatureException;
 import es.in2.issuer.backend.shared.domain.model.dto.SignatureConfiguration;
 import es.in2.issuer.backend.shared.domain.model.dto.SignatureRequest;
 import es.in2.issuer.backend.shared.domain.model.dto.SignedData;
 import es.in2.issuer.backend.shared.domain.model.enums.SignatureType;
 import es.in2.issuer.backend.shared.domain.service.RemoteSignatureService;
 import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
+import es.in2.issuer.backend.statusList.domain.exception.*;
 import es.in2.issuer.backend.statusList.domain.model.StatusListEntry;
 import es.in2.issuer.backend.statusList.domain.model.StatusPurpose;
 import es.in2.issuer.backend.statusList.domain.spi.StatusListIndexAllocator;
@@ -77,39 +79,52 @@ public class BitstringStatusListProvider implements StatusListProvider {
 
     @Override
     public Mono<String> getSignedStatusListCredential(Long listId) {
-        log.info("BitstringStatusListProvider - getSignedStatusListCredential, listId: {}", listId);
         requireNonNull(listId, "listId cannot be null");
 
         return statusListRepository.findById(listId)
-                //todo fer 404
-                .switchIfEmpty(Mono.error(new IllegalArgumentException("Status list not found: " + listId)))
+                .switchIfEmpty(Mono.error(new StatusListNotFoundException(listId)))
                 .flatMap(row -> {
                     String signed = row.signedCredential();
                     if (signed == null || signed.isBlank()) {
-                        return Mono.error(new IllegalStateException("Signed credential not available for status list: " + listId));
+                        return Mono.error(new SignedStatusListCredentialNotAvailableException(listId));
                     }
                     return Mono.just(signed);
                 });
     }
 
-
     @Override
     public Mono<StatusListEntry> allocateEntry(String issuerId, StatusPurpose purpose, String procedureId, String token) {
-        log.info("BitstringStatusListProvider - allocateEntry");
-
         requireNonNull(issuerId, "issuerId cannot be null");
         requireNonNull(purpose, "purpose cannot be null");
         requireNonNull(procedureId, "procedureId cannot be null");
+        requireNonNull(token, "token cannot be null");
+
+        log.debug(
+                "action=allocateStatusListEntry step=started issuerId={} purpose={} procedureId={}",
+                issuerId, purpose, procedureId
+        );
 
         // If the credential was already allocated, return the existing mapping (idempotent behavior).
         // todo consider finding by purpose; will be needed if new purposes are added in the future
-        return statusListIndexRepository.findByprocedureId(procedureId)
-                .map(existing -> buildEntry(existing.statusListId(), existing.idx(), purpose))
+        return statusListIndexRepository.findByProcedureId(procedureId)
+                .doOnNext(existing -> log.debug(
+                        "action=allocateStatusListEntry step=idempotentHit procedureId={} statusListId={} idx={}",
+                        procedureId, existing.statusListId(), existing.idx()
+                ))
+                .map(existingRow -> buildEntry(existingRow.statusListId(), existingRow.idx(), purpose))
                 .switchIfEmpty(
                         pickListForAllocation(issuerId, purpose, token)
                                 .flatMap(list -> reserveIndexWithRetry(list.id(), procedureId, issuerId, purpose, token))
-                                .map(reservation -> buildEntry(reservation.statusListId(), reservation.idx(), purpose))
-                );
+                                .map(reservedIndex -> buildEntry(reservedIndex.statusListId(), reservedIndex.idx(), purpose))
+                )
+                .doOnSuccess(entry -> log.info(
+                        "action=allocateStatusListEntry status=completed issuerId={} purpose={} procedureId={} statusListCredential={} idx={}",
+                        issuerId, purpose, procedureId, entry.statusListCredential(), entry.statusListIndex()
+                ))
+                .doOnError(e -> log.warn(
+                        "action=allocateStatusListEntry status=failed issuerId={} purpose={} procedureId={} error={}",
+                        issuerId, purpose, procedureId, e.toString()
+                ));
     }
 
     @Override
@@ -117,8 +132,7 @@ public class BitstringStatusListProvider implements StatusListProvider {
         requireNonNull(listId, "listId cannot be null");
 
         return statusListRepository.findById(listId)
-                //todo fer 404
-                .switchIfEmpty(Mono.error(new IllegalArgumentException("Status list not found: " + listId)))
+                .switchIfEmpty(Mono.error(new StatusListNotFoundException(listId)))
                 .map(row -> {
                     String listUrl = buildListUrl(row.id());
 
@@ -136,8 +150,7 @@ public class BitstringStatusListProvider implements StatusListProvider {
                     vc.put("type", new Object[]{VC_TYPE, STATUS_LIST_CREDENTIAL_TYPE});
                     vc.put("issuer", row.issuerId());
 
-                    // Optional: you can add "validFrom" based on createdAt if your ecosystem expects it.
-                    // vc.put("validFrom", row.createdAt().toString());
+                    // validFrom?
 
                     vc.put("credentialSubject", credentialSubject);
                     return vc;
@@ -146,81 +159,140 @@ public class BitstringStatusListProvider implements StatusListProvider {
 
     @Override
     public Mono<Void> revoke(String procedureId, String token) {
-        log.info("BitstringStatusListProvider - revoke");
         requireNonNull(procedureId, "procedureId cannot be null");
         requireNonNull(token, "token cannot be null");
 
-        // todo consider finding by purpose; will be needed if new purposes are added in the future
-        return statusListIndexRepository.findByprocedureId(procedureId)
-                .switchIfEmpty(Mono.error(new IllegalArgumentException("No status list mapping found for credential: " + procedureId)))
-                .flatMap(mapping -> revokeWithRetry(mapping.statusListId(), mapping.idx(), token))
-                .then();
+        log.info("action=revokeStatusList status=started procedureId={}", procedureId);
+
+        return statusListIndexRepository.findByProcedureId(procedureId)
+                .switchIfEmpty(Mono.error(new StatusListIndexNotFoundException(procedureId)))
+                .flatMap(listIndex -> {
+                    log.debug(
+                            "action=revokeStatusList step=indexResolved procedureId={} statusListId={} idx={}",
+                            procedureId, listIndex.statusListId(), listIndex.idx()
+                    );
+                    return revokeWithRetry(listIndex.statusListId(), listIndex.idx(), token);
+                })
+                .doOnSuccess(v -> log.info("action=revokeStatusList status=completed procedureId={}", procedureId))
+                .doOnError(e -> log.warn("action=revokeStatusList status=failed procedureId={} error={}", procedureId, e.toString()));
     }
 
+
     private Mono<Void> revokeWithRetry(Long statusListId, Integer idx, String token) {
+
         int maxAttempts = 5;
 
         return Mono.defer(() -> revokeOnce(statusListId, idx, token))
                 .retryWhen(
-                        Retry.max(maxAttempts - 1)
-                                .filter(t -> t instanceof OptimisticUpdateException)
+                        Retry
+                                .backoff(maxAttempts - 1, Duration.ofMillis(50))
+                                .maxBackoff(Duration.ofSeconds(1))
+                                .jitter(0.2)
+                                .filter(OptimisticUpdateException.class::isInstance)
+                                .doBeforeRetry(rs -> log.debug(
+                                        "action=revokeStatusList retryReason=optimisticLock statusListId={} idx={} attempt={}/{}",
+                                        statusListId, idx, rs.totalRetries() + 1, maxAttempts
+                                ))
+                                .onRetryExhaustedThrow((spec, signal) ->
+                                        new ConcurrentStatusListUpdateException(statusListId, idx, signal.failure())
+                                )
+
+                )
+                .doOnSuccess(v -> log.debug("action=revokeStatusList step=revoked statusListId={} idx={}", statusListId, idx))
+                .doOnError(e -> log.warn("action=revokeStatusList step=revocationFailed statusListId={} idx={} error={}",
+                        statusListId, idx, e.toString()));
+    }
+
+
+    private Mono<Void> revokeOnce(Long statusListId, Integer idx, String token) {
+        return findStatusListOrFail(statusListId)
+                .flatMap(row ->
+                        isAlreadyRevoked(row, idx)
+                                .flatMap(alreadyRevoked -> {
+                                    if (alreadyRevoked) {
+                                        log.debug("action=revokeStatusList result=alreadyRevoked statusListId={} idx={}", statusListId, idx);
+                                        return Mono.empty();
+                                    }
+
+                                    String updatedEncoded = encodeRevocation(row, idx);
+
+                                    return signUpdatedStatusListCredential(row, updatedEncoded, token)
+                                            .flatMap(signedJwt -> persistOptimisticUpdate(row, updatedEncoded, signedJwt));
+                                })
                 );
     }
 
-    private Mono<Void> revokeOnce(Long statusListId, Integer idx, String token) {
+    private Mono<StatusListRow> findStatusListOrFail(Long statusListId) {
         return statusListRepository.findById(statusListId)
-                //todo fer 404
-                .switchIfEmpty(Mono.error(new IllegalArgumentException("Status list not found: " + statusListId)))
-                .flatMap(currentRow -> {
+                .switchIfEmpty(Mono.error(new StatusListNotFoundException(statusListId)));
+    }
 
-                    // if already revoked, do nothing
-                    if (encoder.getBit(currentRow.encodedList(), idx)) {
+    private Mono<Boolean> isAlreadyRevoked(StatusListRow row, Integer idx) {
+        return Mono.fromSupplier(() -> encoder.getBit(row.encodedList(), idx));
+    }
+
+    private String encodeRevocation(StatusListRow row, Integer idx) {
+        return encoder.setBit(row.encodedList(), idx, true);
+    }
+
+    private Mono<String> signUpdatedStatusListCredential(StatusListRow row, String updatedEncoded, String token) {
+        return Mono.fromSupplier(() -> buildUnsignedCredential(
+                        row.id(),
+                        row.issuerId(),
+                        row.purpose(),
+                        updatedEncoded
+                ))
+                .flatMap(this::toSignatureRequestSafe)
+                .flatMap(req -> remoteSignatureService.signDocument(req, token))
+                .onErrorMap(ex -> new RemoteSignatureException("Remote signature failed for statusListId=" + row.id(), ex))
+                .map(this::extractJwtSafe);
+    }
+
+    private Mono<SignatureRequest> toSignatureRequestSafe(Map<String, Object> payload) {
+        return Mono.fromCallable(() -> {
+            String json = objectMapper.writeValueAsString(payload);
+
+            SignatureConfiguration config = SignatureConfiguration.builder()
+                    .type(SignatureType.JADES)
+                    .parameters(java.util.Collections.emptyMap())
+                    .build();
+
+            return SignatureRequest.builder()
+                    .configuration(config)
+                    .data(json)
+                    .build();
+        }).onErrorMap(com.fasterxml.jackson.core.JsonProcessingException.class,
+                ex -> new StatusListCredentialSerializationException(ex)
+        );
+    }
+
+    private String extractJwtSafe(SignedData signedData) {
+        if (signedData == null || signedData.data() == null || signedData.data().isBlank()) {
+            throw new RemoteSignatureException("Remote signature failed: empty response");
+        }
+        return signedData.data();
+    }
+
+    private Mono<Void> persistOptimisticUpdate(StatusListRow currentRow, String updatedEncoded, String signedJwt) {
+        return statusListRepository.updateSignedAndEncodedIfUnchanged(
+                        currentRow.id(),
+                        updatedEncoded,
+                        signedJwt,
+                        currentRow.updatedAt()
+                )
+                .flatMap(rows -> {
+                    if (rows != null && rows == 1) {
+                        log.debug("action=revokeStatusList result=updated statusListId={}", currentRow.id());
                         return Mono.empty();
                     }
-
-                    String updatedEncoded = encoder.setBit(currentRow.encodedList(), idx, true);
-
-                    StatusListRow rowForSigning = new StatusListRow(
-                            currentRow.id(),
-                            currentRow.issuerId(),
-                            currentRow.purpose(),
-                            updatedEncoded,
-                            currentRow.signedCredential(),
-                            currentRow.createdAt(),
-                            currentRow.updatedAt()
-                    );
-
-                    Map<String, Object> payload = buildUnsignedCredential(
-                            currentRow.id(),
-                            currentRow.issuerId(),
-                            currentRow.purpose(),
-                            updatedEncoded
-                    );
-
-
-                    return toSignatureRequest(payload)
-                            .flatMap(req -> remoteSignatureService.signDocument(req, token))
-                            .flatMap(signedData -> {
-                                String signedJwt = extractJwt(signedData);
-
-                                return statusListRepository.updateSignedAndEncodedIfUnchanged(
-                                                currentRow.id(),
-                                                updatedEncoded,
-                                                signedJwt,
-                                                currentRow.updatedAt()
-                                        )
-                                        .flatMap(rows -> {
-                                            if (rows != null && rows == 1) {
-                                                return Mono.empty();
-                                            }
-                                            return Mono.error(new OptimisticUpdateException(
-                                                    "Concurrent update detected for status list: " + currentRow.id()
-                                            ));
-                                        });
-                            });
+                    return Mono.error(new OptimisticUpdateException(
+                            "Concurrent update detected for status list: " + currentRow.id()
+                    ));
                 });
     }
 
+
+    // maybe repeated?
     private Mono<SignatureRequest> toSignatureRequest(Map<String, Object> payload) {
         return Mono.fromCallable(() -> {
             String json = objectMapper.writeValueAsString(payload);
@@ -237,9 +309,10 @@ public class BitstringStatusListProvider implements StatusListProvider {
         });
     }
 
-    private String extractJwt(SignedData signedData) {
+    // todo maybe reapeated?
+    private String extractJwtFromSignedData(SignedData signedData, Long statusListId) {
         if (signedData == null || signedData.data() == null || signedData.data().isBlank()) {
-            throw new IllegalStateException("Remote signer returned empty SignedData");
+            throw new RemoteSignatureException("Remote signer returned empty SignedData for statusListId=" + statusListId);
         }
         return signedData.data();
     }
@@ -287,7 +360,6 @@ public class BitstringStatusListProvider implements StatusListProvider {
     }
 
     private Mono<StatusListRow> createNewList(String issuerId, StatusPurpose purpose, String token) {
-        log.info("BitstringStatusListProvider - createNewList");
         String emptyEncodedList = encoder.createEmptyEncodedList(CAPACITY_BITS);
         Instant now = Instant.now();
 
@@ -300,11 +372,12 @@ public class BitstringStatusListProvider implements StatusListProvider {
                 now,
                 now
         );
-        log.info("row to insert: {}", rowToInsert);
+        log.info("action=createStatusList status=started issuerId={} purpose={}", issuerId, purpose);
 
         return statusListRepository.save(rowToInsert)
                 .flatMap(saved -> {
-                    log.info("inserted: {}", saved);
+                    log.info("action=createStatusList step=inserted statusListId={} issuerId={} purpose={}", saved.id(), issuerId, purpose);
+
                     Map<String, Object> payload = buildUnsignedCredential(
                             saved.id(),
                             saved.issuerId(),
@@ -312,12 +385,11 @@ public class BitstringStatusListProvider implements StatusListProvider {
                             saved.encodedList()
                     );
 
-                    log.info("Signature request payload: {}", payload);
-
                     return toSignatureRequest(payload)
                             .flatMap(req -> remoteSignatureService.signDocument(req, token))
+                            .onErrorMap(ex -> new RemoteSignatureException("Remote signature failed for statusListId=" + saved.id(), ex))
                             .flatMap(signedData -> {
-                                String signedJwt = extractJwt(signedData);
+                                String signedJwt = extractJwtFromSignedData(signedData, saved.id());
                                 Instant updatedAt = Instant.now();
 
                                 return statusListRepository.updateSignedCredential(saved.id(), signedJwt)
@@ -333,9 +405,7 @@ public class BitstringStatusListProvider implements StatusListProvider {
                                                         updatedAt
                                                 ));
                                             }
-                                            return Mono.error(new IllegalStateException(
-                                                    "Failed to update signed credential for new status list: " + saved.id()
-                                            ));
+                                            return Mono.error(new StatusListSigningPersistenceException(saved.id()));
                                         });
                             })
                             .onErrorResume(ex ->
@@ -348,16 +418,22 @@ public class BitstringStatusListProvider implements StatusListProvider {
 
 
     private Mono<StatusListRow> pickListForAllocation(String issuerId, StatusPurpose purpose, String token) {
-        log.info("pickListForAllocation");
+        long threshold = (long) Math.floor(CAPACITY_BITS * NEW_LIST_THRESHOLD);
         return findOrCreateLatestList(issuerId, purpose, token)
                 .flatMap(list ->
                         statusListIndexRepository.countByStatusListId(list.id())
                                 .flatMap(count -> {
-                                    log.info("count: {}", count);
-                                    long threshold = (long) Math.floor(CAPACITY_BITS * NEW_LIST_THRESHOLD);
                                     if (count != null && count >= threshold) {
+                                        log.info(
+                                                "action=allocateStatusListEntry step=thresholdReached issuerId={} purpose={} statusListId={} count={} threshold={} action=createNewList",
+                                                issuerId, purpose, list.id(), count, threshold
+                                        );
                                         return createNewList(issuerId, purpose, token);
                                     }
+                                    log.debug(
+                                            "action=allocateStatusListEntry step=reuseList issuerId={} purpose={} statusListId={} count={} threshold={}",
+                                            issuerId, purpose, list.id(), count, threshold
+                                    );
                                     return Mono.just(list);
                                 })
                 );
@@ -397,8 +473,13 @@ public class BitstringStatusListProvider implements StatusListProvider {
 
         return Mono.defer(() -> tryReserveOnce(statusListId, procedureId))
                 .retryWhen(
-                        Retry.fixedDelay(maxAttempts - 1, Duration.ofMillis(0))
+                        Retry.backoff(maxAttempts - 1, Duration.ofMillis(5))
+                                .maxBackoff(Duration.ofMillis(100))
                                 .filter(this::isDuplicateKey)
+                                .doBeforeRetry(rs -> log.debug(
+                                        "action=reserveStatusListIndex retryReason=duplicateKey statusListId={} procedureId={} attempt={}/{}",
+                                        statusListId, procedureId, rs.totalRetries() + 2, maxAttempts
+                                ))
                 )
                 .onErrorMap(this::maybeWrapAsExhausted);
     }
@@ -429,7 +510,7 @@ public class BitstringStatusListProvider implements StatusListProvider {
 
     private StatusListEntry buildEntry(Long listId, Integer idx, StatusPurpose purpose) {
         if (idx == null) {
-            throw new IllegalStateException("Allocated idx cannot be null");
+            throw new IllegalStateException("Invariant violation: cannot build StatusListEntry with null index (listId=" + listId + ")");
         }
         String listUrl = buildListUrl(listId);
         String id = listUrl + "#" + idx;
