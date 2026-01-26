@@ -69,6 +69,24 @@ public class CredentialStatusWorkflowImpl implements CredentialStatusWorkflow {
 
     }
 
+    @Override
+    public Mono<Void> revokeCredentialSystem(String processId, String credentialProcedureId, int listId) {
+        return credentialProcedureService.getCredentialProcedureById(credentialProcedureId)
+                .flatMap(credential -> validateStatus(credential.getCredentialStatus()).thenReturn(credential))
+                .flatMap(credential -> Mono.justOrEmpty(credential.getCredentialDecoded())
+                .flatMap(decodedCredential -> {
+                    JsonNode credentialStatusNode;
+                    try {
+                        credentialStatusNode = objectMapper.readTree(decodedCredential).get("credentialStatus");
+                    } catch (JsonProcessingException e) {
+                        return Mono.error(new JsonParseException("Error processing credential status json"));
+                    }
+                    CredentialStatus credentialStatus = mapToCredentialStatus(credentialStatusNode);
+                    return revokeAndUpdateCredentialStatus(credential, processId, credentialProcedureId, listId, credentialStatus);
+                }));
+    }
+
+
     private CredentialStatus mapToCredentialStatus(JsonNode credentialStatusNode) {
         return CredentialStatus.builder()
                 .id(credentialStatusNode.get("id").asText())

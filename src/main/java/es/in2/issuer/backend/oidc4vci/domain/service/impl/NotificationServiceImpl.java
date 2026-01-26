@@ -112,7 +112,7 @@ public class NotificationServiceImpl implements NotificationService {
 
         return switch (event) {
             case CREDENTIAL_FAILURE -> credentialProcedureService.updateCredentialProcedureCredentialStatusToIssued(procedure);
-            case CREDENTIAL_DELETED -> revokeCredentialFromDecoded(processId, bearerToken, procedure);
+            case CREDENTIAL_DELETED -> revokeCredentialFromDecoded(processId, procedure);
             default -> throw new IllegalStateException("Unexpected value: " + event);
         };
     }
@@ -125,11 +125,10 @@ public class NotificationServiceImpl implements NotificationService {
         };
     }
 
-    private Mono<Void> revokeCredentialFromDecoded(String processId, String bearerToken, CredentialProcedure procedure) {
+    private Mono<Void> revokeCredentialFromDecoded(String processId, CredentialProcedure procedure) {
         return extractListIdFromDecodedCredential(procedure)
-                .flatMap(listId -> credentialStatusWorkflow.revokeCredential(
+                .flatMap(listId -> credentialStatusWorkflow.revokeCredentialSystem(
                                         processId,
-                                        bearerToken,
                                         procedure.getProcedureId().toString(),
                                         listId
                                 )
