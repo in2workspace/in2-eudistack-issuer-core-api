@@ -1,6 +1,6 @@
 package es.in2.issuer.backend.backoffice.infrastructure.controller;
 
-import es.in2.issuer.backend.backoffice.domain.service.NotificationService2;
+import es.in2.issuer.backend.backoffice.domain.service.SendReminderService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -18,10 +18,10 @@ import static org.mockito.Mockito.when;
 class NotificationControllerTest {
 
     @Mock
-    private NotificationService2 notificationService;
+    private SendReminderService sendReminderService;
 
     @InjectMocks
-    private NotificationController2 notificationController;
+    private SendReminderController sendReminderController;
 
     @Test
     void sendEmailNotification_completesSuccessfully() {
@@ -29,16 +29,16 @@ class NotificationControllerTest {
         String authorizationHeader = "Bearer some.jwt.token";
         String procedureId = "testProcedureId";
 
-        when(notificationService.sendNotification(anyString(), eq(procedureId), eq(authorizationHeader)))
+        when(sendReminderService.sendReminder(anyString(), eq(procedureId), eq(authorizationHeader)))
                 .thenReturn(Mono.empty());
 
         // Act
-        Mono<Void> result = notificationController.sendEmailNotification(authorizationHeader, procedureId);
+        Mono<Void> result = sendReminderController.sendEmailReminder(authorizationHeader, procedureId);
 
         // Assert
         StepVerifier.create(result)
                 .verifyComplete();
 
-        verify(notificationService).sendNotification(anyString(), eq(procedureId), eq(authorizationHeader));
+        verify(sendReminderService).sendReminder(anyString(), eq(procedureId), eq(authorizationHeader));
     }
 }
