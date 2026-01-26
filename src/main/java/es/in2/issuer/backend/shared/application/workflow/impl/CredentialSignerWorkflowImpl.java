@@ -110,7 +110,7 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
             String mandateeEmail
     ) {
         String credentialType = proc.getCredentialType();
-        log.info("CredentialSignerWorkflowImpl - enrichDecodedCredentialBeforeSigning");
+        log.info("CredentialSignerWorkflowImpl - bindIssuerAndStatusIntoDecodedCredential");
         log.info("CP: {}, procedureId: {}, token: {}, mandateeEmail: {}", proc, procedureId, token, mandateeEmail);
 
         return resolveIssuerForType(credentialType, procedureId, mandateeEmail)
@@ -119,16 +119,15 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
                 )))
                 .flatMap(issuer -> {
                     String issuerId = issuer.getId();
-                    return Mono.error(new RuntimeException("Forced allocation error"));
-//                    return credentialStatusAllocator
-//                            .allocate(issuerId, procedureId, token)
-//                            .map(credentialStatus -> Tuples.of(issuer, credentialStatus));
+                    return credentialStatusAllocator
+                            .allocate(issuerId, procedureId, token)
+                            .map(credentialStatus -> Tuples.of(issuer, credentialStatus));
+                })
+                .flatMap(tuple -> {
+                    Issuer issuer = tuple.getT1();
+                    CredentialStatus credentialStatus = tuple.getT2();
+                    return injectIssuerAndCredentialStatus(proc.getCredentialDecoded(), issuer, credentialStatus);
                 });
-//                .flatMap(tuple -> {
-//                    Issuer issuer = tuple.getT1();
-//                    CredentialStatus credentialStatus = tuple.getT2();
-//                    return injectIssuerAndCredentialStatus(proc.getCredentialDecoded(), issuer, credentialStatus);
-//                });
     }
 
     private Mono<Issuer> resolveIssuerForType(String credentialType, String procedureId, String mandateeEmail) {
