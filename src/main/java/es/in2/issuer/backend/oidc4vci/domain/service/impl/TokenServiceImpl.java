@@ -5,6 +5,8 @@ import es.in2.issuer.backend.oidc4vci.domain.model.TokenResponse;
 import es.in2.issuer.backend.oidc4vci.domain.service.TokenService;
 import es.in2.issuer.backend.shared.domain.model.dto.CredentialProcedureIdAndRefreshToken;
 import es.in2.issuer.backend.shared.domain.model.dto.CredentialProcedureIdAndTxCode;
+import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum;
+import es.in2.issuer.backend.shared.domain.service.CredentialProcedureService;
 import es.in2.issuer.backend.shared.domain.service.JWTService;
 import es.in2.issuer.backend.shared.domain.service.RefreshTokenService;
 import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
@@ -36,6 +38,7 @@ public class TokenServiceImpl implements TokenService {
     private final JWTService jwtService;
     private final RefreshTokenService refreshTokenService;
     private final AppConfig appConfig;
+    private final CredentialProcedureService credentialProcedureService;
 
     @Override
     public Mono<TokenResponse> generateTokenResponse(String grantType, String preAuthorizedCode, String txCode, String refreshToken) {
@@ -66,19 +69,31 @@ public class TokenServiceImpl implements TokenService {
                 .get(refreshToken)
                 .doOnError(error -> log.error("Failed to retrieve refresh token"))
                 .onErrorMap(NoSuchElementException.class, ex -> new IllegalArgumentException("Invalid refresh token"))
-                .flatMap(credentialProcedureIdAndRefreshToken -> {
-                    if (credentialProcedureIdAndRefreshToken.refreshTokenJti().equals(refreshToken)) {
-                        long currentTime = Instant.now().getEpochSecond();
-                        if (currentTime < credentialProcedureIdAndRefreshToken.refreshTokenExpiresAt()) {
-                            return Mono.empty();
-                        } else {
-                            log.error("Refresh token expired ");
-                            return Mono.error(new IllegalArgumentException("Refresh token expired"));
-                        }
-                    } else {
-                        log.error("Invalid refresh token provided");
-                        return Mono.error(new IllegalArgumentException("Invalid refresh token"));
-                    }
+                .flatMap(data -> {
+                    String procedureId = data.credentialProcedureId();
+                    return credentialProcedureService
+                            .getCredentialStatusByProcedureId(procedureId)
+                            .map(CredentialStatusEnum::valueOf)
+                            .flatMap(status -> {
+                                if (CredentialStatusEnum.VALID.equals(status)) {
+                                    log.error("Cannot refresh token: the associated credential is valid.");
+                                    return Mono.error(new IllegalArgumentException("Cannot refresh token: the associated credential is valid"));
+                                }
+
+                                if (data.refreshTokenJti().equals(refreshToken)) {
+                                    long now = Instant.now().getEpochSecond();
+                                    if (now < data.refreshTokenExpiresAt()) {
+                                        log.info("Use refresh token for procedureId: {}", procedureId);
+                                        return Mono.empty();
+                                    } else {
+                                        log.error("Refresh token expired ");
+                                        return Mono.error(new IllegalArgumentException("Refresh token expired"));
+                                    }
+                                } else {
+                                    log.error("Invalid refresh token provided");
+                                    return Mono.error(new IllegalArgumentException("Invalid refresh token"));
+                                }
+                            });
                 })
                 .then(refreshTokenCacheStore.delete(refreshToken));
     }

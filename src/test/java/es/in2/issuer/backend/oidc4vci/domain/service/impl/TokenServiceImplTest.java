@@ -2,6 +2,7 @@ package es.in2.issuer.backend.oidc4vci.domain.service.impl;
 
 import es.in2.issuer.backend.shared.domain.model.dto.CredentialProcedureIdAndRefreshToken;
 import es.in2.issuer.backend.shared.domain.model.dto.CredentialProcedureIdAndTxCode;
+import es.in2.issuer.backend.shared.domain.service.CredentialProcedureService;
 import es.in2.issuer.backend.shared.domain.service.JWTService;
 import es.in2.issuer.backend.shared.domain.service.RefreshTokenService;
 import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
@@ -51,6 +52,9 @@ class TokenServiceImplTest {
     @Mock
     private AppConfig appConfig;
 
+    @Mock
+    private CredentialProcedureService credentialProcedureService;
+
     private TokenServiceImpl tokenService;
 
     private CredentialProcedureIdAndTxCode testCredentialProcedureIdAndTxCode;
@@ -62,7 +66,8 @@ class TokenServiceImplTest {
                 refreshTokenCacheStore,
                 jwtService,
                 refreshTokenService,
-                appConfig
+                appConfig,
+                credentialProcedureService
         );
 
         testCredentialProcedureIdAndTxCode = new CredentialProcedureIdAndTxCode(
