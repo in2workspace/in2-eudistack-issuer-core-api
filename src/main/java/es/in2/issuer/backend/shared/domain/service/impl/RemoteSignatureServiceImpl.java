@@ -124,42 +124,41 @@ public class RemoteSignatureServiceImpl implements RemoteSignatureService {
             String token,
             String operationName
     ) {
-        return Mono.error(new RuntimeException("Forced signature error."));
-//       todo return Mono.defer(() -> executeSigningFlow(signatureRequest, token))
-//                .doOnSuccess(signedData -> {
-//                    int signedLength = (signedData != null && signedData.data() != null)
-//                            ? signedData.data().length()
-//                            : 0;
-//
-//                    log.info(
-//                            "Remote signing succeeded ({}). resultType={}, signedLength={}",
-//                            operationName,
-//                            signedData != null ? signedData.type() : null,
-//                            signedLength
-//                    );
-//                })
-//                .retryWhen(
-//                        Retry.backoff(3, Duration.ofSeconds(1))
-//                                .maxBackoff(Duration.ofSeconds(5))
-//                                .jitter(0.5)
-//                                .filter(this::isRecoverableError)
-//                                .doBeforeRetry(retrySignal -> {
-//                                    long attempt = retrySignal.totalRetries() + 1;
-//                                    Throwable failure = retrySignal.failure();
-//                                    String msg = failure != null ? failure.getMessage() : "n/a";
-//
-//                                    log.warn(
-//                                            "Retrying remote signing ({}). attempt={} of 3, reason={}",
-//                                            operationName, attempt, msg
-//                                    );
-//                                })
-//                )
-//                .doOnError(ex ->
-//                        log.error(
-//                                "Remote signing failed after retries ({}). reason={}",
-//                                operationName, ex.getMessage(), ex
-//                        )
-//                );
+        return Mono.defer(() -> executeSigningFlow(signatureRequest, token))
+                .doOnSuccess(signedData -> {
+                    int signedLength = (signedData != null && signedData.data() != null)
+                            ? signedData.data().length()
+                            : 0;
+
+                    log.info(
+                            "Remote signing succeeded ({}). resultType={}, signedLength={}",
+                            operationName,
+                            signedData != null ? signedData.type() : null,
+                            signedLength
+                    );
+                })
+                .retryWhen(
+                        Retry.backoff(3, Duration.ofSeconds(1))
+                                .maxBackoff(Duration.ofSeconds(5))
+                                .jitter(0.5)
+                                .filter(this::isRecoverableError)
+                                .doBeforeRetry(retrySignal -> {
+                                    long attempt = retrySignal.totalRetries() + 1;
+                                    Throwable failure = retrySignal.failure();
+                                    String msg = failure != null ? failure.getMessage() : "n/a";
+
+                                    log.warn(
+                                            "Retrying remote signing ({}). attempt={} of 3, reason={}",
+                                            operationName, attempt, msg
+                                    );
+                                })
+                )
+                .doOnError(ex ->
+                        log.error(
+                                "Remote signing failed after retries ({}). reason={}",
+                                operationName, ex.getMessage(), ex
+                        )
+                );
     }
 
     public boolean isRecoverableError(Throwable throwable) {
