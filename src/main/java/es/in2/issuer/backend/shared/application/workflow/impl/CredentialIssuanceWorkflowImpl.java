@@ -352,7 +352,7 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                                             )
                                             .flatMap(credentialResponse ->
                                                     handleOperationMode(
-                                                            proc.getOperationMode(),
+                                                            SYNC,
                                                             processId,
                                                             nonce,
                                                             credentialResponse,
