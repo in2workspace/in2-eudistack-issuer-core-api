@@ -2,6 +2,7 @@ package es.in2.issuer.backend.statusList.application.policies.Impl;
 
 
 import es.in2.issuer.backend.shared.application.workflow.policies.PdpCommonService;
+import es.in2.issuer.backend.shared.domain.exception.InvalidStatusException;
 import es.in2.issuer.backend.shared.domain.model.entities.CredentialProcedure;
 import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum;
 import es.in2.issuer.backend.statusList.application.policies.StatusListPdpService;
@@ -42,7 +43,7 @@ public class StatusListPdpServiceImpl implements StatusListPdpService {
             return Mono.empty();
         }
 
-        return Mono.error(new es.in2.issuer.backend.backoffice.domain.exception.InvalidStatusException(
+        return Mono.error(new InvalidStatusException(
                 "Invalid status: " + credentialStatus
         ));
     }

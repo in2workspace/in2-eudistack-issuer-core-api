@@ -1,4 +1,4 @@
-package es.in2.issuer.backend.backoffice.domain.exception;
+package es.in2.issuer.backend.shared.domain.exception;
 
 public class InvalidStatusException extends RuntimeException {
     public InvalidStatusException(String message) {

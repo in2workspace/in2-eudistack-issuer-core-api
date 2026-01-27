@@ -1,7 +1,7 @@
 package es.in2.issuer.backend.credentialStatus.infrastructure.adapter;
 
 
-import es.in2.issuer.backend.backoffice.domain.model.entities.StatusListIndex;
+import es.in2.issuer.backend.credentialStatus.domain.model.entities.StatusListIndex;
 import es.in2.issuer.backend.credentialStatus.domain.service.LegacyCredentialStatusQuery;
 import es.in2.issuer.backend.credentialStatus.infrastructure.repository.LegacyCredentialStatusRepository;
 import lombok.RequiredArgsConstructor;

@@ -1,4 +1,4 @@
-package es.in2.issuer.backend.backoffice.domain.model.dtos;
+package es.in2.issuer.backend.statusList.domain.model.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 

@@ -69,7 +69,6 @@ public class BackofficePdpServiceImpl implements BackofficePdpService {
             return Mono.empty();
         }
 
-        // If you already have a specific exception, prefer it; otherwise reuse UnauthorizedRoleException.
         return Mono.error(new CredentialProcedureInvalidStatusException(
                 "Access denied: Credential procedure is not in PEND_SIGNATURE status"
         ));
