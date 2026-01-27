@@ -1,5 +1,6 @@
 package es.in2.issuer.backend.statusList.application;
 
+import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
 import es.in2.issuer.backend.statusList.domain.model.StatusListEntry;
 import es.in2.issuer.backend.statusList.domain.model.StatusPurpose;
 import es.in2.issuer.backend.statusList.domain.spi.StatusListProvider;
@@ -16,30 +17,31 @@ import static java.util.Objects.requireNonNull;
 @RequiredArgsConstructor
 public class StatusListWorkflow {
 
+    private final AppConfig appConfig;
     private final StatusListProvider statusListProvider;
 
     /**
      * Internal usage by Backoffice/OID4VCI: allocate a StatusListEntry (credentialStatus pointer)
      * to be embedded into the issued VC.
      */
-    public Mono<StatusListEntry> allocateEntry(String issuerId, StatusPurpose purpose, String procedureId, String token) {
+    public Mono<StatusListEntry> allocateEntry(StatusPurpose purpose, String procedureId, String token) {
         //todo remove
-        log.info("StatusListService - allocateEntry, issuerId: {}, purpose: {}, procedureId: {}, token: {}", issuerId, purpose, procedureId, token);
+        log.info("StatusListService - allocateEntry, purpose: {}, procedureId: {}, token: {}", purpose, procedureId, token);
         log.info(
-                "action=allocateStatusListEntry status=started issuerId={} purpose={} procedureId={}",
-                issuerId, purpose, procedureId
+                "action=allocateStatusListEntry status=started purpose={} procedureId={}",
+                purpose, procedureId
         );
-        requireNonNull(issuerId, "issuerId cannot be null");
         requireNonNull(purpose, "purpose cannot be null");
-        return statusListProvider.allocateEntry(issuerId, purpose, procedureId, token)
+
+        return statusListProvider.allocateEntry(purpose, procedureId, token)
                 .doOnSuccess(entry -> log.info(
-                        "action=allocateStatusListEntry status=completed issuerId={} purpose={} procedureId={} listId={} idx={}",
-                        issuerId, purpose, procedureId,
+                        "action=allocateStatusListEntry status=completed purpose={} procedureId={} listId={} idx={}",
+                        purpose, procedureId,
                         extractListId(entry), entry.statusListIndex()
                 ))
                 .doOnError(e -> log.warn(
-                        "action=allocateStatusListEntry status=failed issuerId={} purpose={} procedureId={} error={}",
-                        issuerId, purpose, procedureId, e.toString()
+                        "action=allocateStatusListEntry status=failed purpose={} procedureId={} error={}",
+                        purpose, procedureId, e.toString()
                 ));
     }
 

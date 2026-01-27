@@ -14,11 +14,11 @@ public interface StatusListRepository extends ReactiveCrudRepository<StatusListR
     @Query("""
            SELECT *
            FROM status_list
-           WHERE issuer_id = :issuerId AND purpose = :purpose
+           WHERE purpose = :purpose
            ORDER BY id DESC
            LIMIT 1
            """)
-    Mono<StatusListRow> findLatestByIssuerAndPurpose(String issuerId, String purpose);
+    Mono<StatusListRow> findLatestByPurpose(String purpose);
 
     @Query("""
        UPDATE status_list

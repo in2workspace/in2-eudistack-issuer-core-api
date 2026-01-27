@@ -10,7 +10,6 @@ import java.util.UUID;
 @Table("status_list")
 public record StatusListRow(
         @Id Long id,
-        @Column("issuer_id") String issuerId,
         @Column("purpose") String purpose,
         @Column("encoded_list") String encodedList,
         @Column("signed_credential") String signedCredential,

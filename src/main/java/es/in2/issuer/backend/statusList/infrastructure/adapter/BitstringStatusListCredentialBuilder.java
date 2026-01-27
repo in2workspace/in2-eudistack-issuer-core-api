@@ -26,11 +26,6 @@ public class BitstringStatusListCredentialBuilder {
         return appConfig.getIssuerBackendUrl() + "/api/v1/status-list" + "/" + listId;
     }
 
-    public Map<String, Object> buildFromRow(StatusListRow row) {
-        requireNonNull(row, "row cannot be null");
-        return buildCredential(row.id(), row.issuerId(), row.purpose(), row.encodedList());
-    }
-
     public Map<String, Object> buildUnsigned(Long listId, String issuerId, String purpose, String encodedList) {
         return buildCredential(listId, issuerId, purpose, encodedList);
     }

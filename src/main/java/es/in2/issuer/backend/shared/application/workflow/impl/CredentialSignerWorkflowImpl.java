@@ -85,7 +85,7 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
                     String signerEmail = (mandateeEmail != null && !mandateeEmail.isBlank())
                             ? mandateeEmail
                             : proc.getUpdatedBy();
-                    return bindIssuerAndStatusIntoDecodedCredential(proc, procedureId, token, signerEmail)
+                    return bindIssuerIntoDecodedCredential(proc, procedureId, token, signerEmail)
                             .flatMap(updatedDecoded ->
                                     credentialProcedureService
                                             .updateDecodedCredentialByProcedureId(procedureId, updatedDecoded, JWT_VC)
@@ -103,41 +103,33 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
                 .doOnSuccess(x -> log.info("Credential Signed and updated successfully."));
     }
 
-    private Mono<String> bindIssuerAndStatusIntoDecodedCredential(
+    private Mono<String> bindIssuerIntoDecodedCredential(
             CredentialProcedure proc,
             String procedureId,
             String token,
             String mandateeEmail
     ) {
         String credentialType = proc.getCredentialType();
-        log.info("CredentialSignerWorkflowImpl - bindIssuerAndStatusIntoDecodedCredential");
+        log.info("CredentialSignerWorkflowImpl - bindIssuerIntoDecodedCredential");
         log.info("CP: {}, procedureId: {}, token: {}, mandateeEmail: {}", proc, procedureId, token, mandateeEmail);
 
         return resolveIssuerForType(credentialType, procedureId, mandateeEmail)
                 .switchIfEmpty(Mono.error(new IllegalStateException(
                         "Issuer could not be resolved for procedureId: " + procedureId
                 )))
-                .flatMap(issuer -> {
-                    String issuerId = issuer.getId();
-                    return credentialStatusAllocator
-                            .allocate(issuerId, procedureId, token)
-                            .map(credentialStatus -> Tuples.of(issuer, credentialStatus));
-                })
-                .flatMap(tuple -> {
-                    Issuer issuer = tuple.getT1();
-                    CredentialStatus credentialStatus = tuple.getT2();
-                    return injectIssuerAndCredentialStatus(proc.getCredentialDecoded(), issuer, credentialStatus);
-                });
+                .flatMap(issuer ->
+                        injectIssuerIntoCredential(proc.getCredentialDecoded(), issuer)
+                );
     }
 
     private Mono<Issuer> resolveIssuerForType(String credentialType, String procedureId, String mandateeEmail) {
         if (LABEL_CREDENTIAL_TYPE.equals(credentialType)) {
-            return issuerFactory.createSimpleIssuer(procedureId, mandateeEmail).cast(Issuer.class);
+            return issuerFactory.createSimpleIssuerAndNotifyOnError(procedureId, mandateeEmail).cast(Issuer.class);
         }
-        return issuerFactory.createDetailedIssuer(procedureId, mandateeEmail).cast(Issuer.class);
+        return issuerFactory.createDetailedIssuerAndNotifyOnError(procedureId, mandateeEmail).cast(Issuer.class);
     }
 
-    private Mono<String> injectIssuerAndCredentialStatus(String decodedCredential, Issuer issuer, CredentialStatus credentialStatus) {
+    private Mono<String> injectIssuerIntoCredential(String decodedCredential, Issuer issuer) {
         return Mono.fromCallable(() -> {
             JsonNode rootNode = objectMapper.readTree(decodedCredential);
             if (!(rootNode instanceof ObjectNode root)) {
@@ -146,9 +138,6 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
 
             // Inject issuer (full object, because your models use issuer object)
             root.set("issuer", objectMapper.valueToTree(issuer));
-
-            // Inject credentialStatus
-            root.set("credentialStatus", objectMapper.valueToTree(credentialStatus));
 
             return objectMapper.writeValueAsString(root);
         });

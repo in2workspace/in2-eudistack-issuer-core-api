@@ -17,7 +17,7 @@ public interface StatusListProvider {
      * Allocates a new CredentialStatus (credentialStatus pointer) for a credential issuance flow.
      * The implementation is responsible for selecting/creating a Status List as needed.
      */
-    Mono<StatusListEntry> allocateEntry(String issuerId, StatusPurpose purpose, String procedureId, String token);
+    Mono<StatusListEntry> allocateEntry(StatusPurpose purpose, String procedureId, String token);
 
     /**
      * Returns de VC JWT of the StatusListCredential

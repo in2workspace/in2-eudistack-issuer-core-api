@@ -4,7 +4,6 @@ import es.in2.issuer.backend.statusList.domain.model.StatusPurpose;
 import es.in2.issuer.backend.statusList.domain.spi.StatusListIndexAllocator;
 import es.in2.issuer.backend.statusList.infrastructure.repository.StatusListIndexRepository;
 import es.in2.issuer.backend.statusList.infrastructure.repository.StatusListIndexRow;
-import es.in2.issuer.backend.statusList.infrastructure.repository.StatusListRow;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -16,6 +15,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
 
+import static es.in2.issuer.backend.statusList.domain.util.Constants.CAPACITY_BITS;
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -32,43 +32,11 @@ import static java.util.Objects.requireNonNull;
 @RequiredArgsConstructor
 public class BitstringStatusListIndexReservationService {
 
-    private static final int CAPACITY_BITS = 131_072;
-
     private final StatusListIndexRepository statusListIndexRepository;
     private final StatusListIndexAllocator indexAllocator;
-    private final BitstringStatusListLifecycleService lifecycleService;
 
-    public Mono<StatusListIndexRow> reserveIndexWithRetry(
-            Long statusListId,
-            String procedureId,
-            String issuerId,
-            StatusPurpose purpose,
-            String token
-    ) {
-        //todo
-        log.info("reserveIndexWithRetry");
-        requireNonNull(statusListId, "statusListId cannot be null");
-        requireNonNull(procedureId, "procedureId cannot be null");
-        requireNonNull(issuerId, "issuerId cannot be null");
-        requireNonNull(purpose, "purpose cannot be null");
-        requireNonNull(token, "token cannot be null");
-
-        return reserveOnSpecificList(statusListId, procedureId)
-                .onErrorResume(IndexReservationExhaustedException.class, ex ->
-                        statusListIndexRepository.countByStatusListId(statusListId)
-                                .flatMap(count -> {
-                                    if (count != null && count >= CAPACITY_BITS) {
-                                        return lifecycleService.createNewList(issuerId, purpose, token)
-                                                .flatMap(newList -> reserveOnSpecificList(newList.id(), procedureId));
-                                    }
-                                    return Mono.error(ex);
-                                })
-                );
-    }
-
-    public Mono<StatusListIndexRow> reserveOnSpecificList(Long statusListId, String procedureId) {
-        //todo
-        log.info("reserveOnSpecificList");
+    public Mono<StatusListIndexRow> reserveWithRetry(Long statusListId, String procedureId) {
+        log.info("reserveOnSpecificList - statusListId: {} - procedureId: {}", statusListId, procedureId);
         requireNonNull(statusListId, "statusListId cannot be null");
         requireNonNull(procedureId, "procedureId cannot be null");
 
@@ -78,7 +46,7 @@ public class BitstringStatusListIndexReservationService {
                 .retryWhen(
                         Retry.backoff(maxAttempts - 1, Duration.ofMillis(5))
                                 .maxBackoff(Duration.ofMillis(100))
-                                .filter(this::isDuplicateKey)
+                                .filter(this::isDuplicateIndexReservation)
                                 .doBeforeRetry(rs -> log.debug(
                                         "action=reserveStatusListIndex retryReason=duplicateKey statusListId={} procedureId={} attempt={}/{}",
                                         statusListId, procedureId, rs.totalRetries() + 2, maxAttempts
@@ -115,6 +83,10 @@ public class BitstringStatusListIndexReservationService {
     }
 
     private boolean isDuplicateKey(Throwable t) {
+        return t instanceof DataIntegrityViolationException;
+    }
+    private boolean isDuplicateIndexReservation(Throwable t) {
+        // TODO: check that it is the specific unique constraint for (statusListId, idx)
         return t instanceof DataIntegrityViolationException;
     }
 

@@ -1,6 +1,5 @@
 CREATE TABLE IF NOT EXISTS issuer.status_list (
    id                BIGSERIAL PRIMARY KEY,
-   issuer_id         TEXT        NOT NULL,
    purpose           TEXT        NOT NULL,
    encoded_list      TEXT        NOT NULL,
    signed_credential TEXT        NULL,
@@ -8,10 +7,10 @@ CREATE TABLE IF NOT EXISTS issuer.status_list (
    updated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_status_list_issuer_purpose_id_desc
-   ON issuer.status_list (issuer_id, purpose, id DESC);
+CREATE INDEX IF NOT EXISTS idx_status_list_desc
+   ON issuer.status_list (purpose, id DESC);
 
--- Rename old index table to legacy (if needed)
+-- Rename old index table to legacy if needed
 DO $$
 BEGIN
  IF to_regclass('issuer.status_list_index') IS NOT NULL
@@ -30,15 +29,9 @@ CREATE TABLE IF NOT EXISTS issuer.status_list_index (
    CONSTRAINT fk_status_list_index_status_list
        FOREIGN KEY (status_list_id)
        REFERENCES issuer.status_list(id)
-       ON DELETE RESTRICT,
-
-   CONSTRAINT fk_status_list_index_procedure
-       FOREIGN KEY (procedure_id)
-       REFERENCES issuer.credential_procedure(procedure_id)
        ON DELETE RESTRICT
 );
 
--- Constraints (amb gestió d'errors silenciosa)
 DO $$
 BEGIN
     ALTER TABLE issuer.status_list_index

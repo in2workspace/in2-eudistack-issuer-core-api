@@ -4,9 +4,11 @@ import es.in2.issuer.backend.shared.domain.model.enums.CredentialType;
 import lombok.Builder;
 
 import java.sql.Timestamp;
+import java.util.UUID;
 
 @Builder
 public record CredentialProcedureCreationRequest(
+        String procedureId,
         String organizationIdentifier,
         String credentialDecoded,
         CredentialType credentialType,

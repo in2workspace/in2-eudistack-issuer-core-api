@@ -14,6 +14,8 @@ import es.in2.issuer.backend.shared.domain.util.factory.CredentialFactory;
 import es.in2.issuer.backend.shared.domain.util.factory.IssuerFactory;
 import es.in2.issuer.backend.shared.domain.util.factory.LEARCredentialEmployeeFactory;
 import es.in2.issuer.backend.shared.domain.util.factory.LabelCredentialFactory;
+import es.in2.issuer.backend.statusList.application.StatusListAllocator;
+import es.in2.issuer.backend.statusList.domain.spi.StatusListProvider;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -21,6 +23,7 @@ import reactor.core.publisher.Mono;
 
 import java.text.ParseException;
 import java.util.List;
+import java.util.UUID;
 
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.*;
 
@@ -36,20 +39,34 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
     private final LEARCredentialEmployeeFactory learCredentialEmployeeFactory;
     private final LabelCredentialFactory labelCredentialFactory;
     private final IssuerFactory issuerFactory;
+    private final StatusListAllocator statusListAllocator;
 
     @Override
-    public Mono<String> generateVc(String processId, PreSubmittedCredentialDataRequest preSubmittedCredentialDataRequest, String email) {
-        return credentialFactory.mapCredentialIntoACredentialProcedureRequest(processId, preSubmittedCredentialDataRequest, email)
-                .flatMap(credentialProcedureService::createCredentialProcedure)
-                //TODO repensar esto cuando el flujo del Verification cumpla con el OIDC4VC
-                .flatMap(procedureId -> deferredCredentialMetadataService.createDeferredCredentialMetadata(
+    public Mono<String> generateVc(String processId, PreSubmittedCredentialDataRequest preSubmittedCredentialDataRequest, String email, String token) {
+        String procedureId = UUID.randomUUID().toString();
+
+        //todo al final
+        return statusListAllocator.allocate(procedureId, token)
+                .flatMap(credentialStatus ->
+                        credentialFactory.mapCredentialIntoACredentialProcedureRequest(
+                                processId,
                                 procedureId,
-                                preSubmittedCredentialDataRequest.operationMode(),
-                                preSubmittedCredentialDataRequest.responseUri())
-                        .flatMap(transactionCode ->
-                                credentialProcedureService.updateFormatByProcedureId(procedureId, preSubmittedCredentialDataRequest.format())
-                                        .then(deferredCredentialMetadataService.updateFormatByProcedureId(procedureId, preSubmittedCredentialDataRequest.format()))
-                                        .thenReturn(transactionCode)));
+                                preSubmittedCredentialDataRequest,
+                                credentialStatus,
+                                email
+                        )
+                )
+                .flatMap(credentialProcedureService::createCredentialProcedure)
+                .then(deferredCredentialMetadataService.createDeferredCredentialMetadata(
+                        procedureId,
+                        preSubmittedCredentialDataRequest.operationMode(),
+                        preSubmittedCredentialDataRequest.responseUri())
+                )
+                .flatMap(transactionCode ->
+                        credentialProcedureService.updateFormatByProcedureId(procedureId, preSubmittedCredentialDataRequest.format())
+                                .then(deferredCredentialMetadataService.updateFormatByProcedureId(procedureId, preSubmittedCredentialDataRequest.format()))
+                                .thenReturn(transactionCode)
+                );
     }
 
     @Override

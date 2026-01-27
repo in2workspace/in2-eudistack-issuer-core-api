@@ -1,19 +1,25 @@
 package es.in2.issuer.backend.statusList.infrastructure.adapter;
 
 
+import es.in2.issuer.backend.shared.domain.util.factory.IssuerFactory;
 import es.in2.issuer.backend.statusList.domain.exception.*;
 import es.in2.issuer.backend.statusList.domain.model.StatusListEntry;
 import es.in2.issuer.backend.statusList.domain.model.StatusPurpose;
 import es.in2.issuer.backend.statusList.domain.spi.StatusListProvider;
 import es.in2.issuer.backend.statusList.infrastructure.repository.StatusListIndexRepository;
 import es.in2.issuer.backend.statusList.infrastructure.repository.StatusListRepository;
+import es.in2.issuer.backend.statusList.infrastructure.repository.StatusListRow;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
+import reactor.util.retry.Retry;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.UUID;
 
+import static es.in2.issuer.backend.statusList.domain.util.Constants.CAPACITY_BITS;
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -33,13 +39,17 @@ public class BitstringStatusListProvider implements StatusListProvider {
     private final StatusListRepository statusListRepository;
     private final StatusListIndexRepository statusListIndexRepository;
     private final BitstringStatusListCredentialBuilder statusListBuilder;
-    private final BitstringStatusListLifecycleService statusListLifecycleService;
     private final BitstringStatusListRevocationService revocationService;
     private final BitstringStatusListIndexReservationService statusListIndexReservationService;
+    private final StatusListSigner statusListSigner;
+
+    private static final double NEW_LIST_THRESHOLD = 0.80;
+    private final BitstringEncoder encoder = new BitstringEncoder();
 
     @Override
     public Mono<String> getSignedStatusListCredential(Long listId) {
         requireNonNull(listId, "listId cannot be null");
+        log.debug("method=getSignedStatusListCredential step=START listId={}", listId);
 
         return statusListRepository.findById(listId)
                 .switchIfEmpty(Mono.error(new StatusListNotFoundException(listId)))
@@ -49,63 +59,216 @@ public class BitstringStatusListProvider implements StatusListProvider {
                         return Mono.error(new SignedStatusListCredentialNotAvailableException(listId));
                     }
                     return Mono.just(signed);
-                });
+                })
+                .doOnSuccess(v ->
+                        log.debug("method=getSignedStatusListCredential step=END listId={}", listId)
+                );
     }
 
     @Override
-    public Mono<StatusListEntry> allocateEntry(String issuerId, StatusPurpose purpose, String procedureId, String token) {
-        requireNonNull(issuerId, "issuerId cannot be null");
+    public Mono<StatusListEntry> allocateEntry(StatusPurpose purpose, String procedureId, String token) {
         requireNonNull(purpose, "purpose cannot be null");
         requireNonNull(procedureId, "procedureId cannot be null");
         requireNonNull(token, "token cannot be null");
 
-        log.debug(
-                "action=allocateStatusListEntry step=started issuerId={} purpose={} procedureId={}",
-                issuerId, purpose, procedureId
-        );
+        log.debug("method=allocateEntry step=START purpose={} procedureId={}", purpose, procedureId);
 
-        // If the credential was already allocated, return the existing mapping (idempotent behavior).
-        // todo consider finding by purpose; will be needed if new purposes are added in the future
-        return statusListIndexRepository.findByProcedureId(UUID.fromString(procedureId))
-                .doOnNext(existing -> log.debug(
-                        "action=allocateStatusListEntry step=idempotentHit procedureId={} statusListId={} idx={}",
-                        procedureId, existing.statusListId(), existing.idx()
-                ))
-                .map(existingRow -> statusListBuilder.buildStatusListEntry(existingRow.statusListId(), existingRow.idx(), purpose))
-                .switchIfEmpty(
-                        statusListLifecycleService.pickListForAllocation(issuerId, purpose, token)
-                                .flatMap(list -> statusListIndexReservationService.reserveIndexWithRetry(list.id(), procedureId, issuerId, purpose, token))
-                                .map(reservedIndex -> statusListBuilder.buildStatusListEntry(reservedIndex.statusListId(), reservedIndex.idx(), purpose))
-                )
-                .doOnSuccess(entry -> log.info(
-                        "action=allocateStatusListEntry status=completed issuerId={} purpose={} procedureId={} statusListCredential={} idx={}",
-                        issuerId, purpose, procedureId, entry.statusListCredential(), entry.statusListIndex()
-                ))
+        UUID procedureUuid = UUID.fromString(procedureId);
+
+        return findExistingAllocation(procedureUuid, purpose, procedureId)
+                .switchIfEmpty(allocateNewEntry(purpose, procedureId, token))
+                .map(entry -> {
+                    log.debug(
+                            "method=allocateEntry step=END purpose={} procedureId={} statusListId={} idx={}",
+                            purpose, procedureId, entry.statusListCredential(), entry.statusListIndex()
+                    );
+                    return entry;
+                })
                 .doOnError(e -> log.warn(
-                        "action=allocateStatusListEntry status=failed issuerId={} purpose={} procedureId={} error={}",
-                        issuerId, purpose, procedureId, e.toString()
+                        "method=allocateEntry step=ERROR purpose={} procedureId={} error={}",
+                        purpose, procedureId, e.toString()
                 ));
     }
-
 
     @Override
     public Mono<Void> revoke(String procedureId, String token) {
         requireNonNull(procedureId, "procedureId cannot be null");
         requireNonNull(token, "token cannot be null");
 
-        log.info("action=revokeStatusList status=started procedureId={}", procedureId);
+        log.debug("method=revoke step=START procedureId={}", procedureId);
 
         return statusListIndexRepository.findByProcedureId(UUID.fromString(procedureId))
                 .switchIfEmpty(Mono.error(new StatusListIndexNotFoundException(procedureId)))
                 .flatMap(listIndex -> {
                     log.debug(
-                            "action=revokeStatusList step=indexResolved procedureId={} statusListId={} idx={}",
+                            "method=revoke step=indexResolved procedureId={} statusListId={} idx={}",
                             procedureId, listIndex.statusListId(), listIndex.idx()
                     );
-                    return revocationService.revokeWithRetry(listIndex.statusListId(), listIndex.idx(), token);
+                    return revokeWithRetry(listIndex.statusListId(), listIndex.idx(), token);
                 })
-                .doOnSuccess(v -> log.info("action=revokeStatusList status=completed procedureId={}", procedureId))
-                .doOnError(e -> log.warn("action=revokeStatusList status=failed procedureId={} error={}", procedureId, e.toString()));
+                .doOnSuccess(v ->
+                        log.debug("method=revoke step=END procedureId={}", procedureId)
+                )
+                .doOnError(e ->
+                        log.warn("method=revoke step=ERROR procedureId={} error={}", procedureId, e.toString())
+                );
+    }
+
+    private Mono<Void> revokeWithRetry(Long statusListId, Integer idx, String token) {
+        log.debug("method=revokeWithRetry step=START statusListId={} idx={}", statusListId, idx);
+
+        int maxAttempts = 5;
+
+        return Mono.defer(() -> revokeOnce(statusListId, idx, token))
+                .retryWhen(
+                        Retry.backoff(maxAttempts - 1, Duration.ofMillis(50))
+                                .filter(OptimisticUpdateException.class::isInstance)
+                                .doBeforeRetry(rs -> log.debug(
+                                        "method=revokeWithRetry retry={} statusListId={} idx={}",
+                                        rs.totalRetries() + 1, statusListId, idx
+                                ))
+                )
+                .doOnTerminate(() ->
+                        log.debug("method=revokeWithRetry step=END statusListId={} idx={}", statusListId, idx)
+                );
+    }
+
+    private Mono<Void> revokeOnce(Long statusListId, Integer idx, String token) {
+        log.debug("method=revokeOnce step=START statusListId={} idx={}", statusListId, idx);
+
+        return revocationService.resolveRevocationCandidate(statusListId, idx)
+                .switchIfEmpty(Mono.fromRunnable(() ->
+                        log.debug("method=revokeOnce step=ALREADY_REVOKED statusListId={} idx={}", statusListId, idx)
+                ))
+                .flatMap(row -> {
+                    StatusListRow updatedRow = revocationService.applyRevocationBit(row, idx);
+
+                    return statusListSigner.getIssuerAndSignCredential(updatedRow, token)
+                            .flatMap(signedJwt ->
+                                    statusListRepository.updateSignedAndEncodedIfUnchanged(
+                                                    row.id(),
+                                                    updatedRow.encodedList(),
+                                                    signedJwt,
+                                                    row.updatedAt()
+                                            )
+                                            .then()
+                            );
+                })
+                .doOnTerminate(() ->
+                        log.debug("method=revokeOnce step=END statusListId={} idx={}", statusListId, idx)
+                );
+    }
+
+    private Mono<StatusListRow> findOrCreateLatestList(StatusPurpose purpose, String token) {
+        log.debug("method=findOrCreateLatestList step=START purpose={}", purpose);
+
+        return statusListRepository.findLatestByPurpose(purpose.value())
+                .switchIfEmpty(createNewList(purpose, token))
+                .doOnSuccess(list ->
+                        log.debug("method=findOrCreateLatestList step=END statusListId={}", list.id())
+                );
+    }
+
+    private Mono<StatusListEntry> allocateNewEntry(StatusPurpose purpose, String procedureId, String token) {
+        log.debug("method=allocateNewEntry step=START purpose={} procedureId={}", purpose, procedureId);
+
+        return pickListForAllocation(purpose, token)
+                .flatMap(list ->
+                        statusListIndexReservationService.reserveWithRetry(list.id(), procedureId)
+                )
+                .map(reservedIndex -> statusListBuilder.buildStatusListEntry(
+                        reservedIndex.statusListId(),
+                        reservedIndex.idx(),
+                        purpose
+                ))
+                .doOnSuccess(e ->
+                        log.debug("method=allocateNewEntry step=END procedureId={}", procedureId)
+                );
+    }
+
+    private Mono<StatusListRow> pickListForAllocation(StatusPurpose purpose, String token) {
+        log.debug("method=pickListForAllocation step=START purpose={}", purpose);
+
+        long threshold = (long) Math.floor(CAPACITY_BITS * NEW_LIST_THRESHOLD);
+
+        return findOrCreateLatestList(purpose, token)
+                .flatMap(list ->
+                        statusListIndexRepository.countByStatusListId(list.id())
+                                .flatMap(count -> {
+                                    long safeCount = count == null ? 0 : count;
+                                    if (safeCount >= threshold) {
+                                        log.debug("method=pickListForAllocation action=createNewList");
+                                        return createNewList(purpose, token);
+                                    }
+                                    return Mono.just(list);
+                                })
+                )
+                .doOnSuccess(list ->
+                        log.debug("method=pickListForAllocation step=END statusListId={}, list={}", list.id(), list)
+                );
+    }
+
+    public Mono<StatusListRow> createNewList(StatusPurpose purpose, String token) {
+        requireNonNull(purpose, "purpose cannot be null");
+        requireNonNull(token, "token cannot be null");
+
+        log.debug("method=createNewList step=START purpose={}", purpose);
+
+        String emptyEncodedList = encoder.createEmptyEncodedList(CAPACITY_BITS);
+        Instant now = Instant.now();
+
+        StatusListRow rowToInsert = new StatusListRow(
+                null,
+                purpose.value(),
+                emptyEncodedList,
+                null,
+                now,
+                now
+        );
+
+        return statusListRepository.save(rowToInsert)
+                .flatMap(saved ->
+                        statusListSigner.getIssuerAndSignCredential(saved, token)
+                                .flatMap(jwt -> persistSignedCredential(saved, jwt))
+                )
+                .doOnSuccess(list ->
+                        log.debug("method=createNewList step=END statusListId={}", list.id())
+                );
+    }
+
+    private Mono<StatusListRow> persistSignedCredential(StatusListRow saved, String signedJwt) {
+        log.debug("method=persistSignedCredential step=START statusListId={}", saved.id());
+
+        return statusListRepository.updateSignedCredential(saved.id(), signedJwt)
+                .flatMap(rows -> {
+                    if (rows != null && rows == 1) {
+                        return Mono.just(saved);
+                    }
+                    return Mono.error(new StatusListSigningPersistenceException(saved.id()));
+                })
+                .doOnSuccess(v ->
+                        log.debug("method=persistSignedCredential step=END statusListId={}", saved.id())
+                );
+    }
+
+    private Mono<StatusListEntry> findExistingAllocation(UUID procedureUuid, StatusPurpose purpose, String procedureId) {
+        log.debug("method=findExistingAllocation step=START procedureId={}", procedureId);
+
+        return statusListIndexRepository.findByProcedureId(procedureUuid)
+                .map(existing -> statusListBuilder.buildStatusListEntry(
+                        existing.statusListId(),
+                        existing.idx(),
+                        purpose
+                ))
+                .doOnSuccess(v ->
+                        log.debug("method=findExistingAllocation step=END procedureId={} statusListEntry={}", procedureId, v)
+                );
+    }
+
+    private static final class OptimisticUpdateException extends RuntimeException {
+        private OptimisticUpdateException(String message) {
+            super(message);
+        }
     }
 
 }

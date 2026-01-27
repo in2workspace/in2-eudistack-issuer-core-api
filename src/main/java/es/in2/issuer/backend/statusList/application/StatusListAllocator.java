@@ -16,11 +16,10 @@ public class StatusListAllocator implements CredentialStatusAllocator {
     private final StatusListWorkflow statusListWorkflow;
 
     @Override
-    public Mono<CredentialStatus> allocate(String issuerId, String procedureId, String token) {
-        requireNonNull(issuerId, "issuerId cannot be null");
+    public Mono<CredentialStatus> allocate(String procedureId, String token) {
         requireNonNull(procedureId, "procedureId cannot be null");
 
-        return statusListWorkflow.allocateEntry(issuerId, StatusPurpose.REVOCATION, procedureId, token)
+        return statusListWorkflow.allocateEntry(StatusPurpose.REVOCATION, procedureId, token)
                 .map(entry -> CredentialStatus.builder()
                         .id(entry.id())
                         .type(entry.type())

@@ -200,7 +200,7 @@ class CredentialIssuanceWorkflowImplTest {
         String transactionCode = "4321";
 
         when(verifiableCredentialPolicyAuthorizationService.authorize(token, type, jsonNode, idToken)).thenReturn(Mono.empty());
-        when(verifiableCredentialService.generateVc(processId, preSubmittedCredentialDataRequest, expectedEmail)).thenReturn(Mono.just(transactionCode));
+//        when(verifiableCredentialService.generateVc(processId, preSubmittedCredentialDataRequest, expectedEmail)).thenReturn(Mono.just(transactionCode));
         when(appConfig.getIssuerFrontendUrl()).thenReturn(issuerUiExternalDomain);
         when(appConfig.getKnowledgebaseWalletUrl()).thenReturn(knowledgebaseWalletUrl);
         when(emailService.sendCredentialActivationEmail("example@in2.es", "email.activation.subject", issuerUiExternalDomain + "/credential-offer?transaction_code=" + transactionCode, knowledgebaseWalletUrl, "IN2, Ingeniería de la Información, S.L.")).thenReturn(Mono.empty());
@@ -279,7 +279,7 @@ class CredentialIssuanceWorkflowImplTest {
         String transactionCode = "4321";
 
         when(verifiableCredentialPolicyAuthorizationService.authorize(token, type, jsonNode, null)).thenReturn(Mono.empty());
-        when(verifiableCredentialService.generateVc(processId,preSubmittedCredentialDataRequest, expectedEmail)).thenReturn(Mono.just(transactionCode));
+//        when(verifiableCredentialService.generateVc(processId,preSubmittedCredentialDataRequest, expectedEmail)).thenReturn(Mono.just(transactionCode));
         when(appConfig.getIssuerFrontendUrl()).thenReturn(issuerUiExternalDomain);
         when(appConfig.getKnowledgebaseWalletUrl()).thenReturn(knowledgebaseWalletUrl);
 
@@ -587,8 +587,8 @@ class CredentialIssuanceWorkflowImplTest {
         when(verifiableCredentialPolicyAuthorizationService.authorize(token, schema, payload, idToken))
                 .thenReturn(Mono.empty());
 
-        when(verifiableCredentialService.generateVc(processId, req, email))
-                .thenReturn(Mono.just(transactionCode));
+//        when(verifiableCredentialService.generateVc(processId, req, email))
+//                .thenReturn(Mono.just(transactionCode));
 
         when(appConfig.getIssuerFrontendUrl()).thenReturn(issuerUiExternalDomain);
         when(appConfig.getKnowledgebaseWalletUrl()).thenReturn(knowledgebaseWalletUrl);
@@ -895,8 +895,8 @@ class CredentialIssuanceWorkflowImplTest {
         when(verifiableCredentialPolicyAuthorizationService.authorize(token, type, jsonNode, idToken))
                 .thenReturn(Mono.empty());
 
-        when(verifiableCredentialService.generateVc(processId, preSubmittedCredentialDataRequest, expectedEmail))
-                .thenReturn(Mono.just(transactionCode));
+//        when(verifiableCredentialService.generateVc(processId, preSubmittedCredentialDataRequest, expectedEmail))
+//                .thenReturn(Mono.just(transactionCode));
 
         when(appConfig.getIssuerFrontendUrl()).thenReturn(issuerUiExternalDomain);
         when(appConfig.getKnowledgebaseWalletUrl()).thenReturn(knowledgebaseWalletUrl);
@@ -942,8 +942,8 @@ class CredentialIssuanceWorkflowImplTest {
         // when
         when(verifiableCredentialPolicyAuthorizationService.authorize(token, LABEL_CREDENTIAL, payload, idToken))
                 .thenReturn(Mono.empty());
-        when(verifiableCredentialService.generateVc(processId, req, ownerEmail))
-                .thenReturn(Mono.just(tx));
+//        when(verifiableCredentialService.generateVc(processId, req, ownerEmail))
+//                .thenReturn(Mono.just(tx));
         when(appConfig.getIssuerFrontendUrl()).thenReturn(issuerUiExternalDomain);
         when(appConfig.getKnowledgebaseWalletUrl()).thenReturn(knowledgebaseWalletUrl);
         when(appConfig.getSysTenant()).thenReturn(sysTenant);

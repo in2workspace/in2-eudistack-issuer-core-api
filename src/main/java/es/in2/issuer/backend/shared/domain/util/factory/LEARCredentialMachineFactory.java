@@ -50,9 +50,9 @@ public class LEARCredentialMachineFactory {
         }
     }
 
-    public Mono<CredentialProcedureCreationRequest> mapAndBuildLEARCredentialMachine(JsonNode learCredential, String operationMode, String email) {
+    public Mono<CredentialProcedureCreationRequest> mapAndBuildLEARCredentialMachine(JsonNode learCredential, CredentialStatus credentialStatus, String operationMode, String email) {
         LEARCredentialMachine.CredentialSubject baseCredentialSubject = mapJsonNodeToCredentialSubject(learCredential);
-        return buildFinalLearCredentialMachine(baseCredentialSubject)
+        return buildFinalLearCredentialMachine(baseCredentialSubject, credentialStatus)
                 .flatMap(credentialDecoded ->
                         convertLEARCredentialMachineInToString(credentialDecoded)
                                 .flatMap(credentialDecodedString ->
@@ -69,15 +69,14 @@ public class LEARCredentialMachineFactory {
                 .build();
     }
 
-    private Mono<LEARCredentialMachine> buildFinalLearCredentialMachine(LEARCredentialMachine.CredentialSubject baseCredentialSubject) {
+    private Mono<LEARCredentialMachine> buildFinalLearCredentialMachine(LEARCredentialMachine.CredentialSubject baseCredentialSubject, CredentialStatus credentialStatus) {
 
         Instant currentTime = Instant.now();
         String validFrom = currentTime.toString();
         String validUntil = currentTime.plus(365, ChronoUnit.DAYS).toString();
 
         String credentialId = "urn:uuid:" + UUID.randomUUID();
-        return buildCredentialStatus()
-                .map(credentialStatus -> LEARCredentialMachine.builder()
+        return Mono.just(LEARCredentialMachine.builder()
                         .context(CREDENTIAL_CONTEXT_LEAR_CREDENTIAL_MACHINE)
                         .id(credentialId)
                         .type(List.of(LEAR_CREDENTIAL_MACHINE, VERIFIABLE_CREDENTIAL))
@@ -87,18 +86,6 @@ public class LEARCredentialMachineFactory {
                         .credentialStatus(credentialStatus)
                         .build());
 
-    }
-
-    private Mono<CredentialStatus> buildCredentialStatus() {
-        String statusListCredential = appConfig.getIssuerBackendUrl() + "/backoffice/v1/credentials/status/1";
-        return generateCustomNonce()
-                .map(nonce -> CredentialStatus.builder()
-                        .id(statusListCredential + "#" + nonce)
-                        .type("PlainListEntity")
-                        .statusPurpose("revocation")
-                        .statusListIndex(nonce)
-                        .statusListCredential(statusListCredential)
-                        .build());
     }
 
     private Mono<String> convertLEARCredentialMachineInToString(LEARCredentialMachine credentialDecoded) {
@@ -139,7 +126,7 @@ public class LEARCredentialMachineFactory {
             String email) {
         LEARCredentialMachine learCredentialMachine = mapStringToLEARCredentialMachine(decodedCredentialString);
 
-        return issuerFactory.createDetailedIssuer(procedureId, email)
+        return issuerFactory.createDetailedIssuerAndNotifyOnError(procedureId, email)
                 .flatMap(issuer -> bindIssuer(learCredentialMachine, issuer))
                 .flatMap(this::convertLEARCredentialMachineInToString);
     }

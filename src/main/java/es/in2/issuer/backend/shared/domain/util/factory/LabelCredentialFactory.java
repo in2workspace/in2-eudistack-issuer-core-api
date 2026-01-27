@@ -41,10 +41,10 @@ public class LabelCredentialFactory {
     private final AccessTokenService accessTokenService;
     private final AppConfig appConfig;
 
-    public Mono<CredentialProcedureCreationRequest> mapAndBuildLabelCredential(JsonNode credential, String operationMode, String email) {
+    public Mono<CredentialProcedureCreationRequest> mapAndBuildLabelCredential(JsonNode credential, CredentialStatus credentialStatus, String operationMode, String email) {
         LabelCredential labelCredential = objectMapper.convertValue(credential, LabelCredential.class);
 
-        return buildLabelCredential(labelCredential)
+        return buildLabelCredential(labelCredential, credentialStatus)
                 .flatMap(labelCredentialDecoded ->
                         convertLabelCredentialInToString(labelCredentialDecoded)
                                 .flatMap(decodedCredential ->
@@ -53,10 +53,9 @@ public class LabelCredentialFactory {
                 );
     }
 
-    private Mono<LabelCredential> buildLabelCredential(LabelCredential credential) {
+    private Mono<LabelCredential> buildLabelCredential(LabelCredential credential, CredentialStatus credentialStatus) {
         // Build the LabelCredential object
-        return buildCredentialStatus()
-                .map(credentialStatus -> LabelCredential.builder()
+        return Mono.just(LabelCredential.builder()
                         .context(LABEL_CREDENTIAL_CONTEXT)
                         .id("urn:uuid:" + UUID.randomUUID())
                         .type(LABEL_CREDENTIAL_TYPES)
@@ -64,18 +63,6 @@ public class LabelCredentialFactory {
                         .validFrom(credential.validFrom())
                         .validUntil(credential.validUntil())
                         .credentialStatus(credentialStatus)
-                        .build());
-    }
-
-    private Mono<CredentialStatus> buildCredentialStatus() {
-        String statusListCredential = appConfig.getIssuerBackendUrl() + "/backoffice/v1/credentials/status/1";
-        return generateCustomNonce()
-                .map(nonce -> CredentialStatus.builder()
-                        .id(statusListCredential + "#" + nonce)
-                        .type("PlainListEntity")
-                        .statusPurpose("revocation")
-                        .statusListIndex(nonce)
-                        .statusListCredential(statusListCredential)
                         .build());
     }
 
@@ -98,7 +85,7 @@ public class LabelCredentialFactory {
             String email) {
         LabelCredential labelCredential = mapStringToLabelCredential(decodedCredentialString);
 
-        return issuerFactory.createSimpleIssuer(procedureId, email)
+        return issuerFactory.createSimpleIssuerAndNotifyOnError(procedureId, email)
                 .flatMap(issuer -> bindIssuer(labelCredential, issuer))
                 .flatMap(this::convertLabelCredentialInToString);
     }
