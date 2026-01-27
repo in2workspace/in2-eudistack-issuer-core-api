@@ -2,8 +2,7 @@ package es.in2.issuer.backend.statusList.infrastructure.controller;
 
 import es.in2.issuer.backend.statusList.application.RevocationWorkflow;
 import es.in2.issuer.backend.statusList.application.StatusListWorkflow;
-import es.in2.issuer.backend.backoffice.domain.model.dtos.RevokeCredentialRequest;
-import jakarta.annotation.PostConstruct;
+import es.in2.issuer.backend.statusList.domain.model.dto.RevokeCredentialRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
@@ -27,12 +26,6 @@ public class StatusListController {
 
     private final StatusListWorkflow statusListWorkflow;
     private final RevocationWorkflow revocationService;
-
-
-    @PostConstruct
-    void init() {
-        log.info("StatusListController initialized with base path: /api/v1/status-list");
-    }
 
     /**
      * GET /api/v1/status-list/{listId}
