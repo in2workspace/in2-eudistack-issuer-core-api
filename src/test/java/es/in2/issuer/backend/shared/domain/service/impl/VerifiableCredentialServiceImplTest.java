@@ -34,6 +34,7 @@ class VerifiableCredentialServiceImplTest {
     private final String processId = "process-id-123";
     private final String preAuthCode = "pre-auth-code-456";
     private final String transactionId = "transaction-id-789";
+    private final String notificationId = "notification-id-910";
     private final String deferredResponseId = "deferred-response-id-456";
     private final String procedureId = "procedure-id-321";
     private final String vcValue = "vc-value-123";
@@ -445,6 +446,9 @@ class VerifiableCredentialServiceImplTest {
         when(credentialProcedureService.getDecodedCredentialByProcedureId(procedureId))
                 .thenReturn(Mono.just(decodedCredential), Mono.just(unsignedCredential));
 
+        when(credentialProcedureService.getNotificationIdByProcedureId(procedureId))
+                .thenReturn(Mono.just(decodedCredential), Mono.just(unsignedCredential));
+
         when(credentialFactory.bindCryptographicCredentialSubjectId(processId, credentialType, decodedCredential, subjectDid))
                 .thenReturn(Mono.just(bindCredential));
 
@@ -473,7 +477,7 @@ class VerifiableCredentialServiceImplTest {
                         response.credentials().equals(List.of(CredentialResponse.Credential.builder()
                                 .credential(unsignedCredential)
                                 .build())) &&
-                                response.transactionId().equals(transactionId))
+                                response.transactionId().equals(transactionId) && response.notificationId().equals(notificationId))
                 .verifyComplete();
 
         verify(credentialSignerWorkflow, times(1))
