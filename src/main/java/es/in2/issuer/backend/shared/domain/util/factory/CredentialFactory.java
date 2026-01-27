@@ -49,4 +49,46 @@ public class CredentialFactory {
         return Mono.error(new CredentialTypeUnsupportedException(credentialType));
     }
 
+    public Mono<Void> mapCredentialBindIssuerAndUpdateDB(
+            String processId,
+            String procedureId,
+            String decodedCredential,
+            String credentialType,
+            String format,
+            String authServerNonce,
+            String email) {
+
+        Mono<String> bindMono = switch (credentialType) {
+            case LEAR_CREDENTIAL_EMPLOYEE ->
+                    learCredentialEmployeeFactory
+                            .mapCredentialAndBindIssuerInToTheCredential(decodedCredential, procedureId, email);
+            case LABEL_CREDENTIAL ->
+                    labelCredentialFactory
+                            .mapCredentialAndBindIssuerInToTheCredential(decodedCredential, procedureId, email);
+            case LEAR_CREDENTIAL_MACHINE ->
+                    learCredentialMachineFactory
+                            .mapCredentialAndBindIssuerInToTheCredential(decodedCredential, procedureId, email);
+            default ->
+                    Mono.error(new CredentialTypeUnsupportedException(credentialType));
+        };
+
+        return bindMono
+                .flatMap(boundCredential -> {
+                    log.info("ProcessID: {} - Credential mapped and bind to the issuer: {}", processId, boundCredential);
+                    return updateDecodedAndDeferred(procedureId, boundCredential, format, authServerNonce);
+                });
+    }
+
+    private Mono<Void> updateDecodedAndDeferred(
+            String procedureId,
+            String boundCredential,
+            String format,
+            String authServerNonce) {
+
+        return credentialProcedureService
+                .updateDecodedCredentialByProcedureId(procedureId, boundCredential, format)
+                .then(deferredCredentialMetadataService.updateDeferredCredentialByAuthServerNonce(authServerNonce, format)
+                );
+    }
+
 }

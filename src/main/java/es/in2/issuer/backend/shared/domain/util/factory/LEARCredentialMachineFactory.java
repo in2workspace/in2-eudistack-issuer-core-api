@@ -76,15 +76,29 @@ public class LEARCredentialMachineFactory {
         String validUntil = currentTime.plus(365, ChronoUnit.DAYS).toString();
 
         String credentialId = "urn:uuid:" + UUID.randomUUID();
-        return Mono.just(LEARCredentialMachine.builder()
-                .context(CREDENTIAL_CONTEXT_LEAR_CREDENTIAL_MACHINE)
-                .id(credentialId)
-                .type(List.of(LEAR_CREDENTIAL_MACHINE, VERIFIABLE_CREDENTIAL))
-                .credentialSubject(baseCredentialSubject)
-                .validFrom(validFrom)
-                .validUntil(validUntil)
-                .build());
+        return buildCredentialStatus()
+                .map(credentialStatus -> LEARCredentialMachine.builder()
+                        .context(CREDENTIAL_CONTEXT_LEAR_CREDENTIAL_MACHINE)
+                        .id(credentialId)
+                        .type(List.of(LEAR_CREDENTIAL_MACHINE, VERIFIABLE_CREDENTIAL))
+                        .credentialSubject(baseCredentialSubject)
+                        .validFrom(validFrom)
+                        .validUntil(validUntil)
+                        .credentialStatus(credentialStatus)
+                        .build());
 
+    }
+
+    private Mono<CredentialStatus> buildCredentialStatus() {
+        String statusListCredential = appConfig.getIssuerBackendUrl() + "/backoffice/v1/credentials/status/1";
+        return generateCustomNonce()
+                .map(nonce -> CredentialStatus.builder()
+                        .id(statusListCredential + "#" + nonce)
+                        .type("PlainListEntity")
+                        .statusPurpose("revocation")
+                        .statusListIndex(nonce)
+                        .statusListCredential(statusListCredential)
+                        .build());
     }
 
     private Mono<String> convertLEARCredentialMachineInToString(LEARCredentialMachine credentialDecoded) {
@@ -98,15 +112,15 @@ public class LEARCredentialMachineFactory {
     private Mono<CredentialProcedureCreationRequest> buildCredentialProcedureCreationRequest(String decodedCredential, LEARCredentialMachine credentialDecoded, String operationMode, String email) {
         String mandatorOrgId = credentialDecoded.credentialSubject().mandate().mandator().organizationIdentifier();
         return Mono.just(
-            CredentialProcedureCreationRequest.builder()
-                .organizationIdentifier(mandatorOrgId)
-                .credentialDecoded(decodedCredential)
-                .credentialType(CredentialType.LEAR_CREDENTIAL_MACHINE)
-                .subject(credentialDecoded.credentialSubject().mandate().mandatee().domain())
-                .validUntil(parseEpochSecondIntoTimestamp(parseDateToUnixTime(credentialDecoded.validUntil())))
-                .operationMode(operationMode)
-                .email(email)
-                .build()
+                CredentialProcedureCreationRequest.builder()
+                        .organizationIdentifier(mandatorOrgId)
+                        .credentialDecoded(decodedCredential)
+                        .credentialType(CredentialType.LEAR_CREDENTIAL_MACHINE)
+                        .subject(credentialDecoded.credentialSubject().mandate().mandatee().domain())
+                        .validUntil(parseEpochSecondIntoTimestamp(parseDateToUnixTime(credentialDecoded.validUntil())))
+                        .operationMode(operationMode)
+                        .email(email)
+                        .build()
         );
     }
 

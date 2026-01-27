@@ -82,7 +82,7 @@ public class LEARCredentialEmployeeFactory {
                 });
                 employee = objectMapper.readValue(learCredentialEmployee.toString(), LEARCredentialEmployee.class);
             } else if(learCredential.contains(CREDENTIALS_EUDISTACK_LEAR_CREDENTIAL_EMPLOYEE_CONTEXT)){
-                                employee = objectMapper.readValue(learCredential, LEARCredentialEmployee.class);
+                employee = objectMapper.readValue(learCredential, LEARCredentialEmployee.class);
             } else {
                 throw new InvalidCredentialFormatException("Invalid credential format");
             }
@@ -114,7 +114,8 @@ public class LEARCredentialEmployeeFactory {
 
         String credentialId = "urn:uuid:" + UUID.randomUUID();
 
-        return Mono.just(LEARCredentialEmployee.builder()
+        return buildCredentialStatus()
+                .map(credentialStatus -> LEARCredentialEmployee.builder()
                         .context(LEAR_CREDENTIAL_EMPLOYEE_CONTEXT)
                         .id(credentialId)
                         .type(List.of(LEAR_CREDENTIAL_EMPLOYEE, VERIFIABLE_CREDENTIAL))
@@ -122,6 +123,19 @@ public class LEARCredentialEmployeeFactory {
                         .credentialSubject(credentialSubject)
                         .validFrom(validFrom)
                         .validUntil(validUntil)
+                        .credentialStatus(credentialStatus)
+                        .build());
+    }
+
+    private Mono<CredentialStatus> buildCredentialStatus() {
+        String statusListCredential = appConfig.getIssuerBackendUrl() + "/backoffice/v1/credentials/status/1";
+        return generateCustomNonce()
+                .map(nonce -> CredentialStatus.builder()
+                        .id(statusListCredential + "#" + nonce)
+                        .type("PlainListEntity")
+                        .statusPurpose("revocation")
+                        .statusListIndex(nonce)
+                        .statusListCredential(statusListCredential)
                         .build());
     }
 
@@ -257,18 +271,18 @@ public class LEARCredentialEmployeeFactory {
         String mandatorOrgId = credentialDecoded.credentialSubject().mandate().mandator().organizationIdentifier();
 
         return Mono.just(
-            CredentialProcedureCreationRequest.builder()
-                    .organizationIdentifier(mandatorOrgId)
-                    .credentialDecoded(decodedCredential)
-                    .credentialType(CredentialType.LEAR_CREDENTIAL_EMPLOYEE)
-                    .subject(credentialDecoded.credentialSubject().mandate().mandatee().firstName() +
-                            " " +
-                            credentialDecoded.credentialSubject().mandate().mandatee().lastName())
-                    .validUntil(parseEpochSecondIntoTimestamp(parseDateToUnixTime(credentialDecoded.validUntil())))
-                    .operationMode(operationMode)
-                    .email(email)
-                    .build()
-            );
+                CredentialProcedureCreationRequest.builder()
+                        .organizationIdentifier(mandatorOrgId)
+                        .credentialDecoded(decodedCredential)
+                        .credentialType(CredentialType.LEAR_CREDENTIAL_EMPLOYEE)
+                        .subject(credentialDecoded.credentialSubject().mandate().mandatee().firstName() +
+                                " " +
+                                credentialDecoded.credentialSubject().mandate().mandatee().lastName())
+                        .validUntil(parseEpochSecondIntoTimestamp(parseDateToUnixTime(credentialDecoded.validUntil())))
+                        .operationMode(operationMode)
+                        .email(email)
+                        .build()
+        );
     }
 
     private Timestamp parseEpochSecondIntoTimestamp(Long unixEpochSeconds) {
