@@ -58,8 +58,6 @@ public class CredentialFactory {
             String authServerNonce,
             String email) {
 
-        System.out.println("Map credential type: " + credentialType);
-
         Mono<String> bindMono = switch (credentialType) {
             case LEAR_CREDENTIAL_EMPLOYEE ->
                     learCredentialEmployeeFactory

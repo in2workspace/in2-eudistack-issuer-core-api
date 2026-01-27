@@ -50,10 +50,7 @@ public class LEARCredentialEmployeeFactory {
     public Mono<String> mapCredentialAndBindIssuerInToTheCredential(String decodedCredentialString, String procedureId, String email) {
         LEARCredentialEmployee decodedCredential = mapStringToLEARCredentialEmployee(decodedCredentialString);
         return bindIssuerToLearCredentialEmployee(decodedCredential, procedureId, email)
-                .flatMap(credentialDecoded -> {
-                    System.out.println("HOLAAA 2");
-                    return convertLEARCredentialEmployeeInToString(credentialDecoded);
-                });
+                .flatMap(this::convertLEARCredentialEmployeeInToString);
     }
 
     public Mono<CredentialProcedureCreationRequest> mapAndBuildLEARCredentialEmployee(JsonNode learCredential, String operationMode, String email) {
