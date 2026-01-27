@@ -353,35 +353,4 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
                 )
                 .then();
     }
-
-
-    private Mono<Void> updateDecodedCredentialByProcedureId(String procedureId, String bindCredential) {
-        log.info("ProcessID: {} - Credential mapped and bound to the issuer: {}", procedureId, bindCredential);
-        return credentialProcedureService.updateDecodedCredentialByProcedureId(
-                procedureId,
-                bindCredential,
-                JWT_VC
-        );
-    }
-
-    private CredentialStatus toCredentialStatus(Map<String, Object> map) {
-        // Defensive checks
-        Object type = map.get("type");
-        Object id = map.get("id");
-        Object purpose = map.get("statusPurpose");
-        Object idx = map.get("statusListIndex");
-        Object list = map.get("statusListCredential");
-
-        if (!(type instanceof String) || !(id instanceof String) || !(purpose instanceof String) || list == null) {
-            throw new IllegalArgumentException("Invalid credentialStatus map");
-        }
-
-        return CredentialStatus.builder()
-                .id((String) id)
-                .type((String) type)
-                .statusPurpose((String) purpose)
-                .statusListIndex(String.valueOf(idx)) // idx pot ser Integer
-                .statusListCredential(String.valueOf(list))
-                .build();
-    }
 }

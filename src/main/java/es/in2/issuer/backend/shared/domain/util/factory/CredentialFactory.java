@@ -49,15 +49,4 @@ public class CredentialFactory {
         return Mono.error(new CredentialTypeUnsupportedException(credentialType));
     }
 
-    private Mono<Void> updateDecodedAndDeferred(
-            String procedureId,
-            String boundCredential,
-            String format,
-            String authServerNonce) {
-
-        return credentialProcedureService
-                .updateDecodedCredentialByProcedureId(procedureId, boundCredential, format)
-                .then(deferredCredentialMetadataService.updateDeferredCredentialByAuthServerNonce(authServerNonce, format)
-                );
-    }
 }
