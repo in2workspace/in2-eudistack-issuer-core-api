@@ -30,18 +30,7 @@ public class ProofValidationServiceImpl implements ProofValidationService {
         return Mono.just(jwtProof)
                 .flatMap(jwt -> parseAndValidateJwt(jwt, expectedAudience, allowedAlgs))
                 .doOnNext(jws -> log.debug("JWT parsed successfully"))
-                .flatMap(signedJWT -> {
-                    JWSHeader header = signedJWT.getHeader();
-
-                    // 1) Si viene jwk
-                    if (header.getJWK() != null) {
-                        Map<String, Object> jwkMap = header.getJWK().toJSONObject();
-                        return jwtService.validateJwtSignatureWithJwkReactive(signedJWT.serialize(), jwkMap);
-                    }
-
-                    // 2) Si NO viene jwk
-                    return jwtService.validateJwtSignatureReactive(signedJWT);
-                })
+                .flatMap(this::validateSignatureAccordingToHeader)
                 .defaultIfEmpty(false)
                 // TODO: Check nonce when implemented
                 .doOnSuccess(result -> log.debug("Final validation result: {}", result))
@@ -49,6 +38,30 @@ public class ProofValidationServiceImpl implements ProofValidationService {
                         : new ProofValidationException("Error during JWT validation"));
     }
 
+    private Mono<Boolean> validateSignatureAccordingToHeader(SignedJWT signedJWT) {
+        JWSHeader header = signedJWT.getHeader();
+
+        if (header.getJWK() != null) {
+            return validateSignatureWithEmbeddedJwk(signedJWT);
+        }
+
+        return validateSignatureWithExternalKey(signedJWT);
+    }
+
+    private Mono<Boolean> validateSignatureWithEmbeddedJwk(SignedJWT signedJWT) {
+        Map<String, Object> jwkMap = signedJWT.getHeader()
+                .getJWK()
+                .toJSONObject();
+
+        return jwtService.validateJwtSignatureWithJwkReactive(
+                signedJWT.serialize(),
+                jwkMap
+        );
+    }
+
+    private Mono<Boolean> validateSignatureWithExternalKey(SignedJWT signedJWT) {
+        return jwtService.validateJwtSignatureReactive(signedJWT);
+    }
 
     private Mono<SignedJWT> parseAndValidateJwt(String jwtProof, String expectedAudience, Set<String> allowedAlgs) {
         return Mono.fromCallable(() -> SignedJWT.parse(jwtProof))

@@ -22,8 +22,7 @@ import reactor.test.StepVerifier;
 
 import java.lang.reflect.Method;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -54,7 +53,7 @@ class LEARCredentialMachineFactoryTest {
 
         LEARCredentialMachine result = learCredentialMachineFactory.mapStringToLEARCredentialMachine(credentialV1);
 
-        assertEquals(expectedMachine, result);
+        assertThat(expectedMachine).isEqualTo(result);
     }
 
     @Test
@@ -96,12 +95,12 @@ class LEARCredentialMachineFactoryTest {
 
         Object invokeResult = m.invoke(learCredentialMachineFactory, credential);
 
-        assertInstanceOf(Mono.class, invokeResult);
+        assertThat(invokeResult).isInstanceOf(Mono.class);
 
         StepVerifier.create((Mono<?>) invokeResult)
                 .expectErrorSatisfies(ex -> {
-                    assertInstanceOf(CredentialSerializationException.class, ex);
-                    assertEquals("Error serializing LEARCredentialMachine to string.", ex.getMessage());
+                    assertThat(ex).isInstanceOf(CredentialSerializationException.class);
+                    assertThat("Error serializing LEARCredentialMachine to string.").isEqualTo(ex.getMessage());
                 })
                 .verify();
     }
@@ -116,8 +115,8 @@ class LEARCredentialMachineFactoryTest {
 
         StepVerifier.create(result)
                 .expectErrorSatisfies(ex -> {
-                    assertInstanceOf(CredentialSerializationException.class, ex);
-                    assertEquals("Error serializing LEARCredentialMachine JWT payload to string.", ex.getMessage());
+                    assertThat(ex).isInstanceOf(CredentialSerializationException.class);
+                    assertThat("Error serializing LEARCredentialMachine JWT payload to string.").isEqualTo(ex.getMessage());
                 })
                 .verify();
     }
@@ -148,7 +147,7 @@ class LEARCredentialMachineFactoryTest {
 
         verify(objectMapper).writeValueAsString(captor.capture());
         LEARCredentialMachine serialized = captor.getValue();
-        assertEquals(detailedIssuer, serialized.issuer());
+        assertThat(detailedIssuer).isEqualTo(serialized.issuer());
         verify(issuerFactory).createDetailedIssuer(procedureId, "");
     }
 
@@ -186,8 +185,8 @@ class LEARCredentialMachineFactoryTest {
         // Assert
         StepVerifier.create(mono)
                 .assertNext(payload -> {
-                    assertEquals("issuer-id-xyz", payload.issuer());
-                    assertEquals("mandatee-123", payload.subject());
+                    assertThat("issuer-id-xyz").isEqualTo(payload.issuer());
+                    assertThat("mandatee-123").isEqualTo(payload.subject());
 
                     org.junit.jupiter.api.Assertions.assertTrue(payload.expirationTime() > 0);
                     org.junit.jupiter.api.Assertions.assertTrue(payload.issuedAt() > 0);
@@ -230,8 +229,8 @@ class LEARCredentialMachineFactoryTest {
                 .verifyComplete();
 
         LEARCredentialMachine serialized = captor.getValue();
-        assertEquals(subjectId, serialized.credentialSubject().id());
-        assertEquals(mandate, serialized.credentialSubject().mandate());
+        assertThat(subjectId).isEqualTo(serialized.credentialSubject().id());
+        assertThat(mandate).isEqualTo(serialized.credentialSubject().mandate());
 
         verify(objectMapper, times(2)).readValue(decoded, LEARCredentialMachine.class);
         verify(objectMapper, times(1)).writeValueAsString(any(LEARCredentialMachine.class));
@@ -267,8 +266,8 @@ class LEARCredentialMachineFactoryTest {
         // Assert
         StepVerifier.create(result)
                 .expectErrorSatisfies(ex -> {
-                    assertInstanceOf(CredentialSerializationException.class, ex);
-                    assertEquals("Error serializing LEARCredentialMachine to string.", ex.getMessage());
+                    assertThat(ex).isInstanceOf(CredentialSerializationException.class);
+                    assertThat("Error serializing LEARCredentialMachine to string.").isEqualTo(ex.getMessage());
                 })
                 .verify();
     }

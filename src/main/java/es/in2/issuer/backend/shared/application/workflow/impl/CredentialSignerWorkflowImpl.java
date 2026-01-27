@@ -120,26 +120,19 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
     private Mono<String> signCredentialOnRequestedFormat(String unsignedCredential, String format, String token, String procedureId, String email) {
         return Mono.defer(() -> {
             if (format.equals(JWT_VC)) {
-                String payloadToSign = setSubIfCredentialSubjectIdPresent(unsignedCredential);
+                return setSubIfCredentialSubjectIdPresent(unsignedCredential)
+                        .flatMap(payloadToSign -> {
+                            log.info("Signing credential in JADES remotely ...");
+                            SignatureRequest signatureRequest = new SignatureRequest(
+                                    new SignatureConfiguration(SignatureType.JADES, Collections.emptyMap()),
+                                    payloadToSign
+                            );
 
-                log.debug("Credential Payload {}", unsignedCredential);
-                log.info("Signing credential in JADES remotely ...");
-                SignatureRequest signatureRequest = new SignatureRequest(
-                        new SignatureConfiguration(SignatureType.JADES, Collections.emptyMap()),
-                        payloadToSign
-                );
-
-                return remoteSignatureService.sign(signatureRequest, token, procedureId, email)
-                        .doOnSubscribe(s -> {
-                        })
-                        .doOnNext(data -> {
-                        })
-                        .publishOn(Schedulers.boundedElastic())
-                        .map(SignedData::data)
-                        .doOnSuccess(result -> {
-                        })
-                        .doOnError(e -> {
+                            return remoteSignatureService.sign(signatureRequest, token, procedureId, email)
+                                    .publishOn(Schedulers.boundedElastic())
+                                    .map(SignedData::data);
                         });
+
             } else if (format.equals(CWT_VC)) {
                 log.info(unsignedCredential);
                 return generateCborFromJson(unsignedCredential)
@@ -151,8 +144,8 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
         });
     }
 
-    private String setSubIfCredentialSubjectIdPresent(String unsignedCredential) {
-        try {
+    private Mono<String> setSubIfCredentialSubjectIdPresent(String unsignedCredential) {
+        return Mono.fromCallable(() -> {
             JsonNode root = objectMapper.readTree(unsignedCredential);
             if (!(root instanceof ObjectNode rootObj)) {
                 return unsignedCredential;
@@ -166,13 +159,15 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
             }
 
             return unsignedCredential;
-        } catch (Exception e) {
+        })
+        .subscribeOn(Schedulers.boundedElastic())
+        .onErrorResume(e -> {
             log.warn(
                     "Could not set 'sub' from vc.credentialSubject.id. Keeping original payload. Reason: {}",
                     e.getMessage()
             );
-            return unsignedCredential;
-        }
+            return Mono.just(unsignedCredential);
+        });
     }
 
     private String extractSubjectDid(ObjectNode rootObj) {

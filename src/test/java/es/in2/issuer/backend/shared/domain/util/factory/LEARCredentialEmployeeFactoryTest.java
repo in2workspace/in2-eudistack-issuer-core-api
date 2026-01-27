@@ -25,8 +25,10 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import java.lang.reflect.Method;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -487,7 +489,7 @@ class LEARCredentialEmployeeFactoryTest {
     }
 
     @Test
-    void buildLEARCredentialEmployeeJwtPayload_success_setsClaimsAndCnfKid() {
+    void buildLEARCredentialEmployeeJwtPayload_setsStandardClaims() {
         DetailedIssuer issuer = mock(DetailedIssuer.class);
         when(issuer.getId()).thenReturn("issuer-id-123");
 
@@ -507,22 +509,77 @@ class LEARCredentialEmployeeFactoryTest {
 
         StepVerifier.create(learCredentialEmployeeFactory.buildLEARCredentialEmployeeJwtPayload(vc))
                 .assertNext(payload -> {
-                    assertNotNull(payload.JwtId());
-                    assertEquals("issuer-id-123", payload.issuer());
-                    assertEquals("did:key:zDnaeiLt1XYBTBZk123#key-1", payload.subject());
-
-                    assertInstanceOf(java.util.Map.class, payload.cnf());
-                    @SuppressWarnings("unchecked")
-                    var cnf = (java.util.Map<String, Object>) payload.cnf();
-                    assertEquals("did:key:zDnaeiLt1XYBTBZk123#key-1", cnf.get("kid"));
-
-                    assertTrue(payload.issuedAt() > 0);
-                    assertTrue(payload.notValidBefore() > 0);
-                    assertTrue(payload.expirationTime() > 0);
-                    assertTrue(payload.expirationTime() >= payload.issuedAt());
+                    assertAll(
+                            () -> assertNotNull(payload.JwtId()),
+                            () -> assertEquals("issuer-id-123", payload.issuer()),
+                            () -> assertEquals("did:key:zDnaeiLt1XYBTBZk123#key-1", payload.subject())
+                    );
                 })
                 .verifyComplete();
     }
+
+
+    @Test
+    void buildLEARCredentialEmployeeJwtPayload_setsCnfKidFromSubjectId() {
+        DetailedIssuer issuer = mock(DetailedIssuer.class);
+        when(issuer.getId()).thenReturn("issuer-id-123");
+
+        var mandate = mock(LEARCredentialEmployee.CredentialSubject.Mandate.class);
+
+        var subject = LEARCredentialEmployee.CredentialSubject.builder()
+                .id("did:key:zDnaeiLt1XYBTBZk123#key-1")
+                .mandate(mandate)
+                .build();
+
+        var vc = LEARCredentialEmployee.builder()
+                .issuer(issuer)
+                .validFrom("2025-01-01T00:00:00Z")
+                .validUntil("2025-12-31T23:59:59Z")
+                .credentialSubject(subject)
+                .build();
+
+        StepVerifier.create(learCredentialEmployeeFactory.buildLEARCredentialEmployeeJwtPayload(vc))
+                .assertNext(payload -> {
+                    assertInstanceOf(Map.class, payload.cnf());
+                    var cnf = (Map<String, Object>) payload.cnf();
+
+                    assertEquals("did:key:zDnaeiLt1XYBTBZk123#key-1", cnf.get("kid"));
+                })
+                .verifyComplete();
+    }
+
+
+    @Test
+    void buildLEARCredentialEmployeeJwtPayload_setsTimestampsConsistently() {
+        DetailedIssuer issuer = mock(DetailedIssuer.class);
+        when(issuer.getId()).thenReturn("issuer-id-123");
+
+        var mandate = mock(LEARCredentialEmployee.CredentialSubject.Mandate.class);
+
+        var subject = LEARCredentialEmployee.CredentialSubject.builder()
+                .id("did:key:zDnaeiLt1XYBTBZk123#key-1")
+                .mandate(mandate)
+                .build();
+
+        var vc = LEARCredentialEmployee.builder()
+                .issuer(issuer)
+                .validFrom("2025-01-01T00:00:00Z")
+                .validUntil("2025-12-31T23:59:59Z")
+                .credentialSubject(subject)
+                .build();
+
+        StepVerifier.create(learCredentialEmployeeFactory.buildLEARCredentialEmployeeJwtPayload(vc))
+                .assertNext(payload -> {
+                    assertAll(
+                            () -> assertTrue(payload.issuedAt() > 0),
+                            () -> assertTrue(payload.notValidBefore() > 0),
+                            () -> assertTrue(payload.expirationTime() > 0),
+                            () -> assertTrue(payload.expirationTime() >= payload.issuedAt())
+                    );
+                })
+                .verifyComplete();
+    }
+
     @Test
     void buildLEARCredentialEmployeeJwtPayload_whenSubjectDidMissing_emitsIllegalStateException() {
         DetailedIssuer issuer = mock(DetailedIssuer.class);
@@ -566,7 +623,7 @@ class LEARCredentialEmployeeFactoryTest {
 
         StepVerifier.create(learCredentialEmployeeFactory.buildLEARCredentialEmployeeJwtPayload(vc))
                 .expectErrorSatisfies(ex -> {
-                    assertInstanceOf(java.time.format.DateTimeParseException.class, ex);
+                    assertInstanceOf(DateTimeParseException.class, ex);
                     assertTrue(ex.getMessage().contains("also-bad"));
                 })
                 .verify();
