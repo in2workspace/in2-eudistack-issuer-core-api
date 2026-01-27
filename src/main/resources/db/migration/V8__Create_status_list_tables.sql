@@ -1,43 +1,64 @@
 CREATE TABLE IF NOT EXISTS issuer.status_list (
-    id                BIGSERIAL PRIMARY KEY,
-    issuer_id         TEXT        NOT NULL,
-    purpose           TEXT        NOT NULL,
-    encoded_list      TEXT        NOT NULL,
-    signed_credential TEXT        NULL,
-    created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
+   id                BIGSERIAL PRIMARY KEY,
+   issuer_id         TEXT        NOT NULL,
+   purpose           TEXT        NOT NULL,
+   encoded_list      TEXT        NOT NULL,
+   signed_credential TEXT        NULL,
+   created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+   updated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS idx_status_list_issuer_purpose_id_desc
-    ON issuer.status_list (issuer_id, purpose, id DESC);
+   ON issuer.status_list (issuer_id, purpose, id DESC);
 
-CREATE TABLE IF NOT EXISTS issuer.status_list_index_new (
-    id             BIGSERIAL PRIMARY KEY,
-    status_list_id BIGINT      NOT NULL,
-    idx            INTEGER     NOT NULL,
-    procedure_id   TEXT        NOT NULL,
-    created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+-- Rename old index table to legacy (if needed)
+DO $$
+BEGIN
+ IF to_regclass('issuer.status_list_index') IS NOT NULL
+    AND to_regclass('issuer.legacy_status_list_index') IS NULL THEN
+   ALTER TABLE issuer.status_list_index RENAME TO legacy_status_list_index;
+ END IF;
+END $$;
 
-    CONSTRAINT fk_status_list_index_status_list
-        FOREIGN KEY (status_list_id)
-        REFERENCES issuer.status_list(id)
-        ON DELETE RESTRICT
+CREATE TABLE IF NOT EXISTS issuer.status_list_index (
+   id             BIGSERIAL PRIMARY KEY,
+   status_list_id BIGINT      NOT NULL,
+   idx            INTEGER     NOT NULL,
+   procedure_id   UUID        NOT NULL,
+   created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+   CONSTRAINT fk_status_list_index_status_list
+       FOREIGN KEY (status_list_id)
+       REFERENCES issuer.status_list(id)
+       ON DELETE RESTRICT,
+
+   CONSTRAINT fk_status_list_index_procedure
+       FOREIGN KEY (procedure_id)
+       REFERENCES issuer.credential_procedure(procedure_id)
+       ON DELETE RESTRICT
 );
 
-ALTER TABLE issuer.status_list_index_new
-    ADD CONSTRAINT uq_status_list_index_new_procedure_id
-    UNIQUE (procedure_id);
+-- Constraints (amb gestió d'errors silenciosa)
+DO $$
+BEGIN
+    ALTER TABLE issuer.status_list_index
+       ADD CONSTRAINT uq_status_list_index_procedure_id
+       UNIQUE (procedure_id);
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+END $$;
 
-ALTER TABLE issuer.status_list_index_new
-    ADD CONSTRAINT uq_status_list_index_new_list_id_idx
-    UNIQUE (status_list_id, idx);
+DO $$
+BEGIN
+    ALTER TABLE issuer.status_list_index
+       ADD CONSTRAINT uq_status_list_index_list_id_idx
+       UNIQUE (status_list_id, idx);
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+END $$;
 
-ALTER TABLE issuer.status_list_index_new
-    ADD CONSTRAINT chk_status_list_index_new_idx_range
-    CHECK (idx >= 0 AND idx < 131072);
+-- Indexes
+CREATE INDEX IF NOT EXISTS idx_status_list_index_status_list_id
+   ON issuer.status_list_index (status_list_id);
 
-CREATE INDEX IF NOT EXISTS idx_status_list_index_new_procedure_id
-    ON issuer.status_list_index_new (procedure_id);
 
-CREATE INDEX IF NOT EXISTS idx_status_list_index_new_status_list_id
-    ON issuer.status_list_index_new (status_list_id);

@@ -5,6 +5,7 @@ import es.in2.issuer.backend.statusList.domain.model.StatusListEntry;
 import es.in2.issuer.backend.statusList.domain.model.StatusPurpose;
 import es.in2.issuer.backend.statusList.infrastructure.repository.StatusListRow;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.util.LinkedHashMap;
@@ -13,6 +14,7 @@ import java.util.Map;
 import static es.in2.issuer.backend.statusList.domain.util.Constants.*;
 import static java.util.Objects.requireNonNull;
 
+@Slf4j
 @RequiredArgsConstructor
 @Component
 public class BitstringStatusListCredentialBuilder {
@@ -34,6 +36,8 @@ public class BitstringStatusListCredentialBuilder {
     }
 
     public StatusListEntry buildStatusListEntry(Long listId, Integer idx, StatusPurpose purpose) {
+        log.debug("Building status list entry - listId: {}, idx: {}", listId, idx);
+
         requireNonNull(listId, "listId cannot be null");
         requireNonNull(idx, "idx cannot be null");
         requireNonNull(purpose, "purpose cannot be null");

@@ -5,9 +5,9 @@ import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
 
 import java.time.Instant;
+import java.util.UUID;
 
-//todo canviar nom
-@Table("status_list_index_new")
+@Table("status_list_index")
 public record StatusListIndexRow(
         @Id
         Long id,
@@ -19,7 +19,7 @@ public record StatusListIndexRow(
         Integer idx,
 
         @Column("procedure_id")
-        String procedureId,
+        UUID procedureId,
 
         @Column("created_at")
         Instant createdAt

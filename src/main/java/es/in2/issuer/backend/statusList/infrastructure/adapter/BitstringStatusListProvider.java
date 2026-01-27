@@ -12,6 +12,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
+import java.util.UUID;
+
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -64,7 +66,7 @@ public class BitstringStatusListProvider implements StatusListProvider {
 
         // If the credential was already allocated, return the existing mapping (idempotent behavior).
         // todo consider finding by purpose; will be needed if new purposes are added in the future
-        return statusListIndexRepository.findByProcedureId(procedureId)
+        return statusListIndexRepository.findByProcedureId(UUID.fromString(procedureId))
                 .doOnNext(existing -> log.debug(
                         "action=allocateStatusListEntry step=idempotentHit procedureId={} statusListId={} idx={}",
                         procedureId, existing.statusListId(), existing.idx()
@@ -93,7 +95,7 @@ public class BitstringStatusListProvider implements StatusListProvider {
 
         log.info("action=revokeStatusList status=started procedureId={}", procedureId);
 
-        return statusListIndexRepository.findByProcedureId(procedureId)
+        return statusListIndexRepository.findByProcedureId(UUID.fromString(procedureId))
                 .switchIfEmpty(Mono.error(new StatusListIndexNotFoundException(procedureId)))
                 .flatMap(listIndex -> {
                     log.debug(

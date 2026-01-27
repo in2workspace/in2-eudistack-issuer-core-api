@@ -14,6 +14,7 @@ import reactor.util.retry.Retry;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.UUID;
 
 import static java.util.Objects.requireNonNull;
 
@@ -95,7 +96,7 @@ public class BitstringStatusListIndexReservationService {
                 null,
                 statusListId,
                 idx,
-                procedureId,
+                UUID.fromString(procedureId),
                 Instant.now()
         );
 
