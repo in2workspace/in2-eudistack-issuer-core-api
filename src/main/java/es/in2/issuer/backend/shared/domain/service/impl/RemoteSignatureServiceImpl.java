@@ -572,7 +572,7 @@ public class RemoteSignatureServiceImpl implements RemoteSignatureService {
             String updatedBy = cp.getUpdatedBy();
             log.debug("updatedBy in procedure: {}", updatedBy);
 
-            String targetEmail = !email.isBlank() ? email : updatedBy;
+            String targetEmail = (email != null && !email.isBlank()) ? email : updatedBy;
             log.info("Preparing email for org {} (to {})", org, targetEmail);
 
             return emailService.sendPendingSignatureCredentialNotification(
