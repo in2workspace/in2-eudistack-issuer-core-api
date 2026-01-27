@@ -5,6 +5,8 @@ import es.in2.issuer.backend.shared.application.workflow.CredentialSignerWorkflo
 import es.in2.issuer.backend.shared.domain.exception.RemoteSignatureException;
 import es.in2.issuer.backend.shared.domain.model.dto.CredentialResponse;
 import es.in2.issuer.backend.shared.domain.model.dto.PreSubmittedCredentialDataRequest;
+import es.in2.issuer.backend.shared.domain.model.entities.CredentialProcedure;
+import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum;
 import es.in2.issuer.backend.shared.domain.service.CredentialProcedureService;
 import es.in2.issuer.backend.shared.domain.service.DeferredCredentialMetadataService;
 import es.in2.issuer.backend.shared.domain.service.VerifiableCredentialService;
@@ -49,6 +51,24 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
                                 credentialProcedureService.updateFormatByProcedureId(procedureId, preSubmittedCredentialDataRequest.format())
                                         .then(deferredCredentialMetadataService.updateFormatByProcedureId(procedureId, preSubmittedCredentialDataRequest.format()))
                                         .thenReturn(transactionCode)));
+    }
+
+    @Override
+    public Mono<CredentialResponse> generateDeferredCredentialResponse(CredentialProcedure procedure, String transactionId) {
+        if (procedure.getCredentialStatus().equals(CredentialStatusEnum.VALID)) {
+            return Mono.just(
+                    CredentialResponse.builder()
+                            .credentials(List.of(
+                                    CredentialResponse.Credential.builder()
+                                            .credential(procedure.getCredentialDecoded())
+                                            .build()))
+                            .build());
+        } else {
+            return Mono.just(CredentialResponse.builder()
+                    .transactionId(transactionId)
+                    .interval(DEFERRED_CREDENTIAL_POLLING_INTERVAL)
+                    .build());
+        }
     }
 
     @Override
@@ -166,13 +186,34 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
                     .getDecodedCredentialByProcedureId(procedureId)
                     .flatMap(decodedCredential -> {
                         log.debug("ASYNC Credential JSON: {}", decodedCredential);
-                        return getAsyncCredentialResponseMono(transactionId);
+                        return getCredentialResponseWithTransactionId(transactionId);
                     });
         } else if (SYNC.equals(operationMode)) {
             return deferredCredentialMetadataService
                     .getProcedureIdByAuthServerNonce(authServerNonce)
-                    .flatMap(procId ->
-                            signCredential(transactionId, token, procId));
+                    .flatMap(procId -> credentialSignerWorkflow
+                            .signAndUpdateCredentialByProcedureId(
+                                    BEARER_PREFIX + token,
+                                    procId,
+                                    JWT_VC
+                            )
+                            .flatMap(signed -> Mono.just(
+                                    CredentialResponse.builder()
+                                            .credentials(List.of(
+                                                    CredentialResponse.Credential.builder()
+                                                            .credential(signed)
+                                                            .build()
+                                            ))
+                                            .build()
+                            ))
+                            .onErrorResume(error -> {
+                                if (error instanceof RemoteSignatureException
+                                        || error instanceof IllegalArgumentException) {
+                                    log.info("Error in SYNC mode, falling back to unsigned");
+                                    return getCredentialResponseWithTransactionId(transactionId);
+                                }
+                                return Mono.error(error);
+                            }));
         } else {
             return Mono.error(new IllegalArgumentException(
                     "Unknown operation mode: " + operationMode
@@ -180,55 +221,7 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
         }
     }
 
-    private Mono<CredentialResponse> signCredential(String transactionId, String token, String procId) {
-        return credentialSignerWorkflow
-                .signAndUpdateCredentialByProcedureId(
-                        BEARER_PREFIX + token,
-                        procId,
-                        JWT_VC
-                )
-                .flatMap(signed -> Mono.just(
-                        CredentialResponse.builder()
-                                .credentials(List.of(
-                                        CredentialResponse.Credential.builder()
-                                                .credential(signed)
-                                                .build()
-                                ))
-                                .build()
-                ))
-                .onErrorResume(error -> {
-                    if (error instanceof RemoteSignatureException
-                            || error instanceof IllegalArgumentException) {
-                        log.info("Error in SYNC mode, falling back to unsigned");
-                        return getAsyncCredentialResponseMono(transactionId);
-                    }
-                    return Mono.error(error);
-                });
-    }
-
-    @Override
-    public Mono<CredentialResponse> signDeferredCredential(
-            String processId,
-            String procedureId,
-            String credentialType,
-            String decodedCredential,
-            String format,
-            String authServerNonce,
-            String transactionId,
-            String token) {
-        return credentialFactory
-                .mapCredentialBindIssuerAndUpdateDB(
-                        processId,
-                        procedureId,
-                        decodedCredential,
-                        credentialType,
-                        format,
-                        authServerNonce,
-                        null)
-                .then(signCredential(transactionId, token, procedureId));
-    }
-
-    private Mono<CredentialResponse> getAsyncCredentialResponseMono(String transactionId) {
+    private Mono<CredentialResponse> getCredentialResponseWithTransactionId(String transactionId) {
         return Mono.just(
                 CredentialResponse.builder()
                         .transactionId(transactionId)

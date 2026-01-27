@@ -319,47 +319,38 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
     }
 
     @Override
-    public Mono<CredentialResponse> generateVerifiableCredentialDeferredResponse(String processId, DeferredCredentialRequest deferredCredentialRequest, String token) {
-        log.debug("generateVerifiableCredentialResponse");
-        return parseAuthServerNonce(token)
-                .flatMap(nonce -> deferredCredentialMetadataService.getDeferredCredentialMetadataByAuthServerNonce(nonce)
-                        .flatMap(deferred -> credentialProcedureService.getCredentialProcedureById(deferred.getProcedureId().toString())
-                                .zipWhen(proc -> credentialIssuerMetadataService.getCredentialIssuerMetadata(processId))
-                                .map(tuple -> Tuples.of(nonce, deferred, tuple.getT1(), tuple.getT2()))
-                        )
-                )
-                .flatMap(tuple4 -> {
-                    String nonce = tuple4.getT1();
-                    DeferredCredentialMetadata deferredCredentialMetadata = tuple4.getT2();
-                    CredentialProcedure proc = tuple4.getT3();
-                    String email = proc.getUpdatedBy();
-                    log.debug("email (from udpatedBy): {}", email);
+    public Mono<CredentialResponse> generateVerifiableCredentialDeferredResponse(
+            String processId,
+            DeferredCredentialRequest deferredCredentialRequest,
+            String token) {
+        String transactionId = deferredCredentialRequest.transactionId();
+        log.debug("ProcessID: {} Generating verifiable credential deferred response for transactionId: {}", processId, transactionId);
 
-                    String procedureId = proc.getProcedureId().toString();
-                    System.out.println("HOLAAA 1");
-                    System.out.println("Type: " + proc.getCredentialType());
-                    return credentialProcedureService.getCredentialTypeByProcedureId(procedureId)
-                            .flatMap(credentialType ->
-                                    verifiableCredentialService.signDeferredCredential(
-                                                    processId,
-                                                    procedureId,
-                                                    credentialType,
-                                                    proc.getCredentialDecoded(),
-                                                    proc.getCredentialFormat(),
-                                                    nonce,
-                                                    deferredCredentialRequest.transactionId(),
-                                                    token
-                                            )
-                                            .flatMap(credentialResponse ->
-                                                    handleOperationMode(
-                                                            SYNC,
-                                                            processId,
-                                                            nonce,
-                                                            credentialResponse,
-                                                            proc,
-                                                            deferredCredentialMetadata
-                                                    )));
-                });
+        return parseAuthServerNonce(token)
+                .flatMap(deferredCredentialMetadataService::getDeferredCredentialMetadataByAuthServerNonce)
+                .flatMap(deferred ->
+                        credentialProcedureService.getCredentialProcedureById(deferred.getProcedureId().toString())
+                                .flatMap(procedure ->
+                                        verifiableCredentialService.generateDeferredCredentialResponse(procedure, transactionId)
+                                                .flatMap(credentialResponse ->
+                                                        sendPendingSignatureCredentialNotification(
+                                                                procedure,
+                                                                credentialResponse)
+                                                                .thenReturn(credentialResponse))));
+    }
+
+    private Mono<Void> sendPendingSignatureCredentialNotification(
+            CredentialProcedure procedure,
+            CredentialResponse response) {
+        if (response.transactionId() != null) {
+            return emailService.sendPendingSignatureCredentialNotification(
+                    procedure.getCreatedBy(),
+                    "email.pending-credential-notification",
+                    procedure.getCreatedBy(),
+                    appConfig.getIssuerFrontendUrl());
+        }
+
+        return Mono.empty();
     }
 
     private Mono<String> extractDidFromJwtProof(String jwtProof) {
