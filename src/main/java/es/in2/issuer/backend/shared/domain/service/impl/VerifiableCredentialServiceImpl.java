@@ -60,7 +60,7 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
                     CredentialResponse.builder()
                             .credentials(List.of(
                                     CredentialResponse.Credential.builder()
-                                            .credential(procedure.getCredentialDecoded())
+                                            .credential(procedure.getCredentialEncoded())
                                             .build()))
                             .build());
         } else {
