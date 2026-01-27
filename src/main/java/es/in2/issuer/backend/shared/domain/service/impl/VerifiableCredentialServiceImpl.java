@@ -7,15 +7,13 @@ import es.in2.issuer.backend.shared.domain.model.dto.CredentialResponse;
 import es.in2.issuer.backend.shared.domain.model.dto.DeferredCredentialRequest;
 import es.in2.issuer.backend.shared.domain.model.dto.DeferredCredentialResponse;
 import es.in2.issuer.backend.shared.domain.model.dto.PreSubmittedCredentialDataRequest;
+import es.in2.issuer.backend.shared.domain.model.dto.credential.CredentialStatus;
 import es.in2.issuer.backend.shared.domain.service.CredentialProcedureService;
 import es.in2.issuer.backend.shared.domain.service.DeferredCredentialMetadataService;
 import es.in2.issuer.backend.shared.domain.service.VerifiableCredentialService;
 import es.in2.issuer.backend.shared.domain.util.factory.CredentialFactory;
-import es.in2.issuer.backend.shared.domain.util.factory.IssuerFactory;
-import es.in2.issuer.backend.shared.domain.util.factory.LEARCredentialEmployeeFactory;
-import es.in2.issuer.backend.shared.domain.util.factory.LabelCredentialFactory;
-import es.in2.issuer.backend.statusList.application.StatusListAllocator;
-import es.in2.issuer.backend.statusList.domain.spi.StatusListProvider;
+import es.in2.issuer.backend.statusList.application.StatusListWorkflow;
+import es.in2.issuer.backend.statusList.domain.model.StatusPurpose;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -36,17 +34,21 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
     private final CredentialProcedureService credentialProcedureService;
     private final DeferredCredentialMetadataService deferredCredentialMetadataService;
     private final CredentialSignerWorkflow credentialSignerWorkflow;
-    private final LEARCredentialEmployeeFactory learCredentialEmployeeFactory;
-    private final LabelCredentialFactory labelCredentialFactory;
-    private final IssuerFactory issuerFactory;
-    private final StatusListAllocator statusListAllocator;
+    private final StatusListWorkflow statusListWorkflow;
 
     @Override
     public Mono<String> generateVc(String processId, PreSubmittedCredentialDataRequest preSubmittedCredentialDataRequest, String email, String token) {
         String procedureId = UUID.randomUUID().toString();
 
-        //todo al final
-        return statusListAllocator.allocate(procedureId, token)
+        return statusListWorkflow
+                .allocateEntry(StatusPurpose.REVOCATION, procedureId, token)
+                .map(entry -> CredentialStatus.builder()
+                        .id(entry.id())
+                        .type(entry.type())
+                        .statusPurpose(entry.statusPurpose().value())
+                        .statusListIndex(String.valueOf(entry.statusListIndex()))
+                        .statusListCredential(entry.statusListCredential())
+                        .build())
                 .flatMap(credentialStatus ->
                         credentialFactory.mapCredentialIntoACredentialProcedureRequest(
                                 processId,

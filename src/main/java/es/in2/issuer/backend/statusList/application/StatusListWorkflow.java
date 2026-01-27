@@ -1,6 +1,5 @@
 package es.in2.issuer.backend.statusList.application;
 
-import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
 import es.in2.issuer.backend.statusList.domain.model.StatusListEntry;
 import es.in2.issuer.backend.statusList.domain.model.StatusPurpose;
 import es.in2.issuer.backend.statusList.domain.spi.StatusListProvider;
@@ -17,13 +16,8 @@ import static java.util.Objects.requireNonNull;
 @RequiredArgsConstructor
 public class StatusListWorkflow {
 
-    private final AppConfig appConfig;
     private final StatusListProvider statusListProvider;
 
-    /**
-     * Internal usage by Backoffice/OID4VCI: allocate a StatusListEntry (credentialStatus pointer)
-     * to be embedded into the issued VC.
-     */
     public Mono<StatusListEntry> allocateEntry(StatusPurpose purpose, String procedureId, String token) {
         //todo remove
         log.info("StatusListService - allocateEntry, purpose: {}, procedureId: {}, token: {}", purpose, procedureId, token);
