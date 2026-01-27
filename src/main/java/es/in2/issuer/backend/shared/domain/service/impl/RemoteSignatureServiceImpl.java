@@ -568,23 +568,19 @@ public class RemoteSignatureServiceImpl implements RemoteSignatureService {
 
         // Send email using provided email or fallback to updatedBy value
         Mono<Void> sendEmail = cachedProc.flatMap(cp -> {
-            if (email != null) {
-                String org = cp.getOrganizationIdentifier();
-                String updatedBy = cp.getUpdatedBy();
-                log.debug("updatedBy in procedure: {}", updatedBy);
+            String org = cp.getOrganizationIdentifier();
+            String updatedBy = cp.getUpdatedBy();
+            log.debug("updatedBy in procedure: {}", updatedBy);
 
-                String targetEmail = !email.isBlank() ? email : updatedBy;
-                log.info("Preparing email for org {} (to {})", org, targetEmail);
+            String targetEmail = !email.isBlank() ? email : updatedBy;
+            log.info("Preparing email for org {} (to {})", org, targetEmail);
 
-                return emailService.sendPendingSignatureCredentialNotification(
-                        targetEmail,
-                        "email.pending-credential-notification",
-                        procedureId,
-                        domain
-                );
-            } else {
-                return Mono.empty();
-            }
+            return emailService.sendPendingSignatureCredentialNotification(
+                    targetEmail,
+                    "email.pending-credential-notification",
+                    procedureId,
+                    domain
+            );
         });
 
         return updateOperationMode
