@@ -55,13 +55,13 @@ public class LEARCredentialMachineFactory {
         }
     }
 
-    public Mono<CredentialProcedureCreationRequest> mapAndBuildLEARCredentialMachine(String procedureId, JsonNode learCredential, CredentialStatus credentialStatus, String operationMode, String email) {
+    public Mono<CredentialProcedureCreationRequest> mapAndBuildLEARCredentialMachine(JsonNode learCredential, CredentialStatus credentialStatus, String operationMode, String email) {
         LEARCredentialMachine.CredentialSubject baseCredentialSubject = mapJsonNodeToCredentialSubject(learCredential);
         return buildFinalLearCredentialMachine(baseCredentialSubject, credentialStatus)
                 .flatMap(credentialDecoded ->
                         convertLEARCredentialMachineInToString(credentialDecoded)
                                 .flatMap(credentialDecodedString ->
-                                        buildCredentialProcedureCreationRequest(procedureId, credentialDecodedString, credentialDecoded, operationMode, email)
+                                        buildCredentialProcedureCreationRequest(credentialDecodedString, credentialDecoded, operationMode, email)
                                 )
                 );
     }
@@ -101,11 +101,10 @@ public class LEARCredentialMachineFactory {
         }
     }
 
-    private Mono<CredentialProcedureCreationRequest> buildCredentialProcedureCreationRequest(String procedureId, String decodedCredential, LEARCredentialMachine credentialDecoded, String operationMode, String email) {
+    private Mono<CredentialProcedureCreationRequest> buildCredentialProcedureCreationRequest(String decodedCredential, LEARCredentialMachine credentialDecoded, String operationMode, String email) {
         String mandatorOrgId = credentialDecoded.credentialSubject().mandate().mandator().organizationIdentifier();
         return Mono.just(
                 CredentialProcedureCreationRequest.builder()
-                        .procedureId(procedureId)
                         .organizationIdentifier(mandatorOrgId)
                         .credentialDecoded(decodedCredential)
                         .credentialType(CredentialType.LEAR_CREDENTIAL_MACHINE)
