@@ -4,6 +4,7 @@ import es.in2.issuer.backend.shared.domain.model.enums.CredentialType;
 import org.junit.jupiter.api.Test;
 
 import java.sql.Timestamp;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -24,6 +25,7 @@ class CredentialProcedureCreationRequestTest {
 
         // Act
         CredentialProcedureCreationRequest request = new CredentialProcedureCreationRequest(
+                UUID.randomUUID().toString(),
                 expectedOrganizationIdentifier,
                 expectedCredentialDecoded,
                 expectedCredentialType,
@@ -74,6 +76,7 @@ class CredentialProcedureCreationRequestTest {
         String expectedEmail2 = "user@example2.com";
 
         CredentialProcedureCreationRequest request1 = new CredentialProcedureCreationRequest(
+                UUID.randomUUID().toString(),
                 expectedOrganizationIdentifier,
                 expectedCredentialDecoded,
                 expectedCredentialType1,
@@ -84,6 +87,7 @@ class CredentialProcedureCreationRequestTest {
                 expectedEmail1
         );
         CredentialProcedureCreationRequest request2 = new CredentialProcedureCreationRequest(
+                UUID.randomUUID().toString(),
                 expectedOrganizationIdentifier,
                 expectedCredentialDecoded,
                 expectedCredentialType2,

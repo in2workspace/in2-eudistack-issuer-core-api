@@ -7,17 +7,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.*;
 import com.nimbusds.jose.crypto.ECDSASigner;
 import com.nimbusds.jose.crypto.ECDSAVerifier;
-import com.nimbusds.jose.crypto.Ed25519Verifier;
-import com.nimbusds.jose.jwk.Curve;
 import com.nimbusds.jose.jwk.ECKey;
-import com.nimbusds.jose.jwk.JWK;
-import com.nimbusds.jose.jwk.OctetKeyPair;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import es.in2.issuer.backend.shared.domain.exception.JWTClaimMissingException;
 import es.in2.issuer.backend.shared.domain.exception.JWTCreationException;
 import es.in2.issuer.backend.shared.domain.exception.JWTParsingException;
-import es.in2.issuer.backend.shared.domain.exception.ProofValidationException;
 import es.in2.issuer.backend.shared.domain.service.JWTService;
 import es.in2.issuer.backend.shared.infrastructure.crypto.CryptoComponent;
 import io.github.novacrypto.base58.Base58;
@@ -31,7 +26,6 @@ import org.bouncycastle.math.ec.custom.sec.SecP256R1Curve;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
 
 import java.math.BigInteger;
 import java.security.KeyFactory;
@@ -40,7 +34,10 @@ import java.security.interfaces.ECPublicKey;
 import java.security.spec.ECPoint;
 import java.security.spec.ECPublicKeySpec;
 import java.text.ParseException;
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.DID_KEY;
 
@@ -91,81 +88,14 @@ public class JWTServiceImpl implements JWTService {
         }
 
     }
-
     @Override
     public Mono<Boolean> validateJwtSignatureReactive(JWSObject jwsObject) {
         String kid = jwsObject.getHeader().getKeyID();
+        log.debug("validateJwtSignatureReactive - kid: {}", kid);
         String encodedPublicKey = extractEncodedPublicKey(kid);
+        log.debug("validateJwtSignatureReactive - encodedPublicKey: {}", encodedPublicKey);
         return decodePublicKeyIntoBytes(encodedPublicKey)
                 .flatMap(publicKeyBytes -> validateJwtSignature(jwsObject.getParsedString(), publicKeyBytes));
-    }
-
-    @Override
-    public Mono<Boolean> validateJwtSignatureWithJwkReactive(String jwt, Map<String, Object> jwkMap) {
-        return Mono.fromCallable(() -> validateJwtSignatureWithJwk(jwt, jwkMap))
-                .subscribeOn(Schedulers.boundedElastic());
-    }
-
-    private boolean validateJwtSignatureWithJwk(String jwt, Map<String, Object> jwkMap) throws ProofValidationException {
-        try {
-            SignedJWT signedJWT = SignedJWT.parse(jwt);
-            JWSAlgorithm alg = signedJWT.getHeader().getAlgorithm();
-
-            JWK jwk = parsePublicJwkOrThrow(jwkMap);
-            JWSVerifier verifier = buildVerifierOrThrow(jwk, alg);
-
-            return signedJWT.verify(verifier);
-
-        } catch (ParseException e) {
-            throw new ProofValidationException("invalid_proof: malformed jwt or jwk");
-        } catch (ProofValidationException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new ProofValidationException("invalid_proof: signature validation error");
-        }
-    }
-
-    private JWK parsePublicJwkOrThrow(Map<String, Object> jwkMap) throws ParseException, ProofValidationException {
-        JWK jwk = JWK.parse(jwkMap);
-        if (jwk.isPrivate()) {
-            throw new ProofValidationException("invalid_proof: jwk must not contain private key material");
-        }
-        return jwk;
-    }
-
-    private JWSVerifier buildVerifierOrThrow(JWK jwk, JWSAlgorithm alg) throws JOSEException, ProofValidationException {
-        if (jwk instanceof ECKey ecKey) {
-            validateAlgForEc(alg);
-            return new ECDSAVerifier(ecKey.toECPublicKey());
-        }
-
-        if (jwk instanceof OctetKeyPair okp) {
-            validateOkpEd25519(okp);
-            validateAlgForEd25519(alg);
-            return new Ed25519Verifier(okp);
-        }
-
-        throw new ProofValidationException("invalid_proof: jwk kty not supported");
-    }
-
-    private void validateAlgForEc(JWSAlgorithm alg) throws ProofValidationException {
-        if (alg == null || !alg.getName().startsWith("ES")) {
-            throw new ProofValidationException("invalid_proof: alg not compatible with EC JWK");
-        }
-    }
-
-    private void validateOkpEd25519(OctetKeyPair okp) throws ProofValidationException {
-        if (okp.getCurve() == null || !Curve.Ed25519.equals(okp.getCurve())) {
-            throw new ProofValidationException(
-                    "invalid_proof: only Ed25519 OKP keys are supported for signatures"
-            );
-        }
-    }
-
-    private void validateAlgForEd25519(JWSAlgorithm alg) throws ProofValidationException {
-        if (!JWSAlgorithm.EdDSA.equals(alg)) {
-            throw new ProofValidationException("invalid_proof: alg not compatible with Ed25519 JWK");
-        }
     }
 
 
@@ -178,6 +108,7 @@ public class JWTServiceImpl implements JWTService {
         } else if (kid.contains(prefix)) {
             encodedPublicKey = kid.substring(kid.indexOf(prefix) + prefix.length());
         } else {
+            log.error("❌ 'kid' format not correct");
             throw new IllegalArgumentException("'kid' format not correct");
         }
 
@@ -361,5 +292,4 @@ public class JWTServiceImpl implements JWTService {
         }
         return Map.of();
     }
-
 }

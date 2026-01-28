@@ -9,6 +9,7 @@ public enum GlobalErrorTypes {
 
     INVALID_TOKEN("invalid_token"),
     INVALID_JWT("invalid_jwt"),
+    INTERNAL_ERROR("internal_error"),
     UNSUPPORTED_CREDENTIAL_TYPE("unsupported_credential_type"),
     INVALID_OR_MISSING_PROOF("invalid_or_missing_proof"),
     OPERATION_NOT_SUPPORTED("operation_not_supported"),
@@ -28,7 +29,11 @@ public enum GlobalErrorTypes {
     EMAIL_COMMUNICATION("email_communication_error"),
     CREDENTIAL_SERIALIZATION("credential_serialization"),
     CREDENTIAL_PROCEDURE_INVALID_STATUS("credential_procedure_invalid_status"),
-    CREDENTIAL_PROCEDURE_NOT_FOUND("credential_procedure_not_found");
+    CREDENTIAL_PROCEDURE_NOT_FOUND("credential_procedure_not_found"),
+    STATUS_LIST_INDEX_NOT_FOUND("status_list_index_not_found"),
+    CONCURRENT_UPDATE("concurrent_update"),
+    REMOTE_SIGNATURE("remote_signature_error"),
+    STATUS_LIST_NOT_FOUND("status_list_not_found");
 
     private final String code;
 

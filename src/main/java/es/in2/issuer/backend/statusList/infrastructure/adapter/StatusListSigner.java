@@ -1,0 +1,81 @@
+package es.in2.issuer.backend.statusList.infrastructure.adapter;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import es.in2.issuer.backend.shared.domain.exception.RemoteSignatureException;
+import es.in2.issuer.backend.shared.domain.model.dto.SignatureConfiguration;
+import es.in2.issuer.backend.shared.domain.model.dto.SignatureRequest;
+import es.in2.issuer.backend.shared.domain.model.dto.SignedData;
+import es.in2.issuer.backend.shared.domain.model.enums.SignatureType;
+import es.in2.issuer.backend.shared.domain.service.RemoteSignatureService;
+import es.in2.issuer.backend.shared.domain.util.factory.IssuerFactory;
+import es.in2.issuer.backend.statusList.domain.exception.StatusListCredentialSerializationException;
+import es.in2.issuer.backend.statusList.infrastructure.repository.StatusList;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
+import reactor.core.publisher.Mono;
+
+import java.util.Map;
+
+import static java.util.Collections.emptyMap;
+import static java.util.Objects.requireNonNull;
+
+@RequiredArgsConstructor
+@Component
+public class StatusListSigner {
+
+    private final RemoteSignatureService remoteSignatureService;
+    private final ObjectMapper objectMapper;
+    private final IssuerFactory issuerFactory;
+    private final BitstringStatusListCredentialBuilder statusListBuilder;
+
+    /**
+     * Gets the issuer, builds the payload, and signs it. Does not persist anything.
+     */
+    public Mono<String> getIssuerAndSignCredential(StatusList saved, String token) {
+        return issuerFactory.createSimpleIssuer()
+                .flatMap(issuer -> {
+                    Map<String, Object> payload = statusListBuilder.buildUnsigned(
+                            saved.id(),
+                            issuer.id(),
+                            saved.purpose(),
+                            saved.encodedList()
+                    );
+
+                    return signPayload(payload, token, saved.id());
+                });
+    }
+
+    public Mono<String> signPayload(Map<String, Object> payload, String token, Long listId) {
+        requireNonNull(payload, "payload cannot be null");
+        requireNonNull(token, "token cannot be null");
+
+        return toSignatureRequest(payload)
+                .flatMap(req -> remoteSignatureService.signSystemCredential(req, token))
+                .onErrorMap(ex -> new RemoteSignatureException("Remote signature failed; list ID: " + listId, ex))
+                .map(signedData -> extractJwt(signedData, listId));
+    }
+
+    private Mono<SignatureRequest> toSignatureRequest(Map<String, Object> payload) {
+        return Mono.fromCallable(() -> {
+            String json = objectMapper.writeValueAsString(payload);
+
+            SignatureConfiguration config = SignatureConfiguration.builder()
+                    .type(SignatureType.JADES)
+                    .parameters(emptyMap())
+                    .build();
+
+            return SignatureRequest.builder()
+                    .configuration(config)
+                    .data(json)
+                    .build();
+        }).onErrorMap(JsonProcessingException.class, StatusListCredentialSerializationException::new);
+    }
+
+    private String extractJwt(SignedData signedData, Long listId) {
+        if (signedData == null || signedData.data() == null || signedData.data().isBlank()) {
+            throw new RemoteSignatureException("Remote signer returned empty SignedData; list ID: " + listId);
+        }
+        return signedData.data();
+    }
+}

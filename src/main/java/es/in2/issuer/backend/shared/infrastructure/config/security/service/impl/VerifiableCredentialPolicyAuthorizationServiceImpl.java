@@ -1,13 +1,11 @@
 package es.in2.issuer.backend.shared.infrastructure.config.security.service.impl;
 
-import static es.in2.issuer.backend.backoffice.domain.util.Constants.LEAR;
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.LEAR_CREDENTIAL_MACHINE;
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.LER;
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.ROLE;
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.SYS_ADMIN;
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.VC;
-import static es.in2.issuer.backend.shared.domain.util.Constants.LABEL_CREDENTIAL;
-import static es.in2.issuer.backend.shared.domain.util.Constants.LEAR_CREDENTIAL_EMPLOYEE;
+import static es.in2.issuer.backend.shared.domain.util.Constants.*;
 import static es.in2.issuer.backend.shared.domain.util.Utils.*;
 
 import com.fasterxml.jackson.core.JsonProcessingException;

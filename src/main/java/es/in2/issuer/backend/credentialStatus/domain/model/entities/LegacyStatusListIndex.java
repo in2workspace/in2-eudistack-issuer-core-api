@@ -1,4 +1,4 @@
-package es.in2.issuer.backend.backoffice.domain.model.entities;
+package es.in2.issuer.backend.credentialStatus.domain.model.entities;
 
 import lombok.*;
 import org.springframework.data.annotation.Id;
@@ -12,8 +12,8 @@ import java.util.UUID;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-@Table("issuer.status_list_index")
-public class StatusListIndex {
+@Table("issuer.legacy_status_list_index")
+public class LegacyStatusListIndex {
 
     @Id
     @Column("id")

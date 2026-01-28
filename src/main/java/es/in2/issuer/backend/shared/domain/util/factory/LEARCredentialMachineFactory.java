@@ -39,12 +39,6 @@ public class LEARCredentialMachineFactory {
     private final IssuerFactory issuerFactory;
     private final AppConfig appConfig;
 
-    public Mono<String> bindCryptographicCredentialSubjectId(String decodedCredentialString, String subjectId) {
-        LEARCredentialMachine decodedCredential = mapStringToLEARCredentialMachine(decodedCredentialString);
-        return bindSubjectIdToLearCredentialMachine(decodedCredential, subjectId)
-                .flatMap(this::convertLEARCredentialMachineInToString);
-    }
-
     public LEARCredentialMachine mapStringToLEARCredentialMachine(String learCredential)
             throws InvalidCredentialFormatException {
         try {
@@ -56,13 +50,13 @@ public class LEARCredentialMachineFactory {
         }
     }
 
-    public Mono<CredentialProcedureCreationRequest> mapAndBuildLEARCredentialMachine(JsonNode learCredential, String operationMode, String email) {
+    public Mono<CredentialProcedureCreationRequest> mapAndBuildLEARCredentialMachine(String procedureId, JsonNode learCredential, CredentialStatus credentialStatus, String operationMode, String email) {
         LEARCredentialMachine.CredentialSubject baseCredentialSubject = mapJsonNodeToCredentialSubject(learCredential);
-        return buildFinalLearCredentialMachine(baseCredentialSubject)
+        return buildFinalLearCredentialMachine(baseCredentialSubject, credentialStatus)
                 .flatMap(credentialDecoded ->
                         convertLEARCredentialMachineInToString(credentialDecoded)
                                 .flatMap(credentialDecodedString ->
-                                        buildCredentialProcedureCreationRequest(credentialDecodedString, credentialDecoded, operationMode, email)
+                                        buildCredentialProcedureCreationRequest(procedureId, credentialDecodedString, credentialDecoded, operationMode, email)
                                 )
                 );
     }
@@ -75,36 +69,23 @@ public class LEARCredentialMachineFactory {
                 .build();
     }
 
-    private Mono<LEARCredentialMachine> buildFinalLearCredentialMachine(LEARCredentialMachine.CredentialSubject baseCredentialSubject) {
+    private Mono<LEARCredentialMachine> buildFinalLearCredentialMachine(LEARCredentialMachine.CredentialSubject baseCredentialSubject, CredentialStatus credentialStatus) {
 
         Instant currentTime = Instant.now();
         String validFrom = currentTime.toString();
         String validUntil = currentTime.plus(365, ChronoUnit.DAYS).toString();
 
         String credentialId = "urn:uuid:" + UUID.randomUUID();
-        return buildCredentialStatus()
-                .map(credentialStatus -> LEARCredentialMachine.builder()
-                .context(CREDENTIAL_CONTEXT_LEAR_CREDENTIAL_MACHINE)
-                .id(credentialId)
-                .type(List.of(LEAR_CREDENTIAL_MACHINE, VERIFIABLE_CREDENTIAL))
-                .credentialSubject(baseCredentialSubject)
-                .validFrom(validFrom)
-                .validUntil(validUntil)
-                .credentialStatus(credentialStatus)
-                .build());
-
-    }
-
-    private Mono<CredentialStatus> buildCredentialStatus() {
-        String statusListCredential = appConfig.getIssuerBackendUrl() + "/backoffice/v1/credentials/status/1";
-        return generateCustomNonce()
-                .map(nonce -> CredentialStatus.builder()
-                        .id(statusListCredential + "#" + nonce)
-                        .type("PlainListEntity")
-                        .statusPurpose("revocation")
-                        .statusListIndex(nonce)
-                        .statusListCredential(statusListCredential)
+        return Mono.just(LEARCredentialMachine.builder()
+                        .context(CREDENTIAL_CONTEXT_LEAR_CREDENTIAL_MACHINE)
+                        .id(credentialId)
+                        .type(List.of(LEAR_CREDENTIAL_MACHINE, VERIFIABLE_CREDENTIAL))
+                        .credentialSubject(baseCredentialSubject)
+                        .validFrom(validFrom)
+                        .validUntil(validUntil)
+                        .credentialStatus(credentialStatus)
                         .build());
+
     }
 
     private Mono<String> convertLEARCredentialMachineInToString(LEARCredentialMachine credentialDecoded) {
@@ -115,18 +96,19 @@ public class LEARCredentialMachineFactory {
         }
     }
 
-    private Mono<CredentialProcedureCreationRequest> buildCredentialProcedureCreationRequest(String decodedCredential, LEARCredentialMachine credentialDecoded, String operationMode, String email) {
+    private Mono<CredentialProcedureCreationRequest> buildCredentialProcedureCreationRequest(String procedureId, String decodedCredential, LEARCredentialMachine credentialDecoded, String operationMode, String email) {
         String mandatorOrgId = credentialDecoded.credentialSubject().mandate().mandator().organizationIdentifier();
         return Mono.just(
-            CredentialProcedureCreationRequest.builder()
-                .organizationIdentifier(mandatorOrgId)
-                .credentialDecoded(decodedCredential)
-                .credentialType(CredentialType.LEAR_CREDENTIAL_MACHINE)
-                .subject(credentialDecoded.credentialSubject().mandate().mandatee().domain())
-                .validUntil(parseEpochSecondIntoTimestamp(parseDateToUnixTime(credentialDecoded.validUntil())))
-                .operationMode(operationMode)
-                .email(email)
-                .build()
+                CredentialProcedureCreationRequest.builder()
+                        .procedureId(procedureId)
+                        .organizationIdentifier(mandatorOrgId)
+                        .credentialDecoded(decodedCredential)
+                        .credentialType(CredentialType.LEAR_CREDENTIAL_MACHINE)
+                        .subject(credentialDecoded.credentialSubject().mandate().mandatee().domain())
+                        .validUntil(parseEpochSecondIntoTimestamp(parseDateToUnixTime(credentialDecoded.validUntil())))
+                        .operationMode(operationMode)
+                        .email(email)
+                        .build()
         );
     }
 
@@ -145,7 +127,7 @@ public class LEARCredentialMachineFactory {
             String email) {
         LEARCredentialMachine learCredentialMachine = mapStringToLEARCredentialMachine(decodedCredentialString);
 
-        return issuerFactory.createDetailedIssuer(procedureId, email)
+        return issuerFactory.createDetailedIssuerAndNotifyOnError(procedureId, email)
                 .flatMap(issuer -> bindIssuer(learCredentialMachine, issuer))
                 .flatMap(this::convertLEARCredentialMachineInToString);
     }
@@ -167,10 +149,6 @@ public class LEARCredentialMachineFactory {
     }
 
     public Mono<LEARCredentialMachineJwtPayload> buildLEARCredentialMachineJwtPayload(LEARCredentialMachine learCredentialMachine) {
-        String subject = learCredentialMachine.credentialSubject().id() != null
-                ? learCredentialMachine.credentialSubject().id()
-                : learCredentialMachine.credentialSubject().mandate().mandatee().id();
-
         return Mono.just(
                 LEARCredentialMachineJwtPayload.builder()
                         .JwtId(UUID.randomUUID().toString())
@@ -179,7 +157,7 @@ public class LEARCredentialMachineFactory {
                         .issuedAt(parseDateToUnixTime(learCredentialMachine.validFrom()))
                         .notValidBefore(parseDateToUnixTime(learCredentialMachine.validFrom()))
                         .issuer(learCredentialMachine.issuer().getId())
-                        .subject(subject)
+                        .subject(learCredentialMachine.credentialSubject().mandate().mandatee().id())
                         .build()
         );
     }
@@ -190,33 +168,5 @@ public class LEARCredentialMachineFactory {
         } catch (JsonProcessingException e) {
             return Mono.error(new CredentialSerializationException("Error serializing LEARCredentialMachine JWT payload to string."));
         }
-    }
-
-    private Mono<LEARCredentialMachine> bindSubjectIdToLearCredentialMachine(
-            LEARCredentialMachine decodedCredential,
-            String subjectId
-    ) {
-        LEARCredentialMachine.CredentialSubject currentSubject = decodedCredential.credentialSubject();
-
-        LEARCredentialMachine.CredentialSubject updatedSubject =
-                LEARCredentialMachine.CredentialSubject.builder()
-                        .id(subjectId)
-                        .mandate(currentSubject.mandate())
-                        .build();
-
-        return Mono.just(
-                LEARCredentialMachine.builder()
-                        .context(decodedCredential.context())
-                        .id(decodedCredential.id())
-                        .type(decodedCredential.type())
-                        .name(decodedCredential.name())
-                        .description(decodedCredential.description())
-                        .issuer(decodedCredential.issuer())
-                        .validFrom(decodedCredential.validFrom())
-                        .validUntil(decodedCredential.validUntil())
-                        .credentialStatus(decodedCredential.credentialStatus())
-                        .credentialSubject(updatedSubject)
-                        .build()
-        );
     }
 }

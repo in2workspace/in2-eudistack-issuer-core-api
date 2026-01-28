@@ -16,13 +16,12 @@ import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
 import es.in2.issuer.backend.shared.infrastructure.repository.CredentialProcedureRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.r2dbc.core.R2dbcEntityTemplate;
 import org.springframework.stereotype.Service;
 import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.sql.Timestamp;
-import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -38,10 +37,13 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
     private static final String UPDATED_CREDENTIAL = "Updated credential";
     private final CredentialProcedureRepository credentialProcedureRepository;
     private final ObjectMapper objectMapper;
+    private final R2dbcEntityTemplate r2dbcEntityTemplate;
 
     @Override
     public Mono<String> createCredentialProcedure(CredentialProcedureCreationRequest credentialProcedureCreationRequest) {
+        log.debug("createCredentialProcedure from data: {}", credentialProcedureCreationRequest);
         CredentialProcedure credentialProcedure = CredentialProcedure.builder()
+                .procedureId(UUID.fromString(credentialProcedureCreationRequest.procedureId()))
                 .credentialStatus(CredentialStatusEnum.DRAFT)
                 .credentialDecoded(credentialProcedureCreationRequest.credentialDecoded())
                 .organizationIdentifier(credentialProcedureCreationRequest.organizationIdentifier())
@@ -52,9 +54,9 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
                 .signatureMode("remote")
                 .email(credentialProcedureCreationRequest.email())
                 .build();
-        return credentialProcedureRepository.save(credentialProcedure)
-                .map(savedCredentialProcedure -> savedCredentialProcedure.getProcedureId().toString())
-                .doOnError(e -> log.error("Error saving credential procedure", e));
+        return r2dbcEntityTemplate.insert(credentialProcedure)
+                .map(saved -> saved.getProcedureId().toString())
+                .doOnError(e -> log.error("Error inserting credential procedure", e));
     }
 
     @Override

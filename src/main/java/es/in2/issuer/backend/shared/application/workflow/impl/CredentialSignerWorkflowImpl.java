@@ -3,20 +3,19 @@ package es.in2.issuer.backend.shared.application.workflow.impl;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.upokecenter.cbor.CBORObject;
 import es.in2.issuer.backend.backoffice.application.workflow.policies.BackofficePdpService;
 import es.in2.issuer.backend.shared.application.workflow.CredentialSignerWorkflow;
 import es.in2.issuer.backend.shared.application.workflow.DeferredCredentialWorkflow;
 import es.in2.issuer.backend.shared.domain.exception.Base45Exception;
-import es.in2.issuer.backend.shared.domain.exception.CredentialProcedureInvalidStatusException;
 import es.in2.issuer.backend.shared.domain.exception.CredentialProcedureNotFoundException;
 import es.in2.issuer.backend.shared.domain.model.dto.*;
+import es.in2.issuer.backend.shared.domain.model.dto.credential.Issuer;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.LabelCredential;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.employee.LEARCredentialEmployee;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.machine.LEARCredentialMachine;
-import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum;
+import es.in2.issuer.backend.shared.domain.model.entities.CredentialProcedure;
 import es.in2.issuer.backend.shared.domain.model.enums.SignatureType;
 import es.in2.issuer.backend.shared.domain.service.*;
 import es.in2.issuer.backend.shared.domain.util.factory.IssuerFactory;
@@ -47,7 +46,6 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
 
     private final AccessTokenService accessTokenService;
     private final BackofficePdpService backofficePdpService;
-    private final ObjectMapper objectMapper;
     private final DeferredCredentialWorkflow deferredCredentialWorkflow;
     private final RemoteSignatureService remoteSignatureService;
     private final LEARCredentialEmployeeFactory learCredentialEmployeeFactory;
@@ -59,56 +57,113 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
     private final CredentialDeliveryService credentialDeliveryService;
     private final DeferredCredentialMetadataService deferredCredentialMetadataService;
     private final IssuerFactory issuerFactory;
-
+    private final ObjectMapper objectMapper;
 
     @Override
-    public Mono<String> signAndUpdateCredentialByProcedureId(String token, String procedureId, String format) {
-        log.debug("signAndUpdateCredentialByProcedureId");
+    public Mono<String> signAndUpdateCredentialByProcedureId(String processId, String token, String procedureId, String format, String mandateeEmail) {
+        log.debug(
+                "Starting credential signing and update [processId={}, procedureId={}, format={}, mandateeEmail={}]",
+                processId,
+                procedureId,
+                format,
+                mandateeEmail
+        );
 
         return credentialProcedureRepository.findByProcedureId(UUID.fromString(procedureId))
-                .flatMap(credentialProcedure -> {
-                    try {
-                        String credentialType = credentialProcedure.getCredentialType();
-                        String updatedBy = credentialProcedure.getUpdatedBy();
-                        log.info("Building JWT payload for credential signing for credential with type: {}", credentialType);
-                        return switch (credentialType) {
-                            case LABEL_CREDENTIAL_TYPE -> {
-                                LabelCredential labelCredential = labelCredentialFactory
-                                        .mapStringToLabelCredential(credentialProcedure.getCredentialDecoded());
-                                yield labelCredentialFactory.buildLabelCredentialJwtPayload(labelCredential)
-                                        .flatMap(labelCredentialFactory::convertLabelCredentialJwtPayloadInToString)
-                                        .flatMap(unsignedCredential -> signCredentialOnRequestedFormat(unsignedCredential, format, token, procedureId, updatedBy));
-                            }
-                            case LEAR_CREDENTIAL_EMPLOYEE_TYPE -> {
-                                LEARCredentialEmployee learCredentialEmployee = learCredentialEmployeeFactory
-                                        .mapStringToLEARCredentialEmployee(credentialProcedure.getCredentialDecoded());
-                                yield learCredentialEmployeeFactory.buildLEARCredentialEmployeeJwtPayload(learCredentialEmployee)
-                                        .flatMap(learCredentialEmployeeFactory::convertLEARCredentialEmployeeJwtPayloadInToString)
-                                        .flatMap(unsignedCredential -> signCredentialOnRequestedFormat(unsignedCredential, format, token, procedureId, updatedBy));
-                            }
-                            case LEAR_CREDENTIAL_MACHINE_TYPE -> {
-                                LEARCredentialMachine learCredentialMachine = learCredentialMachineFactory
-                                        .mapStringToLEARCredentialMachine(credentialProcedure.getCredentialDecoded());
-                                yield learCredentialMachineFactory.buildLEARCredentialMachineJwtPayload(learCredentialMachine)
-                                        .flatMap(learCredentialMachineFactory::convertLEARCredentialMachineJwtPayloadInToString)
-                                        .flatMap(unsignedCredential -> signCredentialOnRequestedFormat(unsignedCredential, format, token, procedureId, updatedBy));
-                            }
-                            default -> {
-                                log.error("Unsupported credential type: {}", credentialType);
-                                yield Mono.error(new IllegalArgumentException("Unsupported credential type: " + credentialType));
-                            }
-                        };
-                    } catch (Exception e) {
-                        log.error("Error signing credential with procedure id: {} - {}", procedureId, e.getMessage(), e);
-                        return Mono.error(new IllegalArgumentException("Error signing credential"));
-                    }
+                .switchIfEmpty(Mono.error(new CredentialProcedureNotFoundException(
+                        "Credential procedure with ID " + procedureId + " was not found"
+                )))
+                .flatMap(procedure -> {
+                    String signerEmail = (mandateeEmail != null && !mandateeEmail.isBlank())
+                            ? mandateeEmail
+                            : procedure.getUpdatedBy();
+                    return getIssuerAndBindIntoDecodedCredential(procedure, procedureId, token, signerEmail)
+                            .flatMap(updatedDecoded ->
+                                    credentialProcedureService
+                                            .updateDecodedCredentialByProcedureId(procedureId, updatedDecoded, JWT_VC)
+                                            .thenReturn(updatedDecoded)
+                            )
+                            .flatMap(updatedDecoded -> buildUnsignedPayloadFromDecoded(procedure.getCredentialType(), updatedDecoded))
+                            .flatMap(unsignedPayload ->
+                                    signCredentialOnRequestedFormat(unsignedPayload, format, token, procedureId, signerEmail)
+                            );
                 })
-                .flatMap(signedCredential -> {
-                    log.info("Update Signed Credential");
-                    return updateSignedCredential(signedCredential, procedureId)
-                            .thenReturn(signedCredential);
-                })
-                .doOnSuccess(x -> log.info("Credential Signed and updated successfully."));
+                .flatMap(signedCredential ->
+                        updateSignedCredential(signedCredential, procedureId)
+                                .thenReturn(signedCredential)
+                )
+                .doOnSuccess(x -> log.info("Credential Signed and updated successfully. [processId={}]", processId));
+    }
+
+    private Mono<String> getIssuerAndBindIntoDecodedCredential(
+            CredentialProcedure proc,
+            String procedureId,
+            String token,
+            String mandateeEmail
+    ) {
+        String credentialType = proc.getCredentialType();
+        log.info("CredentialSignerWorkflowImpl - getIssuerAndBindIntoDecodedCredential");
+        log.info("CP: {}, procedureId: {}, token: {}, mandateeEmail: {}", proc, procedureId, token, mandateeEmail);
+
+        return resolveIssuerForType(credentialType, procedureId, mandateeEmail)
+                .switchIfEmpty(Mono.error(new IllegalStateException(
+                        "Issuer could not be resolved for procedureId: " + procedureId
+                )))
+                .flatMap(issuer ->
+                        bindIssuerIntoCredential(proc.getCredentialDecoded(), issuer)
+                );
+    }
+
+    private Mono<Issuer> resolveIssuerForType(String credentialType, String procedureId, String mandateeEmail) {
+        if (LABEL_CREDENTIAL_TYPE.equals(credentialType)) {
+            return issuerFactory.createSimpleIssuerAndNotifyOnError(procedureId, mandateeEmail).cast(Issuer.class);
+        }
+        return issuerFactory.createDetailedIssuerAndNotifyOnError(procedureId, mandateeEmail).cast(Issuer.class);
+    }
+
+    private Mono<String> bindIssuerIntoCredential(String decodedCredential, Issuer issuer) {
+        return Mono.fromCallable(() -> {
+            JsonNode rootNode = objectMapper.readTree(decodedCredential);
+            if (!(rootNode instanceof ObjectNode root)) {
+                throw new IllegalArgumentException("credentialDecoded must be a JSON object");
+            }
+
+            // Bind issuer (full object, because your models use issuer object)
+            root.set("issuer", objectMapper.valueToTree(issuer));
+
+            return objectMapper.writeValueAsString(root);
+        });
+    }
+
+    private Mono<String> buildUnsignedPayloadFromDecoded(String credentialType, String updatedDecodedCredential) {
+        try {
+            log.info("Building JWT payload for credential signing for credential with type: {}", credentialType);
+
+            return switch (credentialType) {
+                case LABEL_CREDENTIAL_TYPE -> {
+                    LabelCredential labelCredential = labelCredentialFactory.mapStringToLabelCredential(updatedDecodedCredential);
+                    yield labelCredentialFactory.buildLabelCredentialJwtPayload(labelCredential)
+                            .flatMap(labelCredentialFactory::convertLabelCredentialJwtPayloadInToString);
+                }
+                case LEAR_CREDENTIAL_EMPLOYEE_TYPE -> {
+                    LEARCredentialEmployee learCredentialEmployee = learCredentialEmployeeFactory.mapStringToLEARCredentialEmployee(updatedDecodedCredential);
+                    yield learCredentialEmployeeFactory.buildLEARCredentialEmployeeJwtPayload(learCredentialEmployee)
+                            .flatMap(learCredentialEmployeeFactory::convertLEARCredentialEmployeeJwtPayloadInToString);
+                }
+                case LEAR_CREDENTIAL_MACHINE_TYPE -> {
+                    LEARCredentialMachine learCredentialMachine = learCredentialMachineFactory.mapStringToLEARCredentialMachine(updatedDecodedCredential);
+                    yield learCredentialMachineFactory.buildLEARCredentialMachineJwtPayload(learCredentialMachine)
+                            .flatMap(learCredentialMachineFactory::convertLEARCredentialMachineJwtPayloadInToString);
+                }
+                default -> {
+                    log.error("Unsupported credential type: {}", credentialType);
+                    yield Mono.error(new IllegalArgumentException("Unsupported credential type: " + credentialType));
+                }
+            };
+        } catch (Exception e) {
+            log.error("Error building unsigned payload - {}", e.getMessage(), e);
+            return Mono.error(new IllegalArgumentException("Error building unsigned payload"));
+        }
     }
 
     private Mono<Void> updateSignedCredential(String signedCredential, String procedureId) {
@@ -120,19 +175,24 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
     private Mono<String> signCredentialOnRequestedFormat(String unsignedCredential, String format, String token, String procedureId, String email) {
         return Mono.defer(() -> {
             if (format.equals(JWT_VC)) {
-                return setSubIfCredentialSubjectIdPresent(unsignedCredential)
-                        .flatMap(payloadToSign -> {
-                            log.info("Signing credential in JADES remotely ...");
-                            SignatureRequest signatureRequest = new SignatureRequest(
-                                    new SignatureConfiguration(SignatureType.JADES, Collections.emptyMap()),
-                                    payloadToSign
-                            );
+                log.debug("Credential Payload {}", unsignedCredential);
+                log.info("Signing credential in JADES remotely ...");
+                SignatureRequest signatureRequest = new SignatureRequest(
+                        new SignatureConfiguration(SignatureType.JADES, Collections.emptyMap()),
+                        unsignedCredential
+                );
 
-                            return remoteSignatureService.sign(signatureRequest, token, procedureId, email)
-                                    .publishOn(Schedulers.boundedElastic())
-                                    .map(SignedData::data);
+                return remoteSignatureService.signIssuedCredential(signatureRequest, token, procedureId, email)
+                        .doOnSubscribe(s -> {
+                        })
+                        .doOnNext(data -> {
+                        })
+                        .publishOn(Schedulers.boundedElastic())
+                        .map(SignedData::data)
+                        .doOnSuccess(result -> {
+                        })
+                        .doOnError(e -> {
                         });
-
             } else if (format.equals(CWT_VC)) {
                 log.info(unsignedCredential);
                 return generateCborFromJson(unsignedCredential)
@@ -142,63 +202,6 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
                 return Mono.error(new IllegalArgumentException("Unsupported credential format: " + format));
             }
         });
-    }
-
-    private Mono<String> setSubIfCredentialSubjectIdPresent(String unsignedCredential) {
-        return Mono.fromCallable(() -> {
-            JsonNode root = objectMapper.readTree(unsignedCredential);
-            if (!(root instanceof ObjectNode rootObj)) {
-                return unsignedCredential;
-            }
-
-            String subjectDid = extractSubjectDid(rootObj);
-
-            if (subjectDid != null && !subjectDid.isBlank()) {
-                rootObj.put("sub", subjectDid);
-                return objectMapper.writeValueAsString(rootObj);
-            }
-
-            return unsignedCredential;
-        })
-        .subscribeOn(Schedulers.boundedElastic())
-        .onErrorResume(e -> {
-            log.warn(
-                    "Could not set 'sub' from vc.credentialSubject.id. Keeping original payload. Reason: {}",
-                    e.getMessage()
-            );
-            return Mono.just(unsignedCredential);
-        });
-    }
-
-    private String extractSubjectDid(ObjectNode rootObj) {
-        JsonNode csNode = rootObj.path("vc").path("credentialSubject");
-
-        if (csNode.isObject()) {
-            return extractIdFromObject(csNode);
-        }
-
-        if (csNode.isArray()) {
-            return extractIdFromArray((ArrayNode) csNode);
-        }
-
-        return null;
-    }
-
-    private String extractIdFromObject(JsonNode csNode) {
-        JsonNode idNode = csNode.path("id");
-        return idNode.isTextual() ? idNode.asText() : null;
-    }
-
-    private String extractIdFromArray(ArrayNode arrayNode) {
-        for (JsonNode item : arrayNode) {
-            if (item != null && item.isObject()) {
-                JsonNode idNode = item.path("id");
-                if (idNode.isTextual() && !idNode.asText().isBlank()) {
-                    return idNode.asText();
-                }
-            }
-        }
-        return null;
     }
 
     /**
@@ -225,7 +228,7 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
                 new SignatureConfiguration(SignatureType.COSE, Collections.emptyMap()),
                 cborBase64
         );
-        return remoteSignatureService.sign(signatureRequest, token, "", email).map(signedData -> Base64.getDecoder().decode(signedData.data()));
+        return remoteSignatureService.signIssuedCredential(signatureRequest, token, "", email).map(signedData -> Base64.getDecoder().decode(signedData.data()));
     }
 
     /**
@@ -253,129 +256,82 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
     public Mono<Void> retrySignUnsignedCredential(String processId, String authorizationHeader, String procedureId) {
         log.info("Retrying to sign credential. processId={} procedureId={}", processId, procedureId);
 
-        return accessTokenService.getCleanBearerToken(authorizationHeader)
-                .flatMap(token ->
-                        backofficePdpService.validateSignCredential(processId, token, procedureId)
-                                .then(Mono.just(token))
-                                .zipWhen(t -> accessTokenService.getMandateeEmail(authorizationHeader))
+        UUID uuid = UUID.fromString(procedureId);
+
+        return credentialProcedureRepository.findByProcedureId(uuid)
+                .switchIfEmpty(Mono.error(new CredentialProcedureNotFoundException(
+                        "Credential procedure with ID " + procedureId + " was not found"
+                )))
+                .doOnNext(credentialProcedure ->
+                        log.info("ProcessID: {} - Current credential status: {}",
+                                processId, credentialProcedure.getCredentialStatus())
                 )
-                .flatMap(tupleTokenEmail -> {
-                    String token = tupleTokenEmail.getT1();
-                    String email = tupleTokenEmail.getT2();
+                .flatMap(credentialProcedure ->
+                        accessTokenService.getCleanBearerToken(authorizationHeader)
+                                .flatMap(token ->
+                                        backofficePdpService
+                                                .validateSignCredential(processId, token, credentialProcedure)
+                                                .thenReturn(token)
+                                )
+                                .zipWhen(t -> accessTokenService.getMandateeEmail(authorizationHeader))
+                                .flatMap(tupleTokenEmail -> {
+                                    String token = tupleTokenEmail.getT1();
+                                    String email = tupleTokenEmail.getT2();
 
-                    return credentialProcedureRepository.findByProcedureId(UUID.fromString(procedureId))
-                            .switchIfEmpty(Mono.error(new CredentialProcedureNotFoundException(
-                                    "Credential procedure with ID " + procedureId + " was not found"
-                            )))
-                            .doOnNext(credentialProcedure ->
-                                    log.info("ProcessID: {} - Current credential status: {}",
-                                            processId, credentialProcedure.getCredentialStatus())
-                            )
-                            .filter(credentialProcedure ->
-                                    credentialProcedure.getCredentialStatus() == CredentialStatusEnum.PEND_SIGNATURE
-                            )
-                            .switchIfEmpty(Mono.error(new CredentialProcedureInvalidStatusException(
-                                    "Credential procedure with ID " + procedureId + " is not in PEND_SIGNATURE status"
-                            )))
-                            .flatMap(credentialProcedure -> {
-                                Mono<Void> updateDecodedCredentialMono =
-                                        switch (credentialProcedure.getCredentialType()) {
-                                            case LABEL_CREDENTIAL_TYPE ->
-                                                    issuerFactory.createSimpleIssuer(procedureId, email)
-                                                            .flatMap(issuer -> labelCredentialFactory.mapIssuer(procedureId, issuer))
-                                                            .flatMap(bindCredential ->
-                                                                    updateDecodedCredentialByProcedureId(procedureId, bindCredential)
-                                                            );
+                                    return this.signAndUpdateCredentialByProcedureId(
+                                                    processId,
+                                                    token,
+                                                    procedureId,
+                                                    JWT_VC,
+                                                    email
+                                            )
+                                            .flatMap(signedVc ->
+                                                    credentialProcedureService
+                                                            .updateCredentialProcedureCredentialStatusToValidByProcedureId(procedureId)
+                                                            .thenReturn(signedVc)
+                                            )
+                                            .flatMap(signedVc ->
+                                                    credentialProcedureRepository.findByProcedureId(uuid)
+                                                            .flatMap(updatedCredentialProcedure -> {
+                                                                String credentialType = updatedCredentialProcedure.getCredentialType();
+                                                                if (!LABEL_CREDENTIAL_TYPE.equals(credentialType)) {
+                                                                    return Mono.empty();
+                                                                }
 
-                                            case LEAR_CREDENTIAL_MACHINE_TYPE ->
-                                                    learCredentialMachineFactory
-                                                            .mapCredentialAndBindIssuerInToTheCredential(
-                                                                    credentialProcedure.getCredentialDecoded(), procedureId, email
-                                                            )
-                                                            .flatMap(bindCredential ->
-                                                                    updateDecodedCredentialByProcedureId(procedureId, bindCredential)
-                                                            );
-                                            
-                                            case LEAR_CREDENTIAL_EMPLOYEE_TYPE ->
-                                                    learCredentialEmployeeFactory
-                                                            .mapCredentialAndBindIssuerInToTheCredential(
-                                                                    credentialProcedure.getCredentialDecoded(), procedureId, email
-                                                            )
-                                                            .flatMap(bindCredential ->
-                                                                    updateDecodedCredentialByProcedureId(procedureId, bindCredential)
-                                                            );
+                                                                return deferredCredentialMetadataService
+                                                                        .getResponseUriByProcedureId(procedureId)
+                                                                        .switchIfEmpty(Mono.error(new IllegalStateException(
+                                                                                "Missing responseUri for procedureId: " + procedureId
+                                                                        )))
+                                                                        .flatMap(responseUri -> {
+                                                                            try {
+                                                                                String companyEmail = updatedCredentialProcedure.getEmail();
 
-                                            default -> {
-                                                log.error("Unknown credential type: {}", credentialProcedure.getCredentialType());
-                                                yield Mono.error(new IllegalArgumentException(
-                                                        "Unsupported credential type: " + credentialProcedure.getCredentialType()
-                                                ));
-                                            }
-                                        };
-
-                                return updateDecodedCredentialMono
-                                        .then(this.signAndUpdateCredentialByProcedureId(token, procedureId, JWT_VC))
-                                        .flatMap(signedVc ->
-                                                credentialProcedureService
-                                                        .updateCredentialProcedureCredentialStatusToValidByProcedureId(procedureId)
-                                                        .thenReturn(signedVc)
-                                        )
-                                        .flatMap(signedVc ->
-                                                credentialProcedureRepository.findByProcedureId(UUID.fromString(procedureId))
-                                                        .flatMap(updatedCredentialProcedure ->
-                                                                credentialProcedureRepository.save(updatedCredentialProcedure)
-                                                                        .thenReturn(updatedCredentialProcedure)
-                                                        )
-                                                        .flatMap(updatedCredentialProcedure -> {
-                                                            String credentialType = updatedCredentialProcedure.getCredentialType();
-                                                            if (!LABEL_CREDENTIAL_TYPE.equals(credentialType)) {
-                                                                return Mono.empty(); // do not send message if it is not LABEL_CREDENTIAL_TYPE
-                                                            }
-
-                                                            return deferredCredentialMetadataService.getResponseUriByProcedureId(procedureId)
-                                                                    .switchIfEmpty(Mono.error(new IllegalStateException(
-                                                                            "Missing responseUri for procedureId: " + procedureId
-                                                                    )))
-                                                                    .flatMap(responseUri -> {
-                                                                        try {
-                                                                            String companyEmail = updatedCredentialProcedure.getEmail();
-
-                                                                            return credentialProcedureService.getCredentialId(updatedCredentialProcedure)
-                                                                                    .doOnNext(credentialId ->
-                                                                                            log.debug("Using credentialId for delivery: {}", credentialId)
-                                                                                    )
-                                                                                    .flatMap(credentialId ->
-                                                                                            m2mTokenService.getM2MToken()
-                                                                                                    .flatMap(m2mToken ->
-                                                                                                            credentialDeliveryService.sendVcToResponseUri(
-                                                                                                                    responseUri,
-                                                                                                                    signedVc,
-                                                                                                                    credentialId,
-                                                                                                                    companyEmail,
-                                                                                                                    m2mToken.accessToken()
-                                                                                                            )
-                                                                                                    )
-                                                                                    );
-                                                                        } catch (Exception e) {
-                                                                            log.error("Error preparing signed VC for delivery", e);
-                                                                            return Mono.error(new RuntimeException(
-                                                                                    "Failed to prepare signed VC for delivery", e
-                                                                            ));
-                                                                        }
-                                                                    });
-                                                        })
-                                        );
-                            });
-                })
+                                                                                return credentialProcedureService
+                                                                                        .getCredentialId(updatedCredentialProcedure)
+                                                                                        .flatMap(credentialId ->
+                                                                                                m2mTokenService.getM2MToken()
+                                                                                                        .flatMap(m2mToken ->
+                                                                                                                credentialDeliveryService.sendVcToResponseUri(
+                                                                                                                        responseUri,
+                                                                                                                        signedVc,
+                                                                                                                        credentialId,
+                                                                                                                        companyEmail,
+                                                                                                                        m2mToken.accessToken()
+                                                                                                                )
+                                                                                                        )
+                                                                                        );
+                                                                            } catch (Exception e) {
+                                                                                log.error("Error preparing signed VC for delivery", e);
+                                                                                return Mono.error(new RuntimeException(
+                                                                                        "Failed to prepare signed VC for delivery", e
+                                                                                ));
+                                                                            }
+                                                                        });
+                                                            })
+                                            );
+                                })
+                )
                 .then();
-    }
-
-    private Mono<Void> updateDecodedCredentialByProcedureId(String procedureId, String bindCredential) {
-        log.info("ProcessID: {} - Credential mapped and bound to the issuer: {}", procedureId, bindCredential);
-        return credentialProcedureService.updateDecodedCredentialByProcedureId(
-                procedureId,
-                bindCredential,
-                JWT_VC
-        );
     }
 }

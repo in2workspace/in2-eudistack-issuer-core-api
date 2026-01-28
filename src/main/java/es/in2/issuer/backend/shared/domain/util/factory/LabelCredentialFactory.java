@@ -41,41 +41,28 @@ public class LabelCredentialFactory {
     private final AccessTokenService accessTokenService;
     private final AppConfig appConfig;
 
-    public Mono<CredentialProcedureCreationRequest> mapAndBuildLabelCredential(JsonNode credential, String operationMode, String email) {
+    public Mono<CredentialProcedureCreationRequest> mapAndBuildLabelCredential(String procedureId, JsonNode credential, CredentialStatus credentialStatus, String operationMode, String email) {
         LabelCredential labelCredential = objectMapper.convertValue(credential, LabelCredential.class);
 
-        return buildLabelCredential(labelCredential)
+        return buildLabelCredential(labelCredential, credentialStatus)
                 .flatMap(labelCredentialDecoded ->
                         convertLabelCredentialInToString(labelCredentialDecoded)
                                 .flatMap(decodedCredential ->
-                                        buildCredentialProcedureCreationRequest(decodedCredential, labelCredentialDecoded, operationMode, email)
+                                        buildCredentialProcedureCreationRequest(procedureId, decodedCredential, labelCredentialDecoded, operationMode, email)
                                 )
                 );
     }
 
-    private Mono<LabelCredential> buildLabelCredential(LabelCredential credential) {
+    private Mono<LabelCredential> buildLabelCredential(LabelCredential credential, CredentialStatus credentialStatus) {
         // Build the LabelCredential object
-        return buildCredentialStatus()
-                .map(credentialStatus -> LabelCredential.builder()
-                .context(LABEL_CREDENTIAL_CONTEXT)
-                .id("urn:uuid:" + UUID.randomUUID())
-                .type(LABEL_CREDENTIAL_TYPES)
-                .credentialSubject(credential.credentialSubject())
-                .validFrom(credential.validFrom())
-                .validUntil(credential.validUntil())
-                .credentialStatus(credentialStatus)
-                .build());
-    }
-
-    private Mono<CredentialStatus> buildCredentialStatus() {
-        String statusListCredential = appConfig.getIssuerBackendUrl() + "/backoffice/v1/credentials/status/1";
-        return generateCustomNonce()
-                .map(nonce -> CredentialStatus.builder()
-                        .id(statusListCredential + "#" + nonce)
-                        .type("PlainListEntity")
-                        .statusPurpose("revocation")
-                        .statusListIndex(nonce)
-                        .statusListCredential(statusListCredential)
+        return Mono.just(LabelCredential.builder()
+                        .context(LABEL_CREDENTIAL_CONTEXT)
+                        .id("urn:uuid:" + UUID.randomUUID())
+                        .type(LABEL_CREDENTIAL_TYPES)
+                        .credentialSubject(credential.credentialSubject())
+                        .validFrom(credential.validFrom())
+                        .validUntil(credential.validUntil())
+                        .credentialStatus(credentialStatus)
                         .build());
     }
 
@@ -98,7 +85,7 @@ public class LabelCredentialFactory {
             String email) {
         LabelCredential labelCredential = mapStringToLabelCredential(decodedCredentialString);
 
-        return issuerFactory.createSimpleIssuer(procedureId, email)
+        return issuerFactory.createSimpleIssuerAndNotifyOnError(procedureId, email)
                 .flatMap(issuer -> bindIssuer(labelCredential, issuer))
                 .flatMap(this::convertLabelCredentialInToString);
     }
@@ -169,11 +156,12 @@ public class LabelCredentialFactory {
     }
 
 
-    private Mono<CredentialProcedureCreationRequest> buildCredentialProcedureCreationRequest(String decodedCredential, LabelCredential labelCredentialDecoded, String operationMode, String email) {
+    private Mono<CredentialProcedureCreationRequest> buildCredentialProcedureCreationRequest(String procedureId, String decodedCredential, LabelCredential labelCredentialDecoded, String operationMode, String email) {
 
         return accessTokenService.getOrganizationIdFromCurrentSession()
                 .flatMap(organizationId ->
                         Mono.just(CredentialProcedureCreationRequest.builder()
+                                .procedureId(procedureId)
                                 .organizationIdentifier(organizationId)
                                 .credentialDecoded(decodedCredential)
                                 .credentialType(CredentialType.LABEL_CREDENTIAL)
