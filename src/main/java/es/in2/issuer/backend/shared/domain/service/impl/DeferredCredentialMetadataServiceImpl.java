@@ -124,13 +124,6 @@ public class DeferredCredentialMetadataServiceImpl implements DeferredCredential
                 .switchIfEmpty(Mono.error(new CredentialAlreadyIssuedException("The credential has already been issued")));
     }
 
-
-    @Override
-    public Mono<String> getProcedureIdByAuthServerNonce(String authServerNonce) {
-        return deferredCredentialMetadataRepository.findByAuthServerNonce(authServerNonce)
-                .flatMap(deferredCredentialMetadata -> Mono.just(deferredCredentialMetadata.getProcedureId().toString()));
-    }
-
     @Override
     public Mono<DeferredCredentialMetadata> getDeferredCredentialMetadataByAuthServerNonce(String authServerNonce) {
         return deferredCredentialMetadataRepository.findByAuthServerNonce(authServerNonce)

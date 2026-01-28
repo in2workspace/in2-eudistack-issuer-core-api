@@ -3,17 +3,22 @@ package es.in2.issuer.backend.shared.domain.service.impl;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.nimbusds.jose.JWSObject;
 import com.nimbusds.jwt.SignedJWT;
 import es.in2.issuer.backend.shared.domain.exception.InvalidTokenException;
+import es.in2.issuer.backend.shared.domain.model.dto.AccessTokenContext;
 import es.in2.issuer.backend.shared.domain.service.AccessTokenService;
+import es.in2.issuer.backend.shared.domain.service.DeferredCredentialMetadataService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.security.core.context.ReactiveSecurityContextHolder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
 import java.text.ParseException;
+import java.time.Instant;
 
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.*;
 
@@ -23,6 +28,8 @@ import static es.in2.issuer.backend.backoffice.domain.util.Constants.*;
 public class AccessTokenServiceImpl implements AccessTokenService {
 
     private final ObjectMapper objectMapper;
+
+    private final DeferredCredentialMetadataService deferredCredentialMetadataService;
 
     @Override
     public Mono<String> getCleanBearerToken(String authorizationHeader) {
@@ -107,11 +114,45 @@ public class AccessTokenServiceImpl implements AccessTokenService {
         }
     }
 
-    private Mono<String> getTokenFromCurrentSession() {
+    private @NotNull Mono<String> getTokenFromCurrentSession() {
         return ReactiveSecurityContextHolder.getContext()
                 .map(ctx -> {
                     JwtAuthenticationToken token = (JwtAuthenticationToken) ctx.getAuthentication();
                     return token.getToken().getTokenValue();
                 });
     }
+
+    @Override
+    public Mono<AccessTokenContext> validateAndResolveProcedure(String authorizationHeader) {
+        return getCleanBearerToken(authorizationHeader)
+                .flatMap(rawToken ->
+                        Mono.fromCallable(() -> JWSObject.parse(rawToken))
+                                .onErrorMap(e -> new InvalidTokenException("Error parsing access token"))
+                                .flatMap(jws -> {
+                                    var payload = jws.getPayload().toJSONObject();
+
+                                    String jti = (String) payload.get("jti");
+                                    Number expValue = (Number) payload.get("exp");
+
+                                    if (jti == null || jti.isBlank())
+                                        return Mono.error(new InvalidTokenException("Access token without jti"));
+                                    if (expValue == null)
+                                        return Mono.error(new InvalidTokenException("Access token without exp"));
+                                    if (Instant.ofEpochSecond(expValue.longValue()).isBefore(Instant.now()))
+                                        return Mono.error(new InvalidTokenException("Access token expired"));
+
+                                    return deferredCredentialMetadataService
+                                            .getDeferredCredentialMetadataByAuthServerNonce(jti)
+                                            .switchIfEmpty(Mono.error(new InvalidTokenException("No ProcedureID associated to this token")))
+                                            .map(def -> new AccessTokenContext(
+                                                    rawToken,
+                                                    jti,
+                                                    def.getProcedureId().toString(),
+                                                    def.getResponseUri()
+                                            ));
+                                })
+                );
+    }
+
+
 }

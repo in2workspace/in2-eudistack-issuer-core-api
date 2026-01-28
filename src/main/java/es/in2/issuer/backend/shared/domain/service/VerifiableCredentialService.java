@@ -7,7 +7,7 @@ import reactor.core.publisher.Mono;
 
 public interface VerifiableCredentialService {
     Mono<String> generateVc(String processId, PreSubmittedCredentialDataRequest preSubmittedCredentialDataRequest, String email);
-    Mono<CredentialResponse> buildCredentialResponse(String processId, String subjectDid, String authServerNonce, String token, String email);
+    Mono<CredentialResponse> buildCredentialResponse(String processId, String subjectDid, String authServerNonce, String token, String email, String procedureId);
     Mono<Void> bindAccessTokenByPreAuthorizedCode(String processId, String accessToken, String preAuthCode);
     Mono<CredentialResponse> generateDeferredCredentialResponse(CredentialProcedure procedure, String transactionId);
 }
