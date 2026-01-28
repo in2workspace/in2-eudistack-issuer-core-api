@@ -17,7 +17,6 @@ import es.in2.issuer.backend.shared.infrastructure.config.DefaultSignerConfig;
 import es.in2.issuer.backend.shared.infrastructure.config.RemoteSignatureConfig;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -25,10 +24,8 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import java.lang.reflect.Method;
-import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -63,72 +60,34 @@ class LEARCredentialEmployeeFactoryTest {
 
 
     @Test
-    void bindCryptographicCredentialSubjectId_bindsSubjectDidAndSerializes()
-            throws Exception {
-
-        // Arrange
-        String learCredential =
-                "validCredentialStringhttps://trust-framework.dome-marketplace.eu/credentials/learcredentialemployee/v1";
-        String subjectDid = "did:example:mandateeId";
+    void testMapCredentialAndBindMandateeIdInToTheCredential() throws JsonProcessingException, InvalidCredentialFormatException {
+        //Arrange
+        String learCredential = "validCredentialStringhttps://trust-framework.dome-marketplace.eu/credentials/learcredentialemployee/v1";
+        String mandateeId = "mandateeId";
         String expectedString = "expectedString";
+        LEARCredentialEmployeeJwtPayload learCredentialEmployeeJwtPayload = mock(LEARCredentialEmployeeJwtPayload.class);
+        LEARCredentialEmployee learCredentialEmployee = mock(LEARCredentialEmployee.class);
+        LEARCredentialEmployee.CredentialSubject credentialSubject = mock(LEARCredentialEmployee.CredentialSubject.class);
+        LEARCredentialEmployee.CredentialSubject.Mandate mandate = mock(LEARCredentialEmployee.CredentialSubject.Mandate.class);
+        Mandator mandator = mock(Mandator.class);
+        LEARCredentialEmployee.CredentialSubject.Mandate.Mandatee mandatee = mock(LEARCredentialEmployee.CredentialSubject.Mandate.Mandatee.class);
 
-        var mandatee = LEARCredentialEmployee.CredentialSubject.Mandate.Mandatee.builder()
-                .id("old-id")
-                .firstName("firstName")
-                .lastName("lastName")
-                .email("email")
-                .employeeId("employeeId")
-                .build();
+        when(objectMapper.readValue(learCredential, LEARCredentialEmployee.class)).thenReturn(learCredentialEmployee);
+        when(learCredentialEmployeeJwtPayload.learCredentialEmployee()).thenReturn(learCredentialEmployee);
+        when(learCredentialEmployeeJwtPayload.learCredentialEmployee().credentialSubject()).thenReturn(credentialSubject);
+        when(credentialSubject.mandate()).thenReturn(mandate);
+        when(mandate.mandator()).thenReturn(mandator);
+        when(mandate.mandatee()).thenReturn(mandatee);
+        when(mandatee.email()).thenReturn("email");
+        when(mandatee.firstName()).thenReturn("firstName");
+        when(mandatee.lastName()).thenReturn("lastName");
+        when(mandate.power()).thenReturn(List.of(Power.builder().build()));
+        when(objectMapper.writeValueAsString(any(LEARCredentialEmployee.class))).thenReturn(expectedString);
 
-        var mandator = Mandator.builder()
-                .organizationIdentifier("orgId")
-                .build();
-
-        var mandate = LEARCredentialEmployee.CredentialSubject.Mandate.builder()
-                .mandator(mandator)
-                .mandatee(mandatee)
-                .power(List.of(Power.builder().build()))
-                .build();
-
-        var subject = LEARCredentialEmployee.CredentialSubject.builder()
-                .id("old-subject-id")
-                .mandate(mandate)
-                .build();
-
-        var decoded = LEARCredentialEmployee.builder()
-                .context(List.of("ctx"))
-                .id("cred-id")
-                .type(List.of("type"))
-                .description("desc")
-                .issuer(null)
-                .validFrom("2025-01-01T00:00:00Z")
-                .validUntil("2026-01-01T00:00:00Z")
-                .credentialSubject(subject)
-                .credentialStatus(null)
-                .build();
-
-        when(objectMapper.readValue(learCredential, LEARCredentialEmployee.class))
-                .thenReturn(decoded);
-
-        ArgumentCaptor<LEARCredentialEmployee> captor =
-                ArgumentCaptor.forClass(LEARCredentialEmployee.class);
-
-        when(objectMapper.writeValueAsString(captor.capture()))
-                .thenAnswer(inv -> {
-                    LEARCredentialEmployee updated = captor.getValue();
-                    assertEquals(subjectDid, updated.credentialSubject().id());
-                    assertEquals("orgId", updated.credentialSubject().mandate().mandator().organizationIdentifier());
-                    assertEquals("old-id", updated.credentialSubject().mandate().mandatee().id());
-                    return expectedString;
-                });
-
-        // Act & Assert
-        StepVerifier.create(learCredentialEmployeeFactory.bindCryptographicCredentialSubjectId(learCredential, subjectDid))
+        //Act & Assert
+        StepVerifier.create(learCredentialEmployeeFactory.bindCryptographicCredentialSubjectId(learCredential, mandateeId))
                 .expectNext(expectedString)
                 .verifyComplete();
-
-        verify(objectMapper).readValue(learCredential, LEARCredentialEmployee.class);
-        verify(objectMapper).writeValueAsString(any(LEARCredentialEmployee.class));
     }
 
 //    @Test
@@ -389,245 +348,4 @@ class LEARCredentialEmployeeFactoryTest {
                 })
                 .verify();
     }
-
-    @Test
-    void buildLEARCredentialEmployeeJwtPayload_success_setsSubjectIssuerTimesAndCnfKid() {
-        // Arrange
-        DetailedIssuer issuer = mock(DetailedIssuer.class);
-        when(issuer.getId()).thenReturn("issuer-id-123");
-
-        LEARCredentialEmployee.CredentialSubject subject =
-                LEARCredentialEmployee.CredentialSubject.builder()
-                        .id("did:key:zDnaeiLt1XYBTBZk123#key-1")
-                        .mandate(mock(LEARCredentialEmployee.CredentialSubject.Mandate.class))
-                        .build();
-
-        LEARCredentialEmployee vc = LEARCredentialEmployee.builder()
-                .issuer(issuer)
-                .validFrom("2025-01-01T00:00:00Z")
-                .validUntil("2025-12-31T23:59:59Z")
-                .credentialSubject(subject)
-                .build();
-
-        // Act
-        Mono<LEARCredentialEmployeeJwtPayload> mono =
-                learCredentialEmployeeFactory.buildLEARCredentialEmployeeJwtPayload(vc);
-
-        // Assert
-        StepVerifier.create(mono)
-                .assertNext(payload -> {
-                    assertNotNull(payload.JwtId());
-                    assertEquals(vc, payload.learCredentialEmployee());
-                    assertEquals("issuer-id-123", payload.issuer());
-                    assertEquals("did:key:zDnaeiLt1XYBTBZk123#key-1", payload.subject());
-
-                    assertNotNull(payload.cnf());
-                    assertInstanceOf(java.util.Map.class, payload.cnf());
-
-                    @SuppressWarnings("unchecked")
-                    java.util.Map<String, Object> cnf = (java.util.Map<String, Object>) payload.cnf();
-
-                    assertEquals("did:key:zDnaeiLt1XYBTBZk123#key-1", cnf.get("kid"));
-
-                    assertTrue(payload.issuedAt() > 0);
-                    assertTrue(payload.notValidBefore() > 0);
-                    assertTrue(payload.expirationTime() > 0);
-                    assertTrue(payload.expirationTime() >= payload.issuedAt());
-                })
-                .verifyComplete();
-    }
-
-
-    @Test
-    void buildLEARCredentialEmployeeJwtPayload_whenCredentialSubjectIdNull_emitsIllegalStateException() {
-        DetailedIssuer issuer = mock(DetailedIssuer.class);
-
-        LEARCredentialEmployee.CredentialSubject subject =
-                LEARCredentialEmployee.CredentialSubject.builder()
-                        .id(null)
-                        .mandate(mock(LEARCredentialEmployee.CredentialSubject.Mandate.class))
-                        .build();
-
-        LEARCredentialEmployee vc = LEARCredentialEmployee.builder()
-                .issuer(issuer)
-                .validFrom("2025-01-01T00:00:00Z")
-                .validUntil("2025-12-31T23:59:59Z")
-                .credentialSubject(subject)
-                .build();
-
-        StepVerifier.create(learCredentialEmployeeFactory.buildLEARCredentialEmployeeJwtPayload(vc))
-                .expectErrorSatisfies(ex -> {
-                    assertInstanceOf(IllegalStateException.class, ex);
-                    assertEquals("Missing credentialSubject.id (cryptographic binding DID)", ex.getMessage());
-                })
-                .verify();
-    }
-
-    @Test
-    void buildLEARCredentialEmployeeJwtPayload_whenCredentialSubjectIdBlank_emitsIllegalStateException() {
-        DetailedIssuer issuer = mock(DetailedIssuer.class);
-
-        LEARCredentialEmployee.CredentialSubject subject =
-                LEARCredentialEmployee.CredentialSubject.builder()
-                        .id("   ")
-                        .mandate(mock(LEARCredentialEmployee.CredentialSubject.Mandate.class))
-                        .build();
-
-        LEARCredentialEmployee vc = LEARCredentialEmployee.builder()
-                .issuer(issuer)
-                .validFrom("2025-01-01T00:00:00Z")
-                .validUntil("2025-12-31T23:59:59Z")
-                .credentialSubject(subject)
-                .build();
-
-        StepVerifier.create(learCredentialEmployeeFactory.buildLEARCredentialEmployeeJwtPayload(vc))
-                .expectErrorSatisfies(ex -> {
-                    assertInstanceOf(IllegalStateException.class, ex);
-                    assertEquals("Missing credentialSubject.id (cryptographic binding DID)", ex.getMessage());
-                })
-                .verify();
-    }
-
-    @Test
-    void buildLEARCredentialEmployeeJwtPayload_setsStandardClaims() {
-        DetailedIssuer issuer = mock(DetailedIssuer.class);
-        when(issuer.getId()).thenReturn("issuer-id-123");
-
-        var mandate = mock(LEARCredentialEmployee.CredentialSubject.Mandate.class);
-
-        var subject = LEARCredentialEmployee.CredentialSubject.builder()
-                .id("did:key:zDnaeiLt1XYBTBZk123#key-1")
-                .mandate(mandate)
-                .build();
-
-        var vc = LEARCredentialEmployee.builder()
-                .issuer(issuer)
-                .validFrom("2025-01-01T00:00:00Z")
-                .validUntil("2025-12-31T23:59:59Z")
-                .credentialSubject(subject)
-                .build();
-
-        StepVerifier.create(learCredentialEmployeeFactory.buildLEARCredentialEmployeeJwtPayload(vc))
-                .assertNext(payload -> {
-                    assertAll(
-                            () -> assertNotNull(payload.JwtId()),
-                            () -> assertEquals("issuer-id-123", payload.issuer()),
-                            () -> assertEquals("did:key:zDnaeiLt1XYBTBZk123#key-1", payload.subject())
-                    );
-                })
-                .verifyComplete();
-    }
-
-
-    @Test
-    void buildLEARCredentialEmployeeJwtPayload_setsCnfKidFromSubjectId() {
-        DetailedIssuer issuer = mock(DetailedIssuer.class);
-        when(issuer.getId()).thenReturn("issuer-id-123");
-
-        var mandate = mock(LEARCredentialEmployee.CredentialSubject.Mandate.class);
-
-        var subject = LEARCredentialEmployee.CredentialSubject.builder()
-                .id("did:key:zDnaeiLt1XYBTBZk123#key-1")
-                .mandate(mandate)
-                .build();
-
-        var vc = LEARCredentialEmployee.builder()
-                .issuer(issuer)
-                .validFrom("2025-01-01T00:00:00Z")
-                .validUntil("2025-12-31T23:59:59Z")
-                .credentialSubject(subject)
-                .build();
-
-        StepVerifier.create(learCredentialEmployeeFactory.buildLEARCredentialEmployeeJwtPayload(vc))
-                .assertNext(payload -> {
-                    assertInstanceOf(Map.class, payload.cnf());
-                    var cnf = (Map<String, Object>) payload.cnf();
-
-                    assertEquals("did:key:zDnaeiLt1XYBTBZk123#key-1", cnf.get("kid"));
-                })
-                .verifyComplete();
-    }
-
-
-    @Test
-    void buildLEARCredentialEmployeeJwtPayload_setsTimestampsConsistently() {
-        DetailedIssuer issuer = mock(DetailedIssuer.class);
-        when(issuer.getId()).thenReturn("issuer-id-123");
-
-        var mandate = mock(LEARCredentialEmployee.CredentialSubject.Mandate.class);
-
-        var subject = LEARCredentialEmployee.CredentialSubject.builder()
-                .id("did:key:zDnaeiLt1XYBTBZk123#key-1")
-                .mandate(mandate)
-                .build();
-
-        var vc = LEARCredentialEmployee.builder()
-                .issuer(issuer)
-                .validFrom("2025-01-01T00:00:00Z")
-                .validUntil("2025-12-31T23:59:59Z")
-                .credentialSubject(subject)
-                .build();
-
-        StepVerifier.create(learCredentialEmployeeFactory.buildLEARCredentialEmployeeJwtPayload(vc))
-                .assertNext(payload -> {
-                    assertAll(
-                            () -> assertTrue(payload.issuedAt() > 0),
-                            () -> assertTrue(payload.notValidBefore() > 0),
-                            () -> assertTrue(payload.expirationTime() > 0),
-                            () -> assertTrue(payload.expirationTime() >= payload.issuedAt())
-                    );
-                })
-                .verifyComplete();
-    }
-
-    @Test
-    void buildLEARCredentialEmployeeJwtPayload_whenSubjectDidMissing_emitsIllegalStateException() {
-        DetailedIssuer issuer = mock(DetailedIssuer.class);
-
-        var subject = LEARCredentialEmployee.CredentialSubject.builder()
-                .id("   ") // blank
-                .mandate(mock(LEARCredentialEmployee.CredentialSubject.Mandate.class))
-                .build();
-
-        var vc = LEARCredentialEmployee.builder()
-                .issuer(issuer)
-                .validFrom("2025-01-01T00:00:00Z")
-                .validUntil("2025-12-31T23:59:59Z")
-                .credentialSubject(subject)
-                .build();
-
-        StepVerifier.create(learCredentialEmployeeFactory.buildLEARCredentialEmployeeJwtPayload(vc))
-                .expectErrorSatisfies(ex -> {
-                    assertInstanceOf(IllegalStateException.class, ex);
-                    assertEquals("Missing credentialSubject.id (cryptographic binding DID)", ex.getMessage());
-                })
-
-                .verify();
-    }
-
-    @Test
-    void buildLEARCredentialEmployeeJwtPayload_whenDatesInvalid_emitsDateTimeParseException() {
-        DetailedIssuer issuer = mock(DetailedIssuer.class);
-
-        var subject = LEARCredentialEmployee.CredentialSubject.builder()
-                .id("did:key:zDnaeiLt1XYBTBZk123#key-1")
-                .mandate(mock(LEARCredentialEmployee.CredentialSubject.Mandate.class))
-                .build();
-
-        var vc = LEARCredentialEmployee.builder()
-                .issuer(issuer)
-                .validFrom("not-a-date")
-                .validUntil("also-bad")
-                .credentialSubject(subject)
-                .build();
-
-        StepVerifier.create(learCredentialEmployeeFactory.buildLEARCredentialEmployeeJwtPayload(vc))
-                .expectErrorSatisfies(ex -> {
-                    assertInstanceOf(DateTimeParseException.class, ex);
-                    assertTrue(ex.getMessage().contains("also-bad"));
-                })
-                .verify();
-    }
-
-
 }

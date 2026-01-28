@@ -12,6 +12,7 @@ import es.in2.issuer.backend.shared.domain.model.dto.credential.CredentialStatus
 import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.Power;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.employee.LEARCredentialEmployee;
 import es.in2.issuer.backend.shared.domain.model.enums.CredentialType;
+import es.in2.issuer.backend.shared.domain.service.AccessTokenService;
 import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,7 +25,6 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.LEAR_CREDENTIAL_EMPLOYEE_DESCRIPTION;
@@ -37,31 +37,15 @@ import static es.in2.issuer.backend.shared.domain.util.Utils.generateCustomNonce
 public class LEARCredentialEmployeeFactory {
 
     private final ObjectMapper objectMapper;
+    private final AccessTokenService accessTokenService;
     private final IssuerFactory issuerFactory;
     private final AppConfig appConfig;
 
-    public Mono<String> bindCryptographicCredentialSubjectId(String decodedCredentialString, String subjectDid) {
-        log.info("[BIND] called bindCryptographicCredentialSubjectId subjectDid={}", subjectDid);
-
-        if (subjectDid == null || subjectDid.isBlank()) {
-            log.error("[BIND] subjectDid is null/blank -> will NOT be able to bind credentialSubject.id");
-        }
-
+    public Mono<String> bindCryptographicCredentialSubjectId(String decodedCredentialString, String mandateeId){
         LEARCredentialEmployee decodedCredential = mapStringToLEARCredentialEmployee(decodedCredentialString);
-
-        log.info("[BIND] BEFORE: credentialSubject.id={}, mandatee.id={}",
-                decodedCredential.credentialSubject() != null ? decodedCredential.credentialSubject().id() : null,
-                decodedCredential.credentialSubject() != null ? decodedCredential.credentialSubject().mandate().mandatee().id() : null
-        );
-
-        return bindSubjectIdToLearCredentialEmployee(decodedCredential, subjectDid)
-                .doOnNext(updated -> log.info("[BIND] AFTER: credentialSubject.id={}",
-                        updated.credentialSubject() != null ? updated.credentialSubject().id() : null
-                ))
-                .flatMap(this::convertLEARCredentialEmployeeInToString)
-                .doOnNext(json -> log.debug("[BIND] JSON contains \"credentialSubject\".id? {}", json.contains("\"credentialSubject\":{\"id\"")));
+        return bindMandateeIdToLearCredentialEmployee(decodedCredential, mandateeId)
+                .flatMap(this::convertLEARCredentialEmployeeInToString);
     }
-
 
     public Mono<String> mapCredentialAndBindIssuerInToTheCredential(String decodedCredentialString, String procedureId, String email) {
         LEARCredentialEmployee decodedCredential = mapStringToLEARCredentialEmployee(decodedCredentialString);
@@ -183,59 +167,60 @@ public class LEARCredentialEmployeeFactory {
     }
 
     public Mono<LEARCredentialEmployeeJwtPayload> buildLEARCredentialEmployeeJwtPayload(LEARCredentialEmployee learCredentialEmployee) {
-        return Mono.fromCallable(() -> {
-            String subjectDid = learCredentialEmployee.credentialSubject().id();
-            if (subjectDid == null || subjectDid.isBlank()) {
-                throw new IllegalStateException("Missing credentialSubject.id (cryptographic binding DID)");
-            }
-
-            Map<String, Object> cnf = Map.of("kid", subjectDid);
-
-            return LEARCredentialEmployeeJwtPayload.builder()
-                    .JwtId(UUID.randomUUID().toString())
-                    .learCredentialEmployee(learCredentialEmployee)
-                    .expirationTime(parseDateToUnixTime(learCredentialEmployee.validUntil()))
-                    .issuedAt(parseDateToUnixTime(learCredentialEmployee.validFrom()))
-                    .notValidBefore(parseDateToUnixTime(learCredentialEmployee.validFrom()))
-                    .issuer(learCredentialEmployee.issuer().getId())
-                    .subject(subjectDid)
-                    .cnf(cnf)
-                    .build();
-        });
+        log.debug("buildLEARCredentialEmployeeJwtPayload: {}", learCredentialEmployee);
+        return Mono.just(
+                LEARCredentialEmployeeJwtPayload.builder()
+                        .JwtId(UUID.randomUUID().toString())
+                        .learCredentialEmployee(learCredentialEmployee)
+                        .expirationTime(parseDateToUnixTime(learCredentialEmployee.validUntil()))
+                        .issuedAt(parseDateToUnixTime(learCredentialEmployee.validFrom()))
+                        .notValidBefore(parseDateToUnixTime(learCredentialEmployee.validFrom()))
+                        .issuer(learCredentialEmployee.issuer().getId())
+                        .subject(learCredentialEmployee.credentialSubject().mandate().mandatee().id())
+                        .build()
+        );
     }
-
 
     private long parseDateToUnixTime(String date) {
         ZonedDateTime zonedDateTime = ZonedDateTime.parse(date, DateTimeFormatter.ISO_ZONED_DATE_TIME);
         return zonedDateTime.toInstant().getEpochSecond();
     }
 
-    private Mono<LEARCredentialEmployee> bindSubjectIdToLearCredentialEmployee(
-            LEARCredentialEmployee decodedCredential,
-            String subjectDid
-    ) {
-        var currentSubject = decodedCredential.credentialSubject();
+    private Mono<LEARCredentialEmployee> bindMandateeIdToLearCredentialEmployee(LEARCredentialEmployee decodedCredential, String mandateeId) {
+        LEARCredentialEmployee.CredentialSubject.Mandate.Mandatee baseMandatee =
+                decodedCredential.credentialSubject().mandate().mandatee();
+        LEARCredentialEmployee.CredentialSubject.Mandate.Mandatee updatedMandatee =
+                LEARCredentialEmployee.CredentialSubject.Mandate.Mandatee.builder()
+                        .id(mandateeId)
+                        .email(baseMandatee.email())
+                        .employeeId(baseMandatee.employeeId())
+                        .firstName(baseMandatee.firstName())
+                        .lastName(baseMandatee.lastName())
+                        .build();
 
-        var updatedSubject = LEARCredentialEmployee.CredentialSubject.builder()
-                .id(subjectDid)
-                .mandate(currentSubject.mandate())
-                .build();
-
-        return Mono.just(
-                LEARCredentialEmployee.builder()
-                        .context(decodedCredential.context())
-                        .id(decodedCredential.id())
-                        .type(decodedCredential.type())
-                        .description(decodedCredential.description())
-                        .issuer(decodedCredential.issuer())
-                        .validFrom(decodedCredential.validFrom())
-                        .validUntil(decodedCredential.validUntil())
-                        .credentialSubject(updatedSubject)
-                        .credentialStatus(decodedCredential.credentialStatus())
-                        .build()
+        return Mono.just(LEARCredentialEmployee.builder()
+                .context(decodedCredential.context())
+                .id(decodedCredential.id())
+                .type(decodedCredential.type())
+                .description(decodedCredential.description())
+                .issuer(decodedCredential.issuer())
+                .validFrom(decodedCredential.validFrom())
+                .validUntil(decodedCredential.validUntil())
+                .credentialSubject(
+                        LEARCredentialEmployee.CredentialSubject.builder()
+                                .mandate(
+                                        LEARCredentialEmployee.CredentialSubject.Mandate.builder()
+                                                .mandator(decodedCredential.credentialSubject().mandate().mandator())
+                                                .mandatee(updatedMandatee)
+                                                .power(decodedCredential.credentialSubject().mandate().power())
+                                                .build()
+                                )
+                                .build()
+                )
+                .credentialStatus(decodedCredential.credentialStatus())
+                .build()
         );
     }
-
 
     private Mono<LEARCredentialEmployee> bindIssuerToLearCredentialEmployee(LEARCredentialEmployee decodedCredential, String procedureId, String email) {
         log.debug("🔐: bindIssuerToLearCredentialEmployee");

@@ -1,20 +1,20 @@
 package es.in2.issuer.backend.shared.domain.service.impl;
 
-import com.nimbusds.jose.JWSHeader;
-import com.nimbusds.jwt.SignedJWT;
+import com.nimbusds.jose.JWSObject;
+import es.in2.issuer.backend.shared.application.workflow.NonceValidationWorkflow;
 import es.in2.issuer.backend.shared.domain.exception.ProofValidationException;
 import es.in2.issuer.backend.shared.domain.service.JWTService;
 import es.in2.issuer.backend.shared.domain.service.ProofValidationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
 import java.time.Instant;
 import java.util.Map;
-import java.util.Set;
+import java.util.Objects;
 
+import static es.in2.issuer.backend.backoffice.domain.util.Constants.SUPPORTED_PROOF_ALG;
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.SUPPORTED_PROOF_TYP;
 
 @Slf4j
@@ -23,196 +23,53 @@ import static es.in2.issuer.backend.backoffice.domain.util.Constants.SUPPORTED_P
 public class ProofValidationServiceImpl implements ProofValidationService {
 
     private final JWTService jwtService;
+    private final NonceValidationWorkflow nonceValidationWorkflow;
 
 
     @Override
-    public Mono<Boolean> isProofValid(String jwtProof, Set<String> allowedAlgs, String expectedAudience) {
+    public Mono<Boolean> isProofValid(String jwtProof, String token) {
         return Mono.just(jwtProof)
-                .flatMap(jwt -> parseAndValidateJwt(jwt, expectedAudience, allowedAlgs))
+                .doOnNext(jwt -> log.debug("Starting validation for JWT: {}", jwt))
+                .flatMap(this::parseAndValidateJwt)
                 .doOnNext(jws -> log.debug("JWT parsed successfully"))
-                .flatMap(this::validateSignatureAccordingToHeader)
-                .defaultIfEmpty(false)
+                .flatMap(jwsObject ->
+                        jwtService.validateJwtSignatureReactive(jwsObject)
+                                .doOnSuccess(isSignatureValid -> log.debug("Signature validation result: {}", isSignatureValid))
+                                .map(isSignatureValid -> Boolean.TRUE.equals(isSignatureValid) ? jwsObject : null)
+                )
+                .doOnNext(jwsObject -> {
+                    if (jwsObject == null) log.debug("JWT signature validation failed");
+                    else log.debug("JWT signature validated, checking nonce...");
+                })
+                .map(Objects::nonNull)
                 // TODO: Check nonce when implemented
                 .doOnSuccess(result -> log.debug("Final validation result: {}", result))
-                .onErrorMap(e -> (e instanceof ProofValidationException) ? e
-                        : new ProofValidationException("Error during JWT validation"));
+                .onErrorMap(e -> new ProofValidationException("Error during JWT validation"));
     }
 
-    private Mono<Boolean> validateSignatureAccordingToHeader(SignedJWT signedJWT) {
-        JWSHeader header = signedJWT.getHeader();
-
-        if (header.getJWK() != null) {
-            return validateSignatureWithEmbeddedJwk(signedJWT);
-        }
-
-        return validateSignatureWithExternalKey(signedJWT);
+    private Mono<JWSObject> parseAndValidateJwt(String jwtProof) {
+        return Mono.fromCallable(() -> {
+            JWSObject jwsObject = JWSObject.parse(jwtProof);
+            validateHeader(jwsObject);
+            validatePayload(jwsObject);
+            return jwsObject;
+        });
     }
 
-    private Mono<Boolean> validateSignatureWithEmbeddedJwk(SignedJWT signedJWT) {
-        Map<String, Object> jwkMap = signedJWT.getHeader()
-                .getJWK()
-                .toJSONObject();
-
-        return jwtService.validateJwtSignatureWithJwkReactive(
-                signedJWT.serialize(),
-                jwkMap
-        );
-    }
-
-    private Mono<Boolean> validateSignatureWithExternalKey(SignedJWT signedJWT) {
-        return jwtService.validateJwtSignatureReactive(signedJWT);
-    }
-
-    private Mono<SignedJWT> parseAndValidateJwt(String jwtProof, String expectedAudience, Set<String> allowedAlgs) {
-        return Mono.fromCallable(() -> SignedJWT.parse(jwtProof))
-                .flatMap(jwt -> {
-                    try {
-                        validateJwtHeader(jwt, allowedAlgs);
-                    } catch (ProofValidationException e) {
-                        return Mono.error(e);
-                    }
-                    try {
-                        validatePayload(jwt, expectedAudience);
-                    } catch (ProofValidationException e) {
-                        return Mono.error(e);
-                    }
-                    return Mono.just(jwt);
-                });
-    }
-
-    private void validateJwtHeader(SignedJWT signedJWT, Set<String> allowedAlgs) throws ProofValidationException {
-        var header = signedJWT.getHeader();
-
-        String alg = getAlg(header);
-        validateAlgAllowed(alg, allowedAlgs);
-
-        Map<String, Object> headerParams = header.toJSONObject();
-        HeaderKeyMaterial km = resolveKeyMaterial(header, headerParams);
-
-        // Not implemented: x5c
-        if (km.type() == KeyMaterialType.X5C) {
-            throw new ProofValidationException("invalid_proof: x5c not supported");
-        }
-
-        if (km.type() == KeyMaterialType.JWK) {
-            validateJwkIsPublicOnly(km.value());
+    private void validateHeader(JWSObject jwsObject) {
+        Map<String, Object> headerParams = jwsObject.getHeader().toJSONObject();
+        if (headerParams.get("alg") == null || headerParams.get("typ") == null ||
+                !SUPPORTED_PROOF_ALG.equals(headerParams.get("alg")) ||
+                !SUPPORTED_PROOF_TYP.equals(headerParams.get("typ"))) {
+            throw new IllegalArgumentException("Invalid JWT header");
         }
     }
 
-    private void validateAlgAllowed(String alg, Set<String> allowedAlgs) throws ProofValidationException {
-        if (allowedAlgs == null || allowedAlgs.isEmpty() || !allowedAlgs.contains(alg)) {
-            throw new ProofValidationException("invalid_proof: alg not allowed by configuration");
+    private void validatePayload(JWSObject jwsObject) {
+        var payload = jwsObject.getPayload().toJSONObject();
+        if (!payload.containsKey("aud") || !payload.containsKey("iat") ||
+                (payload.containsKey("exp") && Instant.now().isAfter(Instant.ofEpochSecond(Long.parseLong(payload.get("exp").toString()))))) {
+            throw new IllegalArgumentException("Invalid JWT payload");
         }
     }
-
-    private HeaderKeyMaterial resolveKeyMaterial(
-            JWSHeader header,
-            Map<String, Object> headerParams
-    ) throws ProofValidationException {
-
-        boolean hasKid = header.getKeyID() != null;
-        Object jwkObj = headerParams.get("jwk");
-        boolean hasJwk = jwkObj != null;
-
-        Object x5cObj = headerParams.get("x5c");
-        boolean hasX5c = (x5cObj instanceof java.util.List<?> list && !list.isEmpty());
-
-        int present = (hasKid ? 1 : 0) + (hasJwk ? 1 : 0) + (hasX5c ? 1 : 0);
-        if (present != 1) {
-            throw new ProofValidationException("invalid_proof: exactly one of kid, jwk or x5c must be present");
-        }
-
-        if (hasKid) return new HeaderKeyMaterial(KeyMaterialType.KID, header.getKeyID());
-        if (hasX5c) return new HeaderKeyMaterial(KeyMaterialType.X5C, x5cObj);
-        return new HeaderKeyMaterial(KeyMaterialType.JWK, jwkObj);
-    }
-
-    private void validateJwkIsPublicOnly(Object jwkObj) throws ProofValidationException {
-        if (!(jwkObj instanceof Map<?, ?> jwkMap)) {
-            throw new ProofValidationException("invalid_proof: jwk must be a JSON object");
-        }
-
-        boolean hasPrivate =
-                jwkMap.containsKey("d")  ||
-                        jwkMap.containsKey("p")  ||
-                        jwkMap.containsKey("q")  ||
-                        jwkMap.containsKey("dp") ||
-                        jwkMap.containsKey("dq") ||
-                        jwkMap.containsKey("qi");
-
-        if (hasPrivate) {
-            throw new ProofValidationException("invalid_proof: JWK must not contain private key material");
-        }
-    }
-
-    private enum KeyMaterialType { KID, JWK, X5C }
-
-    private record HeaderKeyMaterial(KeyMaterialType type, Object value) {}
-
-
-    private @NotNull String getAlg(JWSHeader header) throws ProofValidationException {
-        String typ = header.getType() != null ? header.getType().toString() : null;
-        String alg = header.getAlgorithm() != null ? header.getAlgorithm().getName() : null;
-
-        if (!SUPPORTED_PROOF_TYP.equals(typ)) {
-            throw new ProofValidationException("invalid_proof: typ must be openid4vci-proof+jwt");
-        }
-        if (alg == null || "none".equalsIgnoreCase(alg) || alg.startsWith("HS")) {
-            throw new ProofValidationException("invalid_proof: alg not allowed");
-        }
-        return alg;
-    }
-
-    private void validatePayload(SignedJWT signedJWT, String expectedAudience) throws ProofValidationException {
-        var payload = signedJWT.getPayload().toJSONObject();
-
-        Object audObj = payload.get("aud");
-        if (audObj == null || audObj.toString().isBlank()) {
-            throw new ProofValidationException("Invalid JWT payload: aud is missing");
-        }
-
-        boolean audMatches = (audObj instanceof String s && s.equals(expectedAudience)) || (audObj instanceof java.util.List<?> list && list.stream().anyMatch(a -> expectedAudience.equals(String.valueOf(a))));
-
-        if (!audMatches) {
-            throw new ProofValidationException(
-                    "Invalid JWT payload: aud must be '" + expectedAudience + "' but was " + audObj
-            );
-        }
-
-        Object iatObj = payload.get("iat");
-        if (iatObj == null) {
-            throw new ProofValidationException("Invalid JWT payload: iat is missing");
-        }
-
-        long iatEpoch;
-        try {
-            iatEpoch = Long.parseLong(iatObj.toString());
-        } catch (NumberFormatException e) {
-            throw new ProofValidationException("Invalid JWT payload: iat must be a numeric epoch value");
-        }
-
-        Instant iat = Instant.ofEpochSecond(iatEpoch);
-        Instant now = Instant.now();
-
-        if (iat.isBefore(now.minusSeconds(300)) || iat.isAfter(now.plusSeconds(60))) {
-            throw new ProofValidationException("Invalid JWT payload: iat outside acceptable time window");
-        }
-
-        if (payload.containsKey("exp")) {
-            Object expObj = payload.get("exp");
-            long expEpoch;
-            try {
-                expEpoch = Long.parseLong(expObj.toString());
-            } catch (NumberFormatException e) {
-                throw new ProofValidationException("Invalid JWT payload: exp must be a numeric epoch value");
-            }
-
-            Instant exp = Instant.ofEpochSecond(expEpoch);
-            if (now.isAfter(exp)) {
-                throw new ProofValidationException("Invalid JWT payload: proof has expired");
-            }
-        }
-    }
-
-
 }

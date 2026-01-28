@@ -13,7 +13,6 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import static es.in2.issuer.backend.shared.domain.util.Constants.LEAR_CREDENTIAL_EMPLOYEE;
-import static es.in2.issuer.backend.shared.domain.util.Constants.LEAR_CREDENTIAL_MACHINE;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -21,9 +20,6 @@ class CredentialFactoryTest {
 
     @Mock
     private LEARCredentialEmployeeFactory learCredentialEmployeeFactory;
-
-    @Mock
-    private LEARCredentialMachineFactory learCredentialMachineFactory;
 
     @InjectMocks
     private CredentialFactory credentialFactory;
@@ -209,61 +205,6 @@ class CredentialFactoryTest {
         verify(learCredentialEmployeeFactory).mapCredentialAndBindIssuerInToTheCredential(decodedCredential, procedureId, "");
         verify(credentialProcedureService).updateDecodedCredentialByProcedureId(procedureId, boundCredential, format);
         verify(deferredCredentialMetadataService).updateDeferredCredentialByAuthServerNonce(authServerNonce, format);
-    }
-
-    @Test
-    void testBindCryptographicCredentialSubjectId_Machine_Success() {
-        // Arrange
-        String processId = "processId";
-        String decodedCredential = "decodedCredential";
-        String subjectDid = "did:key:zDna...";
-        String expected = "boundCredential";
-
-        when(learCredentialMachineFactory.bindCryptographicCredentialSubjectId(decodedCredential, subjectDid))
-                .thenReturn(Mono.just(expected));
-
-        // Act & Assert
-        StepVerifier.create(
-                        credentialFactory.bindCryptographicCredentialSubjectId(
-                                processId,
-                                LEAR_CREDENTIAL_MACHINE,
-                                decodedCredential,
-                                subjectDid
-                        )
-                )
-                .expectNext(expected)
-                .verifyComplete();
-
-        verify(learCredentialMachineFactory).bindCryptographicCredentialSubjectId(decodedCredential, subjectDid);
-        verifyNoInteractions(learCredentialEmployeeFactory);
-    }
-
-    @Test
-    void testBindCryptographicCredentialSubjectId_Machine_ErrorPropagates() {
-        // Arrange
-        String processId = "processId";
-        String credentialType = LEAR_CREDENTIAL_MACHINE;
-        String decodedCredential = "decodedCredential";
-        String subjectDid = "did:key:zDna...";
-        RuntimeException error = new RuntimeException("bind error");
-
-        when(learCredentialMachineFactory.bindCryptographicCredentialSubjectId(decodedCredential, subjectDid))
-                .thenReturn(Mono.error(error));
-
-        // Act & Assert
-        StepVerifier.create(
-                        credentialFactory.bindCryptographicCredentialSubjectId(
-                                processId,
-                                credentialType,
-                                decodedCredential,
-                                subjectDid
-                        )
-                )
-                .expectErrorMatches(t -> t == error)
-                .verify();
-
-        verify(learCredentialMachineFactory).bindCryptographicCredentialSubjectId(decodedCredential, subjectDid);
-        verifyNoInteractions(learCredentialEmployeeFactory);
     }
 
 

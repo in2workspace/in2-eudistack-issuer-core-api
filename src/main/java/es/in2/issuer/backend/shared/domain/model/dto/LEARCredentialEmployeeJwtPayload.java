@@ -25,9 +25,6 @@ public record LEARCredentialEmployeeJwtPayload(
         LEARCredentialEmployee learCredentialEmployee,
 
         @JsonProperty("jti")
-        String JwtId,
-
-        @JsonProperty("cnf")
-        Object cnf
+        String JwtId
 ) {
 }

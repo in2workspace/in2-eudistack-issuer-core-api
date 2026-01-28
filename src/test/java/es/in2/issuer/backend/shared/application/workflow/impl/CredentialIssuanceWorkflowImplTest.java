@@ -2,21 +2,14 @@ package es.in2.issuer.backend.shared.application.workflow.impl;
 
 
 import es.in2.issuer.backend.oidc4vci.domain.model.CredentialIssuerMetadata;
-import es.in2.issuer.backend.shared.domain.exception.InvalidOrMissingProofException;
-import es.in2.issuer.backend.shared.domain.exception.ProofValidationException;
 import es.in2.issuer.backend.shared.domain.model.dto.VerifierOauth2AccessToken;
-import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.Mandator;
-import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.employee.LEARCredentialEmployee;
 import es.in2.issuer.backend.shared.domain.model.entities.CredentialProcedure;
-import org.junit.jupiter.api.Assertions;
 import org.mockito.ArgumentCaptor;
 
 import static es.in2.issuer.backend.shared.domain.util.Constants.LABEL_CREDENTIAL;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-import java.lang.reflect.Method;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -26,6 +19,7 @@ import es.in2.issuer.backend.shared.application.workflow.CredentialSignerWorkflo
 import es.in2.issuer.backend.shared.domain.exception.EmailCommunicationException;
 import es.in2.issuer.backend.shared.domain.exception.FormatUnsupportedException;
 import es.in2.issuer.backend.shared.domain.model.dto.*;
+import es.in2.issuer.backend.shared.domain.model.entities.DeferredCredentialMetadata;
 import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum;
 import es.in2.issuer.backend.shared.domain.model.enums.CredentialType;
 import es.in2.issuer.backend.shared.domain.service.*;
@@ -623,41 +617,46 @@ class CredentialIssuanceWorkflowImplTest {
 
     @Test
     void generateVerifiableCredentialResponse_PersistsEncodedAndFormat_AfterBuild() {
+        // given
         String processId = "proc-1";
         String nonce = "nonce-save-001";
+        String token = buildDummyJwtWithJti(nonce);
 
-        String procedureId = UUID.randomUUID().toString(); // <-- IMPORTANT: UUID
-        AccessTokenContext accessTokenContext = new AccessTokenContext(
-                "raw-token",
-                nonce,
-                procedureId,
-                null
-        );
-
-        // metadata no proof
+        // metadata so it does NOT require a proof (thus subject DID = null and direct path)
         CredentialIssuerMetadata metadata = mock(CredentialIssuerMetadata.class);
-        CredentialIssuerMetadata.CredentialConfiguration cfg = mock(CredentialIssuerMetadata.CredentialConfiguration.class);
-        CredentialIssuerMetadata.CredentialConfiguration.CredentialDefinition def = mock(CredentialIssuerMetadata.CredentialConfiguration.CredentialDefinition.class);
+        CredentialIssuerMetadata.CredentialConfiguration cfg =
+                mock(CredentialIssuerMetadata.CredentialConfiguration.class);
+        CredentialIssuerMetadata.CredentialConfiguration.CredentialDefinition def =
+                mock(CredentialIssuerMetadata.CredentialConfiguration.CredentialDefinition.class);
 
         String typeId = CredentialType.LEAR_CREDENTIAL_MACHINE.getTypeId();
         when(cfg.credentialDefinition()).thenReturn(def);
         when(def.type()).thenReturn(Set.of(typeId));
         when(cfg.cryptographicBindingMethodsSupported()).thenReturn(Collections.emptySet());
-
         Map<String, CredentialIssuerMetadata.CredentialConfiguration> map = new HashMap<>();
         map.put("cfg1", cfg);
         when(metadata.credentialConfigurationsSupported()).thenReturn(map);
 
+        // deferred with procedureId and without responseUri (no delivery needed)
+        String procedureId = "save-me";
+        DeferredCredentialMetadata deferred = mock(DeferredCredentialMetadata.class);
+        when(deferred.getProcedureId()).thenReturn(java.util.UUID.randomUUID());
+        when(deferred.getResponseUri()).thenReturn(null);
+
+        // procedure mock
         CredentialProcedure proc = mock(CredentialProcedure.class);
-        when(proc.getOperationMode()).thenReturn("S");
+        when(proc.getOperationMode()).thenReturn("S"); // SYNC
         when(proc.getCredentialType()).thenReturn(CredentialType.LEAR_CREDENTIAL_MACHINE.name());
-        when(proc.getEmail()).thenReturn(null);
-        when(proc.getProcedureId()).thenReturn(UUID.fromString(procedureId));
 
-        when(credentialProcedureService.getCredentialProcedureById(procedureId)).thenReturn(Mono.just(proc));
-        when(credentialIssuerMetadataService.getCredentialIssuerMetadata(processId)).thenReturn(Mono.just(metadata));
+        // services: fetch deferred + procedure + metadata
+        when(deferredCredentialMetadataService.getDeferredCredentialMetadataByAuthServerNonce(nonce))
+                .thenReturn(Mono.just(deferred));
+        when(credentialProcedureService.getCredentialProcedureById(anyString()))
+                .thenReturn(Mono.just(proc));
+        when(credentialIssuerMetadataService.getCredentialIssuerMetadata(processId))
+                .thenReturn(Mono.just(metadata));
 
-        // CR
+        // VC response that MUST be PERSISTED (encoded + format)
         String encodedJwt = "eyJhbGciOiJ...encoded.jwt...";
         CredentialResponse cr = CredentialResponse.builder()
                 .credentials(List.of(CredentialResponse.Credential.builder().credential(encodedJwt).build()))
@@ -668,12 +667,15 @@ class CredentialIssuanceWorkflowImplTest {
                 eq(processId),
                 isNull(),
                 eq(nonce),
-                eq(accessTokenContext.rawToken()),
-                isNull(String.class),
-                eq(procedureId)
+                eq(token),
+                isNull(String.class)
         )).thenReturn(Mono.just(cr));
 
-        // SYNC path mocks
+        // the implementation stores using nonce -> procedureId
+        when(deferredCredentialMetadataService.getProcedureIdByAuthServerNonce(nonce))
+                .thenReturn(Mono.just(procedureId));
+
+        // in SYNC it updates status (if not PEND_SIGNATURE) and reads decoded (no impact)
         when(credentialProcedureService.getCredentialStatusByProcedureId(procedureId))
                 .thenReturn(Mono.just(CredentialStatusEnum.DRAFT.toString()));
         when(credentialProcedureService.updateCredentialProcedureCredentialStatusToValidByProcedureId(procedureId))
@@ -681,55 +683,86 @@ class CredentialIssuanceWorkflowImplTest {
         when(credentialProcedureService.getDecodedCredentialByProcedureId(procedureId))
                 .thenReturn(Mono.just("{\"vc\":\"decoded\"}"));
 
-        StepVerifier.create(
-                verifiableCredentialIssuanceWorkflow.generateVerifiableCredentialResponse(
-                        processId,
-                        CredentialRequest.builder().credentialConfigurationId(JWT_VC_JSON).build(),
-                        accessTokenContext
-                )
-        ).expectNext(cr).verifyComplete();
 
+        // when
+        StepVerifier.create(
+                        verifiableCredentialIssuanceWorkflow.generateVerifiableCredentialResponse(
+                                processId,
+                                CredentialRequest.builder().credentialConfigurationId(JWT_VC_JSON).build(),
+                                token
+                        )
+                )
+                .expectNext(cr)
+                .verifyComplete();
+
+        // and it was NOT attempted to be sent (no responseUri)
         verifyNoInteractions(credentialDeliveryService);
     }
 
+
     @Test
     void generateVerifiableCredentialResponse_UsesEncodedCredentialOnDelivery() {
+        // --- Minimal setup so the flow reaches the send to responseUri with ENCODED ---
         String processId = "p-1";
         String nonce = "nonce123";
+        String token = buildDummyJwtWithJti(nonce); // simple compact JWS that Nimbus can parse
+
+        // Deferred -> points to our procedureId and has a responseUri
+        String procedureId = "proc-99";
         String responseUri = "https://wallet.example.com/callback";
 
-        String procedureId = UUID.randomUUID().toString(); // ✅ UUID
-        AccessTokenContext accessTokenContext = new AccessTokenContext(
-                "raw-token",
-                nonce,
-                procedureId,
-                responseUri
-        );
-
+        // CredentialProcedure mock
         CredentialProcedure proc = mock(CredentialProcedure.class);
-        when(proc.getOperationMode()).thenReturn("S");
+        when(proc.getOperationMode()).thenReturn("S"); // SYNC
         when(proc.getCredentialType()).thenReturn(CredentialType.LEAR_CREDENTIAL_MACHINE.name());
         when(proc.getEmail()).thenReturn("owner@in2.es");
-        when(proc.getCredentialEncoded()).thenReturn("ENCODED_JWT_VALUE");
-        when(proc.getProcedureId()).thenReturn(UUID.fromString(procedureId));
+        when(proc.getCredentialEncoded()).thenReturn("ENCODED_JWT_VALUE"); // <- what we want to be sent
 
-        // metadata no proof
+        // Deferred metadata mock
+        DeferredCredentialMetadata deferred = mock(DeferredCredentialMetadata.class);
+        when(deferred.getProcedureId()).thenReturn(java.util.UUID.randomUUID());
+        when(deferred.getResponseUri()).thenReturn(responseUri);
+
+        // ---- Metadata mock configuration without deep stubs ----
         CredentialIssuerMetadata metadata = mock(CredentialIssuerMetadata.class);
-        CredentialIssuerMetadata.CredentialConfiguration cfg = mock(CredentialIssuerMetadata.CredentialConfiguration.class);
-        CredentialIssuerMetadata.CredentialConfiguration.CredentialDefinition def = mock(CredentialIssuerMetadata.CredentialConfiguration.CredentialDefinition.class);
+
+        // Note: it's a final record; this requires mock-maker-inline.
+        // If you don't have it, see the "without mocks" alternative below.
+        CredentialIssuerMetadata.CredentialConfiguration cfg =
+                mock(CredentialIssuerMetadata.CredentialConfiguration.class);
+
+        CredentialIssuerMetadata.CredentialConfiguration.CredentialDefinition def =
+                mock(CredentialIssuerMetadata.CredentialConfiguration.CredentialDefinition.class);
 
         String typeId = CredentialType.LEAR_CREDENTIAL_MACHINE.getTypeId();
+
+        // return value of credentialDefinition()
         when(cfg.credentialDefinition()).thenReturn(def);
+
+        // type() returns Set<String>
         when(def.type()).thenReturn(Set.of(typeId));
+
+        // cryptographicBindingMethodsSupported() returns Set<String>
         when(cfg.cryptographicBindingMethodsSupported()).thenReturn(Collections.emptySet());
 
+        // map of configs
         Map<String, CredentialIssuerMetadata.CredentialConfiguration> map = new HashMap<>();
         map.put("cfg1", cfg);
         when(metadata.credentialConfigurationsSupported()).thenReturn(map);
+        // ---- end of configuration ----
 
-        when(credentialProcedureService.getCredentialProcedureById(procedureId)).thenReturn(Mono.just(proc));
-        when(credentialIssuerMetadataService.getCredentialIssuerMetadata(processId)).thenReturn(Mono.just(metadata));
 
+        // Service chains
+        when(deferredCredentialMetadataService.getDeferredCredentialMetadataByAuthServerNonce(nonce))
+                .thenReturn(Mono.just(deferred));
+
+        when(credentialProcedureService.getCredentialProcedureById(anyString()))
+                .thenReturn(Mono.just(proc));
+
+        when(credentialIssuerMetadataService.getCredentialIssuerMetadata(processId))
+                .thenReturn(Mono.just(metadata));
+
+        // buildCredentialResponse doesn't need a subject DID (config without proof), it will go through the null branch
         CredentialResponse cr = CredentialResponse.builder()
                 .credentials(List.of(CredentialResponse.Credential.builder().credential("whatever").build()))
                 .transactionId("t-1")
@@ -739,22 +772,31 @@ class CredentialIssuanceWorkflowImplTest {
                 eq(processId),
                 isNull(),
                 eq(nonce),
-                eq(accessTokenContext.rawToken()),
-                eq("owner@in2.es"),
-                eq(procedureId)
+                eq(token),
+                isNull(String.class)
         )).thenReturn(Mono.just(cr));
+
+        // In SYNC: status and decoded are queried (the decoded is not used unless it's employee)
+        when(deferredCredentialMetadataService.getProcedureIdByAuthServerNonce(nonce))
+                .thenReturn(Mono.just(procedureId));
 
         when(credentialProcedureService.getCredentialStatusByProcedureId(procedureId))
                 .thenReturn(Mono.just(CredentialStatusEnum.DRAFT.toString()));
+
         when(credentialProcedureService.updateCredentialProcedureCredentialStatusToValidByProcedureId(procedureId))
                 .thenReturn(Mono.empty());
+
         when(credentialProcedureService.getDecodedCredentialByProcedureId(procedureId))
                 .thenReturn(Mono.just("DECODED_SHOULD_NOT_BE_USED"));
 
+        // getCredentialId for sending
         when(credentialProcedureService.getCredentialId(proc)).thenReturn(Mono.just("cred-777"));
+
+        // M2M token for sending
         when(m2MTokenService.getM2MToken())
                 .thenReturn(Mono.just(new VerifierOauth2AccessToken("access-token-value", "", "")));
 
+        // capture the parameters passed to the send call
         ArgumentCaptor<String> responseUriCap = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<String> encodedCap = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<String> credIdCap = ArgumentCaptor.forClass(String.class);
@@ -769,21 +811,37 @@ class CredentialIssuanceWorkflowImplTest {
                 accessTokenCap.capture()
         )).thenReturn(Mono.empty());
 
+        // when
         StepVerifier.create(
-                verifiableCredentialIssuanceWorkflow.generateVerifiableCredentialResponse(
-                        processId,
-                        CredentialRequest.builder().credentialConfigurationId(JWT_VC_JSON).build(),
-                        accessTokenContext
+                        verifiableCredentialIssuanceWorkflow.generateVerifiableCredentialResponse(processId,
+                                CredentialRequest.builder()
+                                        .credentialConfigurationId(JWT_VC_JSON)
+                                        .build(),
+                                token)
                 )
-        ).expectNext(cr).verifyComplete();
+                .expectNext(cr)
+                .verifyComplete();
 
-        // asserts
-        org.junit.jupiter.api.Assertions.assertEquals(responseUri, responseUriCap.getValue());
-        org.junit.jupiter.api.Assertions.assertEquals("ENCODED_JWT_VALUE", encodedCap.getValue());
-        org.junit.jupiter.api.Assertions.assertEquals("cred-777", credIdCap.getValue());
-        org.junit.jupiter.api.Assertions.assertEquals("owner@in2.es", emailCap.getValue());
-        org.junit.jupiter.api.Assertions.assertEquals("access-token-value", accessTokenCap.getValue());
+        // then: the ENCODED was used (not the decoded)
+        assert responseUriCap.getValue().equals(responseUri);
+        assert encodedCap.getValue().equals("ENCODED_JWT_VALUE");
+        assert credIdCap.getValue().equals("cred-777");
+        assert emailCap.getValue().equals("owner@in2.es");
+        assert accessTokenCap.getValue().equals("access-token-value");
     }
+
+    /** Helper: minimal compact JWT with "jti" in the payload that Nimbus can parse without validating the signature */
+    private static String buildDummyJwtWithJti(String jti) {
+        String h = java.util.Base64.getUrlEncoder().withoutPadding()
+                .encodeToString("{\"alg\":\"HS256\"}".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        String p = java.util.Base64.getUrlEncoder().withoutPadding()
+                .encodeToString(("{\"jti\":\"" + jti + "\"}").getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        // dummy signature
+        String s = "sig";
+        return h + "." + p + "." + s;
+    }
+
+
 
     @Test
     void bindAccessTokenByPreAuthorizedCodeSuccess() {
@@ -912,485 +970,6 @@ class CredentialIssuanceWorkflowImplTest {
                 eq(sysTenant)
         );
     }
-
-    @Test
-    void generateVerifiableCredentialDeferredResponse_success_passthrough() {
-        String processId = "p-1";
-        DeferredCredentialRequest req = DeferredCredentialRequest.builder().transactionId("tx-1").build();
-
-        DeferredCredentialResponse expected = DeferredCredentialResponse.builder()
-                .credentials(List.of("cred"))
-                .build();
-
-        when(verifiableCredentialService.generateDeferredCredentialResponse(processId, req))
-                .thenReturn(Mono.just(expected));
-
-        StepVerifier.create(verifiableCredentialIssuanceWorkflow.generateVerifiableCredentialDeferredResponse(processId, req))
-                .expectNext(expected)
-                .verifyComplete();
-    }
-
-    @Test
-    void generateVerifiableCredentialDeferredResponse_error_wrapsRuntimeException() {
-        String processId = "p-err";
-        DeferredCredentialRequest req = DeferredCredentialRequest.builder().transactionId("tx-err").build();
-
-        RuntimeException root = new RuntimeException("boom");
-        when(verifiableCredentialService.generateDeferredCredentialResponse(processId, req))
-                .thenReturn(Mono.error(root));
-
-        StepVerifier.create(verifiableCredentialIssuanceWorkflow.generateVerifiableCredentialDeferredResponse(processId, req))
-                .expectErrorSatisfies(ex -> {
-                    Assertions.assertInstanceOf(RuntimeException.class, ex);
-                    Assertions.assertTrue(ex.getMessage().contains("Failed to process the credential for the next processId: " + processId));
-                    Assertions.assertEquals(root, ex.getCause());
-                })
-                .verify();
-    }
-    @Test
-    void extractBindingInfoFromJwtProof_kid_ok_extractsSubjectIdAndCnf() throws Exception {
-        String kid = "did:key:zDnaeiLt1XYBTBZk123";
-        String jwt = buildDummyJwtWithHeaderJson(
-                "{\"alg\":\"HS256\",\"kid\":\"" + kid + "\"}",
-                "{\"nonce\":\"n\"}"
-        );
-
-        Mono<Object> mono = invokePrivateMono(
-                verifiableCredentialIssuanceWorkflow,
-                "extractBindingInfoFromJwtProof",
-                new Class<?>[]{String.class},
-                jwt
-        );
-
-        StepVerifier.create(mono)
-                .assertNext(obj -> {
-                    // record BindingInfo(String subjectId, Object cnf)
-                    Assertions.assertEquals("BindingInfo", obj.getClass().getSimpleName());
-
-                    // getters de record -> subjectId() cnf()
-                    try {
-                        Method subjectIdM = obj.getClass().getMethod("subjectId");
-                        Method cnfM = obj.getClass().getMethod("cnf");
-                        String subjectId = (String) subjectIdM.invoke(obj);
-                        Object cnf = cnfM.invoke(obj);
-
-                        Assertions.assertEquals(kid, subjectId);
-                        Assertions.assertTrue(cnf.toString().contains("kid"));
-                        Assertions.assertTrue(cnf.toString().contains(kid));
-                    } catch (Exception e) {
-                        throw new RuntimeException(e);
-                    }
-                })
-                .verifyComplete();
-    }
-
-    @Test
-    void extractBindingInfoFromJwtProof_kid_withFragment_stripsFragment() throws Exception {
-        String kid = "did:key:zDnaeiLt1XYBTBZk123#key-1";
-        String jwt = buildDummyJwtWithHeaderJson(
-                "{\"alg\":\"HS256\",\"kid\":\"" + kid + "\"}",
-                "{\"nonce\":\"n\"}"
-        );
-
-        Mono<Object> mono = invokePrivateMono(
-                verifiableCredentialIssuanceWorkflow,
-                "extractBindingInfoFromJwtProof",
-                new Class<?>[]{String.class},
-                jwt
-        );
-
-        StepVerifier.create(mono)
-                .assertNext(obj -> {
-                    try {
-                        Method subjectIdM = obj.getClass().getMethod("subjectId");
-                        String subjectId = (String) subjectIdM.invoke(obj);
-                        Assertions.assertEquals("did:key:zDnaeiLt1XYBTBZk123", subjectId);
-                    } catch (Exception e) {
-                        throw new RuntimeException(e);
-                    }
-                })
-                .verifyComplete();
-    }
-
-    @Test
-    void extractBindingInfoFromJwtProof_error_when_no_kid_jwk_x5c() throws Exception {
-        String jwt = buildDummyJwtWithHeaderJson(
-                "{\"alg\":\"HS256\"}",
-                "{\"nonce\":\"n\"}"
-        );
-
-        Mono<Object> mono = invokePrivateMono(
-                verifiableCredentialIssuanceWorkflow,
-                "extractBindingInfoFromJwtProof",
-                new Class<?>[]{String.class},
-                jwt
-        );
-
-        StepVerifier.create(mono)
-                .expectErrorSatisfies(ex -> {
-                    Assertions.assertInstanceOf(ProofValidationException.class, ex);
-                    Assertions.assertEquals("Expected exactly one of kid/jwk/x5c in proof header", ex.getMessage());
-                })
-                .verify();
-    }
-
-    @Test
-    void extractBindingInfoFromJwtProof_error_when_x5c_only_present() throws Exception {
-        String jwt = buildDummyJwtWithHeaderJson(
-                "{\"alg\":\"HS256\",\"x5c\":[\"MIIB...\"]}",
-                "{\"nonce\":\"n\"}"
-        );
-
-        Mono<Object> mono = invokePrivateMono(
-                verifiableCredentialIssuanceWorkflow,
-                "extractBindingInfoFromJwtProof",
-                new Class<?>[]{String.class},
-                jwt
-        );
-
-        StepVerifier.create(mono)
-                .expectErrorSatisfies(ex -> {
-                    Assertions.assertInstanceOf(ProofValidationException.class, ex);
-                    Assertions.assertEquals("x5c not supported yet", ex.getMessage());
-                })
-                .verify();
-    }
-
-    @Test
-    void getMandatorOrganizationIdentifier_whenOrgIdValid_andDidValid_registersDid() throws Exception {
-        String processId = "p-1";
-        String decodedCredential = "{\"vc\":\"decoded\"}";
-        String orgId = "VATES-B26246436";
-        String did = DID_ELSI + orgId;
-
-        // mock LEARCredentialEmployee -> mandate -> mandator -> organizationIdentifier
-        var mandator = Mandator.builder().organizationIdentifier(orgId).build();
-        var mandate = LEARCredentialEmployee.CredentialSubject.Mandate.builder().mandator(mandator).build();
-        var subject = LEARCredentialEmployee.CredentialSubject.builder().mandate(mandate).build();
-        var employee = LEARCredentialEmployee.builder().credentialSubject(subject).build();
-
-        when(credentialEmployeeFactory.mapStringToLEARCredentialEmployee(decodedCredential))
-                .thenReturn(employee);
-
-        when(trustFrameworkService.validateDidFormat(processId, did))
-                .thenReturn(Mono.just(true));
-
-        when(trustFrameworkService.registerDid(processId, did))
-                .thenReturn(Mono.empty());
-
-        Mono<Object> mono = invokePrivateMono(
-                verifiableCredentialIssuanceWorkflow,
-                "getMandatorOrganizationIdentifier",
-                new Class<?>[]{String.class, String.class},
-                processId,
-                decodedCredential
-        );
-
-        StepVerifier.create(mono)
-                .verifyComplete();
-
-        verify(trustFrameworkService).validateDidFormat(processId, did);
-        verify(trustFrameworkService).registerDid(processId, did);
-    }
-
-    @Test
-    void getMandatorOrganizationIdentifier_whenDidInvalid_doesNotRegister() throws Exception {
-        String processId = "p-2";
-        String decodedCredential = "{\"vc\":\"decoded\"}";
-        String orgId = "VATES-B26246436";
-        String did = DID_ELSI + orgId;
-
-        var mandator = Mandator.builder().organizationIdentifier(orgId).build();
-        var mandate = LEARCredentialEmployee.CredentialSubject.Mandate.builder().mandator(mandator).build();
-        var subject = LEARCredentialEmployee.CredentialSubject.builder().mandate(mandate).build();
-        var employee = LEARCredentialEmployee.builder().credentialSubject(subject).build();
-
-        when(credentialEmployeeFactory.mapStringToLEARCredentialEmployee(decodedCredential))
-                .thenReturn(employee);
-
-        when(trustFrameworkService.validateDidFormat(processId, did))
-                .thenReturn(Mono.just(false));
-
-        Mono<Object> mono = invokePrivateMono(
-                verifiableCredentialIssuanceWorkflow,
-                "getMandatorOrganizationIdentifier",
-                new Class<?>[]{String.class, String.class},
-                processId,
-                decodedCredential
-        );
-
-        StepVerifier.create(mono)
-                .verifyComplete();
-
-        verify(trustFrameworkService).validateDidFormat(processId, did);
-        verify(trustFrameworkService, never()).registerDid(anyString(), anyString());
-    }
-
-    @Test
-    void getMandatorOrganizationIdentifier_whenOrgIdBlank_emitsIllegalArgumentException() throws Exception {
-        String processId = "p-3";
-        String decodedCredential = "{\"vc\":\"decoded\"}";
-
-        var mandator = Mandator.builder().organizationIdentifier("   ").build();
-        var mandate = LEARCredentialEmployee.CredentialSubject.Mandate.builder().mandator(mandator).build();
-        var subject = LEARCredentialEmployee.CredentialSubject.builder().mandate(mandate).build();
-        var employee = LEARCredentialEmployee.builder().credentialSubject(subject).build();
-
-        when(credentialEmployeeFactory.mapStringToLEARCredentialEmployee(decodedCredential))
-                .thenReturn(employee);
-
-        Mono<Object> mono = invokePrivateMono(
-                verifiableCredentialIssuanceWorkflow,
-                "getMandatorOrganizationIdentifier",
-                new Class<?>[]{String.class, String.class},
-                processId,
-                decodedCredential
-        );
-
-        StepVerifier.create(mono)
-                .expectErrorSatisfies(ex -> {
-                    Assertions.assertInstanceOf(IllegalArgumentException.class, ex);
-                    Assertions.assertEquals("Organization Identifier not valid", ex.getMessage());
-                })
-                .verify();
-
-        verifyNoInteractions(trustFrameworkService);
-    }
-
-    @Test
-    void validateAndDetermineBindingInfo_whenProofSigningAlgsMissing_throwsConfigurationException() {
-        // given
-        CredentialProcedure proc = mock(CredentialProcedure.class);
-        when(proc.getCredentialType()).thenReturn(CredentialType.LEAR_CREDENTIAL_MACHINE.name());
-
-        CredentialIssuerMetadata md = mock(CredentialIssuerMetadata.class);
-
-        var cfg = mock(CredentialIssuerMetadata.CredentialConfiguration.class);
-        var def = mock(CredentialIssuerMetadata.CredentialConfiguration.CredentialDefinition.class);
-
-        when(def.type()).thenReturn(Set.of(CredentialType.LEAR_CREDENTIAL_MACHINE.getTypeId()));
-        when(cfg.credentialDefinition()).thenReturn(def);
-
-        // needsProof = true
-        when(cfg.cryptographicBindingMethodsSupported()).thenReturn(Set.of("did"));
-
-        // proofTypesSupported jwt present but NO algs
-        when(cfg.proofTypesSupported()).thenReturn(Map.of("jwt", jwtProofCfg(Collections.emptySet())));
-
-        when(md.credentialConfigurationsSupported()).thenReturn(Map.of("cfg1", cfg));
-
-        CredentialRequest req = CredentialRequest.builder()
-                .proofs(Proofs.builder().jwt(List.of(buildDummyJwtProofWithKid("did:key:z123#k1"))).build())
-                .build();
-
-        // when
-        Mono<CredentialIssuanceWorkflowImpl.BindingInfo> mono =
-                callValidateAndDetermineBindingInfo(proc, md, req);
-
-        // then
-        StepVerifier.create(mono)
-                .expectErrorSatisfies(ex ->
-                        org.junit.jupiter.api.Assertions.assertInstanceOf(javax.naming.ConfigurationException.class, ex)
-                )
-                .verify();
-
-        verifyNoInteractions(proofValidationService);
-    }
-
-    @Test
-    void validateAndDetermineBindingInfo_whenProofsNull_throwsInvalidOrMissingProofException() {
-        // given
-        CredentialProcedure proc = mock(CredentialProcedure.class);
-        when(proc.getCredentialType()).thenReturn(CredentialType.LEAR_CREDENTIAL_MACHINE.name());
-
-        CredentialIssuerMetadata md = mock(CredentialIssuerMetadata.class);
-
-        var cfg = mock(CredentialIssuerMetadata.CredentialConfiguration.class);
-        var def = mock(CredentialIssuerMetadata.CredentialConfiguration.CredentialDefinition.class);
-
-        when(def.type()).thenReturn(Set.of(CredentialType.LEAR_CREDENTIAL_MACHINE.getTypeId()));
-        when(cfg.credentialDefinition()).thenReturn(def);
-
-        // needsProof = true
-        when(cfg.cryptographicBindingMethodsSupported()).thenReturn(Set.of("did"));
-
-        when(cfg.proofTypesSupported()).thenReturn(
-                Map.of("jwt", jwtProofCfg(Set.of("ES256")))
-        );
-
-        when(md.credentialConfigurationsSupported()).thenReturn(Map.of("cfg1", cfg));
-
-        CredentialRequest req = CredentialRequest.builder()
-                .proofs(null)
-                .build();
-
-        // when
-        Mono<CredentialIssuanceWorkflowImpl.BindingInfo> mono =
-                callValidateAndDetermineBindingInfo(proc, md, req);
-
-        // then
-        StepVerifier.create(mono)
-                .expectErrorSatisfies(ex -> {
-                    org.junit.jupiter.api.Assertions.assertInstanceOf(InvalidOrMissingProofException.class, ex);
-                    org.junit.jupiter.api.Assertions.assertEquals(
-                            "Missing proof for type " + CredentialType.LEAR_CREDENTIAL_MACHINE.name(),
-                            ex.getMessage()
-                    );
-                })
-                .verify();
-
-        verifyNoInteractions(proofValidationService);
-    }
-
-
-
-    @Test
-    void validateAndDetermineBindingInfo_whenProofInvalid_throwsInvalidOrMissingProofException() {
-        // given
-        CredentialProcedure proc = mock(CredentialProcedure.class);
-        when(proc.getCredentialType()).thenReturn(CredentialType.LEAR_CREDENTIAL_MACHINE.name());
-
-        CredentialIssuerMetadata md = mock(CredentialIssuerMetadata.class);
-        when(md.credentialIssuer()).thenReturn("https://issuer.example");
-
-        CredentialIssuerMetadata.CredentialConfiguration cfg =
-                mock(CredentialIssuerMetadata.CredentialConfiguration.class);
-        CredentialIssuerMetadata.CredentialConfiguration.CredentialDefinition def =
-                mock(CredentialIssuerMetadata.CredentialConfiguration.CredentialDefinition.class);
-
-        when(def.type()).thenReturn(Set.of(CredentialType.LEAR_CREDENTIAL_MACHINE.getTypeId()));
-        when(cfg.credentialDefinition()).thenReturn(def);
-
-        when(cfg.cryptographicBindingMethodsSupported()).thenReturn(Set.of("did"));
-        when(cfg.proofTypesSupported()).thenReturn(Map.of("jwt", jwtProofCfg(Set.of("ES256"))));
-
-        when(md.credentialConfigurationsSupported()).thenReturn(Map.of("cfg1", cfg));
-
-        String jwtProof = buildDummyJwtProofWithKid("did:key:z123#k1");
-        CredentialRequest req = CredentialRequest.builder()
-                .proofs(Proofs.builder().jwt(List.of(jwtProof)).build())
-                .build();
-
-        when(proofValidationService.isProofValid(jwtProof, Set.of("ES256"), "https://issuer.example"))
-                .thenReturn(Mono.just(false));
-
-        // when
-        Mono<CredentialIssuanceWorkflowImpl.BindingInfo> mono =
-                callValidateAndDetermineBindingInfo(proc, md, req);
-
-        // then
-        StepVerifier.create(mono)
-                .expectErrorSatisfies(ex -> {
-                    Assertions.assertInstanceOf(InvalidOrMissingProofException.class, ex);
-                    Assertions.assertEquals("Invalid proof", ex.getMessage());
-                })
-                .verify();
-    }
-
-
-    @Test
-    void validateAndDetermineBindingInfo_whenProofValid_returnsBindingInfoWithKidSubjectId() {
-        // given
-        CredentialProcedure proc = mock(CredentialProcedure.class);
-        when(proc.getCredentialType()).thenReturn(CredentialType.LEAR_CREDENTIAL_MACHINE.name());
-
-        CredentialIssuerMetadata md = mock(CredentialIssuerMetadata.class);
-        when(md.credentialIssuer()).thenReturn("https://issuer.example");
-
-        CredentialIssuerMetadata.CredentialConfiguration cfg =
-                mock(CredentialIssuerMetadata.CredentialConfiguration.class);
-        CredentialIssuerMetadata.CredentialConfiguration.CredentialDefinition def =
-                mock(CredentialIssuerMetadata.CredentialConfiguration.CredentialDefinition.class);
-
-        when(def.type()).thenReturn(Set.of(CredentialType.LEAR_CREDENTIAL_MACHINE.getTypeId()));
-        when(cfg.credentialDefinition()).thenReturn(def);
-
-        when(cfg.cryptographicBindingMethodsSupported()).thenReturn(Set.of("did"));
-        when(cfg.proofTypesSupported()).thenReturn(Map.of("jwt", jwtProofCfg(Set.of("ES256"))));
-
-        when(md.credentialConfigurationsSupported()).thenReturn(Map.of("cfg1", cfg));
-
-        String kid = "did:key:zDnaeiLt1XYBTBZkvfYQ5AABYFqouxpv63LYKkiw2xad9rReK#key-1";
-        String jwtProof = buildDummyJwtProofWithKid(kid);
-
-        CredentialRequest req = CredentialRequest.builder()
-                .proofs(Proofs.builder().jwt(List.of(jwtProof)).build())
-                .build();
-
-        when(proofValidationService.isProofValid(jwtProof, Set.of("ES256"), "https://issuer.example"))
-                .thenReturn(Mono.just(true));
-
-        // when
-        Mono<CredentialIssuanceWorkflowImpl.BindingInfo> mono =
-                callValidateAndDetermineBindingInfo(proc, md, req);
-
-        // then
-        StepVerifier.create(mono)
-                .assertNext(bi -> {
-                    Assertions.assertEquals(kid.split("#")[0], bi.subjectId());
-                    Assertions.assertTrue(bi.cnf() instanceof Map<?, ?>);
-                    Map<?, ?> cnf = (Map<?, ?>) bi.cnf();
-                    Assertions.assertEquals(kid, cnf.get("kid"));
-                })
-                .verifyComplete();
-    }
-
-
-    @SuppressWarnings("unchecked")
-    private Mono<CredentialIssuanceWorkflowImpl.BindingInfo> callValidateAndDetermineBindingInfo(
-            CredentialProcedure proc,
-            CredentialIssuerMetadata md,
-            CredentialRequest req
-    ) {
-        try {
-            Method m = CredentialIssuanceWorkflowImpl.class.getDeclaredMethod(
-                    "validateAndDetermineBindingInfo",
-                    CredentialProcedure.class,
-                    CredentialIssuerMetadata.class,
-                    CredentialRequest.class
-            );
-            m.setAccessible(true);
-            return (Mono<CredentialIssuanceWorkflowImpl.BindingInfo>) m.invoke(
-                    verifiableCredentialIssuanceWorkflow, // tu @InjectMocks
-                    proc, md, req
-            );
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-    private static CredentialIssuerMetadata.CredentialConfiguration.ProofSigninAlgValuesSupported jwtProofCfg(Set<String> algs) {
-        return new CredentialIssuerMetadata.CredentialConfiguration.ProofSigninAlgValuesSupported(algs);
-    }
-
-
-    private static String buildDummyJwtProofWithKid(String kid) {
-        String header = "{\"alg\":\"HS256\",\"kid\":\"" + kid + "\"}";
-        String payload = "{\"iss\":\"did:example:holder\",\"aud\":\"https://issuer.example\",\"iat\":1700000000,\"exp\":2000000000}";
-        String h = Base64.getUrlEncoder().withoutPadding()
-                .encodeToString(header.getBytes(StandardCharsets.UTF_8));
-        String p = Base64.getUrlEncoder().withoutPadding()
-                .encodeToString(payload.getBytes(StandardCharsets.UTF_8));
-        return h + "." + p + ".sig";
-    }
-
-
-    private static String b64url(String s) {
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(s.getBytes(StandardCharsets.UTF_8));
-    }
-
-    private static String buildDummyJwtWithHeaderJson(String headerJson, String payloadJson) {
-        String h = b64url(headerJson);
-        String p = b64url(payloadJson);
-        return h + "." + p + ".sig";
-    }
-
-    @SuppressWarnings("unchecked")
-    private static Mono<Object> invokePrivateMono(Object target, String methodName, Class<?>[] paramTypes, Object... args) throws Exception {
-        Method m = target.getClass().getDeclaredMethod(methodName, paramTypes);
-        m.setAccessible(true);
-        return (Mono<Object>) m.invoke(target, args);
-    }
-
 
 
 
