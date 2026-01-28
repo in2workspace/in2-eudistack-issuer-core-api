@@ -75,7 +75,30 @@ public class RemoteSignatureServiceImpl implements RemoteSignatureService {
     private String clientId;
     private String clientSecret;
 
-    @Override
+/**
+ * Signs an ISSUED credential (user-related credential).
+ *
+ * <p>
+ * Issued credentials represent user-facing identities such as:
+ * <ul>
+ *   <li>Employee credentials</li>
+ *   <li>Machine credentials</li>
+ *   <li>Label / badge credentials</li>
+ * </ul>
+ *
+ * <p>
+ * These credentials have a special signing lifecycle:
+ * <ul>
+ *   <li>The signature may be <b>deferred</b> if the remote signing fails</li>
+ *   <li>After retries are exhausted, the flow switches to <b>ASYNC mode</b></li>
+ *   <li>An additional <b>post-processing step</b> is triggered (e.g. email notification)</li>
+ * </ul>
+ *
+ * <p>
+ * Deferred metadata is removed only after a successful signature.
+ *
+ */
+ @Override
     //TODO Cuando se implementen los "settings" del issuer, se debe pasar el clientId, secret, etc. como parámetros en lugar de var entorno
     public Mono<SignedData> signIssuedCredential(
             SignatureRequest signatureRequest,
@@ -83,7 +106,7 @@ public class RemoteSignatureServiceImpl implements RemoteSignatureService {
             String procedureId,
             String email
     ) {
-        log.info(
+        log.debug(
                 "RemoteSignatureServiceImpl - signIssuedCredential, signatureRequest: {}, token: {}, procedureId: {}, email: {}",
                 signatureRequest, token, procedureId, email
         );
@@ -106,6 +129,28 @@ public class RemoteSignatureServiceImpl implements RemoteSignatureService {
                 });
     }
 
+    /**
+     * Signs a SYSTEM credential.
+     *
+     * <p>
+     * System credentials are internal, platform-level credentials and
+     * <b>do not follow the issued credential lifecycle</b>.
+     *
+     * <p>
+     * Characteristics:
+     * <ul>
+     *   <li>No deferred signing</li>
+     *   <li>No async recovery flow</li>
+     *   <li>No post-signature handling (email, procedure tracking, etc.)</li>
+     * </ul>
+     *
+     * <p>
+     * Example of system credentials:
+     * <ul>
+     *   <li>VC StatusListCredential</li>
+     * </ul>
+     *
+     */
     @Override
     public Mono<SignedData> signSystemCredential(
             SignatureRequest signatureRequest,

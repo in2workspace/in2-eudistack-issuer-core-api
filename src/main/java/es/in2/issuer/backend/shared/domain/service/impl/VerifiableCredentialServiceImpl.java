@@ -13,6 +13,7 @@ import es.in2.issuer.backend.shared.domain.service.DeferredCredentialMetadataSer
 import es.in2.issuer.backend.shared.domain.service.VerifiableCredentialService;
 import es.in2.issuer.backend.shared.domain.util.factory.CredentialFactory;
 import es.in2.issuer.backend.statusList.application.StatusListWorkflow;
+import es.in2.issuer.backend.statusList.domain.model.StatusListEntry;
 import es.in2.issuer.backend.statusList.domain.model.StatusPurpose;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -42,13 +43,7 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
 
         return statusListWorkflow
                 .allocateEntry(StatusPurpose.REVOCATION, procedureId, token)
-                .map(entry -> CredentialStatus.builder()
-                        .id(entry.id())
-                        .type(entry.type())
-                        .statusPurpose(entry.statusPurpose().value())
-                        .statusListIndex(String.valueOf(entry.statusListIndex()))
-                        .statusListCredential(entry.statusListCredential())
-                        .build())
+                .map(this::toCredentialStatus)
                 .flatMap(credentialStatus ->
                         credentialFactory.mapCredentialIntoACredentialProcedureRequest(
                                 processId,
@@ -262,4 +257,15 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
             ));
         }
     }
+
+    private CredentialStatus toCredentialStatus(StatusListEntry entry) {
+        return CredentialStatus.builder()
+                .id(entry.id())
+                .type(entry.type())
+                .statusPurpose(entry.statusPurpose().value())
+                .statusListIndex(String.valueOf(entry.statusListIndex()))
+                .statusListCredential(entry.statusListCredential())
+                .build();
+    }
+
 }

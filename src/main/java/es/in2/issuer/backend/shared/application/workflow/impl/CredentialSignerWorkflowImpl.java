@@ -73,17 +73,17 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
                 .switchIfEmpty(Mono.error(new CredentialProcedureNotFoundException(
                         "Credential procedure with ID " + procedureId + " was not found"
                 )))
-                .flatMap(proc -> {
+                .flatMap(procedure -> {
                     String signerEmail = (mandateeEmail != null && !mandateeEmail.isBlank())
                             ? mandateeEmail
-                            : proc.getUpdatedBy();
-                    return bindIssuerIntoDecodedCredential(proc, procedureId, token, signerEmail)
+                            : procedure.getUpdatedBy();
+                    return getIssuerAndBindIntoDecodedCredential(procedure, procedureId, token, signerEmail)
                             .flatMap(updatedDecoded ->
                                     credentialProcedureService
                                             .updateDecodedCredentialByProcedureId(procedureId, updatedDecoded, JWT_VC)
                                             .thenReturn(updatedDecoded)
                             )
-                            .flatMap(updatedDecoded -> buildUnsignedPayloadFromDecoded(proc.getCredentialType(), updatedDecoded))
+                            .flatMap(updatedDecoded -> buildUnsignedPayloadFromDecoded(procedure.getCredentialType(), updatedDecoded))
                             .flatMap(unsignedPayload ->
                                     signCredentialOnRequestedFormat(unsignedPayload, format, token, procedureId, signerEmail)
                             );
@@ -92,17 +92,17 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
                         updateSignedCredential(signedCredential, procedureId)
                                 .thenReturn(signedCredential)
                 )
-                .doOnSuccess(x -> log.info("Credential Signed and updated successfully."));
+                .doOnSuccess(x -> log.info("Credential Signed and updated successfully. [processId={}]", processId));
     }
 
-    private Mono<String> bindIssuerIntoDecodedCredential(
+    private Mono<String> getIssuerAndBindIntoDecodedCredential(
             CredentialProcedure proc,
             String procedureId,
             String token,
             String mandateeEmail
     ) {
         String credentialType = proc.getCredentialType();
-        log.info("CredentialSignerWorkflowImpl - bindIssuerIntoDecodedCredential");
+        log.info("CredentialSignerWorkflowImpl - getIssuerAndBindIntoDecodedCredential");
         log.info("CP: {}, procedureId: {}, token: {}, mandateeEmail: {}", proc, procedureId, token, mandateeEmail);
 
         return resolveIssuerForType(credentialType, procedureId, mandateeEmail)
@@ -110,7 +110,7 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
                         "Issuer could not be resolved for procedureId: " + procedureId
                 )))
                 .flatMap(issuer ->
-                        injectIssuerIntoCredential(proc.getCredentialDecoded(), issuer)
+                        bindIssuerIntoCredential(proc.getCredentialDecoded(), issuer)
                 );
     }
 
@@ -121,14 +121,14 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
         return issuerFactory.createDetailedIssuerAndNotifyOnError(procedureId, mandateeEmail).cast(Issuer.class);
     }
 
-    private Mono<String> injectIssuerIntoCredential(String decodedCredential, Issuer issuer) {
+    private Mono<String> bindIssuerIntoCredential(String decodedCredential, Issuer issuer) {
         return Mono.fromCallable(() -> {
             JsonNode rootNode = objectMapper.readTree(decodedCredential);
             if (!(rootNode instanceof ObjectNode root)) {
                 throw new IllegalArgumentException("credentialDecoded must be a JSON object");
             }
 
-            // Inject issuer (full object, because your models use issuer object)
+            // Bind issuer (full object, because your models use issuer object)
             root.set("issuer", objectMapper.valueToTree(issuer));
 
             return objectMapper.writeValueAsString(root);

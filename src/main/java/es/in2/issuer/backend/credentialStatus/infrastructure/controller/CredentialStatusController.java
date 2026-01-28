@@ -11,7 +11,9 @@ import reactor.core.publisher.Flux;
 import java.util.UUID;
 
 
-//legacy controller, should be removed when...
+// Legacy endpoint used to handle credentials with a PlainListEntry credentialStatus.
+// This endpoint can be removed once the last credential of this type expires in DOME.
+
 @Slf4j
 @RestController
 @RequestMapping("/backoffice/v1/credentials/status")

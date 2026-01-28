@@ -22,8 +22,6 @@ import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.sql.Timestamp;
-import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -43,7 +41,7 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
 
     @Override
     public Mono<String> createCredentialProcedure(CredentialProcedureCreationRequest credentialProcedureCreationRequest) {
-        log.info("createCredentialProcedure - data request: {}", credentialProcedureCreationRequest);
+        log.debug("createCredentialProcedure from data: {}", credentialProcedureCreationRequest);
         CredentialProcedure credentialProcedure = CredentialProcedure.builder()
                 .procedureId(UUID.fromString(credentialProcedureCreationRequest.procedureId()))
                 .credentialStatus(CredentialStatusEnum.DRAFT)
@@ -323,7 +321,6 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
 
     @Override
     public Mono<Void> updateFormatByProcedureId(String procedureId, String format) {
-        log.info("updateFormatByProcedureId");
         return credentialProcedureRepository.findById(UUID.fromString(procedureId))
                 .flatMap(credentialProcedure -> {
                     credentialProcedure.setCredentialFormat(format);
