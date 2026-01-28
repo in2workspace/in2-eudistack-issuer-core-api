@@ -40,7 +40,7 @@ class NotificationControllerTest {
         String cleanToken = "abc.def.ghi";
 
         when(accessTokenService.getCleanBearerToken(authorization)).thenReturn(Mono.just(cleanToken));
-        when(notificationService.handleNotification(anyString(), eq(cleanToken), eq(request))).thenReturn(Mono.empty());
+        when(notificationService.handleNotification(anyString(), eq(request))).thenReturn(Mono.empty());
 
         // when
         Mono<Void> result = notificationController.handleNotification(request, authorization);
@@ -51,7 +51,7 @@ class NotificationControllerTest {
         verify(accessTokenService).getCleanBearerToken(authorization);
 
         ArgumentCaptor<String> processIdCaptor = ArgumentCaptor.forClass(String.class);
-        verify(notificationService).handleNotification(processIdCaptor.capture(), eq(cleanToken), eq(request));
+        verify(notificationService).handleNotification(processIdCaptor.capture(), eq(request));
 
         String processId = processIdCaptor.getValue();
         assertNotNull(processId);
@@ -94,7 +94,7 @@ class NotificationControllerTest {
         RuntimeException error = new RuntimeException("service failed");
 
         when(accessTokenService.getCleanBearerToken(authorization)).thenReturn(Mono.just(cleanToken));
-        when(notificationService.handleNotification(anyString(), eq(cleanToken), eq(request))).thenReturn(Mono.error(error));
+        when(notificationService.handleNotification(anyString(), eq(request))).thenReturn(Mono.error(error));
 
         // when
         Mono<Void> result = notificationController.handleNotification(request, authorization);
@@ -105,7 +105,7 @@ class NotificationControllerTest {
                 .verify();
 
         verify(accessTokenService).getCleanBearerToken(authorization);
-        verify(notificationService).handleNotification(anyString(), eq(cleanToken), eq(request));
+        verify(notificationService).handleNotification(anyString(), eq(request));
         verifyNoMoreInteractions(accessTokenService, notificationService);
     }
 }

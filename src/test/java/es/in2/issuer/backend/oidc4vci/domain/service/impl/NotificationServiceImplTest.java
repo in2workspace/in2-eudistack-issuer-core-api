@@ -48,10 +48,9 @@ class NotificationServiceImplTest {
     void handleNotification_whenRequestIsNull_shouldErrorInvalidNotificationRequestException() {
         // given
         String processId = "p1";
-        String bearer = "token";
 
         // when
-        Mono<Void> result = notificationServiceImpl.handleNotification(processId, bearer, null);
+        Mono<Void> result = notificationServiceImpl.handleNotification(processId, null);
 
         // then
         StepVerifier.create(result)
@@ -69,7 +68,7 @@ class NotificationServiceImplTest {
         when(request.event()).thenReturn(NotificationEvent.CREDENTIAL_FAILURE);
 
         // when
-        Mono<Void> result = notificationServiceImpl.handleNotification("p1", "token", request);
+        Mono<Void> result = notificationServiceImpl.handleNotification("p1", request);
 
         // then
         StepVerifier.create(result)
@@ -91,7 +90,7 @@ class NotificationServiceImplTest {
                 .thenReturn(Mono.empty());
 
         // when
-        Mono<Void> result = notificationServiceImpl.handleNotification("p1", "token", request);
+        Mono<Void> result = notificationServiceImpl.handleNotification("p1", request);
 
         // then
         StepVerifier.create(result)
@@ -117,7 +116,7 @@ class NotificationServiceImplTest {
                 .thenReturn(Mono.just(procedure));
 
         // when
-        Mono<Void> result = notificationServiceImpl.handleNotification("p1", "token", request);
+        Mono<Void> result = notificationServiceImpl.handleNotification("p1", request);
 
         // then
         StepVerifier.create(result).verifyComplete();
@@ -142,7 +141,7 @@ class NotificationServiceImplTest {
                 .thenReturn(Mono.just(procedure));
 
         // when
-        Mono<Void> result = notificationServiceImpl.handleNotification("p1", "token", request);
+        Mono<Void> result = notificationServiceImpl.handleNotification("p1", request);
 
         // then
         StepVerifier.create(result).verifyComplete();
@@ -169,7 +168,7 @@ class NotificationServiceImplTest {
                 .thenReturn(Mono.empty());
 
         // when
-        Mono<Void> result = notificationServiceImpl.handleNotification("p1", "token", request);
+        Mono<Void> result = notificationServiceImpl.handleNotification("p1", request);
 
         // then
         StepVerifier.create(result).verifyComplete();
@@ -210,10 +209,10 @@ class NotificationServiceImplTest {
         when(credentialProcedureService.getCredentialProcedureByNotificationId(notificationId.toString()))
                 .thenReturn(Mono.just(procedure));
 
-        when(credentialStatusWorkflow.revokeCredentialSystem(eq(processId), eq(procedureId.toString()), eq(7)))
+        when(credentialStatusWorkflow.revokeCredentialSystem(processId, procedureId.toString(),7))
                 .thenReturn(Mono.empty());
 
-        Mono<Void> result = notificationServiceImpl.handleNotification(processId, "token", request);
+        Mono<Void> result = notificationServiceImpl.handleNotification(processId, request);
 
         StepVerifier.create(result).verifyComplete();
 

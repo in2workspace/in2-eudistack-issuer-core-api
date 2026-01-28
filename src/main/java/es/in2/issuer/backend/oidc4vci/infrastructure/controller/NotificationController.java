@@ -29,7 +29,7 @@ public class NotificationController {
         return Mono.defer(() -> {
                     log.info("Process ID: {} - Handle notification start", processId);
                     return accessTokenService.getCleanBearerToken(authorization)
-                            .flatMap(token -> notificationService.handleNotification(processId,token,request));
+                            .flatMap(token -> notificationService.handleNotification(processId,request));
                 })
                 .doOnSuccess(v ->
                         log.info("Process ID: {} - Handle notification ok", processId)

@@ -28,7 +28,7 @@ public class NotificationServiceImpl implements NotificationService {
     private final ObjectMapper objectMapper;
 
     @Override
-    public Mono<Void> handleNotification(String processId, String bearerToken, NotificationRequest request) {
+    public Mono<Void> handleNotification(String processId, NotificationRequest request) {
         return Mono.justOrEmpty(request)
                 .switchIfEmpty(Mono.error(new InvalidNotificationRequestException("Request body is required")))
                 .doOnNext(this::validateRequest)
@@ -50,7 +50,7 @@ public class NotificationServiceImpl implements NotificationService {
                                         "The notification_id is not recognized: " + notificationId
                                 ));
                             }))
-                            .flatMap(proc -> applyIdempotentUpdate(processId, bearerToken, proc, event, eventDescription));
+                            .flatMap(proc -> applyIdempotentUpdate(processId, proc, event, eventDescription));
                 })
                 .onErrorResume(InvalidNotificationRequestException.class, e -> {
 
@@ -72,7 +72,6 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     private Mono<Void> applyIdempotentUpdate(String processId,
-                                             String bearerToken,
                                              CredentialProcedure procedure,
                                              NotificationEvent event,
                                              String eventDescription) {

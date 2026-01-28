@@ -92,91 +92,89 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
         return deferredCredentialMetadataService
                 .getProcedureIdByAuthServerNonce(authServerNonce)
                 .flatMap(procedureId ->
-                        Mono.zip(
-                                credentialProcedureService.getCredentialTypeByProcedureId(procedureId),
-                                credentialProcedureService.getDecodedCredentialByProcedureId(procedureId),
-                                credentialProcedureService.getNotificationIdByProcedureId(procedureId)
-                        ).flatMap(tuple3 -> {
-                            String credentialType = tuple3.getT1();
-                            String decoded = tuple3.getT2();
-                            String notificationId = tuple3.getT3();
-                            return bindAndSaveIfNeeded(
-                                    processId,
-                                    procedureId,
-                                    credentialType,
-                                    decoded,
-                                    subjectDid
-                            )
-                                    .flatMap(boundCred -> updateDeferredAndMap(
-                                            processId,
-                                            procedureId,
-                                            credentialType,
-                                            boundCred,
-                                            authServerNonce,
-                                            token,
-                                            email,
-                                            notificationId
-                                    ));
-                        })
+                        bindAndSaveIfNeeded(processId, procedureId, subjectDid)
+                                .flatMap(boundCred ->
+                                        updateDeferredAndMap(
+                                                processId,
+                                                procedureId,
+                                                boundCred,
+                                                authServerNonce,
+                                                token,
+                                                email
+                                        )
+                                )
                 );
     }
 
     private Mono<String> bindAndSaveIfNeeded(
             String processId,
             String procedureId,
-            String credentialType,
-            String decodedCredential,
             String subjectDid) {
-        if (subjectDid == null) {
-            return Mono.just(decodedCredential);
-        }
-        return credentialFactory
-                .bindCryptographicCredentialSubjectId(
-                        processId,
-                        credentialType,
-                        decodedCredential,
-                        subjectDid
+
+        return Mono.zip(
+                        credentialProcedureService.getCredentialTypeByProcedureId(procedureId),
+                        credentialProcedureService.getDecodedCredentialByProcedureId(procedureId)
                 )
-                .flatMap(bound -> credentialProcedureService
-                        .updateDecodedCredentialByProcedureId(procedureId, bound)
-                        .thenReturn(bound)
-                );
+                .flatMap(tuple -> {
+                    String credentialType = tuple.getT1();
+                    String decodedCredential = tuple.getT2();
+                    if (subjectDid == null) {
+                        return Mono.just(decodedCredential);
+                    }
+                    return credentialFactory
+                            .bindCryptographicCredentialSubjectId(
+                                    processId,
+                                    credentialType,
+                                    decodedCredential,
+                                    subjectDid
+                            )
+                            .flatMap(bound -> credentialProcedureService
+                                    .updateDecodedCredentialByProcedureId(procedureId, bound)
+                                    .thenReturn(bound)
+                            );
+                });
     }
 
     private Mono<CredentialResponse> updateDeferredAndMap(
             String processId,
             String procedureId,
-            String credentialType,
             String boundCredential,
             String authServerNonce,
             String token,
-            String email,
-            String notificationId) {
-
-        return deferredCredentialMetadataService
-                .updateDeferredCredentialMetadataByAuthServerNonce(authServerNonce)
-                .flatMap(transactionId -> deferredCredentialMetadataService.getFormatByProcedureId(procedureId)
-                        .flatMap(format -> credentialFactory
-                                .mapCredentialBindIssuerAndUpdateDB(
-                                        processId,
-                                        procedureId,
-                                        boundCredential,
-                                        credentialType,
-                                        format,
-                                        authServerNonce,
-                                        email
+            String email
+            ) {
+        return Mono.zip(
+                        credentialProcedureService.getCredentialTypeByProcedureId(procedureId),
+                        credentialProcedureService.getNotificationIdByProcedureId(procedureId)
+                )
+                .flatMap(tuple -> {
+                    String credentialType = tuple.getT1();
+                    String notificationId = tuple.getT2();
+                    return deferredCredentialMetadataService
+                        .updateDeferredCredentialMetadataByAuthServerNonce(authServerNonce)
+                        .flatMap(transactionId -> deferredCredentialMetadataService.getFormatByProcedureId(procedureId)
+                                .flatMap(format -> credentialFactory
+                                        .mapCredentialBindIssuerAndUpdateDB(
+                                                processId,
+                                                procedureId,
+                                                boundCredential,
+                                                credentialType,
+                                                format,
+                                                authServerNonce,
+                                                email
+                                        )
+                                        .then(credentialProcedureService.getOperationModeByProcedureId(procedureId))
+                                        .flatMap(mode -> buildCredentialResponseBasedOnOperationMode(
+                                                mode,
+                                                procedureId,
+                                                transactionId,
+                                                authServerNonce,
+                                                token,
+                                                notificationId
+                                        ))
                                 )
-                                .then(credentialProcedureService.getOperationModeByProcedureId(procedureId))
-                                .flatMap(mode -> buildCredentialResponseBasedOnOperationMode(
-                                        mode,
-                                        procedureId,
-                                        transactionId,
-                                        authServerNonce,
-                                        token,
-                                        notificationId
-                                ))
-                        )
-                );
+                        );
+                });
     }
 
     private Mono<CredentialResponse> buildCredentialResponseBasedOnOperationMode(
