@@ -1,4 +1,4 @@
-package es.in2.issuer.backend.statusList.domain.util;
+package es.in2.issuer.backend.statusList.infrastructure.adapter;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -6,6 +6,11 @@ import java.io.IOException;
 import java.util.Base64;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.util.Base64;
+import java.util.zip.GZIPInputStream;
 
 /**
  * Utility for encoding/decoding Bitstring Status List encodedList.

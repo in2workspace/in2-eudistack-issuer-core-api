@@ -25,7 +25,7 @@ public class StatusListController {
     private static final String VC_JWT_VALUE = "application/vc+jwt";
 
     private final StatusListWorkflow statusListWorkflow;
-    private final RevocationWorkflow revocationWorkflow;
+    private final RevocationWorkflow revocationService;
 
     @GetMapping(value = "/{listId}", produces = VC_JWT_VALUE)
     public Mono<ResponseEntity<String>> getStatusList(@PathVariable Long listId) {
@@ -46,7 +46,7 @@ public class StatusListController {
     ) {
         String processId = UUID.randomUUID().toString();
 
-        return revocationWorkflow.revoke(processId, bearerToken, request.procedureId(), request.listId())
+        return revocationService.revoke(processId, bearerToken, request.procedureId(), request.listId())
                 .doFirst(() -> log.info("Process ID: {} - Revoking Credential...", processId))
                 .doOnSuccess(v -> log.info("Process ID: {} - Credential revoked successfully.", processId))
                 .doOnError(e -> log.warn("Process ID: {} - Revoking credential failed: {}", processId, e.toString()));

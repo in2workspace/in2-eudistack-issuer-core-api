@@ -1,7 +1,6 @@
 package es.in2.issuer.backend.statusList.infrastructure.adapter;
 
 import es.in2.issuer.backend.statusList.domain.spi.StatusListIndexAllocator;
-import es.in2.issuer.backend.statusList.domain.spi.StatusListIndexReservation;
 import es.in2.issuer.backend.statusList.infrastructure.repository.StatusListIndexRepository;
 import es.in2.issuer.backend.statusList.infrastructure.repository.StatusListIndex;
 import lombok.RequiredArgsConstructor;
@@ -30,17 +29,12 @@ import static java.util.Objects.requireNonNull;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class BitstringStatusListIndexReservationService implements StatusListIndexReservation {
+public class BitstringStatusListIndexReservationService {
 
     private final StatusListIndexRepository statusListIndexRepository;
     private final StatusListIndexAllocator indexAllocator;
 
-    @Override
-    public Mono<StatusListIndex> reserve(Long statusListId, String procedureId) {
-        return reserveWithRetry(statusListId, procedureId);
-    }
-
-    private Mono<StatusListIndex> reserveWithRetry(Long statusListId, String procedureId) {
+    public Mono<StatusListIndex> reserveWithRetry(Long statusListId, String procedureId) {
         log.info("reserveOnSpecificList - statusListId: {} - procedureId: {}", statusListId, procedureId);
         requireNonNull(statusListId, "statusListId cannot be null");
         requireNonNull(procedureId, "procedureId cannot be null");
