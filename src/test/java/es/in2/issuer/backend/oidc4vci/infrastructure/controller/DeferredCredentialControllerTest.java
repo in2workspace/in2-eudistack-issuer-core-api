@@ -3,11 +3,13 @@ package es.in2.issuer.backend.oidc4vci.infrastructure.controller;
 import es.in2.issuer.backend.shared.application.workflow.CredentialIssuanceWorkflow;
 import es.in2.issuer.backend.shared.domain.model.dto.DeferredCredentialRequest;
 import es.in2.issuer.backend.shared.domain.model.dto.CredentialResponse;
+import es.in2.issuer.backend.shared.domain.service.AccessTokenService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -21,6 +23,9 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class DeferredCredentialControllerTest {
+
+    @Mock
+    private AccessTokenService accessTokenService;
 
     @Mock
     private CredentialIssuanceWorkflow credentialIssuanceWorkflow;
@@ -38,12 +43,16 @@ class DeferredCredentialControllerTest {
                 .credentials(List.of(
                         CredentialResponse.Credential.builder().credential("sampleCredential").build()))
                 .build();
+        when(accessTokenService.getCleanBearerToken(anyString())).thenReturn(Mono.just("ey212134"));
         when(credentialIssuanceWorkflow.generateVerifiableCredentialDeferredResponse(anyString(), eq(deferredCredentialRequest), anyString())).thenReturn(Mono.just(credentialResponse));
 
         Mono<ResponseEntity<CredentialResponse>> result = deferredCredentialController.getCredential("", deferredCredentialRequest);
 
         StepVerifier.create(result)
-                .assertNext(response -> assertEquals(credentialResponse, response))
+                .assertNext(response -> {
+                    assertEquals(HttpStatus.OK, response.getStatusCode());
+                    assertEquals(credentialResponse, response.getBody());
+                })
                 .verifyComplete();
     }
 }

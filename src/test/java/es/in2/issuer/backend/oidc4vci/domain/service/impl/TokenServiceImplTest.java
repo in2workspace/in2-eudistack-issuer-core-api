@@ -87,7 +87,7 @@ class TokenServiceImplTest {
                 .thenReturn(TEST_REFRESH_TOKEN_EXPIRES_AT);
         when(refreshTokenService.generateRefreshToken()).thenReturn(TEST_REFRESH_TOKEN);
         when(refreshTokenCacheStore.add(anyString(), any()))
-                .thenReturn(Mono.just(TEST_PRE_AUTHORIZED_CODE));
+                .thenReturn(Mono.just(TEST_REFRESH_TOKEN));
 
         // Act & Assert
         StepVerifier.create(tokenService.generateTokenResponse(GRANT_TYPE, TEST_PRE_AUTHORIZED_CODE, TEST_TX_CODE, ""))
@@ -104,7 +104,7 @@ class TokenServiceImplTest {
         verify(jwtService).generateJWT(anyString());
         verify(refreshTokenService).generateRefreshTokenExpirationTime(any(Instant.class));
         verify(refreshTokenService).generateRefreshToken();
-        verify(refreshTokenCacheStore).add(eq(TEST_PRE_AUTHORIZED_CODE), any(CredentialProcedureIdAndRefreshToken.class));
+        verify(refreshTokenCacheStore).add(eq(TEST_REFRESH_TOKEN), any(CredentialProcedureIdAndRefreshToken.class));
     }
 
     @Test
@@ -176,7 +176,7 @@ class TokenServiceImplTest {
         when(refreshTokenService.generateRefreshToken()).thenReturn(TEST_REFRESH_TOKEN);
 
         RuntimeException refreshTokenCacheException = new RuntimeException("Refresh token cache error");
-        when(refreshTokenCacheStore.add(eq(TEST_PRE_AUTHORIZED_CODE), any(CredentialProcedureIdAndRefreshToken.class)))
+        when(refreshTokenCacheStore.add(eq(TEST_REFRESH_TOKEN), any(CredentialProcedureIdAndRefreshToken.class)))
                 .thenReturn(Mono.error(refreshTokenCacheException));
 
         // Act & Assert
@@ -184,7 +184,7 @@ class TokenServiceImplTest {
                 .expectError(RuntimeException.class)
                 .verify();
 
-        verify(refreshTokenCacheStore).add(eq(TEST_PRE_AUTHORIZED_CODE), any(CredentialProcedureIdAndRefreshToken.class));
+        verify(refreshTokenCacheStore).add(eq(TEST_REFRESH_TOKEN), any(CredentialProcedureIdAndRefreshToken.class));
     }
 
     @Test
