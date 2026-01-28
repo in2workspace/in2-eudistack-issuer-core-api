@@ -69,13 +69,13 @@ public class LEARCredentialEmployeeFactory {
                 .flatMap(this::convertLEARCredentialEmployeeInToString);
     }
 
-    public Mono<CredentialProcedureCreationRequest> mapAndBuildLEARCredentialEmployee(JsonNode learCredential, String operationMode, String email) {
+    public Mono<CredentialProcedureCreationRequest> mapAndBuildLEARCredentialEmployee(String procedureId, JsonNode learCredential, CredentialStatus credentialStatus, String operationMode, String email) {
         LEARCredentialEmployee.CredentialSubject baseCredentialSubject = mapJsonNodeToCredentialSubject(learCredential);
-        return buildFinalLearCredentialEmployee(baseCredentialSubject)
+        return buildFinalLearCredentialEmployee(baseCredentialSubject, credentialStatus)
                 .flatMap(credentialDecoded ->
                         convertLEARCredentialEmployeeInToString(credentialDecoded)
                                 .flatMap(credentialDecodedString ->
-                                        buildCredentialProcedureCreationRequest(credentialDecodedString, credentialDecoded, operationMode, email)
+                                        buildCredentialProcedureCreationRequest(procedureId, credentialDecodedString, credentialDecoded, operationMode, email)
                                 )
                 );
     }
@@ -118,7 +118,7 @@ public class LEARCredentialEmployeeFactory {
                 .build();
     }
 
-    private Mono<LEARCredentialEmployee> buildFinalLearCredentialEmployee(LEARCredentialEmployee.CredentialSubject baseCredentialSubject) {
+    private Mono<LEARCredentialEmployee> buildFinalLearCredentialEmployee(LEARCredentialEmployee.CredentialSubject baseCredentialSubject, CredentialStatus credentialStatus) {
         Instant currentTime = Instant.now();
         String validFrom = currentTime.toString();
         String validUntil = currentTime.plus(365, ChronoUnit.DAYS).toString();
@@ -130,8 +130,7 @@ public class LEARCredentialEmployeeFactory {
 
         String credentialId = "urn:uuid:" + UUID.randomUUID();
 
-        return buildCredentialStatus()
-                .map(credentialStatus -> LEARCredentialEmployee.builder()
+        return Mono.just(LEARCredentialEmployee.builder()
                         .context(LEAR_CREDENTIAL_EMPLOYEE_CONTEXT)
                         .id(credentialId)
                         .type(List.of(LEAR_CREDENTIAL_EMPLOYEE, VERIFIABLE_CREDENTIAL))
@@ -140,18 +139,6 @@ public class LEARCredentialEmployeeFactory {
                         .validFrom(validFrom)
                         .validUntil(validUntil)
                         .credentialStatus(credentialStatus)
-                        .build());
-    }
-
-    private Mono<CredentialStatus> buildCredentialStatus() {
-        String statusListCredential = appConfig.getIssuerBackendUrl() + "/backoffice/v1/credentials/status/1";
-        return generateCustomNonce()
-                .map(nonce -> CredentialStatus.builder()
-                        .id(statusListCredential + "#" + nonce)
-                        .type("PlainListEntity")
-                        .statusPurpose("revocation")
-                        .statusListIndex(nonce)
-                        .statusListCredential(statusListCredential)
                         .build());
     }
 
@@ -282,11 +269,12 @@ public class LEARCredentialEmployeeFactory {
         }
     }
 
-    private Mono<CredentialProcedureCreationRequest> buildCredentialProcedureCreationRequest(String decodedCredential, LEARCredentialEmployee credentialDecoded, String operationMode, String email) {
+    private Mono<CredentialProcedureCreationRequest> buildCredentialProcedureCreationRequest(String procedureId, String decodedCredential, LEARCredentialEmployee credentialDecoded, String operationMode, String email) {
         String mandatorOrgId = credentialDecoded.credentialSubject().mandate().mandator().organizationIdentifier();
 
         return Mono.just(
             CredentialProcedureCreationRequest.builder()
+                    .procedureId(procedureId)
                     .organizationIdentifier(mandatorOrgId)
                     .credentialDecoded(decodedCredential)
                     .credentialType(CredentialType.LEAR_CREDENTIAL_EMPLOYEE)

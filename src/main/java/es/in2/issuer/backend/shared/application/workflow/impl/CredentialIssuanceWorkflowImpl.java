@@ -73,7 +73,7 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
 
         // Validate user policy before proceeding
         return verifiableCredentialPolicyAuthorizationService.authorize(token, preSubmittedCredentialDataRequest.schema(), preSubmittedCredentialDataRequest.payload(), idToken)
-                .then(verifiableCredentialService.generateVc(processId, preSubmittedCredentialDataRequest, emailInfo.email())
+                .then(verifiableCredentialService.generateVc(processId, preSubmittedCredentialDataRequest, emailInfo.email(), token)
                         .flatMap(transactionCode -> sendCredentialOfferEmail(transactionCode, emailInfo))
                 );
     }
