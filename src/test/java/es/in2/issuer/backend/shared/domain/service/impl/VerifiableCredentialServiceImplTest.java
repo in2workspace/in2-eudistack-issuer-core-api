@@ -434,6 +434,7 @@ class VerifiableCredentialServiceImplTest {
         String format = "json";
         String credentialType = "LEARCredentialEmployee";
         String decodedCredential = "decodedCredential";
+        String notificationIdExample = "notification-id-910";
         String bindCredential = "bindCredential";
         String unsignedCredential = "unsignedCredential";
         // --- ASYNC ---
@@ -447,7 +448,7 @@ class VerifiableCredentialServiceImplTest {
                 .thenReturn(Mono.just(decodedCredential), Mono.just(unsignedCredential));
 
         when(credentialProcedureService.getNotificationIdByProcedureId(procedureId))
-                .thenReturn(Mono.just(decodedCredential), Mono.just(unsignedCredential));
+                .thenReturn(Mono.just(notificationIdExample), Mono.just(unsignedCredential));
 
         when(credentialFactory.bindCryptographicCredentialSubjectId(processId, credentialType, decodedCredential, subjectDid))
                 .thenReturn(Mono.just(bindCredential));
