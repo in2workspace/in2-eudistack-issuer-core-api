@@ -229,6 +229,21 @@ public class BitstringStatusListProvider implements StatusListProvider {
                 .flatMap(saved ->
                         statusListSigner.getIssuerAndSignCredential(saved, token)
                                 .flatMap(jwt -> persistSignedCredential(saved, jwt))
+                                .onErrorResume(ex ->
+                                        statusListRepository.deleteById(saved.id())
+                                                .doOnSuccess(v -> log.warn(
+                                                        "method=createNewList step=ROLLBACK_DELETE statusListId={} cause={}",
+                                                        saved.id(), ex.toString()
+                                                ))
+                                                .onErrorResume(deleteEx -> {
+                                                    log.error(
+                                                            "method=createNewList step=ROLLBACK_DELETE_FAILED statusListId={} cause={} deleteError={}",
+                                                            saved.id(), ex.toString(), deleteEx.toString()
+                                                    );
+                                                    return Mono.empty();
+                                                })
+                                                .then(Mono.error(ex))
+                                )
                 )
                 .doOnSuccess(list ->
                         log.debug("method=createNewList step=END statusListId={}", list.id())
