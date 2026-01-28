@@ -25,8 +25,9 @@ public class TokenController {
     @ResponseStatus(HttpStatus.OK)
     public Mono<TokenResponse> getCredentialIssuerMetadata(TokenRequest tokenRequest) {
         return tokenService.generateTokenResponse(
-                        tokenRequest.grantType(),
-                        tokenRequest.preAuthorizedCode(),
-                        tokenRequest.txCode());
+                tokenRequest.grantType(),
+                tokenRequest.preAuthorizedCode(),
+                tokenRequest.txCode(),
+                tokenRequest.refreshToken());
     }
 }

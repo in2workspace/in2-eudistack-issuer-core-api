@@ -7,5 +7,6 @@ import org.springframework.web.bind.annotation.BindParam;
 public record TokenRequest(
         @BindParam("grant_type") String grantType,
         @BindParam("pre-authorized_code") String preAuthorizedCode,
-        @BindParam("tx_code") String txCode) {
+        @BindParam("tx_code") String txCode,
+        @BindParam("refresh_token") String refreshToken){
 }

@@ -78,19 +78,19 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
 
     private Mono<Void> checkPolicies(String token, String schema, JsonNode payload, String idToken) {
         return Mono.fromCallable(() -> jwtService.parseJWT(token))
-            .flatMap(signedJWT -> {
-                String vcClaim = jwtService.getClaimFromPayload(signedJWT.getPayload(), VC);
-                return mapVcToLEARCredential(vcClaim, schema)
-                    .flatMap(learCredential ->
-                        switch (schema) {
-                            case LEAR_CREDENTIAL_EMPLOYEE -> authorizeLearCredentialEmployee(learCredential, payload);
-                            case LEAR_CREDENTIAL_MACHINE -> authorizeLearCredentialMachine(learCredential, payload);
-                            case LABEL_CREDENTIAL -> authorizeLabelCredential(learCredential, idToken);
-                            default ->
-                                    Mono.error(new InsufficientPermissionException("Unauthorized: Unsupported schema"));
-                        }
-                    );
-            });
+                .flatMap(signedJWT -> {
+                    String vcClaim = jwtService.getClaimFromPayload(signedJWT.getPayload(), VC);
+                    return mapVcToLEARCredential(vcClaim, schema)
+                            .flatMap(learCredential ->
+                                    switch (schema) {
+                                        case LEAR_CREDENTIAL_EMPLOYEE -> authorizeLearCredentialEmployee(learCredential, payload);
+                                        case LEAR_CREDENTIAL_MACHINE -> authorizeLearCredentialMachine(learCredential, payload);
+                                        case LABEL_CREDENTIAL -> authorizeLabelCredential(learCredential, idToken);
+                                        default ->
+                                                Mono.error(new InsufficientPermissionException("Unauthorized: Unsupported schema"));
+                                    }
+                            );
+                });
     }
 
     /**
@@ -178,7 +178,7 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
 
     // It checks if the signer if Mandator is IN2 or if the credential has same organizationIdentifier as the Mandator of the credential.
     private Mono<Void> authorizeLearCredentialEmployee(LEARCredential learCredential, JsonNode payload) {
-       if (isSignerIssuancePolicyValid(learCredential) || isMandatorIssuancePolicyValid(learCredential, payload)) {
+        if (isSignerIssuancePolicyValid(learCredential) || isMandatorIssuancePolicyValid(learCredential, payload)) {
             return Mono.empty();
         }
         return Mono.error(new InsufficientPermissionException("Unauthorized: LEARCredentialEmployee does not meet any issuance policies."));
@@ -212,7 +212,7 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
         }
     }
 
-// Checks if signer is IN2 and has Onboarding/Execute power
+    // Checks if signer is IN2 and has Onboarding/Execute power
     private boolean isSignerIssuancePolicyValid(LEARCredential learCredential) {
 
         final String orgId = resolveMandatorOrgIdentifier(learCredential);
@@ -245,13 +245,13 @@ public class VerifiableCredentialPolicyAuthorizationServiceImpl implements Verif
             return false;
         }
         final Mandator learCredentialMandator = extractMandatorLearCredentialEmployee(
-            learCredential);
+                learCredential);
         final Mandate.Mandator payloadMandator = mandate.mandator();
         return payloadMandator.organization().equals(learCredentialMandator.organization()) &&
-               payloadMandator.country().equals(learCredentialMandator.country()) &&
-               payloadMandator.commonName().equals(learCredentialMandator.commonName()) &&
-               payloadMandator.serialNumber().equals(learCredentialMandator.serialNumber()) &&
-               payloadPowersOnlyIncludeOnboarding(mandate.power());
+                payloadMandator.country().equals(learCredentialMandator.country()) &&
+                payloadMandator.commonName().equals(learCredentialMandator.commonName()) &&
+                payloadMandator.serialNumber().equals(learCredentialMandator.serialNumber()) &&
+                payloadPowersOnlyIncludeOnboarding(mandate.power());
     }
 
     private Mono<Boolean> isVerifiableCertificationPolicyValid(LEARCredential learCredential, String idToken) {

@@ -4,13 +4,16 @@ import com.nimbusds.jose.JWSObject;
 import es.in2.issuer.backend.shared.application.workflow.CredentialSignerWorkflow;
 import es.in2.issuer.backend.shared.domain.exception.RemoteSignatureException;
 import es.in2.issuer.backend.shared.domain.model.dto.CredentialResponse;
-import es.in2.issuer.backend.shared.domain.model.dto.DeferredCredentialRequest;
-import es.in2.issuer.backend.shared.domain.model.dto.DeferredCredentialResponse;
 import es.in2.issuer.backend.shared.domain.model.dto.PreSubmittedCredentialDataRequest;
+import es.in2.issuer.backend.shared.domain.model.entities.CredentialProcedure;
+import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum;
 import es.in2.issuer.backend.shared.domain.service.CredentialProcedureService;
 import es.in2.issuer.backend.shared.domain.service.DeferredCredentialMetadataService;
 import es.in2.issuer.backend.shared.domain.service.VerifiableCredentialService;
 import es.in2.issuer.backend.shared.domain.util.factory.CredentialFactory;
+import es.in2.issuer.backend.shared.domain.util.factory.IssuerFactory;
+import es.in2.issuer.backend.shared.domain.util.factory.LEARCredentialEmployeeFactory;
+import es.in2.issuer.backend.shared.domain.util.factory.LabelCredentialFactory;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -20,6 +23,7 @@ import java.text.ParseException;
 import java.util.List;
 
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.*;
+import static es.in2.issuer.backend.shared.domain.util.Constants.DEFERRED_CREDENTIAL_POLLING_INTERVAL;
 
 
 @Service
@@ -30,6 +34,9 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
     private final CredentialProcedureService credentialProcedureService;
     private final DeferredCredentialMetadataService deferredCredentialMetadataService;
     private final CredentialSignerWorkflow credentialSignerWorkflow;
+    private final LEARCredentialEmployeeFactory learCredentialEmployeeFactory;
+    private final LabelCredentialFactory labelCredentialFactory;
+    private final IssuerFactory issuerFactory;
 
     @Override
     public Mono<String> generateVc(String processId, PreSubmittedCredentialDataRequest preSubmittedCredentialDataRequest, String email) {
@@ -47,20 +54,21 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
     }
 
     @Override
-    public Mono<DeferredCredentialResponse> generateDeferredCredentialResponse(String processId, DeferredCredentialRequest deferredCredentialRequest) {
-        return deferredCredentialMetadataService.getVcByTransactionId(deferredCredentialRequest.transactionId())
-                .flatMap(deferredCredentialMetadataDeferredResponse -> {
-                    if (deferredCredentialMetadataDeferredResponse.vc() != null) {
-                        return credentialProcedureService.updateCredentialProcedureCredentialStatusToValidByProcedureId(deferredCredentialMetadataDeferredResponse.procedureId())
-                                .then(deferredCredentialMetadataService.deleteDeferredCredentialMetadataById(deferredCredentialMetadataDeferredResponse.id()))
-                                .then(Mono.just(DeferredCredentialResponse.builder()
-                                        .credentials(List.of(deferredCredentialMetadataDeferredResponse.vc()))
-                                        .build()));
-                    } else {
-                        return Mono.just(DeferredCredentialResponse.builder()
-                                .build());
-                    }
-                });
+    public Mono<CredentialResponse> generateDeferredCredentialResponse(CredentialProcedure procedure, String transactionId) {
+        if (procedure.getCredentialStatus().equals(CredentialStatusEnum.VALID)) {
+            return Mono.just(
+                    CredentialResponse.builder()
+                            .credentials(List.of(
+                                    CredentialResponse.Credential.builder()
+                                            .credential(procedure.getCredentialEncoded())
+                                            .build()))
+                            .build());
+        } else {
+            return Mono.just(CredentialResponse.builder()
+                    .transactionId(transactionId)
+                    .interval(DEFERRED_CREDENTIAL_POLLING_INTERVAL)
+                    .build());
+        }
     }
 
     @Override
@@ -185,16 +193,8 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
         if (ASYNC.equals(operationMode)) {
             return credentialProcedureService
                     .getDecodedCredentialByProcedureId(procedureId)
-                    .flatMap(decodedCredential -> Mono.just(
-                            CredentialResponse.builder()
-                                    .credentials(List.of(
-                                            CredentialResponse.Credential.builder()
-                                                    .credential(decodedCredential)
-                                                    .build()
-                                    ))
-                                    .transactionId(transactionId)
-                                    .build()
-                    ));
+                    .flatMap(decodedCredential ->
+                            getCredentialResponseWithTransactionId(transactionId));
         } else if (SYNC.equals(operationMode)) {
             return credentialSignerWorkflow
                     .signAndUpdateCredentialByProcedureId(
@@ -217,16 +217,7 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
                             log.info("Error in SYNC mode, falling back to unsigned");
                             return credentialProcedureService
                                     .getDecodedCredentialByProcedureId(procedureId)
-                                    .flatMap(unsigned -> Mono.just(
-                                            CredentialResponse.builder()
-                                                    .credentials(List.of(
-                                                            CredentialResponse.Credential.builder()
-                                                                    .credential(unsigned)
-                                                                    .build()
-                                                    ))
-                                                    .transactionId(transactionId)
-                                                    .build()
-                                    ));
+                                    .flatMap(unsigned -> getCredentialResponseWithTransactionId(transactionId));
                         }
                         return Mono.error(error);
                     });
@@ -236,5 +227,14 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
                     "Unknown operation mode: " + operationMode
             ));
         }
+    }
+
+    private Mono<CredentialResponse> getCredentialResponseWithTransactionId(String transactionId) {
+        return Mono.just(
+                CredentialResponse.builder()
+                        .transactionId(transactionId)
+                        .interval(DEFERRED_CREDENTIAL_POLLING_INTERVAL)
+                        .build()
+        );
     }
 }

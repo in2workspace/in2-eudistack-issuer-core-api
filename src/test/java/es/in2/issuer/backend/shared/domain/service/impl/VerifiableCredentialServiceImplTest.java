@@ -2,7 +2,7 @@ package es.in2.issuer.backend.shared.domain.service.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import es.in2.issuer.backend.shared.application.workflow.CredentialSignerWorkflow;
-import es.in2.issuer.backend.shared.domain.model.dto.*;
+import es.in2.issuer.backend.shared.domain.model.dto.CredentialResponse;
 import es.in2.issuer.backend.shared.domain.service.CredentialProcedureService;
 import es.in2.issuer.backend.shared.domain.service.DeferredCredentialMetadataService;
 import es.in2.issuer.backend.shared.domain.util.factory.CredentialFactory;
@@ -18,8 +18,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-import java.util.List;
-
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.BEARER_PREFIX;
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.JWT_VC;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -32,6 +30,7 @@ class VerifiableCredentialServiceImplTest {
     private final String processId = "process-id-123";
     private final String preAuthCode = "pre-auth-code-456";
     private final String transactionId = "transaction-id-789";
+    private final Long interval = 3600L;
     private final String deferredResponseId = "deferred-response-id-456";
     private final String procedureId = "procedure-id-321";
     private final String vcValue = "vc-value-123";
@@ -145,82 +144,6 @@ class VerifiableCredentialServiceImplTest {
 //        verify(deferredCredentialMetadataService, times(1))
 //                .createDeferredCredentialMetadata(createdProcedureId, null, null);
 //    }
-
-    @Test
-    void generateDeferredCredentialResponse_WithVcPresent() {
-        // Arrange: Create the request and mock response
-        DeferredCredentialRequest deferredCredentialRequest = DeferredCredentialRequest.builder()
-                .transactionId(transactionId)
-                .build();
-
-        DeferredCredentialMetadataDeferredResponse mockResponseWithVc = DeferredCredentialMetadataDeferredResponse.builder()
-                .id(deferredResponseId)
-                .procedureId(procedureId)
-                .transactionId(transactionId)
-                .vc(vcValue)
-                .build();
-
-        // Mock the service methods
-        when(deferredCredentialMetadataService.getVcByTransactionId(transactionId))
-                .thenReturn(Mono.just(mockResponseWithVc));
-        when(credentialProcedureService.updateCredentialProcedureCredentialStatusToValidByProcedureId(procedureId))
-                .thenReturn(Mono.empty());
-        when(deferredCredentialMetadataService.deleteDeferredCredentialMetadataById(deferredResponseId))
-                .thenReturn(Mono.empty());
-
-        // Act: Call the method
-        Mono<DeferredCredentialResponse> result = verifiableCredentialServiceImpl.generateDeferredCredentialResponse(processId, deferredCredentialRequest);
-
-        // Assert: Verify the result
-        StepVerifier.create(result)
-                .expectNextMatches(response ->
-                        response.credentials().equals(List.of(vcValue)))
-                .verifyComplete();
-
-        // Verify the interactions
-        verify(deferredCredentialMetadataService, times(1))
-                .getVcByTransactionId(transactionId);
-        verify(credentialProcedureService, times(1))
-                .updateCredentialProcedureCredentialStatusToValidByProcedureId((procedureId));
-        verify(deferredCredentialMetadataService, times(1))
-                .deleteDeferredCredentialMetadataById(deferredResponseId);
-    }
-
-    @Test
-    void generateDeferredCredentialResponse_WithVcAbsent() {
-        // Arrange: Create the request and mock response
-        DeferredCredentialRequest deferredCredentialRequest = DeferredCredentialRequest.builder()
-                .transactionId(transactionId)
-                .build();
-
-        DeferredCredentialMetadataDeferredResponse mockResponseWithoutVc = DeferredCredentialMetadataDeferredResponse.builder()
-                .id(deferredResponseId)
-                .procedureId(procedureId)
-                .transactionId(transactionId)
-                .vc(null) // No VC present
-                .build();
-
-        // Mock the service methods
-        when(deferredCredentialMetadataService.getVcByTransactionId(transactionId))
-                .thenReturn(Mono.just(mockResponseWithoutVc));
-
-        // Act: Call the method
-        Mono<DeferredCredentialResponse> result = verifiableCredentialServiceImpl.generateDeferredCredentialResponse(processId, deferredCredentialRequest);
-
-        // Assert: Verify the result
-        StepVerifier.create(result)
-                .expectNextMatches(response ->
-                        response.credentials() == null)
-                .verifyComplete();
-
-        // Verify the interactions
-        verify(deferredCredentialMetadataService, times(1))
-                .getVcByTransactionId(transactionId);
-        verify(credentialProcedureService, times(0))
-                .updateCredentialProcedureCredentialStatusToValidByProcedureId(anyString());
-        verify(deferredCredentialMetadataService, times(0))
-                .deleteDeferredCredentialMetadataById(anyString());
-    }
 
 //    todo test
 //    @Test
@@ -471,11 +394,8 @@ class VerifiableCredentialServiceImplTest {
         StepVerifier.create(result)
                 .expectNextMatches(response ->
                         response.transactionId().equals(transId)
-                                && response.credentials().equals(List.of(
-                                CredentialResponse.Credential.builder()
-                                        .credential(unsignedCredential)
-                                        .build()
-                        )))
+                                && response.interval().equals(3600L)
+                        )
                 .verifyComplete();
 
         verify(credentialSignerWorkflow, times(1))
