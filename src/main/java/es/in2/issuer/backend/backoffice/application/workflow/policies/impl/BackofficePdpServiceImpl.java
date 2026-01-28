@@ -38,12 +38,6 @@ public class BackofficePdpServiceImpl implements BackofficePdpService {
     }
 
     @Override
-    public Mono<Void> validateRevokeCredential(String processId, String token, String credentialProcedureId) {
-        log.info("Validating 'revoke' action for processId={} and credentialProcedureId={}", processId, credentialProcedureId);
-        return validateCommon(token, credentialProcedureId);
-    }
-
-    @Override
     public Mono<Void> validateSendReminder(String processId, String token, String credentialProcedureId) {
         log.info("Validating 'send reminder' action for processId={} and credentialProcedureId={}", processId, credentialProcedureId);
         return validateCommon(token, credentialProcedureId);

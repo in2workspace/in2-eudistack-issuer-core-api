@@ -6,7 +6,5 @@ public interface BackofficePdpService {
 
     Mono<Void> validateSignCredential(String processId, String token, String credentialProcedureId);
 
-    Mono<Void> validateRevokeCredential(String processId, String token, String credentialProcedureId);
-
     Mono<Void> validateSendReminder(String processId, String token, String credentialProcedureId);
 }
