@@ -14,7 +14,6 @@ import reactor.core.publisher.Mono;
 
 import java.util.UUID;
 
-//todo fix path, probably with "/status-list/v1/status"
 @Slf4j
 @RequiredArgsConstructor
 @RestController
