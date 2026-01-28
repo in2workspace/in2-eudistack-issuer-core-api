@@ -1,7 +1,7 @@
 package es.in2.issuer.backend.credentialStatus.infrastructure.adapter;
 
 
-import es.in2.issuer.backend.credentialStatus.domain.model.entities.StatusListIndex;
+import es.in2.issuer.backend.credentialStatus.domain.model.entities.LegacyStatusListIndex;
 import es.in2.issuer.backend.credentialStatus.domain.service.LegacyCredentialStatusQuery;
 import es.in2.issuer.backend.credentialStatus.infrastructure.repository.LegacyCredentialStatusRepository;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +20,6 @@ public class LegacyCredentialStatusQueryImpl implements LegacyCredentialStatusQu
     public Flux<String> getNoncesByListId(String processId, int listId) {
         log.info("Process ID: {} - LegacyCredentialStatusQueryImpl - getNoncesByListId: {}", processId, listId);
         return legacyCredentialStatusRepository.findByListId(listId)
-                .map(StatusListIndex::getNonce);
+                .map(LegacyStatusListIndex::getNonce);
     }
 }
