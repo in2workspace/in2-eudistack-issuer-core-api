@@ -22,8 +22,8 @@ import static es.in2.issuer.backend.backoffice.domain.util.Constants.*;
 @Slf4j
 public class IssuerFactory {
 
-    private final RemoteSignatureConfig      remoteSignatureConfig;
-    private final DefaultSignerConfig        defaultSignerConfig;
+    private final RemoteSignatureConfig remoteSignatureConfig;
+    private final DefaultSignerConfig defaultSignerConfig;
     private final RemoteSignatureServiceImpl remoteSignatureServiceImpl;
 
     /**
@@ -35,7 +35,7 @@ public class IssuerFactory {
         log.debug("🔐: createDetailedIssuer");
         return isServerMode()
                 ? Mono.just(buildLocalDetailedIssuer())
-                : createRemoteDetailedIssuerNoNotifyOnError();
+                : createRemoteDetailedIssuer();
     }
 
     /**
@@ -47,7 +47,7 @@ public class IssuerFactory {
         log.debug("🔐: createSimpleIssuer");
         return isServerMode()
                 ? Mono.just(buildLocalSimpleIssuer())
-                : createRemoteDetailedIssuerNoNotifyOnError()
+                : createRemoteDetailedIssuer()
                 .map(detailed -> SimpleIssuer.builder()
                         .id(detailed.getId())
                         .build());
@@ -106,8 +106,8 @@ public class IssuerFactory {
      * - retries recoverable errors
      * - propagates the error downstream if it still fails
      */
-    private Mono<DetailedIssuer> createRemoteDetailedIssuerNoNotifyOnError() {
-        log.debug("🔐: createRemoteDetailedIssuerNoNotifyOnError");
+    private Mono<DetailedIssuer> createRemoteDetailedIssuer() {
+        log.debug("🔐: createRemoteDetailedIssuer");
         return remoteIssuerCoreFlow()
                 .retryWhen(buildRetrySpec())
                 .doOnError(err ->
