@@ -1,9 +1,15 @@
 package es.in2.issuer.backend.shared.domain.service.impl;
 
+import com.nimbusds.jose.JOSEObjectType;
+import com.nimbusds.jose.JWSAlgorithm;
+import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.crypto.ECDSASigner;
+import com.nimbusds.jose.jwk.Curve;
+import com.nimbusds.jose.jwk.ECKey;
+import com.nimbusds.jose.jwk.KeyUse;
 import com.nimbusds.jose.jwk.gen.ECKeyGenerator;
+import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
-import es.in2.issuer.backend.shared.application.workflow.NonceValidationWorkflow;
 import es.in2.issuer.backend.shared.domain.exception.ProofValidationException;
 import es.in2.issuer.backend.shared.domain.service.JWTService;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,22 +24,13 @@ import reactor.test.StepVerifier;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Base64;
+import java.util.Date;
 import java.util.Set;
 
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.SUPPORTED_PROOF_ALG;
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.SUPPORTED_PROOF_TYP;
 import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.when;
-import com.nimbusds.jose.*;
-import com.nimbusds.jose.jwk.*;
-import com.nimbusds.jwt.JWTClaimsSet;
-
-import java.util.Date;
-
-import static org.mockito.ArgumentMatchers.anyMap;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.*;
 
 
 
@@ -42,9 +39,6 @@ class ProofValidationServiceImplTest {
 
     @Mock
     private JWTService jwtService;
-
-    @Mock
-    private NonceValidationWorkflow nonceValidationWorkflow;
 
     @InjectMocks
     private ProofValidationServiceImpl service;

@@ -1,5 +1,6 @@
 package es.in2.issuer.backend.oidc4vci.infrastructure.controller;
 
+import es.in2.issuer.backend.oidc4vci.domain.model.TokenRequest;
 import es.in2.issuer.backend.oidc4vci.domain.model.TokenResponse;
 import es.in2.issuer.backend.oidc4vci.domain.service.TokenService;
 import es.in2.issuer.backend.shared.infrastructure.controller.error.ErrorResponseFactory;
@@ -15,6 +16,7 @@ import org.springframework.web.reactive.function.BodyInserters;
 import reactor.core.publisher.Mono;
 
 import static es.in2.issuer.backend.shared.domain.util.Constants.GRANT_TYPE;
+import static es.in2.issuer.backend.shared.domain.util.Constants.REFRESH_TOKEN_GRANT_TYPE;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.csrf;
 
@@ -34,18 +36,19 @@ class TokenControllerTest {
 
     @Test
     void testGetEntitiesSuccess() {
-        String grantType = GRANT_TYPE;
-        String preAuthorizedCode = "5678";
-        String txCode = "9012";
+        String grantType = REFRESH_TOKEN_GRANT_TYPE;
+        String refreshToken = "rt-123";
         TokenResponse tokenResponse = new TokenResponse(
                 "access-token",
                 "token-type",
                 3600L,
-                "null");
+                "1234");
+
         when(tokenService.generateTokenResponse(
                 grantType,
-                preAuthorizedCode,
-                txCode))
+                null,
+                null,
+                refreshToken))
                 .thenReturn(Mono.just(tokenResponse));
 
         webTestClient
@@ -55,8 +58,7 @@ class TokenControllerTest {
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .body(BodyInserters
                         .fromFormData("grant_type", grantType)
-                        .with("pre-authorized_code", preAuthorizedCode)
-                        .with("tx_code", txCode))
+                        .with("refresh_token", refreshToken))
                 .exchange()
                 .expectStatus().isOk()
                 .expectHeader().contentType(MediaType.APPLICATION_JSON)

@@ -7,7 +7,7 @@ import java.util.Map;
 import java.util.Set;
 
 @Builder
-public record CredentialIssuerMetadata(
+public record   CredentialIssuerMetadata(
         @JsonProperty(value = "credential_issuer", required = true) String credentialIssuer,
         @JsonProperty(value = "issuance_endpoint", required = true) String issuanceEndpoint,
         @JsonProperty(value = "credential_endpoint", required = true) String credentialEndpoint,

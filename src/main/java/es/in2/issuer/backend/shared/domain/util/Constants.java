@@ -1,6 +1,7 @@
 package es.in2.issuer.backend.shared.domain.util;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 public final class Constants {
     public static final String LEAR_CREDENTIAL = "LEARCredential";
@@ -15,6 +16,7 @@ public final class Constants {
     public static final String LEAR_CREDENTIAL_MACHINE_TYPE = "LEAR_CREDENTIAL_MACHINE";
 
     public static final String GRANT_TYPE = "urn:ietf:params:oauth:grant-type:pre-authorized_code";
+    public static final String REFRESH_TOKEN_GRANT_TYPE = "refresh_token";
     public static final String CREDENTIALS_CONTEXT_V2 = "https://www.w3.org/ns/credentials/v2";
     public static final String CREDENTIALS_EUDISTACK_CONTEXT = "https://credentials.eudistack.eu/.well-known/credentials";
     public static final String CREDENTIALS_EUDISTACK_LEAR_CREDENTIAL_EMPLOYEE_CONTEXT = CREDENTIALS_EUDISTACK_CONTEXT + "/lear_credential_employee/w3c/v3";
@@ -27,6 +29,8 @@ public final class Constants {
     public static final Integer VERIFIABLE_CREDENTIAL_JWT_CACHE_EXPIRATION_TIME = 10;
     public static final Integer CLIENT_ASSERTION_EXPIRATION_TIME = 2;
     public static final String CLIENT_ASSERTION_EXPIRATION_TIME_UNIT = "MINUTES";
+    public static final long REFRESH_TOKEN_EXPIRATION = 30;
+    public static final TimeUnit REFRESH_TOKEN_EXPIRATION_TIME_UNIT = TimeUnit.DAYS;
 
     private Constants() {
         throw new IllegalStateException("Utility class");
@@ -36,4 +40,6 @@ public final class Constants {
     public static final String ENGLISH = "en";
     public static final String DEFAULT_USER_NAME = "Cloud Provider";
     public static final String LEAR_CREDENTIAL_MACHINE_DESCRIPTION = "Verifiable Credential for machines";
+
+    public static final Long DEFERRED_CREDENTIAL_POLLING_INTERVAL = 3600L;
 }

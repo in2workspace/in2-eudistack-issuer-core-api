@@ -22,8 +22,6 @@ import reactor.core.publisher.Mono;
 
 import javax.naming.ConfigurationException;
 import javax.naming.OperationNotSupportedException;
-import java.util.Collections;
-import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -114,12 +112,12 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
         return switch (schema) {
             case LEAR_CREDENTIAL_EMPLOYEE -> {
                 String email = payload.get(MANDATEE).get(EMAIL).asText();
-                String org   = payload.get(MANDATOR).get(ORGANIZATION).asText();
+                String org = payload.get(MANDATOR).get(ORGANIZATION).asText();
                 yield new CredentialOfferEmailNotificationInfo(email, org);
             }
             case LEAR_CREDENTIAL_MACHINE -> {
                 String email;
-                if(preSubmittedCredentialDataRequest.email() == null || preSubmittedCredentialDataRequest.email().isBlank()) {
+                if (preSubmittedCredentialDataRequest.email() == null || preSubmittedCredentialDataRequest.email().isBlank()) {
                     email = payload.get(MANDATOR).get(EMAIL).asText();
                     log.debug("No credential owner email found in presubmitted data. Using mandator email: {}", payload.get(MANDATOR).get(EMAIL).asText());
                 } else {
@@ -306,11 +304,9 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
     }
 
     private String extractFirstJwtProof(CredentialRequest credentialRequest) {
-        List<String> jwtList = credentialRequest.proofs() != null
-                ? credentialRequest.proofs().jwt()
-                : Collections.emptyList();
-
-        return jwtList.isEmpty() ? null : jwtList.get(0);
+        return credentialRequest.proof() != null
+                ? credentialRequest.proof().jwt()
+                : null;
     }
 
     private Mono<BindingInfo> validateProofAndExtractBindingInfo(
@@ -423,9 +419,37 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
     }
 
     @Override
-    public Mono<DeferredCredentialResponse> generateVerifiableCredentialDeferredResponse(String processId, DeferredCredentialRequest deferredCredentialRequest) {
-        return verifiableCredentialService.generateDeferredCredentialResponse(processId, deferredCredentialRequest)
-                .onErrorResume(e -> Mono.error(new RuntimeException("Failed to process the credential for the next processId: " + processId, e)));
+    public Mono<CredentialResponse> generateVerifiableCredentialDeferredResponse(
+            String processId,
+            DeferredCredentialRequest deferredCredentialRequest,
+            AccessTokenContext accessTokenContext) {
+        String transactionId = deferredCredentialRequest.transactionId();
+        log.debug("ProcessID: {} Generating verifiable credential deferred response for transactionId: {}", processId, transactionId);
+
+        return deferredCredentialMetadataService.getDeferredCredentialMetadataByAuthServerNonce(accessTokenContext.jti())
+                .flatMap(deferred ->
+                        credentialProcedureService.getCredentialProcedureById(deferred.getProcedureId().toString())
+                                .flatMap(procedure ->
+                                        verifiableCredentialService.generateDeferredCredentialResponse(procedure, transactionId)
+                                                .flatMap(credentialResponse ->
+                                                        sendPendingSignatureCredentialNotification(
+                                                                procedure,
+                                                                credentialResponse)
+                                                                .thenReturn(credentialResponse))));
+    }
+
+    private Mono<Void> sendPendingSignatureCredentialNotification(
+            CredentialProcedure procedure,
+            CredentialResponse response) {
+        if (response.transactionId() != null) {
+            return emailService.sendPendingSignatureCredentialNotification(
+                    procedure.getCreatedBy(),
+                    "email.pending-credential-notification",
+                    procedure.getCreatedBy(),
+                    appConfig.getIssuerFrontendUrl());
+        }
+
+        return Mono.empty();
     }
 
     public record BindingInfo(String subjectId, Object cnf) {}

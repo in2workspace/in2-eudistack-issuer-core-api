@@ -6,7 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [v2.2.9](https://github.com/in2workspace/in2-issuer-api/releases/tag/v2.2.9)
 ### Added
 - Notification Endpoint implemented
-
+- 
+## [v2.2.8](https://github.com/in2workspace/in2-issuer-api/releases/tag/v2.2.8)
+### Changed
+- Update refresh token.
+- Update deferred credential flow.
 
 ## [v2.2.7](https://github.com/in2workspace/in2-issuer-api/releases/tag/v2.2.7)
 ### Added
