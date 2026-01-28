@@ -60,10 +60,14 @@ public class CredentialIssuerMetadataServiceImpl implements CredentialIssuerMeta
         return CredentialIssuerMetadata.CredentialConfiguration.builder()
                 .format(JWT_VC_JSON)
                 .scope("lear_credential_machine")
+                .cryptographicBindingMethodsSupported(Set.of("did:key"))
                 .credentialSigningAlgValuesSupported(Set.of(ES256_SIGNING_ALG_VALUE))
                 .credentialDefinition(CredentialIssuerMetadata.CredentialConfiguration.CredentialDefinition.builder()
                         .type(Set.of(VERIFIABLE_CREDENTIAL, LEAR_CREDENTIAL_MACHINE))
                         .build())
+                .proofTypesSupported(Map.of("jwt", CredentialIssuerMetadata.CredentialConfiguration.ProofSigninAlgValuesSupported.builder()
+                        .proofSigningAlgValuesSupported(Set.of(ES256_SIGNING_ALG_VALUE))
+                        .build()))
                 .build();
     }
 
