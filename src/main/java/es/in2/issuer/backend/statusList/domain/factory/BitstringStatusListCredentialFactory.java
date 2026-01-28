@@ -1,6 +1,5 @@
-package es.in2.issuer.backend.statusList.infrastructure.adapter;
+package es.in2.issuer.backend.statusList.domain.factory;
 
-import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
 import es.in2.issuer.backend.statusList.domain.model.StatusListEntry;
 import es.in2.issuer.backend.statusList.domain.model.StatusPurpose;
 import lombok.RequiredArgsConstructor;
@@ -16,27 +15,18 @@ import static java.util.Objects.requireNonNull;
 @Slf4j
 @RequiredArgsConstructor
 @Component
-public class BitstringStatusListCredentialBuilder {
+public class BitstringStatusListCredentialFactory {
 
-    private final AppConfig appConfig;
-
-    public String buildListUrl(Long listId) {
-        requireNonNull(listId, "listId cannot be null");
-        return appConfig.getIssuerBackendUrl() + "/w3c/v1/credentials/status" + "/" + listId;
+    public Map<String, Object> buildUnsigned(String listUrl, String issuerId, String purpose, String encodedList) {
+        return buildCredential(listUrl, issuerId, purpose, encodedList);
     }
 
-    public Map<String, Object> buildUnsigned(Long listId, String issuerId, String purpose, String encodedList) {
-        return buildCredential(listId, issuerId, purpose, encodedList);
-    }
-
-    public StatusListEntry buildStatusListEntry(Long listId, Integer idx, StatusPurpose purpose) {
-        log.debug("Building status list entry - listId: {}, idx: {}", listId, idx);
-
-        requireNonNull(listId, "listId cannot be null");
+    public StatusListEntry buildStatusListEntry(String listUrl, Integer idx, StatusPurpose purpose) {
+        log.debug("Building status list entry - idx: {}", idx);
+        requireNonNull(listUrl, "listUrl cannot be null");
         requireNonNull(idx, "idx cannot be null");
         requireNonNull(purpose, "purpose cannot be null");
 
-        String listUrl = buildListUrl(listId);
         String id = listUrl + "#" + idx;
 
         return StatusListEntry.builder()
@@ -48,13 +38,11 @@ public class BitstringStatusListCredentialBuilder {
                 .build();
     }
 
-    private Map<String, Object> buildCredential(Long listId, String issuerId, String purpose, String encodedList) {
-        requireNonNull(listId, "listId cannot be null");
+    private Map<String, Object> buildCredential(String listUrl, String issuerId, String purpose, String encodedList) {
+        requireNonNull(listUrl, "listUrl cannot be null");
         requireNonNull(issuerId, "issuerId cannot be null");
         requireNonNull(purpose, "purpose cannot be null");
         requireNonNull(encodedList, "encodedList cannot be null");
-
-        String listUrl = buildListUrl(listId);
 
         Map<String, Object> credentialSubject = new LinkedHashMap<>();
         credentialSubject.put("type", STATUS_LIST_SUBJECT_TYPE);

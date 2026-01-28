@@ -10,6 +10,7 @@ import es.in2.issuer.backend.shared.domain.model.enums.SignatureType;
 import es.in2.issuer.backend.shared.domain.service.RemoteSignatureService;
 import es.in2.issuer.backend.shared.domain.util.factory.IssuerFactory;
 import es.in2.issuer.backend.statusList.domain.exception.StatusListCredentialSerializationException;
+import es.in2.issuer.backend.statusList.domain.spi.CredentialPayloadSigner;
 import es.in2.issuer.backend.statusList.infrastructure.repository.StatusList;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -22,31 +23,12 @@ import static java.util.Objects.requireNonNull;
 
 @RequiredArgsConstructor
 @Component
-public class StatusListSigner {
+public class StatusListSigner implements CredentialPayloadSigner {
 
     private final RemoteSignatureService remoteSignatureService;
     private final ObjectMapper objectMapper;
-    private final IssuerFactory issuerFactory;
-    private final BitstringStatusListCredentialBuilder statusListBuilder;
 
-    /**
-     * Gets the issuer, builds the payload, and signs it. Does not persist anything.
-     */
-    public Mono<String> getIssuerAndSignCredential(StatusList saved, String token) {
-        return issuerFactory.createSimpleIssuer()
-                .flatMap(issuer -> {
-                    Map<String, Object> payload = statusListBuilder.buildUnsigned(
-                            saved.id(),
-                            issuer.id(),
-                            saved.purpose(),
-                            saved.encodedList()
-                    );
-
-                    return signPayload(payload, token, saved.id());
-                });
-    }
-
-    public Mono<String> signPayload(Map<String, Object> payload, String token, Long listId) {
+    public Mono<String> sign(Map<String, Object> payload, String token, Long listId) {
         requireNonNull(payload, "payload cannot be null");
         requireNonNull(token, "token cannot be null");
 
