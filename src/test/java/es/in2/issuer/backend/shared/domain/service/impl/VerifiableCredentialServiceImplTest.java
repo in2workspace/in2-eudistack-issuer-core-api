@@ -1,17 +1,15 @@
 package es.in2.issuer.backend.shared.domain.service.impl;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import es.in2.issuer.backend.backoffice.domain.util.Constants;
 import es.in2.issuer.backend.shared.application.workflow.CredentialSignerWorkflow;
 import es.in2.issuer.backend.shared.domain.model.dto.*;
-import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.employee.LEARCredentialEmployee;
 import es.in2.issuer.backend.shared.domain.service.CredentialProcedureService;
 import es.in2.issuer.backend.shared.domain.service.DeferredCredentialMetadataService;
 import es.in2.issuer.backend.shared.domain.util.factory.CredentialFactory;
 import es.in2.issuer.backend.shared.domain.util.factory.IssuerFactory;
 import es.in2.issuer.backend.shared.domain.util.factory.LEARCredentialEmployeeFactory;
 import es.in2.issuer.backend.shared.domain.util.factory.LabelCredentialFactory;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -427,7 +425,7 @@ class VerifiableCredentialServiceImplTest {
 //    }
 
     @Test
-    void buildCredentialResponseSync_RemoteSignatureException_Retry() {
+    void buildCredentialResponseSync_RemoteSignatureException_FallbackToUnsigned() {
         String token = "token";
         String subjectDid = "did:example:123456789";
         String authServerNonce = "auth-server-nonce-789";
@@ -436,16 +434,20 @@ class VerifiableCredentialServiceImplTest {
         String decodedCredential = "decodedCredential";
         String notificationIdExample = "notification-id-910";
         String bindCredential = "bindCredential";
+        String boundCredential = "boundCredential";
         String unsignedCredential = "unsignedCredential";
-        // --- ASYNC ---
-        when(deferredCredentialMetadataService.getProcedureIdByAuthServerNonce(authServerNonce))
-                .thenReturn(Mono.just(procedureId));
+        String transId = "transactionId";
+        String procId = "procedureId";
+        String proceId = "processId";
 
-        when(credentialProcedureService.getCredentialTypeByProcedureId(procedureId))
+        when(credentialProcedureService.getCredentialTypeByProcedureId(procId))
                 .thenReturn(Mono.just(credentialType));
 
-        when(credentialProcedureService.getDecodedCredentialByProcedureId(procedureId))
+        when(credentialProcedureService.getDecodedCredentialByProcedureId(procId))
                 .thenReturn(Mono.just(decodedCredential), Mono.just(unsignedCredential));
+        when(credentialFactory.bindCryptographicCredentialSubjectId(
+                proceId, credentialType, decodedCredential, subjectDid))
+                .thenReturn(Mono.just(boundCredential));
 
         when(credentialProcedureService.getNotificationIdByProcedureId(procedureId))
                 .thenReturn(Mono.just(notificationIdExample), Mono.just(unsignedCredential));
@@ -453,25 +455,28 @@ class VerifiableCredentialServiceImplTest {
         when(credentialFactory.bindCryptographicCredentialSubjectId(processId, credentialType, decodedCredential, subjectDid))
                 .thenReturn(Mono.just(bindCredential));
 
-        when(credentialProcedureService.updateDecodedCredentialByProcedureId(procedureId, bindCredential))
+        when(credentialProcedureService.updateDecodedCredentialByProcedureId(procedureId, bindCredential));
+        when(credentialProcedureService.updateDecodedCredentialByProcedureId(procId, boundCredential))
                 .thenReturn(Mono.empty());
 
         when(deferredCredentialMetadataService.updateDeferredCredentialMetadataByAuthServerNonce(authServerNonce))
-                .thenReturn(Mono.just(transactionId));
+                .thenReturn(Mono.just(transId));
 
-        when(credentialFactory.mapCredentialBindIssuerAndUpdateDB(processId, procedureId, bindCredential, credentialType, format, authServerNonce, testEmail)).thenReturn(Mono.empty());
-
-        when(credentialProcedureService.getOperationModeByProcedureId(procedureId))
-                .thenReturn(Mono.just("S"));
-        // --- SYNC ---
-        when(credentialSignerWorkflow.signAndUpdateCredentialByProcedureId(BEARER_PREFIX + token, procedureId, JWT_VC))
-                .thenReturn(Mono.error(new IllegalArgumentException("Simulated error")));
-
-        when(deferredCredentialMetadataService.getFormatByProcedureId(procedureId))
+        when(deferredCredentialMetadataService.getFormatByProcedureId(procId))
                 .thenReturn(Mono.just(format));
 
+        when(credentialFactory.mapCredentialBindIssuerAndUpdateDB(
+                proceId, procId, boundCredential, credentialType, format, authServerNonce, testEmail))
+                .thenReturn(Mono.empty());
+
+        when(credentialProcedureService.getOperationModeByProcedureId(procId))
+                .thenReturn(Mono.just("S")); // SYNC
+
+        when(credentialSignerWorkflow.signAndUpdateCredentialByProcedureId(BEARER_PREFIX + token, procId, JWT_VC))
+                .thenReturn(Mono.error(new IllegalArgumentException("Simulated error")));
+
         Mono<CredentialResponse> result = verifiableCredentialServiceImpl.buildCredentialResponse(
-                processId, subjectDid, authServerNonce, token, testEmail);
+                proceId, subjectDid, authServerNonce, token, testEmail, procId);
 
         StepVerifier.create(result)
                 .expectNextMatches(response ->
@@ -482,8 +487,234 @@ class VerifiableCredentialServiceImplTest {
                 .verifyComplete();
 
         verify(credentialSignerWorkflow, times(1))
-                .signAndUpdateCredentialByProcedureId(BEARER_PREFIX + token, procedureId, JWT_VC);
+                .signAndUpdateCredentialByProcedureId(BEARER_PREFIX + token, procId, JWT_VC);
+
+        verify(credentialProcedureService, times(2))
+                .getDecodedCredentialByProcedureId(procId);
     }
+
+
+    @Test
+    void buildCredentialResponse_whenBindCryptographicSubjectFails_emitsFailedToBindMessage() {
+        String subjectDid = "did:example:123";
+        String authServerNonce = "nonce";
+        String token = "token";
+        String email = testEmail;
+        String procedureIdLocal = "proc-bind-fail";
+
+        String credType = "LEARCredentialEmployee";
+        String decoded = "decoded";
+
+        when(credentialProcedureService.getCredentialTypeByProcedureId(procedureIdLocal))
+                .thenReturn(Mono.just(credType));
+        when(credentialProcedureService.getDecodedCredentialByProcedureId(procedureIdLocal))
+                .thenReturn(Mono.just(decoded));
+
+        when(credentialFactory.bindCryptographicCredentialSubjectId(processId, credType, decoded, subjectDid))
+                .thenReturn(Mono.error(new RuntimeException("boom")));
+
+        StepVerifier.create(
+                        verifiableCredentialServiceImpl.buildCredentialResponse(
+                                processId, subjectDid, authServerNonce, token, email, procedureIdLocal
+                        )
+                )
+                .expectErrorSatisfies(ex -> {
+                    Assertions.assertInstanceOf(RuntimeException.class, ex);
+                    Assertions.assertEquals("Failed to bind cryptographic credential subject", ex.getMessage());
+                    Assertions.assertNotNull(ex.getCause());
+                })
+                .verify();
+
+        verify(credentialProcedureService, never())
+                .updateDecodedCredentialByProcedureId(anyString(), anyString());
+    }
+
+
+    @Test
+    void buildCredentialResponse_whenUpdateDeferredEmpty_emitsTransactionIdNotFound() {
+        String subjectDid = "did:example:123";
+        String authServerNonce = "nonce";
+        String token = "token";
+        String email = testEmail;
+        String procedureIdLocal = "proc-update-deferred-empty";
+
+        String credType = "LEARCredentialEmployee";
+        String decoded = "decoded";
+        String bound = "bound";
+
+        when(credentialProcedureService.getCredentialTypeByProcedureId(procedureIdLocal))
+                .thenReturn(Mono.just(credType));
+        when(credentialProcedureService.getDecodedCredentialByProcedureId(procedureIdLocal))
+                .thenReturn(Mono.just(decoded));
+
+        when(credentialFactory.bindCryptographicCredentialSubjectId(processId, credType, decoded, subjectDid))
+                .thenReturn(Mono.just(bound));
+        when(credentialProcedureService.updateDecodedCredentialByProcedureId(procedureIdLocal, bound))
+                .thenReturn(Mono.empty());
+
+        when(deferredCredentialMetadataService.updateDeferredCredentialMetadataByAuthServerNonce(authServerNonce))
+                .thenReturn(Mono.empty());
+
+        StepVerifier.create(
+                        verifiableCredentialServiceImpl.buildCredentialResponse(
+                                processId, subjectDid, authServerNonce, token, email, procedureIdLocal
+                        )
+                )
+                .expectErrorSatisfies(ex -> {
+                    Assertions.assertInstanceOf(RuntimeException.class, ex);
+                    Assertions.assertEquals("TransactionId not found after updating deferred metadata", ex.getMessage());
+                })
+                .verify();
+    }
+
+    @Test
+    void buildCredentialResponse_whenFormatEmpty_emitsFormatNotFound() {
+        String subjectDid = "did:example:123";
+        String authServerNonce = "nonce";
+        String token = "token";
+        String email = testEmail;
+        String procedureIdLocal = "proc-format-empty";
+        String txId = "tx-2";
+
+        String credType = "LEARCredentialEmployee";
+        String decoded = "decoded";
+        String bound = "bound";
+
+        when(credentialProcedureService.getCredentialTypeByProcedureId(procedureIdLocal))
+                .thenReturn(Mono.just(credType));
+        when(credentialProcedureService.getDecodedCredentialByProcedureId(procedureIdLocal))
+                .thenReturn(Mono.just(decoded));
+
+        when(credentialFactory.bindCryptographicCredentialSubjectId(processId, credType, decoded, subjectDid))
+                .thenReturn(Mono.just(bound));
+        when(credentialProcedureService.updateDecodedCredentialByProcedureId(procedureIdLocal, bound))
+                .thenReturn(Mono.empty());
+
+        when(deferredCredentialMetadataService.updateDeferredCredentialMetadataByAuthServerNonce(authServerNonce))
+                .thenReturn(Mono.just(txId));
+
+        when(deferredCredentialMetadataService.getFormatByProcedureId(procedureIdLocal))
+                .thenReturn(Mono.empty());
+
+        StepVerifier.create(
+                        verifiableCredentialServiceImpl.buildCredentialResponse(
+                                processId, subjectDid, authServerNonce, token, email, procedureIdLocal
+                        )
+                )
+                .expectErrorSatisfies(ex -> {
+                    Assertions.assertInstanceOf(RuntimeException.class, ex);
+                    Assertions.assertEquals(
+                            "Credential format not found for procedureId: " + procedureIdLocal,
+                            ex.getMessage()
+                    );
+                })
+                .verify();
+    }
+
+    @Test
+    void buildCredentialResponse_whenOperationModeEmpty_emitsOperationModeNotFound() {
+        String subjectDid = "did:example:123";
+        String authServerNonce = "nonce";
+        String token = "token";
+        String email = testEmail;
+        String procedureIdLocal = "proc-mode-empty";
+        String txId = "tx-3";
+        String format = "jwt_vc_json";
+
+        String credType = "LEARCredentialEmployee";
+        String decoded = "decoded";
+        String bound = "bound";
+
+        when(credentialProcedureService.getCredentialTypeByProcedureId(procedureIdLocal))
+                .thenReturn(Mono.just(credType));
+        when(credentialProcedureService.getDecodedCredentialByProcedureId(procedureIdLocal))
+                .thenReturn(Mono.just(decoded));
+
+        when(credentialFactory.bindCryptographicCredentialSubjectId(processId, credType, decoded, subjectDid))
+                .thenReturn(Mono.just(bound));
+        when(credentialProcedureService.updateDecodedCredentialByProcedureId(procedureIdLocal, bound))
+                .thenReturn(Mono.empty());
+
+        when(deferredCredentialMetadataService.updateDeferredCredentialMetadataByAuthServerNonce(authServerNonce))
+                .thenReturn(Mono.just(txId));
+
+        when(deferredCredentialMetadataService.getFormatByProcedureId(procedureIdLocal))
+                .thenReturn(Mono.just(format));
+
+        when(credentialFactory.mapCredentialBindIssuerAndUpdateDB(
+                processId, procedureIdLocal, bound, credType, format, authServerNonce, email
+        )).thenReturn(Mono.empty());
+
+        when(credentialProcedureService.getOperationModeByProcedureId(procedureIdLocal))
+                .thenReturn(Mono.empty());
+
+        StepVerifier.create(
+                        verifiableCredentialServiceImpl.buildCredentialResponse(
+                                processId, subjectDid, authServerNonce, token, email, procedureIdLocal
+                        )
+                )
+                .expectErrorSatisfies(ex -> {
+                    Assertions.assertInstanceOf(RuntimeException.class, ex);
+                    Assertions.assertEquals(
+                            "Operation mode not found for procedureId: " + procedureIdLocal,
+                            ex.getMessage()
+                    );
+                })
+                .verify();
+    }
+
+
+    @Test
+    void buildCredentialResponse_whenUnknownOperationMode_emitsIllegalArgumentException() {
+        String subjectDid = "did:example:123";
+        String authServerNonce = "nonce";
+        String token = "token";
+        String email = testEmail;
+        String procedureIdLocal = "proc-unknown-mode";
+        String txId = "tx-4";
+        String format = "jwt_vc_json";
+        String unknownMode = "X";
+
+        String credType = "LEARCredentialEmployee";
+        String decoded = "decoded";
+        String bound = "bound";
+
+        when(credentialProcedureService.getCredentialTypeByProcedureId(procedureIdLocal))
+                .thenReturn(Mono.just(credType));
+        when(credentialProcedureService.getDecodedCredentialByProcedureId(procedureIdLocal))
+                .thenReturn(Mono.just(decoded));
+
+        when(credentialFactory.bindCryptographicCredentialSubjectId(processId, credType, decoded, subjectDid))
+                .thenReturn(Mono.just(bound));
+        when(credentialProcedureService.updateDecodedCredentialByProcedureId(procedureIdLocal, bound))
+                .thenReturn(Mono.empty());
+
+        when(deferredCredentialMetadataService.updateDeferredCredentialMetadataByAuthServerNonce(authServerNonce))
+                .thenReturn(Mono.just(txId));
+
+        when(deferredCredentialMetadataService.getFormatByProcedureId(procedureIdLocal))
+                .thenReturn(Mono.just(format));
+
+        when(credentialFactory.mapCredentialBindIssuerAndUpdateDB(
+                processId, procedureIdLocal, bound, credType, format, authServerNonce, email
+        )).thenReturn(Mono.empty());
+
+        when(credentialProcedureService.getOperationModeByProcedureId(procedureIdLocal))
+                .thenReturn(Mono.just(unknownMode));
+
+        StepVerifier.create(
+                        verifiableCredentialServiceImpl.buildCredentialResponse(
+                                processId, subjectDid, authServerNonce, token, email, procedureIdLocal
+                        )
+                )
+                .expectErrorSatisfies(ex -> {
+                    Assertions.assertInstanceOf(IllegalArgumentException.class, ex);
+                    Assertions.assertEquals("Unknown operation mode: " + unknownMode, ex.getMessage());
+                })
+                .verify();
+    }
+
+
 }
 
 //    @Test

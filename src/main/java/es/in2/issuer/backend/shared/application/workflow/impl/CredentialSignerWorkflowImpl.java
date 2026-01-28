@@ -1,6 +1,10 @@
 package es.in2.issuer.backend.shared.application.workflow.impl;
 
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.upokecenter.cbor.CBORObject;
 import es.in2.issuer.backend.backoffice.application.workflow.policies.BackofficePdpService;
 import es.in2.issuer.backend.shared.application.workflow.CredentialSignerWorkflow;
@@ -19,7 +23,6 @@ import es.in2.issuer.backend.shared.domain.util.factory.IssuerFactory;
 import es.in2.issuer.backend.shared.domain.util.factory.LEARCredentialEmployeeFactory;
 import es.in2.issuer.backend.shared.domain.util.factory.LEARCredentialMachineFactory;
 import es.in2.issuer.backend.shared.domain.util.factory.LabelCredentialFactory;
-import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
 import es.in2.issuer.backend.shared.infrastructure.repository.CredentialProcedureRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,10 +34,7 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 import java.io.ByteArrayOutputStream;
-import java.util.Base64;
-import java.util.Collections;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.CWT_VC;
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.JWT_VC;
@@ -47,7 +47,7 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
 
     private final AccessTokenService accessTokenService;
     private final BackofficePdpService backofficePdpService;
-    private final AppConfig appConfig;
+    private final ObjectMapper objectMapper;
     private final DeferredCredentialWorkflow deferredCredentialWorkflow;
     private final RemoteSignatureService remoteSignatureService;
     private final LEARCredentialEmployeeFactory learCredentialEmployeeFactory;
@@ -59,6 +59,7 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
     private final CredentialDeliveryService credentialDeliveryService;
     private final DeferredCredentialMetadataService deferredCredentialMetadataService;
     private final IssuerFactory issuerFactory;
+
 
     @Override
     public Mono<String> signAndUpdateCredentialByProcedureId(String token, String procedureId, String format) {
@@ -119,24 +120,19 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
     private Mono<String> signCredentialOnRequestedFormat(String unsignedCredential, String format, String token, String procedureId, String email) {
         return Mono.defer(() -> {
             if (format.equals(JWT_VC)) {
-                log.debug("Credential Payload {}", unsignedCredential);
-                log.info("Signing credential in JADES remotely ...");
-                SignatureRequest signatureRequest = new SignatureRequest(
-                        new SignatureConfiguration(SignatureType.JADES, Collections.emptyMap()),
-                        unsignedCredential
-                );
+                return setSubIfCredentialSubjectIdPresent(unsignedCredential)
+                        .flatMap(payloadToSign -> {
+                            log.info("Signing credential in JADES remotely ...");
+                            SignatureRequest signatureRequest = new SignatureRequest(
+                                    new SignatureConfiguration(SignatureType.JADES, Collections.emptyMap()),
+                                    payloadToSign
+                            );
 
-                return remoteSignatureService.sign(signatureRequest, token, procedureId, email)
-                        .doOnSubscribe(s -> {
-                        })
-                        .doOnNext(data -> {
-                        })
-                        .publishOn(Schedulers.boundedElastic())
-                        .map(SignedData::data)
-                        .doOnSuccess(result -> {
-                        })
-                        .doOnError(e -> {
+                            return remoteSignatureService.sign(signatureRequest, token, procedureId, email)
+                                    .publishOn(Schedulers.boundedElastic())
+                                    .map(SignedData::data);
                         });
+
             } else if (format.equals(CWT_VC)) {
                 log.info(unsignedCredential);
                 return generateCborFromJson(unsignedCredential)
@@ -146,6 +142,63 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
                 return Mono.error(new IllegalArgumentException("Unsupported credential format: " + format));
             }
         });
+    }
+
+    private Mono<String> setSubIfCredentialSubjectIdPresent(String unsignedCredential) {
+        return Mono.fromCallable(() -> {
+            JsonNode root = objectMapper.readTree(unsignedCredential);
+            if (!(root instanceof ObjectNode rootObj)) {
+                return unsignedCredential;
+            }
+
+            String subjectDid = extractSubjectDid(rootObj);
+
+            if (subjectDid != null && !subjectDid.isBlank()) {
+                rootObj.put("sub", subjectDid);
+                return objectMapper.writeValueAsString(rootObj);
+            }
+
+            return unsignedCredential;
+        })
+        .subscribeOn(Schedulers.boundedElastic())
+        .onErrorResume(e -> {
+            log.warn(
+                    "Could not set 'sub' from vc.credentialSubject.id. Keeping original payload. Reason: {}",
+                    e.getMessage()
+            );
+            return Mono.just(unsignedCredential);
+        });
+    }
+
+    private String extractSubjectDid(ObjectNode rootObj) {
+        JsonNode csNode = rootObj.path("vc").path("credentialSubject");
+
+        if (csNode.isObject()) {
+            return extractIdFromObject(csNode);
+        }
+
+        if (csNode.isArray()) {
+            return extractIdFromArray((ArrayNode) csNode);
+        }
+
+        return null;
+    }
+
+    private String extractIdFromObject(JsonNode csNode) {
+        JsonNode idNode = csNode.path("id");
+        return idNode.isTextual() ? idNode.asText() : null;
+    }
+
+    private String extractIdFromArray(ArrayNode arrayNode) {
+        for (JsonNode item : arrayNode) {
+            if (item != null && item.isObject()) {
+                JsonNode idNode = item.path("id");
+                if (idNode.isTextual() && !idNode.asText().isBlank()) {
+                    return idNode.asText();
+                }
+            }
+        }
+        return null;
     }
 
     /**
