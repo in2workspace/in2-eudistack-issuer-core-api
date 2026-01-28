@@ -69,9 +69,6 @@ public class NotificationServiceImpl implements NotificationService {
         if (request.notificationId() == null || request.notificationId().isBlank()) {
             throw new InvalidNotificationRequestException("notification_id is required");
         }
-        if (request.event() == null) {
-            throw new InvalidNotificationRequestException("event is required");
-        }
     }
 
     private Mono<Void> applyIdempotentUpdate(String processId,
