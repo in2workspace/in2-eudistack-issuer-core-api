@@ -1,5 +1,6 @@
 package es.in2.issuer.backend.statusList.infrastructure.repository;
 
+import org.springframework.data.r2dbc.repository.Modifying;
 import org.springframework.data.r2dbc.repository.Query;
 import org.springframework.data.repository.reactive.ReactiveCrudRepository;
 import reactor.core.publisher.Mono;
@@ -35,6 +36,7 @@ public interface StatusListRepository extends ReactiveCrudRepository<StatusList,
             Instant expectedUpdatedAt
     );
 
+    @Modifying
     @Query("""
        UPDATE status_list
        SET signed_credential = :signedCredential,
