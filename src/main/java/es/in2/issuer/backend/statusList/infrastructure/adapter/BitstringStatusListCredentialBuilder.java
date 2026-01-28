@@ -22,7 +22,7 @@ public class BitstringStatusListCredentialBuilder {
 
     public String buildListUrl(Long listId) {
         requireNonNull(listId, "listId cannot be null");
-        return appConfig.getIssuerBackendUrl() + "/api/v1/status-list" + "/" + listId;
+        return appConfig.getIssuerBackendUrl() + "/w3c/v1/credentials/status" + "/" + listId;
     }
 
     public Map<String, Object> buildUnsigned(Long listId, String issuerId, String purpose, String encodedList) {

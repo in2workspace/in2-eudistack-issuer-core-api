@@ -65,7 +65,7 @@ class SecurityConfigTest {
     }
 
     @Test
-    void backofficeFilterChain_shouldBuildWithInternalCorsAndJwtDecoder() {
+    void internalFilterChain_shouldBuildWithInternalCorsAndJwtDecoder() {
         when(internalCORSConfig.defaultCorsConfigurationSource()).thenReturn(minimalCorsSource());
         ServerHttpSecurity http = ServerHttpSecurity.http();
 
@@ -73,7 +73,7 @@ class SecurityConfigTest {
         Converter<Jwt, Mono<org.springframework.security.authentication.AbstractAuthenticationToken>> converterBean =
                 securityConfig.jwtAuthenticationConverter(jwtService);
 
-        SecurityWebFilterChain chain = securityConfig.backofficeFilterChain(
+        SecurityWebFilterChain chain = securityConfig.internalFilterChain(
                 http, entryPoint, deniedHandler, converterBean);
 
         assertNotNull(chain);

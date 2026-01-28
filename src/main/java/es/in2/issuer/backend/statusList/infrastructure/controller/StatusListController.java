@@ -18,7 +18,7 @@ import java.util.UUID;
 @Slf4j
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("/api/v1/status-list")
+@RequestMapping("/w3c/v1/credentials/status")
 public class StatusListController {
 
     private static final MediaType VC_JWT = MediaType.parseMediaType("application/vc+jwt");
@@ -27,11 +27,6 @@ public class StatusListController {
     private final StatusListWorkflow statusListWorkflow;
     private final RevocationWorkflow revocationService;
 
-    /**
-     * GET /api/v1/status-list/{listId}
-     *
-     * Non-legacy endpoint: always returns a signed Status List Credential as vc+jwt.
-     */
     @GetMapping(value = "/{listId}", produces = VC_JWT_VALUE)
     public Mono<ResponseEntity<String>> getStatusList(@PathVariable Long listId) {
         String processId = UUID.randomUUID().toString();

@@ -1,7 +1,5 @@
 package es.in2.issuer.backend.backoffice.infrastructure.config.security;
 
-import org.springframework.lang.NonNull;
-import org.springframework.lang.Nullable;
 import es.in2.issuer.backend.shared.domain.service.JWTService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -113,7 +111,8 @@ public class SecurityConfig {
                         .pathMatchers(HttpMethod.GET,
                                 CORS_CREDENTIAL_OFFER_PATH,
                                 CREDENTIAL_ISSUER_METADATA_WELL_KNOWN_PATH,
-                                AUTHORIZATION_SERVER_METADATA_WELL_KNOWN_PATH
+                                AUTHORIZATION_SERVER_METADATA_WELL_KNOWN_PATH,
+                                STATUS_LIST_PATH
                         ).permitAll()
                         .pathMatchers(HttpMethod.POST, OAUTH_TOKEN_PATH).permitAll()
                         .pathMatchers(HttpMethod.POST,
@@ -135,7 +134,7 @@ public class SecurityConfig {
 
     @Bean
     @Order(2)
-    public SecurityWebFilterChain backofficeFilterChain(
+    public SecurityWebFilterChain internalFilterChain(
             ServerHttpSecurity http,
             ProblemAuthenticationEntryPoint entryPoint,
             ProblemAccessDeniedHandler deniedH,
@@ -146,7 +145,7 @@ public class SecurityConfig {
         http
                 .securityMatcher(ServerWebExchangeMatchers.pathMatchers(
                         BACKOFFICE_PATH,
-//todo                        STATUS_LIST_PATH,
+                        STATUS_LIST_PATH,
                         HEALTH_PATH,
                         PROMETHEUS_PATH,
                         SPRINGDOC_PATH
@@ -158,9 +157,9 @@ public class SecurityConfig {
                                 PROMETHEUS_PATH,
                                 SPRINGDOC_PATH
                         ).permitAll()
+                        .pathMatchers(HttpMethod.GET, STATUS_LIST_PATH).permitAll()
                         .pathMatchers(HttpMethod.GET, BACKOFFICE_STATUS_CREDENTIALS).permitAll()
-// todo                        .pathMatchers(HttpMethod.GET, STATUS_LIST_BASE + "/*").permitAll()
-// todo                        .pathMatchers(STATUS_LIST_BASE + "/**" ).authenticated()
+                        .pathMatchers(HttpMethod.POST, STATUS_LIST_BASE + "/revoke").authenticated()
                         .pathMatchers(HttpMethod.GET, BACKOFFICE_PATH).authenticated()
                         .pathMatchers(HttpMethod.POST, BACKOFFICE_PATH ).authenticated()
                         .pathMatchers(HttpMethod.PUT, BACKOFFICE_PATH).authenticated()

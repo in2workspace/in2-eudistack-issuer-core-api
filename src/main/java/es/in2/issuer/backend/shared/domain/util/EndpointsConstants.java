@@ -13,7 +13,7 @@ public class EndpointsConstants {
     public static final String SPRINGDOC_PATH = SPRINGDOC_BASE_PATH+"/**";
     public static final String BACKOFFICE_BASE_PATH = "/backoffice/v1";
     public static final String OID4VCI_BASE_PATH = "/oid4vci/v1";
-    public static final String STATUS_LIST_BASE = "/status-list/v1/status";
+    public static final String STATUS_LIST_BASE = "/w3c/v1/credentials/status";
     public static final String WELL_KNOWN_BASE_PATH ="/.well-known";
     public static final String VCI_BASE_PATH = "/vci/v1";
 
