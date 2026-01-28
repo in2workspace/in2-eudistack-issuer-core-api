@@ -3,13 +3,13 @@ package es.in2.issuer.backend.shared.domain.service.impl;
 import com.nimbusds.jose.JOSEObjectType;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
+import com.nimbusds.jose.crypto.ECDSASigner;
 import com.nimbusds.jose.jwk.Curve;
 import com.nimbusds.jose.jwk.ECKey;
 import com.nimbusds.jose.jwk.KeyUse;
 import com.nimbusds.jose.jwk.gen.ECKeyGenerator;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
-import es.in2.issuer.backend.shared.application.workflow.NonceValidationWorkflow;
 import es.in2.issuer.backend.shared.domain.exception.ProofValidationException;
 import es.in2.issuer.backend.shared.domain.service.JWTService;
 import org.junit.jupiter.api.BeforeEach;
@@ -39,9 +39,6 @@ class ProofValidationServiceImplTest {
 
     @Mock
     private JWTService jwtService;
-
-    @Mock
-    private NonceValidationWorkflow nonceValidationWorkflow;
 
     @InjectMocks
     private ProofValidationServiceImpl service;

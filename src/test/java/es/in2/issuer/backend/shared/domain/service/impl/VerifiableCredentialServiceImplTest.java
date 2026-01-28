@@ -18,8 +18,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-import java.util.List;
-
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.BEARER_PREFIX;
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.JWT_VC;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -396,11 +394,8 @@ class VerifiableCredentialServiceImplTest {
         StepVerifier.create(result)
                 .expectNextMatches(response ->
                         response.transactionId().equals(transId)
-                                && response.credentials().equals(List.of(
-                                CredentialResponse.Credential.builder()
-                                        .credential(unsignedCredential)
-                                        .build()
-                        )))
+                                && response.interval().equals(3600L)
+                        )
                 .verifyComplete();
 
         verify(credentialSignerWorkflow, times(1))

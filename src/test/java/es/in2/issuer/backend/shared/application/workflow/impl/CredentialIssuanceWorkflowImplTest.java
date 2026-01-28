@@ -1,31 +1,19 @@
 package es.in2.issuer.backend.shared.application.workflow.impl;
 
 
-import es.in2.issuer.backend.oidc4vci.domain.model.CredentialIssuerMetadata;
-import es.in2.issuer.backend.shared.domain.exception.InvalidOrMissingProofException;
-import es.in2.issuer.backend.shared.domain.exception.ProofValidationException;
-import es.in2.issuer.backend.shared.domain.model.dto.VerifierOauth2AccessToken;
-import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.Mandator;
-import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.employee.LEARCredentialEmployee;
-import es.in2.issuer.backend.shared.domain.model.entities.CredentialProcedure;
-import org.junit.jupiter.api.Assertions;
-import org.mockito.ArgumentCaptor;
-
-import static es.in2.issuer.backend.shared.domain.util.Constants.LABEL_CREDENTIAL;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
-
-import java.lang.reflect.Method;
-import java.nio.charset.StandardCharsets;
-import java.util.*;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import es.in2.issuer.backend.oidc4vci.domain.model.CredentialIssuerMetadata;
 import es.in2.issuer.backend.shared.application.workflow.CredentialSignerWorkflow;
 import es.in2.issuer.backend.shared.domain.exception.EmailCommunicationException;
 import es.in2.issuer.backend.shared.domain.exception.FormatUnsupportedException;
+import es.in2.issuer.backend.shared.domain.exception.InvalidOrMissingProofException;
+import es.in2.issuer.backend.shared.domain.exception.ProofValidationException;
 import es.in2.issuer.backend.shared.domain.model.dto.*;
+import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.Mandator;
+import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.employee.LEARCredentialEmployee;
+import es.in2.issuer.backend.shared.domain.model.entities.CredentialProcedure;
 import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum;
 import es.in2.issuer.backend.shared.domain.model.enums.CredentialType;
 import es.in2.issuer.backend.shared.domain.service.*;
@@ -33,8 +21,10 @@ import es.in2.issuer.backend.shared.domain.util.factory.LEARCredentialEmployeeFa
 import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
 import es.in2.issuer.backend.shared.infrastructure.config.WebClientConfig;
 import es.in2.issuer.backend.shared.infrastructure.config.security.service.VerifiableCredentialPolicyAuthorizationService;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -42,10 +32,16 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import javax.naming.OperationNotSupportedException;
+import java.lang.reflect.Method;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
 
-import static es.in2.issuer.backend.backoffice.domain.util.Constants.*;
+import static es.in2.issuer.backend.backoffice.domain.util.Constants.DID_ELSI;
+import static es.in2.issuer.backend.backoffice.domain.util.Constants.MAIL_ERROR_COMMUNICATION_EXCEPTION_MESSAGE;
 import static es.in2.issuer.backend.shared.domain.util.Constants.JWT_VC_JSON;
-import static org.mockito.Mockito.when;
+import static es.in2.issuer.backend.shared.domain.util.Constants.LABEL_CREDENTIAL;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class CredentialIssuanceWorkflowImplTest {
@@ -914,40 +910,6 @@ class CredentialIssuanceWorkflowImplTest {
     }
 
     @Test
-    void generateVerifiableCredentialDeferredResponse_success_passthrough() {
-        String processId = "p-1";
-        DeferredCredentialRequest req = DeferredCredentialRequest.builder().transactionId("tx-1").build();
-
-        DeferredCredentialResponse expected = DeferredCredentialResponse.builder()
-                .credentials(List.of("cred"))
-                .build();
-
-        when(verifiableCredentialService.generateDeferredCredentialResponse(processId, req))
-                .thenReturn(Mono.just(expected));
-
-        StepVerifier.create(verifiableCredentialIssuanceWorkflow.generateVerifiableCredentialDeferredResponse(processId, req))
-                .expectNext(expected)
-                .verifyComplete();
-    }
-
-    @Test
-    void generateVerifiableCredentialDeferredResponse_error_wrapsRuntimeException() {
-        String processId = "p-err";
-        DeferredCredentialRequest req = DeferredCredentialRequest.builder().transactionId("tx-err").build();
-
-        RuntimeException root = new RuntimeException("boom");
-        when(verifiableCredentialService.generateDeferredCredentialResponse(processId, req))
-                .thenReturn(Mono.error(root));
-
-        StepVerifier.create(verifiableCredentialIssuanceWorkflow.generateVerifiableCredentialDeferredResponse(processId, req))
-                .expectErrorSatisfies(ex -> {
-                    Assertions.assertInstanceOf(RuntimeException.class, ex);
-                    Assertions.assertTrue(ex.getMessage().contains("Failed to process the credential for the next processId: " + processId));
-                    Assertions.assertEquals(root, ex.getCause());
-                })
-                .verify();
-    }
-    @Test
     void extractBindingInfoFromJwtProof_kid_ok_extractsSubjectIdAndCnf() throws Exception {
         String kid = "did:key:zDnaeiLt1XYBTBZk123";
         String jwt = buildDummyJwtWithHeaderJson(
@@ -1180,7 +1142,7 @@ class CredentialIssuanceWorkflowImplTest {
         when(md.credentialConfigurationsSupported()).thenReturn(Map.of("cfg1", cfg));
 
         CredentialRequest req = CredentialRequest.builder()
-                .proofs(Proofs.builder().jwt(List.of(buildDummyJwtProofWithKid("did:key:z123#k1"))).build())
+                .proof(Proof.builder().jwt(buildDummyJwtProofWithKid("did:key:z123#k1")).build())
                 .build();
 
         // when
@@ -1221,7 +1183,7 @@ class CredentialIssuanceWorkflowImplTest {
         when(md.credentialConfigurationsSupported()).thenReturn(Map.of("cfg1", cfg));
 
         CredentialRequest req = CredentialRequest.builder()
-                .proofs(null)
+                .proof(null)
                 .build();
 
         // when
@@ -1268,7 +1230,7 @@ class CredentialIssuanceWorkflowImplTest {
 
         String jwtProof = buildDummyJwtProofWithKid("did:key:z123#k1");
         CredentialRequest req = CredentialRequest.builder()
-                .proofs(Proofs.builder().jwt(List.of(jwtProof)).build())
+                .proof(Proof.builder().jwt(jwtProof).build())
                 .build();
 
         when(proofValidationService.isProofValid(jwtProof, Set.of("ES256"), "https://issuer.example"))
@@ -1314,7 +1276,7 @@ class CredentialIssuanceWorkflowImplTest {
         String jwtProof = buildDummyJwtProofWithKid(kid);
 
         CredentialRequest req = CredentialRequest.builder()
-                .proofs(Proofs.builder().jwt(List.of(jwtProof)).build())
+                .proof(Proof.builder().jwt(jwtProof).build())
                 .build();
 
         when(proofValidationService.isProofValid(jwtProof, Set.of("ES256"), "https://issuer.example"))

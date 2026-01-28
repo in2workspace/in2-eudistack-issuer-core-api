@@ -22,8 +22,6 @@ import reactor.core.publisher.Mono;
 
 import javax.naming.ConfigurationException;
 import javax.naming.OperationNotSupportedException;
-import java.util.Collections;
-import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -306,11 +304,9 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
     }
 
     private String extractFirstJwtProof(CredentialRequest credentialRequest) {
-        List<String> jwtList = credentialRequest.proofs() != null
-                ? credentialRequest.proofs().jwt()
-                : Collections.emptyList();
-
-        return jwtList.isEmpty() ? null : jwtList.get(0);
+        return credentialRequest.proof() != null
+                ? credentialRequest.proof().jwt()
+                : null;
     }
 
     private Mono<BindingInfo> validateProofAndExtractBindingInfo(
@@ -426,12 +422,11 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
     public Mono<CredentialResponse> generateVerifiableCredentialDeferredResponse(
             String processId,
             DeferredCredentialRequest deferredCredentialRequest,
-            String token) {
+            AccessTokenContext accessTokenContext) {
         String transactionId = deferredCredentialRequest.transactionId();
         log.debug("ProcessID: {} Generating verifiable credential deferred response for transactionId: {}", processId, transactionId);
 
-        return parseAuthServerNonce(token)
-                .flatMap(deferredCredentialMetadataService::getDeferredCredentialMetadataByAuthServerNonce)
+        return deferredCredentialMetadataService.getDeferredCredentialMetadataByAuthServerNonce(accessTokenContext.jti())
                 .flatMap(deferred ->
                         credentialProcedureService.getCredentialProcedureById(deferred.getProcedureId().toString())
                                 .flatMap(procedure ->

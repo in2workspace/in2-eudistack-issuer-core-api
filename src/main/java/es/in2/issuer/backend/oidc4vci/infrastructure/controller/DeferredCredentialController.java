@@ -30,7 +30,7 @@ public class DeferredCredentialController {
             @RequestHeader(HttpHeaders.AUTHORIZATION) String authorizationHeader,
             @RequestBody DeferredCredentialRequest deferredCredentialRequest) {
         String processId = UUID.randomUUID().toString();
-        return accessTokenService.getCleanBearerToken(authorizationHeader)
+        return accessTokenService.validateAndResolveProcedure(authorizationHeader)
                 .flatMap(token ->
                         credentialIssuanceWorkflow.generateVerifiableCredentialDeferredResponse(
                                 processId,
