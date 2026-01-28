@@ -22,9 +22,7 @@ import reactor.test.StepVerifier;
 import java.text.ParseException;
 import java.util.UUID;
 
-import static es.in2.issuer.backend.backoffice.domain.util.Constants.LEAR;
-import static es.in2.issuer.backend.backoffice.domain.util.Constants.ROLE;
-import static es.in2.issuer.backend.backoffice.domain.util.Constants.VC;
+import static es.in2.issuer.backend.shared.domain.util.Constants.*;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.*;
 

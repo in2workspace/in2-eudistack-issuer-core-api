@@ -14,6 +14,9 @@ public final class Constants {
     public static final String LABEL_CREDENTIAL_TYPE = "LABEL_CREDENTIAL";
     public static final String LEAR_CREDENTIAL_EMPLOYEE_TYPE = "LEAR_CREDENTIAL_EMPLOYEE";
     public static final String LEAR_CREDENTIAL_MACHINE_TYPE = "LEAR_CREDENTIAL_MACHINE";
+    public static final String LEAR = "LEAR";
+    public static final String VC = "vc";
+    public static final String ROLE = "role";
 
     public static final String GRANT_TYPE = "urn:ietf:params:oauth:grant-type:pre-authorized_code";
     public static final String REFRESH_TOKEN_GRANT_TYPE = "refresh_token";
