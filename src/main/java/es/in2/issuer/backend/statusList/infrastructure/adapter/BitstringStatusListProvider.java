@@ -226,9 +226,13 @@ public class BitstringStatusListProvider implements StatusListProvider {
         );
 
         return statusListRepository.save(rowToInsert)
+                .switchIfEmpty(Mono.error(new IllegalStateException("save returned empty")))
                 .flatMap(saved ->
                         statusListSigner.getIssuerAndSignCredential(saved, token)
-                                .flatMap(jwt -> persistSignedCredential(saved, jwt))
+                                .switchIfEmpty(Mono.error(new IllegalStateException("signer returned empty")))
+                                .flatMap(jwt -> persistSignedCredential(saved, jwt)
+                                        .switchIfEmpty(Mono.error(new IllegalStateException("persistSignedCredential returned empty")))
+                                )
                 )
                 .doOnSuccess(list ->
                         log.debug("method=createNewList step=END statusListId={}", list.id())
