@@ -30,6 +30,7 @@ public record LEARCredentialMachine(
 
     @Builder
     public record CredentialSubject(
+            @JsonProperty("id") String id,
             @JsonProperty("mandate") Mandate mandate
     ) {
         @Builder

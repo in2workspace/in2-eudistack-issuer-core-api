@@ -43,13 +43,27 @@ public class CredentialFactory {
         }
         return Mono.error(new CredentialTypeUnsupportedException(preSubmittedCredentialRequest.schema()));
     }
-    public Mono<String> bindCryptographicCredentialSubjectId(String processId, String credentialType, String decodedCredential, String mandateeId){
+    public Mono<String> bindCryptographicCredentialSubjectId(
+            String processId,
+            String credentialType,
+            String decodedCredential,
+            String subjectDid) {
+
         if (credentialType.equals(LEAR_CREDENTIAL_EMPLOYEE)) {
-            return learCredentialEmployeeFactory.bindCryptographicCredentialSubjectId(decodedCredential, mandateeId)
-                    .doOnSuccess(learCredentialEmployee -> log.info("ProcessID: {} - Credential mapped and bind to the id: {}", processId, learCredentialEmployee));
+            return learCredentialEmployeeFactory
+                    .bindCryptographicCredentialSubjectId(decodedCredential, subjectDid)
+                    .doOnSuccess(bound ->
+                            log.info("ProcessID: {} - LEARCredentialEmployee mapped and bind to the id: {}", processId, bound));
+        } else if (credentialType.equals(LEAR_CREDENTIAL_MACHINE)) {
+            return learCredentialMachineFactory
+                    .bindCryptographicCredentialSubjectId(decodedCredential, subjectDid)
+                    .doOnSuccess(bound ->
+                            log.info("ProcessID: {} - LEARCredentialMachine mapped and bind to the id: {}", processId, bound));
         }
+
         return Mono.error(new CredentialTypeUnsupportedException(credentialType));
     }
+
 
     public Mono<Void> mapCredentialBindIssuerAndUpdateDB(
             String processId,
@@ -73,7 +87,6 @@ public class CredentialFactory {
             default ->
                     Mono.error(new CredentialTypeUnsupportedException(credentialType));
         };
-
         return bindMono
                 .flatMap(boundCredential -> {
                     log.info("ProcessID: {} - Credential mapped and bind to the issuer: {}", processId, boundCredential);
@@ -86,7 +99,6 @@ public class CredentialFactory {
             String boundCredential,
             String format,
             String authServerNonce) {
-
         return credentialProcedureService
                 .updateDecodedCredentialByProcedureId(procedureId, boundCredential, format)
                 .then(deferredCredentialMetadataService.updateDeferredCredentialByAuthServerNonce(authServerNonce, format)

@@ -3,7 +3,6 @@ package es.in2.issuer.backend.backoffice.infrastructure.config.security;
 import brave.internal.Nullable;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.nimbusds.jose.JWSObject;
 import com.nimbusds.jwt.SignedJWT;
 import es.in2.issuer.backend.shared.domain.service.VerifierService;
 import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
@@ -144,7 +143,7 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
     }
 
     private Mono<Jwt> handleIssuerBackendToken(String token) {
-        return Mono.fromCallable(() -> JWSObject.parse(token))
+        return Mono.fromCallable(() -> SignedJWT.parse(token))
                 .flatMap(jwtService::validateJwtSignatureReactive)
                 .flatMap(isValid -> {
                     if (!Boolean.TRUE.equals(isValid)) {
