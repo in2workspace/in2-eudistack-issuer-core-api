@@ -240,6 +240,7 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
                 CredentialResponse.builder()
                         .transactionId(transactionId)
                         .interval(DEFERRED_CREDENTIAL_POLLING_INTERVAL)
+                        .notificationId(notificationId)
                         .build()
         );
     }

@@ -359,7 +359,7 @@ class VerifiableCredentialServiceImplTest {
         String unsignedCredential = "unsignedCredential";
         String transId = "transactionId";
         String procId = "procedureId";
-        String processId = "processId";
+        String proceId = "processId";
 
         when(credentialProcedureService.getCredentialTypeByProcedureId(procId))
                 .thenReturn(Mono.just(credentialType));
@@ -371,7 +371,7 @@ class VerifiableCredentialServiceImplTest {
                 .thenReturn(Mono.just(notificationIdExample));
 
         when(credentialFactory.bindCryptographicCredentialSubjectId(
-                processId, credentialType, decodedCredential, subjectDid))
+                proceId, credentialType, decodedCredential, subjectDid))
                 .thenReturn(Mono.just(boundCredential));
 
         when(credentialProcedureService.updateDecodedCredentialByProcedureId(procId, boundCredential))
@@ -387,7 +387,7 @@ class VerifiableCredentialServiceImplTest {
                 .thenReturn(Mono.just(notificationIdExample));
 
         when(credentialFactory.mapCredentialBindIssuerAndUpdateDB(
-                processId, procId, boundCredential, credentialType, format, authServerNonce, testEmail))
+                proceId, procId, boundCredential, credentialType, format, authServerNonce, testEmail))
                 .thenReturn(Mono.empty());
 
         when(credentialProcedureService.getOperationModeByProcedureId(procId))
@@ -397,13 +397,13 @@ class VerifiableCredentialServiceImplTest {
                 .thenReturn(Mono.error(new IllegalArgumentException("Simulated error")));
 
         Mono<CredentialResponse> result = verifiableCredentialServiceImpl.buildCredentialResponse(
-                processId, subjectDid, authServerNonce, token, testEmail, procId);
+                proceId, subjectDid, authServerNonce, token, testEmail, procId);
 
         StepVerifier.create(result)
                 .assertNext(response -> {
                     assertEquals(transId, response.transactionId());
                     assertEquals(3600L, response.interval());
-                    assertNull(response.notificationId());
+                    assertEquals(notificationIdExample, response.notificationId());
                 })
                 .verifyComplete();
 
