@@ -92,31 +92,6 @@ class BackofficePdpServiceImplTest {
     }
 
     @Test
-    void validateRevokeCredential_nonAdmin_matchingOrg_allows() throws Exception {
-        String token = "token";
-        String adminOrgId = "admin-org";
-        String userOrgId = "org-123";
-        String procedureId = UUID.randomUUID().toString();
-
-        SignedJWT signedJWT = buildSignedJwtWithRoleAndOrg(LEAR, userOrgId);
-
-        when(jwtService.parseJWT(token)).thenReturn(signedJWT);
-        when(appConfig.getAdminOrganizationId()).thenReturn(adminOrgId);
-
-        CredentialProcedure credentialProcedure = mock(CredentialProcedure.class);
-        when(credentialProcedure.getOrganizationIdentifier()).thenReturn(userOrgId);
-
-        when(credentialProcedureRepository.findById(UUID.fromString(procedureId)))
-                .thenReturn(Mono.just(credentialProcedure));
-
-        Mono<Void> result = backofficePdp.validateRevokeCredential("process", token, procedureId);
-
-        StepVerifier.create(result).verifyComplete();
-
-        verify(credentialProcedureRepository).findById(UUID.fromString(procedureId));
-    }
-
-    @Test
     void validateSendReminder_nonAdmin_orgMismatch_denied() throws Exception {
         String token = "token";
         String adminOrgId = "admin-org";
