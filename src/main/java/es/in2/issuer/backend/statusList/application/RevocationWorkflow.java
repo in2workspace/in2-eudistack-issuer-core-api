@@ -19,6 +19,7 @@ import reactor.core.publisher.Mono;
 import es.in2.issuer.backend.credentialStatus.domain.service.LegacyCredentialStatusRevocationService;
 
 
+import static es.in2.issuer.backend.statusList.domain.util.Constants.BITSTRING_ENTRY_TYPE;
 import static java.util.Objects.requireNonNull;
 
 @Slf4j
@@ -26,7 +27,6 @@ import static java.util.Objects.requireNonNull;
 @RequiredArgsConstructor
 public class RevocationWorkflow {
 
-    private static final String BITSTRING_ENTRY_TYPE = "BitstringStatusListEntry";
     private static final String REVOKED = "REVOKED";
 
     private final StatusListProvider statusListProvider;

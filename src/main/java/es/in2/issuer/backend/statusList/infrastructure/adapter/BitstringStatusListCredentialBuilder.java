@@ -42,7 +42,7 @@ public class BitstringStatusListCredentialBuilder {
 
         return StatusListEntry.builder()
                 .id(id)
-                .type(ENTRY_TYPE)
+                .type(BITSTRING_ENTRY_TYPE)
                 .statusPurpose(purpose)
                 .statusListIndex(String.valueOf(idx))
                 .statusListCredential(listUrl)

@@ -12,13 +12,12 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
 import static es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum.VALID;
+import static es.in2.issuer.backend.shared.domain.util.Constants.LEAR;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class StatusListPdpServiceImpl implements StatusListPdpService {
-
-    private static final String LEAR = "LEAR";
 
     private final PdpCommonService pdpCommonService;
 

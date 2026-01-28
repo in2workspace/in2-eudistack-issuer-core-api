@@ -15,9 +15,7 @@ import reactor.util.retry.Retry;
 import java.time.Duration;
 import java.util.Date;
 
-import static es.in2.issuer.backend.backoffice.domain.util.Constants.DID_ELSI;
-import static es.in2.issuer.backend.backoffice.domain.util.Constants.SIGNATURE_REMOTE_SCOPE_SERVICE;
-import static es.in2.issuer.backend.backoffice.domain.util.Constants.SIGNATURE_REMOTE_TYPE_SERVER;
+import static es.in2.issuer.backend.backoffice.domain.util.Constants.*;
 
 @Component
 @RequiredArgsConstructor
