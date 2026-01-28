@@ -54,7 +54,6 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
                 .signatureMode("remote")
                 .email(credentialProcedureCreationRequest.email())
                 .build();
-        log.debug("createCredentialProcedure - procedure to save: {}", credentialProcedure);
         return r2dbcEntityTemplate.insert(credentialProcedure)
                 .map(saved -> saved.getProcedureId().toString())
                 .doOnError(e -> log.error("Error inserting credential procedure", e));
@@ -322,10 +321,8 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
 
     @Override
     public Mono<Void> updateFormatByProcedureId(String procedureId, String format) {
-        log.debug("updateFormatByProcedureId - procedureId, {}, format, {}", procedureId, format);
         return credentialProcedureRepository.findById(UUID.fromString(procedureId))
                 .flatMap(credentialProcedure -> {
-                    log.debug("updateFormatByProcedureId - setting format");
                     credentialProcedure.setCredentialFormat(format);
                     return credentialProcedureRepository.save(credentialProcedure)
                             .doOnSuccess(result -> log.info("Updated format for procedureId: {}", procedureId))
