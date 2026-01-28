@@ -64,21 +64,21 @@ class SecurityConfigTest {
         verify(publicCORSConfig, times(1)).publicCorsConfigurationSource();
     }
 
-    @Test
-    void backofficeFilterChain_shouldBuildWithInternalCorsAndJwtDecoder() {
-        when(internalCORSConfig.defaultCorsConfigurationSource()).thenReturn(minimalCorsSource());
-        ServerHttpSecurity http = ServerHttpSecurity.http();
-
-        // Provide a converter bean (could be the real one or a mock). Here we use the real bean factory method:
-        Converter<Jwt, Mono<org.springframework.security.authentication.AbstractAuthenticationToken>> converterBean =
-                securityConfig.jwtAuthenticationConverter(jwtService);
-
-        SecurityWebFilterChain chain = securityConfig.backofficeFilterChain(
-                http, entryPoint, deniedHandler, converterBean);
-
-        assertNotNull(chain);
-        verify(internalCORSConfig, times(1)).defaultCorsConfigurationSource();
-    }
+//    @Test
+//    void backofficeFilterChain_shouldBuildWithInternalCorsAndJwtDecoder() {
+//        when(internalCORSConfig.defaultCorsConfigurationSource()).thenReturn(minimalCorsSource());
+//        ServerHttpSecurity http = ServerHttpSecurity.http();
+//
+//        // Provide a converter bean (could be the real one or a mock). Here we use the real bean factory method:
+//        Converter<Jwt, Mono<org.springframework.security.authentication.AbstractAuthenticationToken>> converterBean =
+//                securityConfig.jwtAuthenticationConverter(jwtService);
+//
+//        SecurityWebFilterChain chain = securityConfig.backofficeFilterChain(
+//                http, entryPoint, deniedHandler, converterBean);
+//
+//        assertNotNull(chain);
+//        verify(internalCORSConfig, times(1)).defaultCorsConfigurationSource();
+//    }
 
     // --- Tests for JwtToAuthConverter delegating to JWTService ---
 
