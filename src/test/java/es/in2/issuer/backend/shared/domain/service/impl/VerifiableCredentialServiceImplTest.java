@@ -366,6 +366,10 @@ class VerifiableCredentialServiceImplTest {
 
         when(credentialProcedureService.getDecodedCredentialByProcedureId(procId))
                 .thenReturn(Mono.just(decodedCredential), Mono.just(unsignedCredential));
+
+        when(credentialProcedureService.getNotificationIdByProcedureId(procId))
+                .thenReturn(Mono.just(notificationIdExample));
+
         when(credentialFactory.bindCryptographicCredentialSubjectId(
                 processId, credentialType, decodedCredential, subjectDid))
                 .thenReturn(Mono.just(boundCredential));
@@ -396,10 +400,11 @@ class VerifiableCredentialServiceImplTest {
                 processId, subjectDid, authServerNonce, token, testEmail, procId);
 
         StepVerifier.create(result)
-                .expectNextMatches(response ->
-                        response.transactionId().equals(transId)
-                                && response.interval().equals(3600L) && response.notificationId().equals(notificationId)
-                        )
+                .assertNext(response -> {
+                    assertEquals(transId, response.transactionId());
+                    assertEquals(3600L, response.interval());
+                    assertNull(response.notificationId());
+                })
                 .verifyComplete();
 
         verify(credentialSignerWorkflow, times(1))
