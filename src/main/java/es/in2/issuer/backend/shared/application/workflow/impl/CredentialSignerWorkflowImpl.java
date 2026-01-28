@@ -128,7 +128,7 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
                                     payloadToSign
                             );
 
-                            return remoteSignatureService.sign(signatureRequest, token, procedureId, email)
+                            return remoteSignatureService.signIssuedCredential(signatureRequest, token, procedureId, email)
                                     .publishOn(Schedulers.boundedElastic())
                                     .map(SignedData::data);
                         });
@@ -225,7 +225,7 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
                 new SignatureConfiguration(SignatureType.COSE, Collections.emptyMap()),
                 cborBase64
         );
-        return remoteSignatureService.sign(signatureRequest, token, "", email).map(signedData -> Base64.getDecoder().decode(signedData.data()));
+        return remoteSignatureService.signIssuedCredential(signatureRequest, token, "", email).map(signedData -> Base64.getDecoder().decode(signedData.data()));
     }
 
     /**
