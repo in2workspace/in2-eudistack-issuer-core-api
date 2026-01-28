@@ -206,23 +206,6 @@ class DeferredCredentialMetadataServiceImplTest {
     }
 
     @Test
-    void testGetProcedureIdByAuthServerNonce_Success() {
-        // Arrange
-        String authServerNonce = "auth-server-nonce";
-        DeferredCredentialMetadata deferredCredentialMetadata = new DeferredCredentialMetadata();
-        deferredCredentialMetadata.setProcedureId(UUID.randomUUID());
-        when(deferredCredentialMetadataRepository.findByAuthServerNonce(authServerNonce)).thenReturn(Mono.just(deferredCredentialMetadata));
-
-        // Act
-        StepVerifier.create(deferredCredentialMetadataService.getProcedureIdByAuthServerNonce(authServerNonce))
-                .expectNext(deferredCredentialMetadata.getProcedureId().toString())
-                .verifyComplete();
-
-        // Assert
-        verify(deferredCredentialMetadataRepository, times(1)).findByAuthServerNonce(authServerNonce);
-    }
-
-    @Test
     void testUpdateAuthServerNonceByTransactionCode_Success() {
         // Arrange
         String transactionCode = "transaction-code";

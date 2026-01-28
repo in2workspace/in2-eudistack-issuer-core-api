@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import es.in2.issuer.backend.shared.domain.exception.CredentialSerializationException;
+import es.in2.issuer.backend.shared.domain.exception.InvalidCredentialFormatException;
 import es.in2.issuer.backend.shared.domain.model.dto.CredentialProcedureCreationRequest;
 import es.in2.issuer.backend.shared.domain.model.dto.LEARCredentialMachineJwtPayload;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.DetailedIssuer;
@@ -20,8 +21,8 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import java.lang.reflect.Method;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -52,7 +53,7 @@ class LEARCredentialMachineFactoryTest {
 
         LEARCredentialMachine result = learCredentialMachineFactory.mapStringToLEARCredentialMachine(credentialV1);
 
-        assertEquals(expectedMachine, result);
+        assertThat(expectedMachine).isEqualTo(result);
     }
 
     @Test
@@ -94,12 +95,12 @@ class LEARCredentialMachineFactoryTest {
 
         Object invokeResult = m.invoke(learCredentialMachineFactory, credential);
 
-        assertInstanceOf(Mono.class, invokeResult);
+        assertThat(invokeResult).isInstanceOf(Mono.class);
 
         StepVerifier.create((Mono<?>) invokeResult)
                 .expectErrorSatisfies(ex -> {
-                    assertInstanceOf(CredentialSerializationException.class, ex);
-                    assertEquals("Error serializing LEARCredentialMachine to string.", ex.getMessage());
+                    assertThat(ex).isInstanceOf(CredentialSerializationException.class);
+                    assertThat("Error serializing LEARCredentialMachine to string.").isEqualTo(ex.getMessage());
                 })
                 .verify();
     }
@@ -114,8 +115,8 @@ class LEARCredentialMachineFactoryTest {
 
         StepVerifier.create(result)
                 .expectErrorSatisfies(ex -> {
-                    assertInstanceOf(CredentialSerializationException.class, ex);
-                    assertEquals("Error serializing LEARCredentialMachine JWT payload to string.", ex.getMessage());
+                    assertThat(ex).isInstanceOf(CredentialSerializationException.class);
+                    assertThat("Error serializing LEARCredentialMachine JWT payload to string.").isEqualTo(ex.getMessage());
                 })
                 .verify();
     }
@@ -146,7 +147,7 @@ class LEARCredentialMachineFactoryTest {
 
         verify(objectMapper).writeValueAsString(captor.capture());
         LEARCredentialMachine serialized = captor.getValue();
-        assertEquals(detailedIssuer, serialized.issuer());
+        assertThat(detailedIssuer).isEqualTo(serialized.issuer());
         verify(issuerFactory).createDetailedIssuer(procedureId, "");
     }
 
@@ -184,8 +185,8 @@ class LEARCredentialMachineFactoryTest {
         // Assert
         StepVerifier.create(mono)
                 .assertNext(payload -> {
-                    assertEquals("issuer-id-xyz", payload.issuer());
-                    assertEquals("mandatee-123", payload.subject());
+                    assertThat("issuer-id-xyz").isEqualTo(payload.issuer());
+                    assertThat("mandatee-123").isEqualTo(payload.subject());
 
                     org.junit.jupiter.api.Assertions.assertTrue(payload.expirationTime() > 0);
                     org.junit.jupiter.api.Assertions.assertTrue(payload.issuedAt() > 0);
@@ -193,4 +194,106 @@ class LEARCredentialMachineFactoryTest {
                 })
                 .verifyComplete();
     }
+    @Test
+    void bindCryptographicCredentialSubjectId_shouldBindSubjectIdAndSerialize() throws Exception {
+        // Arrange
+        String decoded = "{\"any\":\"json\"}";
+        String subjectId = "did:example:machine-123";
+        String expectedJson = "{\"ok\":true}";
+
+        LEARCredentialMachine.CredentialSubject.Mandate mandate =
+                LEARCredentialMachine.CredentialSubject.Mandate.builder().build();
+
+        LEARCredentialMachine.CredentialSubject subject =
+                LEARCredentialMachine.CredentialSubject.builder()
+                        .id("old-subject")
+                        .mandate(mandate)
+                        .build();
+
+        LEARCredentialMachine decodedMachine = LEARCredentialMachine.builder()
+                .credentialSubject(subject)
+                .build();
+
+        when(objectMapper.readValue(decoded, LEARCredentialMachine.class))
+                .thenReturn(decodedMachine, decodedMachine);
+
+        ArgumentCaptor<LEARCredentialMachine> captor = ArgumentCaptor.forClass(LEARCredentialMachine.class);
+        when(objectMapper.writeValueAsString(captor.capture())).thenReturn(expectedJson);
+
+        // Act
+        Mono<String> result = learCredentialMachineFactory.bindCryptographicCredentialSubjectId(decoded, subjectId);
+
+        // Assert
+        StepVerifier.create(result)
+                .expectNext(expectedJson)
+                .verifyComplete();
+
+        LEARCredentialMachine serialized = captor.getValue();
+        assertThat(subjectId).isEqualTo(serialized.credentialSubject().id());
+        assertThat(mandate).isEqualTo(serialized.credentialSubject().mandate());
+
+        verify(objectMapper, times(2)).readValue(decoded, LEARCredentialMachine.class);
+        verify(objectMapper, times(1)).writeValueAsString(any(LEARCredentialMachine.class));
+    }
+
+
+    @Test
+    void bindCryptographicCredentialSubjectId_whenWriteFails_emitsCredentialSerializationException() throws Exception {
+        // Arrange
+        String decoded = "{\"any\":\"json\"}";
+        String subjectId = "did:example:machine-123";
+
+        LEARCredentialMachine.CredentialSubject.Mandate mandate =
+                LEARCredentialMachine.CredentialSubject.Mandate.builder().build();
+
+        LEARCredentialMachine.CredentialSubject subject =
+                LEARCredentialMachine.CredentialSubject.builder()
+                        .mandate(mandate)
+                        .build();
+
+        LEARCredentialMachine decodedMachine = LEARCredentialMachine.builder()
+                .credentialSubject(subject)
+                .build();
+
+        when(objectMapper.readValue(decoded, LEARCredentialMachine.class)).thenReturn(decodedMachine);
+
+        when(objectMapper.writeValueAsString(any(LEARCredentialMachine.class)))
+                .thenThrow(new JsonProcessingException("write boom") {});
+
+        // Act
+        Mono<String> result = learCredentialMachineFactory.bindCryptographicCredentialSubjectId(decoded, subjectId);
+
+        // Assert
+        StepVerifier.create(result)
+                .expectErrorSatisfies(ex -> {
+                    assertThat(ex).isInstanceOf(CredentialSerializationException.class);
+                    assertThat("Error serializing LEARCredentialMachine to string.").isEqualTo(ex.getMessage());
+                })
+                .verify();
+    }
+
+    @Test
+    void bindCryptographicCredentialSubjectId_whenReadValueFails_throwsInvalidCredentialFormatException() throws Exception {
+        // Arrange
+        String decoded = "bad-json";
+        String subjectId = "did:example:machine-123";
+
+        when(objectMapper.readValue(decoded, LEARCredentialMachine.class))
+                .thenThrow(new JsonProcessingException("boom") {});
+
+        org.junit.jupiter.api.Assertions.assertThrows(
+                InvalidCredentialFormatException.class,
+                () -> learCredentialMachineFactory.bindCryptographicCredentialSubjectId(decoded, subjectId)
+        );
+
+        verify(objectMapper).readValue(decoded, LEARCredentialMachine.class);
+        verify(objectMapper, never()).writeValueAsString(any());
+    }
+
+
+
+
+
+
+
 }
