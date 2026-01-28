@@ -281,7 +281,7 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
                                 Mono<Void> updateDecodedCredentialMono =
                                         switch (credentialProcedure.getCredentialType()) {
                                             case LABEL_CREDENTIAL_TYPE ->
-                                                    issuerFactory.createSimpleIssuer(procedureId, email)
+                                                    issuerFactory.createSimpleIssuerAndNotifyOnError(procedureId, email)
                                                             .flatMap(issuer -> labelCredentialFactory.mapIssuer(procedureId, issuer))
                                                             .flatMap(bindCredential ->
                                                                     updateDecodedCredentialByProcedureId(procedureId, bindCredential)
