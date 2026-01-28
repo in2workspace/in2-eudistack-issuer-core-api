@@ -8,7 +8,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Table("status_list_index")
-public record StatusListIndexRow(
+public record StatusListIndex(
         @Id
         Long id,
 

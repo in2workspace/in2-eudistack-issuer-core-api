@@ -1,14 +1,13 @@
 package es.in2.issuer.backend.statusList.infrastructure.adapter;
 
 
-import es.in2.issuer.backend.shared.domain.util.factory.IssuerFactory;
 import es.in2.issuer.backend.statusList.domain.exception.*;
 import es.in2.issuer.backend.statusList.domain.model.StatusListEntry;
 import es.in2.issuer.backend.statusList.domain.model.StatusPurpose;
 import es.in2.issuer.backend.statusList.domain.spi.StatusListProvider;
 import es.in2.issuer.backend.statusList.infrastructure.repository.StatusListIndexRepository;
 import es.in2.issuer.backend.statusList.infrastructure.repository.StatusListRepository;
-import es.in2.issuer.backend.statusList.infrastructure.repository.StatusListRow;
+import es.in2.issuer.backend.statusList.infrastructure.repository.StatusList;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -141,7 +140,7 @@ public class BitstringStatusListProvider implements StatusListProvider {
                         log.debug("method=revokeOnce step=ALREADY_REVOKED statusListId={} idx={}", statusListId, idx)
                 ))
                 .flatMap(row -> {
-                    StatusListRow updatedRow = revocationService.applyRevocationBit(row, idx);
+                    StatusList updatedRow = revocationService.applyRevocationBit(row, idx);
 
                     return statusListSigner.getIssuerAndSignCredential(updatedRow, token)
                             .flatMap(signedJwt ->
@@ -159,7 +158,7 @@ public class BitstringStatusListProvider implements StatusListProvider {
                 );
     }
 
-    private Mono<StatusListRow> findOrCreateLatestList(StatusPurpose purpose, String token) {
+    private Mono<StatusList> findOrCreateLatestList(StatusPurpose purpose, String token) {
         log.debug("method=findOrCreateLatestList step=START purpose={}", purpose);
 
         return statusListRepository.findLatestByPurpose(purpose.value())
@@ -186,7 +185,7 @@ public class BitstringStatusListProvider implements StatusListProvider {
                 );
     }
 
-    private Mono<StatusListRow> pickListForAllocation(StatusPurpose purpose, String token) {
+    private Mono<StatusList> pickListForAllocation(StatusPurpose purpose, String token) {
         log.debug("method=pickListForAllocation step=START purpose={}", purpose);
 
         long threshold = (long) Math.floor(CAPACITY_BITS * NEW_LIST_THRESHOLD);
@@ -208,7 +207,7 @@ public class BitstringStatusListProvider implements StatusListProvider {
                 );
     }
 
-    public Mono<StatusListRow> createNewList(StatusPurpose purpose, String token) {
+    public Mono<StatusList> createNewList(StatusPurpose purpose, String token) {
         requireNonNull(purpose, "purpose cannot be null");
         requireNonNull(token, "token cannot be null");
 
@@ -217,7 +216,7 @@ public class BitstringStatusListProvider implements StatusListProvider {
         String emptyEncodedList = encoder.createEmptyEncodedList(CAPACITY_BITS);
         Instant now = Instant.now();
 
-        StatusListRow rowToInsert = new StatusListRow(
+        StatusList rowToInsert = new StatusList(
                 null,
                 purpose.value(),
                 emptyEncodedList,
@@ -236,7 +235,7 @@ public class BitstringStatusListProvider implements StatusListProvider {
                 );
     }
 
-    private Mono<StatusListRow> persistSignedCredential(StatusListRow saved, String signedJwt) {
+    private Mono<StatusList> persistSignedCredential(StatusList saved, String signedJwt) {
         log.debug("method=persistSignedCredential step=START statusListId={}", saved.id());
 
         return statusListRepository.updateSignedCredential(saved.id(), signedJwt)

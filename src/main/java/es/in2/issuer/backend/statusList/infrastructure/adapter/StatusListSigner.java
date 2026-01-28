@@ -10,14 +10,11 @@ import es.in2.issuer.backend.shared.domain.model.enums.SignatureType;
 import es.in2.issuer.backend.shared.domain.service.RemoteSignatureService;
 import es.in2.issuer.backend.shared.domain.util.factory.IssuerFactory;
 import es.in2.issuer.backend.statusList.domain.exception.StatusListCredentialSerializationException;
-import es.in2.issuer.backend.statusList.domain.exception.StatusListSigningPersistenceException;
-import es.in2.issuer.backend.statusList.infrastructure.repository.StatusListRepository;
-import es.in2.issuer.backend.statusList.infrastructure.repository.StatusListRow;
+import es.in2.issuer.backend.statusList.infrastructure.repository.StatusList;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
-import java.time.Instant;
 import java.util.Map;
 
 import static java.util.Collections.emptyMap;
@@ -35,7 +32,7 @@ public class StatusListSigner {
     /**
      * Gets the issuer, builds the payload, and signs it. Does not persist anything.
      */
-    public Mono<String> getIssuerAndSignCredential(StatusListRow saved, String token) {
+    public Mono<String> getIssuerAndSignCredential(StatusList saved, String token) {
         return issuerFactory.createSimpleIssuer()
                 .flatMap(issuer -> {
                     Map<String, Object> payload = statusListBuilder.buildUnsigned(

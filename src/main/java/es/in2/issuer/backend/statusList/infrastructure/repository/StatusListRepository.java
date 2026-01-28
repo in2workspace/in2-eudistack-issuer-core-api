@@ -9,7 +9,7 @@ import java.time.Instant;
 /**
  * Spring Data R2DBC repository for table: status_list
  */
-public interface StatusListRepository extends ReactiveCrudRepository<StatusListRow, Long> {
+public interface StatusListRepository extends ReactiveCrudRepository<StatusList, Long> {
 
     @Query("""
            SELECT *
@@ -18,7 +18,7 @@ public interface StatusListRepository extends ReactiveCrudRepository<StatusListR
            ORDER BY id DESC
            LIMIT 1
            """)
-    Mono<StatusListRow> findLatestByPurpose(String purpose);
+    Mono<StatusList> findLatestByPurpose(String purpose);
 
     @Query("""
        UPDATE status_list

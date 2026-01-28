@@ -1,18 +1,12 @@
 package es.in2.issuer.backend.statusList.infrastructure.adapter;
 
-import es.in2.issuer.backend.shared.domain.model.dto.credential.SimpleIssuer;
-import es.in2.issuer.backend.statusList.domain.exception.ConcurrentStatusListUpdateException;
 import es.in2.issuer.backend.statusList.domain.exception.StatusListNotFoundException;
 import es.in2.issuer.backend.statusList.infrastructure.repository.StatusListRepository;
-import es.in2.issuer.backend.statusList.infrastructure.repository.StatusListRow;
+import es.in2.issuer.backend.statusList.infrastructure.repository.StatusList;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
-import reactor.util.retry.Retry;
-
-import java.time.Duration;
-import java.util.Map;
 
 import static java.util.Objects.requireNonNull;
 
@@ -34,7 +28,7 @@ public class BitstringStatusListRevocationService {
     private final StatusListRepository statusListRepository;
     private final BitstringEncoder encoder = new BitstringEncoder();
 
-    public Mono<StatusListRow> resolveRevocationCandidate(Long statusListId, Integer idx) {
+    public Mono<StatusList> resolveRevocationCandidate(Long statusListId, Integer idx) {
         requireNonNull(statusListId, "statusListId cannot be null");
         requireNonNull(idx, "idx cannot be null");
 
@@ -58,7 +52,7 @@ public class BitstringStatusListRevocationService {
      *
      * This method does NOT persist anything.
      */
-    public StatusListRow applyRevocationBit(StatusListRow currentRow, Integer idx) {
+    public StatusList applyRevocationBit(StatusList currentRow, Integer idx) {
         requireNonNull(currentRow, "currentRow cannot be null");
         requireNonNull(idx, "idx cannot be null");
 
@@ -66,7 +60,7 @@ public class BitstringStatusListRevocationService {
 
         // Keep everything the same except the encoded list.
         // signedCredential remains as-is; provider will replace it during persistence.
-        return new StatusListRow(
+        return new StatusList(
                 currentRow.id(),
                 currentRow.purpose(),
                 updatedEncoded,

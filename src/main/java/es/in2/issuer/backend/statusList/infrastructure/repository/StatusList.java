@@ -5,10 +5,9 @@ import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
 
 import java.time.Instant;
-import java.util.UUID;
 
 @Table("status_list")
-public record StatusListRow(
+public record StatusList(
         @Id Long id,
         @Column("purpose") String purpose,
         @Column("encoded_list") String encodedList,

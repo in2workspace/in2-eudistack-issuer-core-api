@@ -5,9 +5,9 @@ import reactor.core.publisher.Mono;
 
 import java.util.UUID;
 
-public interface StatusListIndexRepository extends ReactiveCrudRepository<StatusListIndexRow, Long> {
+public interface StatusListIndexRepository extends ReactiveCrudRepository<StatusListIndex, Long> {
 
-    Mono<StatusListIndexRow> findByProcedureId(UUID procedureId);
+    Mono<StatusListIndex> findByProcedureId(UUID procedureId);
 
     Mono<Long> countByStatusListId(Long statusListId);
 }

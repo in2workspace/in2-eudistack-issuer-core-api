@@ -3,7 +3,6 @@ package es.in2.issuer.backend.statusList.infrastructure.adapter;
 import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
 import es.in2.issuer.backend.statusList.domain.model.StatusListEntry;
 import es.in2.issuer.backend.statusList.domain.model.StatusPurpose;
-import es.in2.issuer.backend.statusList.infrastructure.repository.StatusListRow;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;

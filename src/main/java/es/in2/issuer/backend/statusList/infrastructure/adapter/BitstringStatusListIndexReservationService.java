@@ -1,9 +1,8 @@
 package es.in2.issuer.backend.statusList.infrastructure.adapter;
 
-import es.in2.issuer.backend.statusList.domain.model.StatusPurpose;
 import es.in2.issuer.backend.statusList.domain.spi.StatusListIndexAllocator;
 import es.in2.issuer.backend.statusList.infrastructure.repository.StatusListIndexRepository;
-import es.in2.issuer.backend.statusList.infrastructure.repository.StatusListIndexRow;
+import es.in2.issuer.backend.statusList.infrastructure.repository.StatusListIndex;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -35,7 +34,7 @@ public class BitstringStatusListIndexReservationService {
     private final StatusListIndexRepository statusListIndexRepository;
     private final StatusListIndexAllocator indexAllocator;
 
-    public Mono<StatusListIndexRow> reserveWithRetry(Long statusListId, String procedureId) {
+    public Mono<StatusListIndex> reserveWithRetry(Long statusListId, String procedureId) {
         log.info("reserveOnSpecificList - statusListId: {} - procedureId: {}", statusListId, procedureId);
         requireNonNull(statusListId, "statusListId cannot be null");
         requireNonNull(procedureId, "procedureId cannot be null");
@@ -55,12 +54,12 @@ public class BitstringStatusListIndexReservationService {
                 .onErrorMap(this::maybeWrapAsExhausted);
     }
 
-    private Mono<StatusListIndexRow> tryReserveOnce(Long statusListId, String procedureId) {
+    private Mono<StatusListIndex> tryReserveOnce(Long statusListId, String procedureId) {
         //todo
         log.info("tryReserveOnce");
         int idx = indexAllocator.proposeIndex(CAPACITY_BITS);
 
-        StatusListIndexRow row = new StatusListIndexRow(
+        StatusListIndex row = new StatusListIndex(
                 null,
                 statusListId,
                 idx,
@@ -70,14 +69,14 @@ public class BitstringStatusListIndexReservationService {
 
         return statusListIndexRepository.save(row)
                 .doOnNext(saved -> log.debug(
-                        "Saved StatusListIndexRow: id={}, statusListId={}, idx={}, procedureId={}, createdAt={}",
+                        "Saved StatusListIndex: id={}, statusListId={}, idx={}, procedureId={}, createdAt={}",
                         saved.id(),
                         saved.statusListId(),
                         saved.idx(),
                         saved.procedureId(),
                         saved.createdAt()
                 ))
-                .doOnError(e -> log.error("Error saving StatusListIndexRow (statusListId={}, idx={}, procedureId={})",
+                .doOnError(e -> log.error("Error saving StatusListIndex (statusListId={}, idx={}, procedureId={})",
                         statusListId, idx, procedureId, e
                 ));
     }
