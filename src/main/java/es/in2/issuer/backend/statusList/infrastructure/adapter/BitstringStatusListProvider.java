@@ -59,6 +59,18 @@ public class BitstringStatusListProvider implements StatusListProvider {
                     }
                     return Mono.just(signed);
                 })
+                .doOnNext(jwt -> {
+                    int parts = jwt.split("\\.").length;
+                    long dots = jwt.chars().filter(c -> c == '.').count();
+
+                    String prefix = jwt.length() > 60 ? jwt.substring(0, 60) : jwt;
+                    String suffix = jwt.length() > 60 ? jwt.substring(jwt.length() - 60) : jwt;
+
+                    log.debug(
+                            "method=getSignedStatusListCredential step=JWT listId={} dots={} parts={} prefix={} suffix={}",
+                            listId, dots, parts, prefix, suffix
+                    );
+                })
                 .doOnSuccess(v ->
                         log.debug("method=getSignedStatusListCredential step=END listId={}", listId)
                 );

@@ -32,7 +32,7 @@ public class StatusListController {
 
         return statusListWorkflow.getSignedStatusListCredential(listId)
                 .doFirst(() -> log.info("Process ID: {} - Getting Status List Credential (vc+jwt)...", processId))
-                .doOnSuccess(v -> log.info("processId={} action=getStatusList status=completed listId={}", processId, listId))
+                .doOnSuccess(v -> log.info("processId={} action=getStatusList status=completed listId={} v={}", processId, listId, v))
                 .doOnError(e -> log.warn("processId={} action=getStatusList status=failed listId={} error={}", processId, listId, e.toString()))
                 .map(jwt -> ResponseEntity.ok().contentType(VC_JWT).body(jwt));
     }
