@@ -1,6 +1,6 @@
 package es.in2.issuer.backend.backoffice.infrastructure.controller;
 
-import es.in2.issuer.backend.backoffice.domain.service.NotificationService;
+import es.in2.issuer.backend.backoffice.domain.service.SendReminderService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -15,14 +15,14 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/backoffice/v1/notifications")
 @RequiredArgsConstructor
-public class NotificationController {
+public class SendReminderController {
 
-    private final NotificationService notificationService;
+    private final SendReminderService sendReminderService;
 
     @PostMapping(value = "/{procedure_id}", produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public Mono<Void> sendEmailNotification(@RequestHeader(HttpHeaders.AUTHORIZATION) String bearerToken, @PathVariable("procedure_id") String procedureId) {
+    public Mono<Void> sendEmailReminder(@RequestHeader(HttpHeaders.AUTHORIZATION) String bearerToken, @PathVariable("procedure_id") String procedureId) {
         String processId = UUID.randomUUID().toString();
-        return notificationService.sendNotification(processId, procedureId, bearerToken);
+        return sendReminderService.sendReminder(processId, procedureId, bearerToken);
     }
 }

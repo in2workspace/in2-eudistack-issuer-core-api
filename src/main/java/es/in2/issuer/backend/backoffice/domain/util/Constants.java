@@ -23,6 +23,8 @@ public class Constants {
     public static final String LER = "LER";
     public static final String SYS_ADMIN = "SYSADMIN";
     public static final String TYPE = "type";
+    public static final String CREDENTIAL_STATUS = "credentialStatus";
+    public static final String STATUS_LIST_CREDENTIAL = "statusListCredential";
     public static final String EMAIL = "email";
     public static final String COMMON_NAME = "commonName";
     public static final String EMAIL_ADDRESS = "emailAddress";

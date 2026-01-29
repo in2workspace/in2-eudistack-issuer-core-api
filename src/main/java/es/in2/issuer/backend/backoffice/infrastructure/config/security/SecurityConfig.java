@@ -56,7 +56,8 @@ public class SecurityConfig {
                         VCI_ISSUANCES_PATH,
                         OAUTH_TOKEN_PATH,
                         OID4VCI_CREDENTIAL_PATH,
-                        OID4VCI_DEFERRED_CREDENTIAL_PATH)
+                        OID4VCI_DEFERRED_CREDENTIAL_PATH,
+                        OID4VCI_NOTIFICATION_PATH)
         );
 
         authenticationWebFilter.setServerAuthenticationConverter(new DualTokenServerAuthenticationConverter());
@@ -119,7 +120,8 @@ public class SecurityConfig {
                         .pathMatchers(HttpMethod.POST,
                                 VCI_ISSUANCES_PATH,
                                 OID4VCI_CREDENTIAL_PATH,
-                                OID4VCI_DEFERRED_CREDENTIAL_PATH
+                                OID4VCI_DEFERRED_CREDENTIAL_PATH,
+                                OID4VCI_NOTIFICATION_PATH
                         ).authenticated()
                         .anyExchange().denyAll()
                 )

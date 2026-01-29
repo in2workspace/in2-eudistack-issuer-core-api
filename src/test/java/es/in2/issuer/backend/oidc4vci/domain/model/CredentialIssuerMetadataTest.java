@@ -16,6 +16,7 @@ class CredentialIssuerMetadataTest {
         String issuanceEndpoint = "https://issuer.example.com/vci/v1/issuances";
         String credentialEndpoint = "https://issuer.example.com/oid4vci/v1/credential";
         String deferredCredentialEndpoint = "https://issuer.example.com/oid4vci/v1/deferrred-credential";
+        String notificationEndpoint = "https://issuer.example.com/oid4vci/v1/notification";
 
         // Act
         CredentialIssuerMetadata metadata = new CredentialIssuerMetadata(
@@ -23,6 +24,7 @@ class CredentialIssuerMetadataTest {
                 issuanceEndpoint,
                 credentialEndpoint,
                 deferredCredentialEndpoint,
+                notificationEndpoint,
                 null
         );
 

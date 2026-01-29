@@ -55,6 +55,20 @@ public class StatusListPdpServiceImpl implements StatusListPdpService {
         );
     }
 
+    @Override
+    public Mono<Void> validateRevokeCredentialSystem(String processId, CredentialProcedure procedure) {
+        return Mono.defer(() ->
+                validateStatus(procedure.getCredentialStatus())
+                        .doFirst(() ->
+                                log.info(
+                                        "Process ID: {} - Validating 'revoke' action (system)...",
+                                        processId
+                                )
+                        )
+        );
+    }
+
+
     /* ---------- Status validation ---------- */
 
     private Mono<Void> validateStatus(CredentialStatusEnum credentialStatus) {
