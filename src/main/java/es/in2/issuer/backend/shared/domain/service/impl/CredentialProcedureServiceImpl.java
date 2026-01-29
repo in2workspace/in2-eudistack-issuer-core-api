@@ -51,6 +51,7 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
                 .operationMode(credentialProcedureCreationRequest.operationMode())
                 .signatureMode("remote")
                 .email(credentialProcedureCreationRequest.email())
+                .notificationId(UUID.randomUUID())
                 .build();
         return credentialProcedureRepository.save(credentialProcedure)
                 .map(savedCredentialProcedure -> savedCredentialProcedure.getProcedureId().toString())
@@ -61,6 +62,14 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
     public Mono<String> getCredentialTypeByProcedureId(String procedureId) {
         return credentialProcedureRepository.findById(UUID.fromString(procedureId))
                 .flatMap(this::getCredentialType);
+    }
+
+    @Override
+    public Mono<String> getNotificationIdByProcedureId(String procedureId) {
+        return credentialProcedureRepository
+                .findById(UUID.fromString(procedureId))
+                .map(CredentialProcedure::getNotificationId)
+                .map(UUID::toString);
     }
 
     private Mono<String> getCredentialType(CredentialProcedure credentialProcedure) {
@@ -252,6 +261,14 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
     }
 
     @Override
+    public Mono<Void> updateCredentialProcedureCredentialStatusToIssued (CredentialProcedure credentialProcedure) {
+        credentialProcedure.setCredentialStatus(CredentialStatusEnum.ISSUED);
+        return credentialProcedureRepository.save(credentialProcedure)
+                .doOnSuccess(result -> log.info(UPDATED_CREDENTIAL))
+                .then();
+    }
+
+    @Override
     public Mono<CredentialProcedures> getAllProceduresBasicInfoByOrganizationId(String
                                                                                         organizationIdentifier) {
         return credentialProcedureRepository.findAllByOrganizationIdentifier(organizationIdentifier)
@@ -315,6 +332,11 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
     @Override
     public Mono<CredentialProcedure> getCredentialProcedureById(String procedureId) {
         return credentialProcedureRepository.findByProcedureId(UUID.fromString(procedureId));
+    }
+
+    @Override
+    public Mono<CredentialProcedure> getCredentialProcedureByNotificationId(String notificationId) {
+        return credentialProcedureRepository.findByNotificationId(UUID.fromString(notificationId));
     }
 
     @Override

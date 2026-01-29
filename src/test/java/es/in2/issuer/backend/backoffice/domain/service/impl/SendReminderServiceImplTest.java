@@ -29,7 +29,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class NotificationServiceImplTest {
+class SendReminderServiceImplTest {
 
     private final String processId = "processId";
     private final String procedureId = "procedureId";
@@ -52,7 +52,7 @@ class NotificationServiceImplTest {
     @Mock private DeferredCredentialMetadataService deferredCredentialMetadataService;
 
     @InjectMocks
-    private NotificationServiceImpl notificationService;
+    private SendReminderServiceImpl sendReminderService;
 
     @BeforeEach
     void setup() {
@@ -68,7 +68,7 @@ class NotificationServiceImplTest {
     }
 
     @Test
-    void sendNotification_whenDraft_sendsActivationEmail() {
+    void sendReminder_whenDraft_sendsActivationEmail() {
         // arrange
         CredentialProcedure credentialProcedure = mock(CredentialProcedure.class);
         when(credentialProcedure.getCredentialStatus()).thenReturn(DRAFT);
@@ -91,7 +91,7 @@ class NotificationServiceImplTest {
         )).thenReturn(Mono.empty());
 
         // act
-        var result = notificationService.sendNotification(processId, procedureId, bearerToken);
+        var result = sendReminderService.sendReminder(processId, procedureId, bearerToken);
 
         // assert
         StepVerifier.create(result).verifyComplete();
@@ -104,7 +104,7 @@ class NotificationServiceImplTest {
     }
 
     @Test
-    void sendNotification_whenWithdrawn_sendsActivationEmail() {
+    void sendReminder_whenWithdrawn_sendsActivationEmail() {
         // arrange
         CredentialProcedure credentialProcedure = mock(CredentialProcedure.class);
         when(credentialProcedure.getCredentialStatus()).thenReturn(WITHDRAWN);
@@ -127,7 +127,7 @@ class NotificationServiceImplTest {
         )).thenReturn(Mono.empty());
 
         // act
-        var result = notificationService.sendNotification(processId, procedureId, bearerToken);
+        var result = sendReminderService.sendReminder(processId, procedureId, bearerToken);
 
         // assert
         StepVerifier.create(result).verifyComplete();
@@ -140,7 +140,7 @@ class NotificationServiceImplTest {
     }
 
     @Test
-    void sendNotification_whenDraft_emailFailure_mapsToEmailCommunicationException() {
+    void sendReminder_whenDraft_emailFailure_mapsToEmailCommunicationException() {
         // arrange
         CredentialProcedure credentialProcedure = mock(CredentialProcedure.class);
         when(credentialProcedure.getCredentialStatus()).thenReturn(DRAFT);
@@ -159,7 +159,7 @@ class NotificationServiceImplTest {
         )).thenReturn(Mono.error(new RuntimeException("boom")));
 
         // act
-        var result = notificationService.sendNotification(processId, procedureId, bearerToken);
+        var result = sendReminderService.sendReminder(processId, procedureId, bearerToken);
 
         // assert
         StepVerifier.create(result)
@@ -169,7 +169,7 @@ class NotificationServiceImplTest {
     }
 
     @Test
-    void sendNotification_whenPendDownload_sendsSignedNotification() {
+    void sendReminder_whenPendDownload_sendsSignedNotification() {
         // arrange
         CredentialProcedure credentialProcedure = mock(CredentialProcedure.class);
         when(credentialProcedure.getCredentialStatus()).thenReturn(PEND_DOWNLOAD);
@@ -189,7 +189,7 @@ class NotificationServiceImplTest {
         ).thenReturn(Mono.empty());
 
         // act
-        var result = notificationService.sendNotification(processId, procedureId, bearerToken);
+        var result = sendReminderService.sendReminder(processId, procedureId, bearerToken);
 
         // assert
         StepVerifier.create(result).verifyComplete();
@@ -206,7 +206,7 @@ class NotificationServiceImplTest {
     }
 
     @Test
-    void sendNotification_whenPdpDeniesAccess_failsWithAccessDenied() {
+    void sendReminder_whenPdpDeniesAccess_failsWithAccessDenied() {
         // arrange
         when(accessTokenService.getCleanBearerToken(bearerToken))
                 .thenReturn(Mono.just(cleanToken));
@@ -218,7 +218,7 @@ class NotificationServiceImplTest {
                 .thenReturn(Mono.just(mock(CredentialProcedure.class)));
 
         // act
-        var result = notificationService.sendNotification(processId, procedureId, bearerToken);
+        var result = sendReminderService.sendReminder(processId, procedureId, bearerToken);
 
         // assert
         StepVerifier.create(result)
