@@ -21,6 +21,7 @@ import java.text.ParseException;
 import java.time.Instant;
 
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.*;
+import static es.in2.issuer.backend.shared.domain.util.Constants.VC;
 
 @Service
 @Slf4j

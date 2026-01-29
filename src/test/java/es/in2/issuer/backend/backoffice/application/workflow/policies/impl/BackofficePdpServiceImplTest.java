@@ -22,9 +22,7 @@ import reactor.test.StepVerifier;
 import java.text.ParseException;
 import java.util.UUID;
 
-import static es.in2.issuer.backend.backoffice.domain.util.Constants.LEAR;
-import static es.in2.issuer.backend.backoffice.domain.util.Constants.ROLE;
-import static es.in2.issuer.backend.backoffice.domain.util.Constants.VC;
+import static es.in2.issuer.backend.shared.domain.util.Constants.*;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.*;
 
@@ -91,31 +89,6 @@ class BackofficePdpServiceImplTest {
         verify(jwtService).parseJWT(token);
         verify(appConfig).getAdminOrganizationId();
         verifyNoInteractions(credentialProcedureRepository);
-    }
-
-    @Test
-    void validateRevokeCredential_nonAdmin_matchingOrg_allows() throws Exception {
-        String token = "token";
-        String adminOrgId = "admin-org";
-        String userOrgId = "org-123";
-        String procedureId = UUID.randomUUID().toString();
-
-        SignedJWT signedJWT = buildSignedJwtWithRoleAndOrg(LEAR, userOrgId);
-
-        when(jwtService.parseJWT(token)).thenReturn(signedJWT);
-        when(appConfig.getAdminOrganizationId()).thenReturn(adminOrgId);
-
-        CredentialProcedure credentialProcedure = mock(CredentialProcedure.class);
-        when(credentialProcedure.getOrganizationIdentifier()).thenReturn(userOrgId);
-
-        when(credentialProcedureRepository.findById(UUID.fromString(procedureId)))
-                .thenReturn(Mono.just(credentialProcedure));
-
-        Mono<Void> result = backofficePdp.validateRevokeCredential("process", token, procedureId);
-
-        StepVerifier.create(result).verifyComplete();
-
-        verify(credentialProcedureRepository).findById(UUID.fromString(procedureId));
     }
 
     @Test

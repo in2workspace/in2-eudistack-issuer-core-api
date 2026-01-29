@@ -2,7 +2,6 @@ package es.in2.issuer.backend.oidc4vci.infrastructure.controller;
 
 import es.in2.issuer.backend.oidc4vci.domain.service.NotificationService;
 import es.in2.issuer.backend.shared.domain.model.dto.NotificationRequest;
-import es.in2.issuer.backend.shared.domain.service.AccessTokenService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,7 +18,6 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class NotificationController {
 
-    private final AccessTokenService accessTokenService;
     private final NotificationService notificationService;
 
     @PostMapping(produces = MediaType.APPLICATION_JSON_VALUE)
@@ -28,8 +26,7 @@ public class NotificationController {
         String processId = UUID.randomUUID().toString();
         return Mono.defer(() -> {
                     log.info("Process ID: {} - Handle notification start", processId);
-                    return accessTokenService.getCleanBearerToken(authorization)
-                            .flatMap(token -> notificationService.handleNotification(processId,request));
+                    return notificationService.handleNotification(processId,request,authorization);
                 })
                 .doOnSuccess(v ->
                         log.info("Process ID: {} - Handle notification ok", processId)

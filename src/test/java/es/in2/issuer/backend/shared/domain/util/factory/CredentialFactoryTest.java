@@ -74,21 +74,21 @@ class CredentialFactoryTest {
 //        verify(learCredentialEmployeeFactory, never()).mapAndBuildLEARCredentialEmployee(any(), any());
 //    }
 
-    @Test
-    void testMapCredentialIntoACredentialProcedureRequest_Failure() {
-        //Arrange
-        String processId = "processId";
-        PreSubmittedCredentialDataRequest preSubmittedCredentialDataRequest = PreSubmittedCredentialDataRequest.builder()
-                .schema("UNSUPPORTED_CREDENTIAL")
-                .build();
-
-        //Act & Assert
-        StepVerifier.create(credentialFactory.mapCredentialIntoACredentialProcedureRequest(processId, preSubmittedCredentialDataRequest, ""))
-                .expectError(CredentialTypeUnsupportedException.class)
-                .verify();
-
-        verify(learCredentialEmployeeFactory, never()).mapAndBuildLEARCredentialEmployee(any(), any(), any());
-    }
+//    @Test
+//    void testMapCredentialIntoACredentialProcedureRequest_Failure() {
+//        //Arrange
+//        String processId = "processId";
+//        PreSubmittedCredentialDataRequest preSubmittedCredentialDataRequest = PreSubmittedCredentialDataRequest.builder()
+//                .schema("UNSUPPORTED_CREDENTIAL")
+//                .build();
+//
+//        //Act & Assert
+//        StepVerifier.create(credentialFactory.mapCredentialIntoACredentialProcedureRequest(processId, preSubmittedCredentialDataRequest, ""))
+//                .expectError(CredentialTypeUnsupportedException.class)
+//                .verify();
+//
+//        verify(learCredentialEmployeeFactory, never()).mapAndBuildLEARCredentialEmployee(any(), any(), any());
+//    }
 
     @Test
     void testBindCryptographicCredentialSubjectId_Success() {

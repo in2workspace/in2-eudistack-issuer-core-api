@@ -1,5 +1,6 @@
 package es.in2.issuer.backend.shared.domain.service.impl;
 
+import brave.internal.Nullable;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -16,6 +17,7 @@ import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
 import es.in2.issuer.backend.shared.infrastructure.config.RemoteSignatureConfig;
 import es.in2.issuer.backend.shared.infrastructure.repository.CredentialProcedureRepository;
 import es.in2.issuer.backend.shared.infrastructure.repository.DeferredCredentialMetadataRepository;
+import jakarta.validation.constraints.Null;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
@@ -38,6 +40,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.TimeoutException;
 import java.util.regex.Matcher;
@@ -72,32 +75,135 @@ public class RemoteSignatureServiceImpl implements RemoteSignatureService {
     private String clientId;
     private String clientSecret;
 
+    /**
+     * Signs an ISSUED credential (user-related credential).
+     *
+     * <p>
+     * Issued credentials represent user-facing identities such as:
+     * <ul>
+     *   <li>Employee credentials</li>
+     *   <li>Machine credentials</li>
+     *   <li>Label / badge credentials</li>
+     * </ul>
+     *
+     * <p>
+     * These credentials have a special signing lifecycle:
+     * <ul>
+     *   <li>The signature may be <b>deferred</b> if the remote signing fails</li>
+     *   <li>After retries are exhausted, the flow switches to <b>ASYNC mode</b></li>
+     *   <li>An additional <b>post-processing step</b> is triggered (e.g. email notification)</li>
+     * </ul>
+     *
+     * <p>
+     * Deferred metadata is removed only after a successful signature.
+     *
+     */
     @Override
     //TODO Cuando se implementen los "settings" del issuer, se debe pasar el clientId, secret, etc. como parámetros en lugar de var entorno
-    public Mono<SignedData> sign(SignatureRequest signatureRequest, String token, String procedureId, String email) {
-        clientId = remoteSignatureConfig.getRemoteSignatureClientId();
-        clientSecret = remoteSignatureConfig.getRemoteSignatureClientSecret();
-        return Mono.defer(() -> executeSigningFlow(signatureRequest, token)
+    public Mono<SignedData> signIssuedCredential(
+            SignatureRequest signatureRequest,
+            String token,
+            String procedureId,
+            String email
+    ) {
+        log.debug(
+                "RemoteSignatureServiceImpl - signIssuedCredential, signatureRequest: {}, token: {}, procedureId: {}, email: {}",
+                signatureRequest, token, procedureId, email
+        );
+
+        return signWithRetry(signatureRequest, token, "signIssuedCredential")
                 .doOnSuccess(result -> {
                     log.info("Successfully Signed");
                     log.info("Procedure with id: {}", procedureId);
                     log.info("at time: {}", new Date());
                     deferredCredentialMetadataService.deleteDeferredCredentialMetadataById(procedureId);
                 })
-                .retryWhen(Retry.backoff(3, Duration.ofSeconds(1))
-                        .maxBackoff(Duration.ofSeconds(5))
-                        .jitter(0.5)
-                        .filter(this::isRecoverableError)   // Retry only on recoverable errors
-                        .doBeforeRetry(retrySignal -> {
-                            long attempt = retrySignal.totalRetries() + 1;
-                            log.info("Retrying signing process due to recoverable error (Attempt #{} of 3)", attempt);
-                        }))
                 .onErrorResume(throwable -> {
                     log.error("Error after 3 retries, switching to ASYNC mode.");
                     log.error("Error Time: {}", new Date());
                     return handlePostRecoverError(procedureId, email)
-                            .then(Mono.error(new RemoteSignatureException("Signature Failed, changed to ASYNC mode", throwable)));
-                }));
+                            .then(Mono.error(new RemoteSignatureException(
+                                    "Signature Failed, changed to ASYNC mode",
+                                    throwable
+                            )));
+                });
+    }
+
+    /**
+     * Signs a SYSTEM credential.
+     *
+     * <p>
+     * System credentials are internal, platform-level credentials and
+     * <b>do not follow the issued credential lifecycle</b>.
+     *
+     * <p>
+     * Characteristics:
+     * <ul>
+     *   <li>No deferred signing</li>
+     *   <li>No async recovery flow</li>
+     *   <li>No post-signature handling (email, procedure tracking, etc.)</li>
+     * </ul>
+     *
+     * <p>
+     * Example of system credentials:
+     * <ul>
+     *   <li>VC StatusListCredential</li>
+     * </ul>
+     *
+     */
+    @Override
+    public Mono<SignedData> signSystemCredential(
+            SignatureRequest signatureRequest,
+            String token
+    ) {
+        log.debug(
+                "RemoteSignatureServiceImpl - signSystemCredential, signatureRequest: {}, token: {}",
+                signatureRequest, token
+        );
+
+        return signWithRetry(signatureRequest, token, "signSystemCredential");
+    }
+
+    private Mono<SignedData> signWithRetry(
+            SignatureRequest signatureRequest,
+            String token,
+            String operationName
+    ) {
+        return Mono.defer(() -> executeSigningFlow(signatureRequest, token))
+                .doOnSuccess(signedData -> {
+                    int signedLength = (signedData != null && signedData.data() != null)
+                            ? signedData.data().length()
+                            : 0;
+
+                    log.info(
+                            "Remote signing succeeded ({}). resultType={}, signedLength={}",
+                            operationName,
+                            signedData != null ? signedData.type() : null,
+                            signedLength
+                    );
+                })
+                .retryWhen(
+                        Retry.backoff(3, Duration.ofSeconds(1))
+                                .maxBackoff(Duration.ofSeconds(5))
+                                .jitter(0.5)
+                                .filter(this::isRecoverableError)
+                                .doBeforeRetry(retrySignal -> {
+                                    long attempt = retrySignal.totalRetries() + 1;
+                                    Throwable failure = retrySignal.failure();
+                                    String msg = failure != null ? failure.getMessage() : "n/a";
+
+                                    log.warn(
+                                            "Retrying remote signing ({}). attempt={} of 3, reason={}",
+                                            operationName, attempt, msg
+                                    );
+                                })
+                )
+                .doOnError(ex ->
+                        log.error(
+                                "Remote signing failed after retries ({}). reason={}",
+                                operationName, ex.getMessage(), ex
+                        )
+                );
     }
 
     public boolean isRecoverableError(Throwable throwable) {

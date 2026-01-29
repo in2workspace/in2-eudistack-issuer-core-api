@@ -45,6 +45,10 @@ public class EndpointsConstants {
     public static final String BACKOFFICE_DEFERRED_CREDENTIALS = BACKOFFICE_BASE_PATH + "/deferred-credentials";
     public static final String BACKOFFICE_ISSUANCE = BACKOFFICE_BASE_PATH+"/issuances";
 
+    //status list Endpoints
+    public static final String STATUS_LIST_BASE = "/w3c/v1/credentials/status";
+    public static final String STATUS_LIST_PATH = STATUS_LIST_BASE + "/**";
+
     // todo: remove these constants if not needed
     public static final String TRUST_FRAMEWORK_ISSUER = "/issuer";
 

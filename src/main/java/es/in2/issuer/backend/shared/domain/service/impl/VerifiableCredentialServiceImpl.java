@@ -5,6 +5,7 @@ import es.in2.issuer.backend.shared.application.workflow.CredentialSignerWorkflo
 import es.in2.issuer.backend.shared.domain.exception.RemoteSignatureException;
 import es.in2.issuer.backend.shared.domain.model.dto.CredentialResponse;
 import es.in2.issuer.backend.shared.domain.model.dto.PreSubmittedCredentialDataRequest;
+import es.in2.issuer.backend.shared.domain.model.dto.credential.CredentialStatus;
 import es.in2.issuer.backend.shared.domain.model.entities.CredentialProcedure;
 import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum;
 import es.in2.issuer.backend.shared.domain.service.CredentialProcedureService;
@@ -14,6 +15,9 @@ import es.in2.issuer.backend.shared.domain.util.factory.CredentialFactory;
 import es.in2.issuer.backend.shared.domain.util.factory.IssuerFactory;
 import es.in2.issuer.backend.shared.domain.util.factory.LEARCredentialEmployeeFactory;
 import es.in2.issuer.backend.shared.domain.util.factory.LabelCredentialFactory;
+import es.in2.issuer.backend.statusList.application.StatusListWorkflow;
+import es.in2.issuer.backend.statusList.domain.model.StatusListEntry;
+import es.in2.issuer.backend.statusList.domain.model.StatusPurpose;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -21,6 +25,7 @@ import reactor.core.publisher.Mono;
 
 import java.text.ParseException;
 import java.util.List;
+import java.util.UUID;
 
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.*;
 import static es.in2.issuer.backend.shared.domain.util.Constants.DEFERRED_CREDENTIAL_POLLING_INTERVAL;
@@ -37,20 +42,35 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
     private final LEARCredentialEmployeeFactory learCredentialEmployeeFactory;
     private final LabelCredentialFactory labelCredentialFactory;
     private final IssuerFactory issuerFactory;
+    private final StatusListWorkflow statusListWorkflow;
 
     @Override
-    public Mono<String> generateVc(String processId, PreSubmittedCredentialDataRequest preSubmittedCredentialDataRequest, String email) {
-        return credentialFactory.mapCredentialIntoACredentialProcedureRequest(processId, preSubmittedCredentialDataRequest, email)
-                .flatMap(credentialProcedureService::createCredentialProcedure)
-                //TODO repensar esto cuando el flujo del Verification cumpla con el OIDC4VC
-                .flatMap(procedureId -> deferredCredentialMetadataService.createDeferredCredentialMetadata(
+    public Mono<String> generateVc(String processId, PreSubmittedCredentialDataRequest preSubmittedCredentialDataRequest, String email, String token) {
+        String procedureId = UUID.randomUUID().toString();
+
+        return statusListWorkflow
+                .allocateEntry(StatusPurpose.REVOCATION, procedureId, token)
+                .map(this::toCredentialStatus)
+                .flatMap(credentialStatus ->
+                        credentialFactory.mapCredentialIntoACredentialProcedureRequest(
+                                processId,
                                 procedureId,
-                                preSubmittedCredentialDataRequest.operationMode(),
-                                preSubmittedCredentialDataRequest.responseUri())
-                        .flatMap(transactionCode ->
-                                credentialProcedureService.updateFormatByProcedureId(procedureId, preSubmittedCredentialDataRequest.format())
-                                        .then(deferredCredentialMetadataService.updateFormatByProcedureId(procedureId, preSubmittedCredentialDataRequest.format()))
-                                        .thenReturn(transactionCode)));
+                                preSubmittedCredentialDataRequest,
+                                credentialStatus,
+                                email
+                        )
+                )
+                .flatMap(credentialProcedureService::createCredentialProcedure)
+                .then(deferredCredentialMetadataService.createDeferredCredentialMetadata(
+                        procedureId,
+                        preSubmittedCredentialDataRequest.operationMode(),
+                        preSubmittedCredentialDataRequest.responseUri())
+                )
+                .flatMap(transactionCode ->
+                        credentialProcedureService.updateFormatByProcedureId(procedureId, preSubmittedCredentialDataRequest.format())
+                                .then(deferredCredentialMetadataService.updateFormatByProcedureId(procedureId, preSubmittedCredentialDataRequest.format()))
+                                .thenReturn(transactionCode)
+                );
     }
 
     @Override
@@ -243,5 +263,15 @@ public class VerifiableCredentialServiceImpl implements VerifiableCredentialServ
                         .notificationId(notificationId)
                         .build()
         );
+    }
+
+    private CredentialStatus toCredentialStatus(StatusListEntry entry) {
+        return CredentialStatus.builder()
+                .id(entry.id())
+                .type(entry.type())
+                .statusPurpose(entry.statusPurpose().value())
+                .statusListIndex(String.valueOf(entry.statusListIndex()))
+                .statusListCredential(entry.statusListCredential())
+                .build();
     }
 }

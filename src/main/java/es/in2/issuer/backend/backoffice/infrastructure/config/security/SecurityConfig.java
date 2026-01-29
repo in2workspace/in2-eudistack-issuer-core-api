@@ -137,17 +137,18 @@ public class SecurityConfig {
 
     @Bean
     @Order(2)
-    public SecurityWebFilterChain backofficeFilterChain(
+    public SecurityWebFilterChain internalFilterChain(
             ServerHttpSecurity http,
             ProblemAuthenticationEntryPoint entryPoint,
             ProblemAccessDeniedHandler deniedH,
             Converter<Jwt, Mono<AbstractAuthenticationToken>> jwtAuthenticationConverter) {
 
-        log.debug("backofficeFilterChain - inside");
+        log.debug("internalFilterChain - inside");
 
         http
                 .securityMatcher(ServerWebExchangeMatchers.pathMatchers(
                         BACKOFFICE_PATH,
+                        STATUS_LIST_PATH,
                         HEALTH_PATH,
                         PROMETHEUS_PATH,
                         SPRINGDOC_PATH
@@ -159,6 +160,8 @@ public class SecurityConfig {
                                 PROMETHEUS_PATH,
                                 SPRINGDOC_PATH
                         ).permitAll()
+                        .pathMatchers(HttpMethod.GET, STATUS_LIST_PATH).permitAll()
+                        .pathMatchers(HttpMethod.POST, STATUS_LIST_PATH).authenticated()
                         .pathMatchers(HttpMethod.GET, BACKOFFICE_STATUS_CREDENTIALS).permitAll()
                         .pathMatchers(HttpMethod.GET, BACKOFFICE_PATH).authenticated()
                         .pathMatchers(HttpMethod.POST, BACKOFFICE_PATH ).authenticated()
