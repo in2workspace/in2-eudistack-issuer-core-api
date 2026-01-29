@@ -1,9 +1,9 @@
-package es.in2.issuer.backend.credentialStatus.infrastructure.adapter;
+package es.in2.issuer.backend.credentialstatus.infrastructure.adapter;
 
 
-import es.in2.issuer.backend.credentialStatus.domain.model.entities.LegacyStatusListIndex;
-import es.in2.issuer.backend.credentialStatus.domain.service.LegacyCredentialStatusQuery;
-import es.in2.issuer.backend.credentialStatus.infrastructure.repository.LegacyCredentialStatusRepository;
+import es.in2.issuer.backend.credentialstatus.domain.model.entities.LegacyStatusListIndex;
+import es.in2.issuer.backend.credentialstatus.domain.service.LegacyCredentialStatusQuery;
+import es.in2.issuer.backend.credentialstatus.infrastructure.repository.LegacyCredentialStatusRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

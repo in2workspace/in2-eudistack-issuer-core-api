@@ -1,8 +1,8 @@
-package es.in2.issuer.backend.credentialStatus.infrastructure.adapter;
+package es.in2.issuer.backend.credentialstatus.infrastructure.adapter;
 
-import es.in2.issuer.backend.credentialStatus.domain.model.entities.LegacyStatusListIndex;
-import es.in2.issuer.backend.credentialStatus.domain.service.LegacyCredentialStatusRevocationService;
-import es.in2.issuer.backend.credentialStatus.infrastructure.repository.LegacyCredentialStatusRepository;
+import es.in2.issuer.backend.credentialstatus.domain.model.entities.LegacyStatusListIndex;
+import es.in2.issuer.backend.credentialstatus.domain.service.LegacyCredentialStatusRevocationService;
+import es.in2.issuer.backend.credentialstatus.infrastructure.repository.LegacyCredentialStatusRepository;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.CredentialStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

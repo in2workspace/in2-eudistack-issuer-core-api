@@ -1,4 +1,4 @@
-package es.in2.issuer.backend.credentialStatus.domain.model.entities;
+package es.in2.issuer.backend.credentialstatus.domain.model.entities;
 
 import lombok.*;
 import org.springframework.data.annotation.Id;

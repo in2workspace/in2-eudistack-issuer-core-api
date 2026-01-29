@@ -1,7 +1,7 @@
-package es.in2.issuer.backend.credentialStatus.infrastructure.controller;
+package es.in2.issuer.backend.credentialstatus.infrastructure.controller;
 
-import es.in2.issuer.backend.credentialStatus.domain.model.entities.dto.CredentialStatusResponse;
-import es.in2.issuer.backend.credentialStatus.domain.service.LegacyCredentialStatusQuery;
+import es.in2.issuer.backend.credentialstatus.domain.model.entities.dto.CredentialStatusResponse;
+import es.in2.issuer.backend.credentialstatus.domain.service.LegacyCredentialStatusQuery;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;

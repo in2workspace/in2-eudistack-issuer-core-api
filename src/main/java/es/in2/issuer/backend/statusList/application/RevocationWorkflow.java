@@ -16,7 +16,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
-import es.in2.issuer.backend.credentialStatus.domain.service.LegacyCredentialStatusRevocationService;
+import es.in2.issuer.backend.credentialstatus.domain.service.LegacyCredentialStatusRevocationService;
 
 
 import static es.in2.issuer.backend.statusList.domain.util.Constants.BITSTRING_ENTRY_TYPE;
