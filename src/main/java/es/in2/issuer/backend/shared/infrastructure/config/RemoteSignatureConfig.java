@@ -18,6 +18,7 @@ public class RemoteSignatureConfig {
 
     public String getRemoteSignatureDomain() {
 //        return "https://dts-component-rdss-csc.ace-api.digitelts.com";
+        System.out.print(remoteSignatureProperties.url());
         return configAdapter.getConfiguration(remoteSignatureProperties.url());
     }
 
