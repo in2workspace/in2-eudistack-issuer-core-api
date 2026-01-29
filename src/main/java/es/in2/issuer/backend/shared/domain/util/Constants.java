@@ -44,6 +44,5 @@ public final class Constants {
     public static final String DEFAULT_USER_NAME = "Cloud Provider";
     public static final String LEAR_CREDENTIAL_MACHINE_DESCRIPTION = "Verifiable Credential for machines";
 
-    //todo restore to 3600L
-    public static final Long DEFERRED_CREDENTIAL_POLLING_INTERVAL = 30L;
+    public static final Long DEFERRED_CREDENTIAL_POLLING_INTERVAL = 3600L;
 }
