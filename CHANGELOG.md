@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [v2.2.10](https://github.com/in2workspace/in2-issuer-api/releases/tag/v2.2.10)
 ### Fixed
-- Don't send mail when async signature fails.
+- Don't send mail when Deferred Credential fails.
 
 ## [v2.2.9](https://github.com/in2workspace/in2-issuer-api/releases/tag/v2.2.9)
 ### Added
