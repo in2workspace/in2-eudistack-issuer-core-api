@@ -55,8 +55,6 @@ public class BitstringStatusListIndexReservationService {
     }
 
     private Mono<StatusListIndex> tryReserveOnce(Long statusListId, String procedureId) {
-        //todo
-        log.info("tryReserveOnce");
         int idx = indexAllocator.proposeIndex(CAPACITY_BITS);
 
         StatusListIndex row = new StatusListIndex(
@@ -85,7 +83,6 @@ public class BitstringStatusListIndexReservationService {
         return t instanceof DataIntegrityViolationException;
     }
     private boolean isDuplicateIndexReservation(Throwable t) {
-        // TODO: check that it is the specific unique constraint for (statusListId, idx)
         return t instanceof DataIntegrityViolationException;
     }
 

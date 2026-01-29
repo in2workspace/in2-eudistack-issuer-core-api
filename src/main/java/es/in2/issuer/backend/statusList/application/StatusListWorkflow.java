@@ -10,7 +10,6 @@ import reactor.core.publisher.Mono;
 
 import static java.util.Objects.requireNonNull;
 
-//todo maybe name service, since allocateEntry is not a use-case
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -19,7 +18,6 @@ public class StatusListWorkflow {
     private final StatusListProvider statusListProvider;
 
     public Mono<StatusListEntry> allocateEntry(StatusPurpose purpose, String procedureId, String token) {
-        //todo remove
         log.info("StatusListService - allocateEntry, purpose: {}, procedureId: {}, token: {}", purpose, procedureId, token);
         log.info(
                 "action=allocateStatusListEntry status=started purpose={} procedureId={}",
