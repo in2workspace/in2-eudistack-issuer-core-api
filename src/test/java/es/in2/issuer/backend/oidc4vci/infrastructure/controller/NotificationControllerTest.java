@@ -2,7 +2,6 @@ package es.in2.issuer.backend.oidc4vci.infrastructure.controller;
 
 import es.in2.issuer.backend.oidc4vci.domain.service.NotificationService;
 import es.in2.issuer.backend.shared.domain.model.dto.NotificationRequest;
-import es.in2.issuer.backend.shared.domain.service.AccessTokenService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -26,9 +25,6 @@ class NotificationControllerTest {
     @Mock
     private NotificationService notificationService;
 
-    @Mock
-    private AccessTokenService accessTokenService;
-
     @InjectMocks
     private NotificationController notificationController;
 
@@ -37,10 +33,8 @@ class NotificationControllerTest {
         // given
         NotificationRequest request = mock(NotificationRequest.class);
         String authorization = "Bearer abc.def.ghi";
-        String cleanToken = "abc.def.ghi";
 
-        when(accessTokenService.getCleanBearerToken(authorization)).thenReturn(Mono.just(cleanToken));
-        when(notificationService.handleNotification(anyString(), eq(request))).thenReturn(Mono.empty());
+        when(notificationService.handleNotification(anyString(), eq(request), eq(authorization))).thenReturn(Mono.empty());
 
         // when
         Mono<Void> result = notificationController.handleNotification(request, authorization);
@@ -48,10 +42,9 @@ class NotificationControllerTest {
         // then
         StepVerifier.create(result).verifyComplete();
 
-        verify(accessTokenService).getCleanBearerToken(authorization);
 
         ArgumentCaptor<String> processIdCaptor = ArgumentCaptor.forClass(String.class);
-        verify(notificationService).handleNotification(processIdCaptor.capture(), eq(request));
+        verify(notificationService).handleNotification(processIdCaptor.capture(), eq(request), eq(authorization));
 
         String processId = processIdCaptor.getValue();
         assertNotNull(processId);
@@ -60,7 +53,6 @@ class NotificationControllerTest {
         UUID parsed = UUID.fromString(processId);
         assertNotNull(parsed);
 
-        verifyNoMoreInteractions(accessTokenService, notificationService);
     }
 
     @Test
@@ -68,9 +60,6 @@ class NotificationControllerTest {
         // given
         NotificationRequest request = mock(NotificationRequest.class);
         String authorization = "Bearer whatever";
-        RuntimeException error = new RuntimeException("invalid auth header");
-
-        when(accessTokenService.getCleanBearerToken(authorization)).thenReturn(Mono.error(error));
 
         // when
         Mono<Void> result = notificationController.handleNotification(request, authorization);
@@ -80,9 +69,6 @@ class NotificationControllerTest {
                 .expectErrorSatisfies(e -> assertFalse(e.getMessage().isBlank()))
                 .verify();
 
-        verify(accessTokenService).getCleanBearerToken(authorization);
-        verifyNoInteractions(notificationService);
-        verifyNoMoreInteractions(accessTokenService);
     }
 
     @Test
@@ -90,11 +76,9 @@ class NotificationControllerTest {
         // given
         NotificationRequest request = mock(NotificationRequest.class);
         String authorization = "Bearer token";
-        String cleanToken = "token";
         RuntimeException error = new RuntimeException("service failed");
 
-        when(accessTokenService.getCleanBearerToken(authorization)).thenReturn(Mono.just(cleanToken));
-        when(notificationService.handleNotification(anyString(), eq(request))).thenReturn(Mono.error(error));
+        when(notificationService.handleNotification(anyString(), eq(request), eq(authorization))).thenReturn(Mono.error(error));
 
         // when
         Mono<Void> result = notificationController.handleNotification(request, authorization);
@@ -104,8 +88,6 @@ class NotificationControllerTest {
                 .expectErrorSatisfies(e -> assertFalse(e.getMessage().isBlank()))
                 .verify();
 
-        verify(accessTokenService).getCleanBearerToken(authorization);
-        verify(notificationService).handleNotification(anyString(), eq(request));
-        verifyNoMoreInteractions(accessTokenService, notificationService);
+        verify(notificationService).handleNotification(anyString(), eq(request), eq(authorization));
     }
 }

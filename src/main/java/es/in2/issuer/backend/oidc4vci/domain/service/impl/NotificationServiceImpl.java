@@ -2,7 +2,6 @@ package es.in2.issuer.backend.oidc4vci.domain.service.impl;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import es.in2.issuer.backend.backoffice.application.workflow.CredentialStatusWorkflow;
 import es.in2.issuer.backend.oidc4vci.domain.service.NotificationService;
 import es.in2.issuer.backend.oidc4vci.domain.exception.InvalidNotificationIdException;
 import es.in2.issuer.backend.oidc4vci.domain.exception.InvalidNotificationRequestException;
@@ -11,6 +10,7 @@ import es.in2.issuer.backend.shared.domain.model.dto.NotificationRequest;
 import es.in2.issuer.backend.shared.domain.model.entities.CredentialProcedure;
 import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum;
 import es.in2.issuer.backend.shared.domain.service.CredentialProcedureService;
+import es.in2.issuer.backend.statusList.application.RevocationWorkflow;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -25,11 +25,11 @@ import static es.in2.issuer.backend.shared.domain.util.Constants.VC;
 public class NotificationServiceImpl implements NotificationService {
 
     private final CredentialProcedureService credentialProcedureService;
-    private final CredentialStatusWorkflow credentialStatusWorkflow;
     private final ObjectMapper objectMapper;
+    private final RevocationWorkflow revocationWorkflow;
 
     @Override
-    public Mono<Void> handleNotification(String processId, NotificationRequest request) {
+    public Mono<Void> handleNotification(String processId, NotificationRequest request, String bearerToken) {
         return Mono.justOrEmpty(request)
                 .switchIfEmpty(Mono.error(new InvalidNotificationRequestException("Request body is required")))
                 .doOnNext(this::validateRequest)
@@ -51,7 +51,7 @@ public class NotificationServiceImpl implements NotificationService {
                                         "The notification_id is not recognized: " + notificationId
                                 ));
                             }))
-                            .flatMap(proc -> applyIdempotentUpdate(processId, proc, event, eventDescription));
+                            .flatMap(proc -> applyIdempotentUpdate(processId, proc, event, eventDescription,bearerToken));
                 })
                 .onErrorResume(InvalidNotificationRequestException.class, e -> {
 
@@ -75,7 +75,8 @@ public class NotificationServiceImpl implements NotificationService {
     private Mono<Void> applyIdempotentUpdate(String processId,
                                              CredentialProcedure procedure,
                                              NotificationEvent event,
-                                             String eventDescription) {
+                                             String eventDescription,
+                                             String bearerToken) {
 
         final CredentialStatusEnum before = procedure.getCredentialStatus();
         final CredentialStatusEnum mappedAfter = mapEventToCredentialStatus(event);
@@ -109,7 +110,7 @@ public class NotificationServiceImpl implements NotificationService {
 
         return switch (event) {
             case CREDENTIAL_FAILURE -> credentialProcedureService.updateCredentialProcedureCredentialStatusToIssued(procedure);
-            case CREDENTIAL_DELETED -> revokeCredentialFromDecoded(processId, procedure);
+            case CREDENTIAL_DELETED -> revokeCredentialFromDecoded(processId, procedure, bearerToken);
             default -> throw new IllegalStateException("Unexpected value: " + event);
         };
     }
@@ -122,10 +123,11 @@ public class NotificationServiceImpl implements NotificationService {
         };
     }
 
-    private Mono<Void> revokeCredentialFromDecoded(String processId, CredentialProcedure procedure) {
+    private Mono<Void> revokeCredentialFromDecoded(String processId, CredentialProcedure procedure, String bearerToken) {
         return extractListIdFromDecodedCredential(procedure)
-                .flatMap(listId -> credentialStatusWorkflow.revokeCredentialSystem(
+                .flatMap(listId -> revocationWorkflow.revokeSystem(
                                         processId,
+                                        bearerToken,
                                         procedure.getProcedureId().toString(),
                                         listId
                                 )
