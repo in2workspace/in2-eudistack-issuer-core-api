@@ -127,7 +127,7 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                 yield new CredentialOfferEmailNotificationInfo(email, org);
             }
             case LABEL_CREDENTIAL -> {
-                if(preSubmittedCredentialDataRequest.email() == null || preSubmittedCredentialDataRequest.email().isBlank()) {
+                if (preSubmittedCredentialDataRequest.email() == null || preSubmittedCredentialDataRequest.email().isBlank()) {
                     throw new MissingEmailOwnerException("Email owner email is required for gx:LabelCredential schema");
                 }
                 String email = preSubmittedCredentialDataRequest.email();
@@ -138,6 +138,7 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
             );
         };
     }
+
     @Override
     public Mono<CredentialResponse> generateVerifiableCredentialResponse(
             String processId,
@@ -342,8 +343,6 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
     }
 
 
-
-
     private Mono<CredentialResponse> handleOperationMode(
             String operationMode,
             String processId,
@@ -430,29 +429,11 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                 .flatMap(deferred ->
                         credentialProcedureService.getCredentialProcedureById(deferred.getProcedureId().toString())
                                 .flatMap(procedure ->
-                                        verifiableCredentialService.generateDeferredCredentialResponse(procedure, transactionId)
-                                                .flatMap(credentialResponse ->
-                                                        sendPendingSignatureCredentialNotification(
-                                                                procedure,
-                                                                credentialResponse)
-                                                                .thenReturn(credentialResponse))));
+                                        verifiableCredentialService.generateDeferredCredentialResponse(procedure, transactionId)));
     }
 
-    private Mono<Void> sendPendingSignatureCredentialNotification(
-            CredentialProcedure procedure,
-            CredentialResponse response) {
-        if (response.transactionId() != null) {
-            return emailService.sendPendingSignatureCredentialNotification(
-                    procedure.getCreatedBy(),
-                    "email.pending-credential-notification",
-                    procedure.getCreatedBy(),
-                    appConfig.getIssuerFrontendUrl());
-        }
-
-        return Mono.empty();
+    public record BindingInfo(String subjectId, Object cnf) {
     }
-
-    public record BindingInfo(String subjectId, Object cnf) {}
 
     private Mono<BindingInfo> extractBindingInfoFromJwtProof(String jwtProof) {
         return Mono.fromCallable(() -> {
@@ -497,9 +478,11 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
 
         return new BindingInfo(subjectId, java.util.Map.of("kid", kidStr));
     }
+
     private BindingInfo buildFromX5c() throws ProofValidationException {
         throw new ProofValidationException("x5c not supported yet");
     }
+
     private BindingInfo buildFromJwk(Object jwk) throws ProofValidationException {
         if (!(jwk instanceof java.util.Map<?, ?> jwkMap)) {
             throw new ProofValidationException("jwk must be a JSON object");
