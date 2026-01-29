@@ -21,4 +21,5 @@ public interface CredentialProcedureRepository extends ReactiveCrudRepository<Cr
     @Query("SELECT credential_status FROM issuer.credential_procedure WHERE procedure_id = :procedureId")
     Mono<String> findCredentialStatusByProcedureId(UUID procedureId);
     Mono<CredentialProcedure> findByProcedureId(UUID procedureId);
+    Mono<CredentialProcedure> findByNotificationId(UUID notificationId);
 }

@@ -20,8 +20,7 @@ import reactor.test.StepVerifier;
 
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.BEARER_PREFIX;
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.JWT_VC;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -30,6 +29,7 @@ class VerifiableCredentialServiceImplTest {
     private final String processId = "process-id-123";
     private final String preAuthCode = "pre-auth-code-456";
     private final String transactionId = "transaction-id-789";
+    private final String notificationId = "notification-id-910";
     private final Long interval = 3600L;
     private final String deferredResponseId = "deferred-response-id-456";
     private final String procedureId = "procedure-id-321";
@@ -354,6 +354,7 @@ class VerifiableCredentialServiceImplTest {
         String format = "json";
         String credentialType = "LEARCredentialEmployee";
         String decodedCredential = "decodedCredential";
+        String notificationIdExample = "notification-id-910";
         String boundCredential = "boundCredential";
         String unsignedCredential = "unsignedCredential";
         String transId = "transactionId";
@@ -365,6 +366,10 @@ class VerifiableCredentialServiceImplTest {
 
         when(credentialProcedureService.getDecodedCredentialByProcedureId(procId))
                 .thenReturn(Mono.just(decodedCredential), Mono.just(unsignedCredential));
+
+        when(credentialProcedureService.getNotificationIdByProcedureId(procId))
+                .thenReturn(Mono.just(notificationIdExample));
+
         when(credentialFactory.bindCryptographicCredentialSubjectId(
                 proceId, credentialType, decodedCredential, subjectDid))
                 .thenReturn(Mono.just(boundCredential));
@@ -377,6 +382,9 @@ class VerifiableCredentialServiceImplTest {
 
         when(deferredCredentialMetadataService.getFormatByProcedureId(procId))
                 .thenReturn(Mono.just(format));
+
+        when(credentialProcedureService.getNotificationIdByProcedureId(procId))
+                .thenReturn(Mono.just(notificationIdExample));
 
         when(credentialFactory.mapCredentialBindIssuerAndUpdateDB(
                 proceId, procId, boundCredential, credentialType, format, authServerNonce, testEmail))
@@ -392,10 +400,11 @@ class VerifiableCredentialServiceImplTest {
                 proceId, subjectDid, authServerNonce, token, testEmail, procId);
 
         StepVerifier.create(result)
-                .expectNextMatches(response ->
-                        response.transactionId().equals(transId)
-                                && response.interval().equals(3600L)
-                        )
+                .assertNext(response -> {
+                    assertEquals(transId, response.transactionId());
+                    assertEquals(3600L, response.interval());
+                    assertEquals(notificationIdExample, response.notificationId());
+                })
                 .verifyComplete();
 
         verify(credentialSignerWorkflow, times(1))
@@ -404,6 +413,7 @@ class VerifiableCredentialServiceImplTest {
         verify(credentialProcedureService, times(2))
                 .getDecodedCredentialByProcedureId(procId);
     }
+
 
 
     @Test
@@ -432,7 +442,7 @@ class VerifiableCredentialServiceImplTest {
                 )
                 .expectErrorSatisfies(ex -> {
                     Assertions.assertInstanceOf(RuntimeException.class, ex);
-                    Assertions.assertEquals("Failed to bind cryptographic credential subject", ex.getMessage());
+                    assertEquals("Failed to bind cryptographic credential subject", ex.getMessage());
                     Assertions.assertNotNull(ex.getCause());
                 })
                 .verify();
@@ -458,6 +468,8 @@ class VerifiableCredentialServiceImplTest {
                 .thenReturn(Mono.just(credType));
         when(credentialProcedureService.getDecodedCredentialByProcedureId(procedureIdLocal))
                 .thenReturn(Mono.just(decoded));
+        when(credentialProcedureService.getNotificationIdByProcedureId(procedureIdLocal))
+                .thenReturn(Mono.just(notificationId));
 
         when(credentialFactory.bindCryptographicCredentialSubjectId(processId, credType, decoded, subjectDid))
                 .thenReturn(Mono.just(bound));
@@ -474,7 +486,7 @@ class VerifiableCredentialServiceImplTest {
                 )
                 .expectErrorSatisfies(ex -> {
                     Assertions.assertInstanceOf(RuntimeException.class, ex);
-                    Assertions.assertEquals("TransactionId not found after updating deferred metadata", ex.getMessage());
+                    assertEquals("TransactionId not found after updating deferred metadata", ex.getMessage());
                 })
                 .verify();
     }
@@ -508,6 +520,9 @@ class VerifiableCredentialServiceImplTest {
         when(deferredCredentialMetadataService.getFormatByProcedureId(procedureIdLocal))
                 .thenReturn(Mono.empty());
 
+        when(credentialProcedureService.getNotificationIdByProcedureId(procedureIdLocal))
+                .thenReturn(Mono.just(notificationId));
+
         StepVerifier.create(
                         verifiableCredentialServiceImpl.buildCredentialResponse(
                                 processId, subjectDid, authServerNonce, token, email, procedureIdLocal
@@ -515,7 +530,7 @@ class VerifiableCredentialServiceImplTest {
                 )
                 .expectErrorSatisfies(ex -> {
                     Assertions.assertInstanceOf(RuntimeException.class, ex);
-                    Assertions.assertEquals(
+                    assertEquals(
                             "Credential format not found for procedureId: " + procedureIdLocal,
                             ex.getMessage()
                     );
@@ -541,6 +556,8 @@ class VerifiableCredentialServiceImplTest {
                 .thenReturn(Mono.just(credType));
         when(credentialProcedureService.getDecodedCredentialByProcedureId(procedureIdLocal))
                 .thenReturn(Mono.just(decoded));
+        when(credentialProcedureService.getNotificationIdByProcedureId(procedureIdLocal))
+                .thenReturn(Mono.just(notificationId));
 
         when(credentialFactory.bindCryptographicCredentialSubjectId(processId, credType, decoded, subjectDid))
                 .thenReturn(Mono.just(bound));
@@ -567,7 +584,7 @@ class VerifiableCredentialServiceImplTest {
                 )
                 .expectErrorSatisfies(ex -> {
                     Assertions.assertInstanceOf(RuntimeException.class, ex);
-                    Assertions.assertEquals(
+                    assertEquals(
                             "Operation mode not found for procedureId: " + procedureIdLocal,
                             ex.getMessage()
                     );
@@ -595,6 +612,8 @@ class VerifiableCredentialServiceImplTest {
                 .thenReturn(Mono.just(credType));
         when(credentialProcedureService.getDecodedCredentialByProcedureId(procedureIdLocal))
                 .thenReturn(Mono.just(decoded));
+        when(credentialProcedureService.getNotificationIdByProcedureId(procedureIdLocal))
+                .thenReturn(Mono.just(notificationId));
 
         when(credentialFactory.bindCryptographicCredentialSubjectId(processId, credType, decoded, subjectDid))
                 .thenReturn(Mono.just(bound));
@@ -621,7 +640,7 @@ class VerifiableCredentialServiceImplTest {
                 )
                 .expectErrorSatisfies(ex -> {
                     Assertions.assertInstanceOf(IllegalArgumentException.class, ex);
-                    Assertions.assertEquals("Unknown operation mode: " + unknownMode, ex.getMessage());
+                    assertEquals("Unknown operation mode: " + unknownMode, ex.getMessage());
                 })
                 .verify();
     }

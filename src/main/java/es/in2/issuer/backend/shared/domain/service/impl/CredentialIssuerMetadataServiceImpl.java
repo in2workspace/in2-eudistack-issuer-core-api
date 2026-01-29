@@ -31,6 +31,7 @@ public class CredentialIssuerMetadataServiceImpl implements CredentialIssuerMeta
                 .issuanceEndpoint(credentialIssuerUrl + VCI_ISSUANCES_PATH)
                 .credentialEndpoint(credentialIssuerUrl + OID4VCI_CREDENTIAL_PATH)
                 .deferredCredentialEndpoint(credentialIssuerUrl + OID4VCI_DEFERRED_CREDENTIAL_PATH)
+                .notificationEndpoint(credentialIssuerUrl + OID4VCI_NOTIFICATION_PATH)
                 .credentialConfigurationsSupported(Map.of(
                         LEAR_CREDENTIAL_EMPLOYEE, buildLearCredentialEmployeeCredentialConfiguration(),
                         LEAR_CREDENTIAL_MACHINE, buildLearCredentialMachineCredentialConfiguration(),
@@ -59,10 +60,14 @@ public class CredentialIssuerMetadataServiceImpl implements CredentialIssuerMeta
         return CredentialIssuerMetadata.CredentialConfiguration.builder()
                 .format(JWT_VC_JSON)
                 .scope("lear_credential_machine")
+                .cryptographicBindingMethodsSupported(Set.of("did:key"))
                 .credentialSigningAlgValuesSupported(Set.of(ES256_SIGNING_ALG_VALUE))
                 .credentialDefinition(CredentialIssuerMetadata.CredentialConfiguration.CredentialDefinition.builder()
                         .type(Set.of(VERIFIABLE_CREDENTIAL, LEAR_CREDENTIAL_MACHINE))
                         .build())
+                .proofTypesSupported(Map.of("jwt", CredentialIssuerMetadata.CredentialConfiguration.ProofSigninAlgValuesSupported.builder()
+                        .proofSigningAlgValuesSupported(Set.of(ES256_SIGNING_ALG_VALUE))
+                        .build()))
                 .build();
     }
 

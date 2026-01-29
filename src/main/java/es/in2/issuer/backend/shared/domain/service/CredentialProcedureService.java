@@ -14,6 +14,8 @@ public interface CredentialProcedureService {
 
     Mono<String> getCredentialTypeByProcedureId(String procedureId);
 
+    Mono<String> getNotificationIdByProcedureId(String procedureId);
+
     Mono<String> getCredentialStatusByProcedureId(String procedureId);
 
     Mono<Void> updateDecodedCredentialByProcedureId(String procedureId, String credential);
@@ -35,10 +37,12 @@ public interface CredentialProcedureService {
     Mono<Void> updateCredentialProcedureCredentialStatusToValidByProcedureId(String procedureId);
 
     Mono<Void> updateCredentialProcedureCredentialStatusToRevoke(CredentialProcedure credentialProcedure);
+    Mono<Void> updateCredentialProcedureCredentialStatusToIssued (CredentialProcedure credentialProcedure);
 
     Mono<String> updatedEncodedCredentialByCredentialProcedureId(String encodedCredential, String credentialProcedureId);
 
     Mono<CredentialProcedure> getCredentialProcedureById(String procedureId);
+    Mono<CredentialProcedure> getCredentialProcedureByNotificationId(String notificationId);
     Mono<JsonNode> getCredentialNode(CredentialProcedure credentialProcedure);
     Mono<String> getCredentialId(CredentialProcedure credentialProcedure);
 
