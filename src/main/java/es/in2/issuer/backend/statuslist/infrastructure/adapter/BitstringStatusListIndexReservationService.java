@@ -45,17 +45,20 @@ public class BitstringStatusListIndexReservationService implements StatusListInd
         requireNonNullParam(statusListId, "statusListId");
         requireNonNullParam(procedureId, "procedureId");
 
-        int maxAttempts = 30;
+        long maxAttempts = 30;
 
         return Mono.defer(() -> tryReserveOnce(statusListId, procedureId))
                 .retryWhen(
-                        Retry.backoff(maxAttempts - 1, Duration.ofMillis(5))
+                        Retry.backoff(maxAttempts - 1L, Duration.ofMillis(5))
                                 .maxBackoff(Duration.ofMillis(100))
                                 .filter(this::isDuplicateIndexReservation)
-                                .doBeforeRetry(rs -> log.debug(
+                                .doBeforeRetry(rs -> {
+                                    long attempt = rs.totalRetries() + 2;
+                                    log.debug(
                                         "action=reserveStatusListIndex retryReason=duplicateKey statusListId={} procedureId={} attempt={}/{}",
-                                        statusListId, procedureId, rs.totalRetries() + 2, maxAttempts
-                                ))
+                                        statusListId, procedureId, attempt, maxAttempts
+                                );
+                                })
                 )
                 .onErrorMap(this::maybeWrapAsExhausted);
     }
