@@ -337,7 +337,6 @@ public class BitstringStatusListProvider implements StatusListProvider {
 
     private String buildListUrl(Long listId) {
         requireNonNullParam(listId, "listId");
-        //todo constant for path
         return appConfig.getIssuerBackendUrl() + STATUS_LIST_BASE + "/" + listId;
     }
 
