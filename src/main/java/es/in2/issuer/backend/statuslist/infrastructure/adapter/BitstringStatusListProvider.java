@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import static es.in2.issuer.backend.statuslist.domain.util.Constants.CAPACITY_BITS;
+import static es.in2.issuer.backend.statuslist.domain.util.Constants.TOKEN;
 import static es.in2.issuer.backend.statuslist.domain.util.Preconditions.requireNonNullParam;
 
 /**
@@ -79,7 +80,7 @@ public class BitstringStatusListProvider implements StatusListProvider {
     public Mono<StatusListEntry> allocateEntry(StatusPurpose purpose, String procedureId, String token) {
         requireNonNullParam(purpose, "purpose");
         requireNonNullParam(procedureId, "procedureId");
-        requireNonNullParam(token, "token");
+        requireNonNullParam(token, TOKEN);
 
         log.debug("method=allocateEntry step=START purpose={} procedureId={}", purpose, procedureId);
 
@@ -103,7 +104,7 @@ public class BitstringStatusListProvider implements StatusListProvider {
     @Override
     public Mono<Void> revoke(String procedureId, String token) {
         requireNonNullParam(procedureId, "procedureId");
-        requireNonNullParam(token, "token");
+        requireNonNullParam(token, TOKEN);
 
         log.debug("method=revoke step=START procedureId={}", procedureId);
 
@@ -226,7 +227,7 @@ public class BitstringStatusListProvider implements StatusListProvider {
 
     public Mono<StatusList> createNewList(StatusPurpose purpose, String token) {
         requireNonNullParam(purpose, "purpose");
-        requireNonNullParam(token, "token");
+        requireNonNullParam(token, TOKEN);
 
         log.debug("method=createNewList step=START purpose={}", purpose);
 
