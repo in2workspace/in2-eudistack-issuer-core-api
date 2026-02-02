@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.*;
+import static es.in2.issuer.backend.shared.domain.model.dto.NotificationEvent.CREDENTIAL_DELETED;
 import static es.in2.issuer.backend.shared.domain.util.Constants.VC;
 
 @Slf4j
@@ -101,24 +102,19 @@ public class NotificationServiceImpl implements NotificationService {
             return Mono.empty();
         }
 
-        if (event == NotificationEvent.CREDENTIAL_ACCEPTED) {
+        if (event != NotificationEvent.CREDENTIAL_DELETED) {
             log.info("AUDIT notification_no_external_action processId={} credentialProcedureId={} notificationId={} event={} eventDescription={}",
                     processId, procedure.getProcedureId(), procedure.getNotificationId(), event, eventDescription
             );
             return Mono.empty();
         }
 
-        return switch (event) {
-            case CREDENTIAL_FAILURE -> credentialProcedureService.updateCredentialProcedureCredentialStatusToIssued(procedure);
-            case CREDENTIAL_DELETED -> revokeCredentialFromDecoded(processId, procedure, bearerToken);
-            default -> throw new IllegalStateException("Unexpected value: " + event);
-        };
+        return revokeCredentialFromDecoded(processId, procedure, bearerToken);
     }
 
     private CredentialStatusEnum mapEventToCredentialStatus(NotificationEvent event) {
         return switch (event) {
-            case CREDENTIAL_ACCEPTED -> CredentialStatusEnum.VALID;
-            case CREDENTIAL_FAILURE -> CredentialStatusEnum.ISSUED;
+            case CREDENTIAL_ACCEPTED, CREDENTIAL_FAILURE -> CredentialStatusEnum.VALID;
             case CREDENTIAL_DELETED -> CredentialStatusEnum.REVOKED;
         };
     }
