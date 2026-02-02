@@ -100,7 +100,7 @@ public class BitstringEncoder {
         validateBitIndex(rawBytes, bitIndex);
 
         int byteIndex = bitIndex / 8;
-        int bitInByte = bitIndex % 8;
+        int bitInByte = 7 - (bitIndex % 8);
 
         int mask = 1 << bitInByte;
         return (rawBytes[byteIndex] & mask) != 0;
@@ -113,7 +113,7 @@ public class BitstringEncoder {
         validateBitIndex(rawBytes, bitIndex);
 
         int byteIndex = bitIndex / 8;
-        int bitInByte = bitIndex % 8;
+        int bitInByte = 7 - (bitIndex % 8);
 
         int mask = 1 << bitInByte;
         if (value) {
