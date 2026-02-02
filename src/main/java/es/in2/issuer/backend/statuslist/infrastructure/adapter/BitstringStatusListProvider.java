@@ -166,8 +166,16 @@ public class BitstringStatusListProvider implements StatusListProvider {
                                                     signedJwt,
                                                     row.updatedAt()
                                             )
-                                            .then()
-                            );
+
+                            )
+                            .flatMap(rowsUpdated -> {
+                                if (rowsUpdated == null || rowsUpdated == 0) {
+                                    return Mono.error(new OptimisticUpdateException(
+                                            "Optimistic lock failure for statusListId=" + statusListId
+                                    ));
+                                }
+                                return Mono.<Void>empty();
+                            });
                 })
                 .doOnTerminate(() ->
                         log.debug("method=revokeOnce step=END statusListId={} idx={}", statusListId, idx)
