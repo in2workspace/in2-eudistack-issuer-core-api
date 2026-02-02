@@ -20,8 +20,8 @@ import java.util.UUID;
 @RequestMapping("/w3c/v1/credentials/status")
 public class StatusListController {
 
-    private static final MediaType VC_JWT = MediaType.parseMediaType("application/vc+jwt");
     private static final String VC_JWT_VALUE = "application/vc+jwt";
+    private static final MediaType VC_JWT = MediaType.parseMediaType(VC_JWT_VALUE);
 
     private final StatusListWorkflow statusListWorkflow;
     private final RevocationWorkflow revocationWorkflow;
