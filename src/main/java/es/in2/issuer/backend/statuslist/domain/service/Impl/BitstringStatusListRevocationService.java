@@ -6,7 +6,7 @@ import es.in2.issuer.backend.statuslist.infrastructure.repository.StatusList;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import static java.util.Objects.requireNonNull;
+import static es.in2.issuer.backend.statuslist.domain.util.Preconditions.requireNonNullParam;
 
 @RequiredArgsConstructor
 @Service
@@ -17,8 +17,8 @@ public class BitstringStatusListRevocationService
 
     @Override
     public StatusList applyRevocation(StatusList current, int idx) {
-        requireNonNullParam(current);
-        requireNonNullParam(idx);
+        requireNonNullParam(current, "current");
+        requireNonNullParam(idx, "idx");
 
         String updatedEncoded =
                 encoder.setBit(current.encodedList(), idx, true);

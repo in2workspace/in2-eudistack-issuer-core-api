@@ -16,7 +16,6 @@ import es.in2.issuer.backend.statuslist.domain.util.BitstringEncoder;
 import es.in2.issuer.backend.statuslist.infrastructure.repository.StatusList;
 import es.in2.issuer.backend.statuslist.infrastructure.repository.StatusListIndexRepository;
 import es.in2.issuer.backend.statuslist.infrastructure.repository.StatusListRepository;
-import static es.in2.issuer.backend.shared.domain.util.Preconditions.requireNonNullParam;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -29,7 +28,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import static es.in2.issuer.backend.statuslist.domain.util.Constants.CAPACITY_BITS;
-import static java.util.Objects.requireNonNull;
+import static es.in2.issuer.backend.statuslist.domain.util.Preconditions.requireNonNullParam;
 
 /**
  * Bitstring implementation of StatusListProvider.

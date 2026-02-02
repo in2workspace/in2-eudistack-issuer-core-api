@@ -16,7 +16,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 import static es.in2.issuer.backend.statuslist.domain.util.Constants.CAPACITY_BITS;
-import static java.util.Objects.requireNonNull;
+import static es.in2.issuer.backend.statuslist.domain.util.Preconditions.requireNonNullParam;
 
 /**
  * Reserves Status List indices using:

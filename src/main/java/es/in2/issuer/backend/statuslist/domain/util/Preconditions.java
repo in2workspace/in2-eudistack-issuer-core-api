@@ -1,6 +1,4 @@
-package es.in2.issuer.backend.shared.domain.util;
-
-import static java.util.Objects.requireNonNull;
+package es.in2.issuer.backend.statuslist.domain.util;
 
 public final class Preconditions {
 

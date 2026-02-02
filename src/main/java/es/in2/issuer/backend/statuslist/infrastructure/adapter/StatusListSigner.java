@@ -16,8 +16,8 @@ import reactor.core.publisher.Mono;
 
 import java.util.Map;
 
+import static es.in2.issuer.backend.statuslist.domain.util.Preconditions.requireNonNullParam;
 import static java.util.Collections.emptyMap;
-import static java.util.Objects.requireNonNull;
 
 @RequiredArgsConstructor
 @Component

@@ -18,8 +18,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
-import static es.in2.issuer.backend.shared.domain.util.Preconditions.requireNonNullParam;
 import static es.in2.issuer.backend.statuslist.domain.util.Constants.BITSTRING_ENTRY_TYPE;
+import static es.in2.issuer.backend.statuslist.domain.util.Preconditions.requireNonNullParam;
 
 @Slf4j
 @Service

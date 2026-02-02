@@ -9,9 +9,8 @@ import org.springframework.stereotype.Component;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import static es.in2.issuer.backend.shared.domain.util.Preconditions.requireNonNullParam;
 import static es.in2.issuer.backend.statuslist.domain.util.Constants.*;
-import static java.util.Objects.requireNonNull;
+import static es.in2.issuer.backend.statuslist.domain.util.Preconditions.requireNonNullParam;
 
 @Slf4j
 @RequiredArgsConstructor
