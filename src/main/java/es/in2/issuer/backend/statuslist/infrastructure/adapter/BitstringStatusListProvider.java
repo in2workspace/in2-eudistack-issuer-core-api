@@ -10,7 +10,7 @@ import es.in2.issuer.backend.statuslist.domain.exception.StatusListSigningPersis
 import es.in2.issuer.backend.statuslist.domain.factory.BitstringStatusListCredentialFactory;
 import es.in2.issuer.backend.statuslist.domain.model.StatusListEntry;
 import es.in2.issuer.backend.statuslist.domain.model.StatusPurpose;
-import es.in2.issuer.backend.statuslist.domain.service.Impl.BitstringStatusListRevocationService;
+import es.in2.issuer.backend.statuslist.domain.service.impl.BitstringStatusListRevocationService;
 import es.in2.issuer.backend.statuslist.domain.spi.StatusListProvider;
 import es.in2.issuer.backend.statuslist.domain.util.BitstringEncoder;
 import es.in2.issuer.backend.statuslist.infrastructure.repository.StatusList;

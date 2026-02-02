@@ -1,4 +1,4 @@
-package es.in2.issuer.backend.statuslist.domain.service.Impl;
+package es.in2.issuer.backend.statuslist.domain.service.impl;
 
 import es.in2.issuer.backend.statuslist.domain.service.StatusListRevocationService;
 import es.in2.issuer.backend.statuslist.domain.util.BitstringEncoder;

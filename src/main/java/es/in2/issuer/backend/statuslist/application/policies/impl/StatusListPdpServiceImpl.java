@@ -1,4 +1,4 @@
-package es.in2.issuer.backend.statuslist.application.policies.Impl;
+package es.in2.issuer.backend.statuslist.application.policies.impl;
 
 
 import com.nimbusds.jose.Payload;
