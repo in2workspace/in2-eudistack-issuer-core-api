@@ -259,6 +259,7 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
         return credentialProcedureRepository.save(credentialProcedure)
                 .doOnSuccess(result -> log.info(UPDATED_CREDENTIAL))
                 .then();
+    }
 
     @Override
     public Mono<CredentialProcedures> getAllProceduresBasicInfoByOrganizationId(String
