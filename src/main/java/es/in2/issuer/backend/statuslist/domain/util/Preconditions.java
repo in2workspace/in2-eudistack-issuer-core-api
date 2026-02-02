@@ -1,5 +1,7 @@
 package es.in2.issuer.backend.statuslist.domain.util;
 
+import static java.util.Objects.requireNonNull;
+
 public final class Preconditions {
 
     private static final String CANNOT_BE_NULL = " cannot be null";
@@ -9,6 +11,6 @@ public final class Preconditions {
     }
 
     public static <T> T requireNonNullParam(T value, String name) {
-        return requireNonNullParam(value, name + CANNOT_BE_NULL);
+        return requireNonNull(value, name + CANNOT_BE_NULL);
     }
 }
