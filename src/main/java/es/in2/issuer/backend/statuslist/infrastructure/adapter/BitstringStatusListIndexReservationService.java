@@ -64,8 +64,6 @@ public class BitstringStatusListIndexReservationService implements StatusListInd
     }
 
     private Mono<StatusListIndex> tryReserveOnce(Long statusListId, String procedureId) {
-        //todo
-        log.info("tryReserveOnce");
         int idx = indexAllocator.proposeIndex(CAPACITY_BITS);
 
         StatusListIndex row = new StatusListIndex(

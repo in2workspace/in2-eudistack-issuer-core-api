@@ -27,6 +27,7 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
 
+import static es.in2.issuer.backend.shared.domain.util.EndpointsConstants.STATUS_LIST_BASE;
 import static es.in2.issuer.backend.statuslist.domain.util.Constants.CAPACITY_BITS;
 import static es.in2.issuer.backend.statuslist.domain.util.Constants.TOKEN;
 import static es.in2.issuer.backend.statuslist.domain.util.Preconditions.requireNonNullParam;
@@ -329,7 +330,7 @@ public class BitstringStatusListProvider implements StatusListProvider {
     private String buildListUrl(Long listId) {
         requireNonNullParam(listId, "listId");
         //todo constant for path
-        return appConfig.getIssuerBackendUrl() + "/w3c/v1/credentials/status" + "/" + listId;
+        return appConfig.getIssuerBackendUrl() + STATUS_LIST_BASE + "/" + listId;
     }
 
     private Mono<StatusList> resolveRevocationCandidate(Long statusListId, Integer idx) {

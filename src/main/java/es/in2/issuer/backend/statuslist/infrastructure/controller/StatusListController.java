@@ -14,10 +14,12 @@ import reactor.core.publisher.Mono;
 
 import java.util.UUID;
 
+import static es.in2.issuer.backend.shared.domain.util.EndpointsConstants.STATUS_LIST_BASE;
+
 @Slf4j
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("/w3c/v1/credentials/status")
+@RequestMapping(STATUS_LIST_BASE)
 public class StatusListController {
 
     private static final String VC_JWT_VALUE = "application/vc+jwt";
