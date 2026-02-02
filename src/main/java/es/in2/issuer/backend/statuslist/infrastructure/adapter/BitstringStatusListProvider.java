@@ -335,16 +335,14 @@ public class BitstringStatusListProvider implements StatusListProvider {
 
         return statusListRepository.findById(statusListId)
                 .switchIfEmpty(Mono.error(new StatusListNotFoundException(statusListId)))
-                .flatMap(row ->
-                        Mono.fromSupplier(() -> encoder.getBit(row.encodedList(), idx))
-                                .flatMap(alreadyRevoked -> {
-                                    if (alreadyRevoked) {
-                                        log.debug("action=revokeStatusList result=alreadyRevoked statusListId={} idx={}", statusListId, idx);
-                                        return Mono.empty();
-                                    }
-                                    return Mono.just(row);
-                                })
-                );
+                .flatMap(row -> {
+                    boolean alreadyRevoked = encoder.getBit(row.encodedList(), idx);
+                    if (alreadyRevoked) {
+                        log.debug("action=revokeStatusList result=alreadyRevoked statusListId={} idx={}", statusListId, idx);
+                        return Mono.empty();
+                    }
+                    return Mono.just(row);
+                });
     }
 
 }
