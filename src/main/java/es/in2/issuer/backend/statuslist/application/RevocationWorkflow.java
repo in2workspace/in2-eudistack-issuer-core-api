@@ -3,6 +3,7 @@ package es.in2.issuer.backend.statuslist.application;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import es.in2.issuer.backend.credentialstatus.domain.service.LegacyCredentialStatusRevocationService;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.CredentialStatus;
 import es.in2.issuer.backend.shared.domain.model.entities.CredentialProcedure;
 import es.in2.issuer.backend.shared.domain.service.AccessTokenService;
@@ -12,7 +13,6 @@ import es.in2.issuer.backend.statuslist.application.policies.StatusListPdpServic
 import es.in2.issuer.backend.statuslist.domain.exception.CredentialDecodedInvalidJsonException;
 import es.in2.issuer.backend.statuslist.domain.exception.CredentialStatusMissingException;
 import es.in2.issuer.backend.statuslist.domain.spi.StatusListProvider;
-import es.in2.issuer.backend.credentialstatus.domain.service.LegacyCredentialStatusRevocationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

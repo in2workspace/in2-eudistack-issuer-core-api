@@ -2,8 +2,8 @@ package es.in2.issuer.backend.statuslist.infrastructure.adapter;
 
 import es.in2.issuer.backend.statuslist.domain.spi.StatusListIndexAllocator;
 import es.in2.issuer.backend.statuslist.domain.spi.StatusListIndexReservation;
-import es.in2.issuer.backend.statuslist.infrastructure.repository.StatusListIndexRepository;
 import es.in2.issuer.backend.statuslist.infrastructure.repository.StatusListIndex;
+import es.in2.issuer.backend.statuslist.infrastructure.repository.StatusListIndexRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;

@@ -2,9 +2,9 @@ package es.in2.issuer.backend.oidc4vci.domain.service.impl;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import es.in2.issuer.backend.oidc4vci.domain.service.NotificationService;
 import es.in2.issuer.backend.oidc4vci.domain.exception.InvalidNotificationIdException;
 import es.in2.issuer.backend.oidc4vci.domain.exception.InvalidNotificationRequestException;
+import es.in2.issuer.backend.oidc4vci.domain.service.NotificationService;
 import es.in2.issuer.backend.shared.domain.model.dto.NotificationEvent;
 import es.in2.issuer.backend.shared.domain.model.dto.NotificationRequest;
 import es.in2.issuer.backend.shared.domain.model.entities.CredentialProcedure;
@@ -16,7 +16,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
-import static es.in2.issuer.backend.backoffice.domain.util.Constants.*;
+import static es.in2.issuer.backend.backoffice.domain.util.Constants.CREDENTIAL_STATUS;
+import static es.in2.issuer.backend.backoffice.domain.util.Constants.STATUS_LIST_CREDENTIAL;
 import static es.in2.issuer.backend.shared.domain.util.Constants.VC;
 
 @Slf4j

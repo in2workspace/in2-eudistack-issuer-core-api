@@ -26,8 +26,8 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.UUID;
 
-import static es.in2.issuer.backend.shared.domain.util.Constants.*;
-import static es.in2.issuer.backend.shared.domain.util.Utils.generateCustomNonce;
+import static es.in2.issuer.backend.shared.domain.util.Constants.LABEL_CREDENTIAL_CONTEXT;
+import static es.in2.issuer.backend.shared.domain.util.Constants.LABEL_CREDENTIAL_TYPES;
 
 @Component
 @RequiredArgsConstructor

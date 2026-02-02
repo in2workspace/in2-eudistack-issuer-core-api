@@ -5,7 +5,6 @@ import es.in2.issuer.backend.shared.domain.model.entities.CredentialProcedure;
 import es.in2.issuer.backend.shared.domain.service.CredentialProcedureService;
 import es.in2.issuer.backend.shared.domain.service.EmailService;
 import es.in2.issuer.backend.shared.domain.service.TranslationService;
-import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.internet.MimeUtility;
@@ -28,7 +27,8 @@ import reactor.core.scheduler.Schedulers;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 
-import static es.in2.issuer.backend.backoffice.domain.util.Constants.*;
+import static es.in2.issuer.backend.backoffice.domain.util.Constants.MAIL_ERROR_COMMUNICATION_EXCEPTION_MESSAGE;
+import static es.in2.issuer.backend.backoffice.domain.util.Constants.UTF_8;
 
 @Slf4j
 @Service

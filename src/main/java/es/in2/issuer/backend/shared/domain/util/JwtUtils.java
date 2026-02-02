@@ -1,15 +1,12 @@
 package es.in2.issuer.backend.shared.domain.util;
-import com.fasterxml.jackson.databind.JsonNode;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.nimbusds.jose.JWSObject;
 import io.github.novacrypto.base58.Base58;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.util.Base64;
 import java.util.Map;
-
-import static es.in2.issuer.backend.backoffice.domain.util.Constants.*;
 
 @Component
 @Slf4j

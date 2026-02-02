@@ -11,13 +11,12 @@ import es.in2.issuer.backend.shared.domain.service.DeferredCredentialMetadataSer
 import es.in2.issuer.backend.shared.domain.service.EmailService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import static es.in2.issuer.backend.backoffice.domain.util.Constants.*;
+import static es.in2.issuer.backend.backoffice.domain.util.Constants.ASYNC;
+import static es.in2.issuer.backend.backoffice.domain.util.Constants.CREDENTIAL_READY;
 
 @Slf4j
 @Service

@@ -13,8 +13,6 @@ import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
 import static es.in2.issuer.backend.shared.domain.util.Constants.*;
-import static es.in2.issuer.backend.shared.domain.util.Constants.LABEL_CREDENTIAL;
-import static es.in2.issuer.backend.shared.domain.util.Constants.LEAR_CREDENTIAL_EMPLOYEE;
 
 @Component
 @RequiredArgsConstructor

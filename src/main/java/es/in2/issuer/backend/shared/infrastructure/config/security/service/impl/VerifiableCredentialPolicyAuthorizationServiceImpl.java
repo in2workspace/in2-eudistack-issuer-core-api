@@ -1,11 +1,5 @@
 package es.in2.issuer.backend.shared.infrastructure.config.security.service.impl;
 
-import static es.in2.issuer.backend.backoffice.domain.util.Constants.LEAR_CREDENTIAL_MACHINE;
-import static es.in2.issuer.backend.backoffice.domain.util.Constants.LER;
-import static es.in2.issuer.backend.backoffice.domain.util.Constants.SYS_ADMIN;
-import static es.in2.issuer.backend.shared.domain.util.Constants.*;
-import static es.in2.issuer.backend.shared.domain.util.Utils.*;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -23,12 +17,18 @@ import es.in2.issuer.backend.shared.domain.service.VerifierService;
 import es.in2.issuer.backend.shared.domain.util.factory.CredentialFactory;
 import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
 import es.in2.issuer.backend.shared.infrastructure.config.security.service.VerifiableCredentialPolicyAuthorizationService;
-import java.util.List;
-import java.util.stream.StreamSupport;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
+
+import java.util.List;
+import java.util.stream.StreamSupport;
+
+import static es.in2.issuer.backend.backoffice.domain.util.Constants.*;
+import static es.in2.issuer.backend.backoffice.domain.util.Constants.LEAR_CREDENTIAL_MACHINE;
+import static es.in2.issuer.backend.shared.domain.util.Constants.*;
+import static es.in2.issuer.backend.shared.domain.util.Utils.*;
 
 //fixme: change to accept token that contains a LEAR Credential MAchine in Employee and Machine policies
 @Service

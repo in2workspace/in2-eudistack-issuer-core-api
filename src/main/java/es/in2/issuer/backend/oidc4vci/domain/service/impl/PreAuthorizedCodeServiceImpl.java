@@ -15,7 +15,8 @@ import reactor.util.function.Tuple2;
 
 import java.security.SecureRandom;
 
-import static es.in2.issuer.backend.oidc4vci.domain.util.Constants.*;
+import static es.in2.issuer.backend.oidc4vci.domain.util.Constants.TX_CODE_SIZE;
+import static es.in2.issuer.backend.oidc4vci.domain.util.Constants.TX_INPUT_MODE;
 import static es.in2.issuer.backend.shared.domain.util.Utils.generateCustomNonce;
 
 @Slf4j

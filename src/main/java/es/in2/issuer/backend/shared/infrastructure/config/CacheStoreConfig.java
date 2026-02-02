@@ -1,8 +1,8 @@
 package es.in2.issuer.backend.shared.infrastructure.config;
 
+import es.in2.issuer.backend.shared.domain.model.dto.CredentialOfferData;
 import es.in2.issuer.backend.shared.domain.model.dto.CredentialProcedureIdAndRefreshToken;
 import es.in2.issuer.backend.shared.domain.model.dto.CredentialProcedureIdAndTxCode;
-import es.in2.issuer.backend.shared.domain.model.dto.CredentialOfferData;
 import es.in2.issuer.backend.shared.domain.model.dto.VerifiableCredentialJWT;
 import es.in2.issuer.backend.shared.infrastructure.repository.CacheStore;
 import lombok.RequiredArgsConstructor;

@@ -17,9 +17,7 @@ import reactor.core.publisher.Mono;
 import java.text.ParseException;
 import java.util.UUID;
 
-import static es.in2.issuer.backend.shared.domain.util.Constants.LEAR;
-import static es.in2.issuer.backend.shared.domain.util.Constants.ROLE;
-import static es.in2.issuer.backend.shared.domain.util.Constants.VC;
+import static es.in2.issuer.backend.shared.domain.util.Constants.*;
 
 @Service
 @Slf4j

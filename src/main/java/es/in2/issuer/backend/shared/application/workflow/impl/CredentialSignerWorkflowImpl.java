@@ -12,7 +12,10 @@ import es.in2.issuer.backend.shared.application.workflow.DeferredCredentialWorkf
 import es.in2.issuer.backend.shared.domain.exception.Base45Exception;
 import es.in2.issuer.backend.shared.domain.exception.CredentialProcedureInvalidStatusException;
 import es.in2.issuer.backend.shared.domain.exception.CredentialProcedureNotFoundException;
-import es.in2.issuer.backend.shared.domain.model.dto.*;
+import es.in2.issuer.backend.shared.domain.model.dto.SignatureConfiguration;
+import es.in2.issuer.backend.shared.domain.model.dto.SignatureRequest;
+import es.in2.issuer.backend.shared.domain.model.dto.SignedCredentials;
+import es.in2.issuer.backend.shared.domain.model.dto.SignedData;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.LabelCredential;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.employee.LEARCredentialEmployee;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.machine.LEARCredentialMachine;
@@ -34,7 +37,10 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 import java.io.ByteArrayOutputStream;
-import java.util.*;
+import java.util.Base64;
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
 
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.CWT_VC;
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.JWT_VC;

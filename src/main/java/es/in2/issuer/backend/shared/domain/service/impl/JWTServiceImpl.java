@@ -40,7 +40,10 @@ import java.security.interfaces.ECPublicKey;
 import java.security.spec.ECPoint;
 import java.security.spec.ECPublicKeySpec;
 import java.text.ParseException;
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.DID_KEY;
 

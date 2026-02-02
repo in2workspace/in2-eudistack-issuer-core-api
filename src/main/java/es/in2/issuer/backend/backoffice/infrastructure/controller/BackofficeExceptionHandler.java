@@ -1,8 +1,8 @@
 package es.in2.issuer.backend.backoffice.infrastructure.controller;
 
 import es.in2.issuer.backend.backoffice.domain.exception.*;
-import es.in2.issuer.backend.shared.domain.model.dto.GlobalErrorMessage;
 import es.in2.issuer.backend.backoffice.domain.util.BackofficeErrorTypes;
+import es.in2.issuer.backend.shared.domain.model.dto.GlobalErrorMessage;
 import es.in2.issuer.backend.shared.domain.util.GlobalErrorTypes;
 import es.in2.issuer.backend.shared.infrastructure.controller.error.ErrorResponseFactory;
 import lombok.RequiredArgsConstructor;

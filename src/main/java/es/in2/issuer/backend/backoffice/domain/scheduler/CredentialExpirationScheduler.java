@@ -12,8 +12,8 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
-import java.sql.Timestamp;
 import java.time.Instant;
+
 import static es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum.EXPIRED;
 
 @Slf4j

@@ -27,7 +27,6 @@ import java.util.List;
 import java.util.UUID;
 
 import static es.in2.issuer.backend.shared.domain.util.Constants.*;
-import static es.in2.issuer.backend.shared.domain.util.Utils.generateCustomNonce;
 
 @Slf4j
 @Component
