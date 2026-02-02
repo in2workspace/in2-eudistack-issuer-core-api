@@ -42,8 +42,8 @@ public class BitstringStatusListIndexReservationService implements StatusListInd
 
     private Mono<StatusListIndex> reserveWithRetry(Long statusListId, String procedureId) {
         log.info("reserveOnSpecificList - statusListId: {} - procedureId: {}", statusListId, procedureId);
-        requireNonNull(statusListId, "statusListId cannot be null");
-        requireNonNull(procedureId, "procedureId cannot be null");
+        requireNonNullParam(statusListId, "statusListId");
+        requireNonNullParam(procedureId, "procedureId");
 
         int maxAttempts = 30;
 

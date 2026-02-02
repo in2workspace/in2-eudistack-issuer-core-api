@@ -16,6 +16,7 @@ import es.in2.issuer.backend.statuslist.domain.util.BitstringEncoder;
 import es.in2.issuer.backend.statuslist.infrastructure.repository.StatusList;
 import es.in2.issuer.backend.statuslist.infrastructure.repository.StatusListIndexRepository;
 import es.in2.issuer.backend.statuslist.infrastructure.repository.StatusListRepository;
+import static es.in2.issuer.backend.shared.domain.util.Preconditions.requireNonNullParam;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -58,7 +59,7 @@ public class BitstringStatusListProvider implements StatusListProvider {
 
     @Override
     public Mono<String> getSignedStatusListCredential(Long listId) {
-        requireNonNull(listId, "listId cannot be null");
+        requireNonNullParam(listId, "listId");
         log.debug("method=getSignedStatusListCredential step=START listId={}", listId);
 
         return statusListRepository.findById(listId)
@@ -77,9 +78,9 @@ public class BitstringStatusListProvider implements StatusListProvider {
 
     @Override
     public Mono<StatusListEntry> allocateEntry(StatusPurpose purpose, String procedureId, String token) {
-        requireNonNull(purpose, "purpose cannot be null");
-        requireNonNull(procedureId, "procedureId cannot be null");
-        requireNonNull(token, "token cannot be null");
+        requireNonNullParam(purpose, "purpose");
+        requireNonNullParam(procedureId, "procedureId");
+        requireNonNullParam(token, "token");
 
         log.debug("method=allocateEntry step=START purpose={} procedureId={}", purpose, procedureId);
 
@@ -102,8 +103,8 @@ public class BitstringStatusListProvider implements StatusListProvider {
 
     @Override
     public Mono<Void> revoke(String procedureId, String token) {
-        requireNonNull(procedureId, "procedureId cannot be null");
-        requireNonNull(token, "token cannot be null");
+        requireNonNullParam(procedureId, "procedureId");
+        requireNonNullParam(token, "token");
 
         log.debug("method=revoke step=START procedureId={}", procedureId);
 
@@ -222,8 +223,8 @@ public class BitstringStatusListProvider implements StatusListProvider {
     }
 
     public Mono<StatusList> createNewList(StatusPurpose purpose, String token) {
-        requireNonNull(purpose, "purpose cannot be null");
-        requireNonNull(token, "token cannot be null");
+        requireNonNullParam(purpose, "purpose");
+        requireNonNullParam(token, "token");
 
         log.debug("method=createNewList step=START purpose={}", purpose);
 
@@ -323,14 +324,14 @@ public class BitstringStatusListProvider implements StatusListProvider {
     }
 
     private String buildListUrl(Long listId) {
-        requireNonNull(listId, "listId cannot be null");
+        requireNonNullParam(listId, "listId");
         //todo constant for path
         return appConfig.getIssuerBackendUrl() + "/w3c/v1/credentials/status" + "/" + listId;
     }
 
     private Mono<StatusList> resolveRevocationCandidate(Long statusListId, Integer idx) {
-        requireNonNull(statusListId, "statusListId cannot be null");
-        requireNonNull(idx, "idx cannot be null");
+        requireNonNullParam(statusListId, "statusListId");
+        requireNonNullParam(idx, "idx");
 
         return statusListRepository.findById(statusListId)
                 .switchIfEmpty(Mono.error(new StatusListNotFoundException(statusListId)))

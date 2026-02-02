@@ -27,8 +27,8 @@ public class StatusListSigner implements CredentialPayloadSigner {
     private final ObjectMapper objectMapper;
 
     public Mono<String> sign(Map<String, Object> payload, String token, Long listId) {
-        requireNonNull(payload, "payload cannot be null");
-        requireNonNull(token, "token cannot be null");
+        requireNonNullParam(payload, "payload");
+        requireNonNullParam(token, "token");
 
         return toSignatureRequest(payload)
                 .flatMap(req -> remoteSignatureService.signSystemCredential(req, token))

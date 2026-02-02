@@ -1,6 +1,11 @@
 package es.in2.issuer.backend.statuslist.domain.util;
 
 public class Constants {
+
+    private Constants() {
+        throw new IllegalStateException("Utility class");
+    }
+
     public static final String BITSTRING_ENTRY_TYPE = "BitstringStatusListEntry";
     public static final String STATUS_LIST_CREDENTIAL_TYPE = "BitstringStatusListCredential";
     public static final String STATUS_LIST_SUBJECT_TYPE = "BitstringStatusList";

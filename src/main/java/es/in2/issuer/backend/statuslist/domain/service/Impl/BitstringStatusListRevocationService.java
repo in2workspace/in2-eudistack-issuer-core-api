@@ -17,8 +17,8 @@ public class BitstringStatusListRevocationService
 
     @Override
     public StatusList applyRevocation(StatusList current, int idx) {
-        requireNonNull(current);
-        requireNonNull(idx);
+        requireNonNullParam(current);
+        requireNonNullParam(idx);
 
         String updatedEncoded =
                 encoder.setBit(current.encodedList(), idx, true);

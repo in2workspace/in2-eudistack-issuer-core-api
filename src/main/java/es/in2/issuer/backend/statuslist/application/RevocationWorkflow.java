@@ -18,8 +18,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
+import static es.in2.issuer.backend.shared.domain.util.Preconditions.requireNonNullParam;
 import static es.in2.issuer.backend.statuslist.domain.util.Constants.BITSTRING_ENTRY_TYPE;
-import static java.util.Objects.requireNonNull;
 
 @Slf4j
 @Service
@@ -73,9 +73,9 @@ public class RevocationWorkflow {
             RevocationValidator validator,
             String action
     ) {
-        requireNonNull(processId, "processId cannot be null");
-        requireNonNull(bearerToken, "bearerToken cannot be null");
-        requireNonNull(credentialProcedureId, "credentialProcedureId cannot be null");
+        requireNonNullParam(processId, "processId");
+        requireNonNullParam(bearerToken, "bearerToken");
+        requireNonNullParam(credentialProcedureId, "credentialProcedureId");
 
         return accessTokenService.getCleanBearerToken(bearerToken)
                 .doFirst(() -> log.info(
@@ -153,7 +153,7 @@ public class RevocationWorkflow {
     }
 
     private CredentialStatus parseCredentialStatus(String processId, String procedureId, String decodedCredential) {
-        requireNonNull(decodedCredential, "decodedCredential cannot be null");
+        requireNonNullParam(decodedCredential, "decodedCredential");
 
         try {
             JsonNode root = objectMapper.readTree(decodedCredential);

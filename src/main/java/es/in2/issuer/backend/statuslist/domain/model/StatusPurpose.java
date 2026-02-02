@@ -21,7 +21,7 @@ public enum StatusPurpose {
 
     public static StatusPurpose fromValue(String raw) {
         if (raw == null) {
-            throw new IllegalArgumentException("statusPurpose cannot be null");
+            throw new IllegalArgumentException("statusPurpose");
         }
         String normalized = raw.trim().toLowerCase(Locale.ROOT);
         for (StatusPurpose p : values()) {

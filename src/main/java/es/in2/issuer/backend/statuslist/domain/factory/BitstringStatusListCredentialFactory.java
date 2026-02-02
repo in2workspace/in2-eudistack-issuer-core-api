@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import static es.in2.issuer.backend.shared.domain.util.Preconditions.requireNonNullParam;
 import static es.in2.issuer.backend.statuslist.domain.util.Constants.*;
 import static java.util.Objects.requireNonNull;
 
@@ -23,9 +24,9 @@ public class BitstringStatusListCredentialFactory {
 
     public StatusListEntry buildStatusListEntry(String listUrl, Integer idx, StatusPurpose purpose) {
         log.debug("Building status list entry - idx: {}", idx);
-        requireNonNull(listUrl, "listUrl cannot be null");
-        requireNonNull(idx, "idx cannot be null");
-        requireNonNull(purpose, "purpose cannot be null");
+        requireNonNullParam(listUrl, "listUrl");
+        requireNonNullParam(idx, "idx");
+        requireNonNullParam(purpose, "purpose");
 
         String id = listUrl + "#" + idx;
 
@@ -39,10 +40,10 @@ public class BitstringStatusListCredentialFactory {
     }
 
     private Map<String, Object> buildCredential(String listUrl, String issuerId, String purpose, String encodedList) {
-        requireNonNull(listUrl, "listUrl cannot be null");
-        requireNonNull(issuerId, "issuerId cannot be null");
-        requireNonNull(purpose, "purpose cannot be null");
-        requireNonNull(encodedList, "encodedList cannot be null");
+        requireNonNullParam(listUrl, "listUrl");
+        requireNonNullParam(issuerId, "issuerId");
+        requireNonNullParam(purpose, "purpose");
+        requireNonNullParam(encodedList, "encodedList");
 
         Map<String, Object> credentialSubject = new LinkedHashMap<>();
         credentialSubject.put("type", STATUS_LIST_SUBJECT_TYPE);

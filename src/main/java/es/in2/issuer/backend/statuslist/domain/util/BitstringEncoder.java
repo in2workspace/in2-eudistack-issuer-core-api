@@ -55,7 +55,7 @@ public class BitstringEncoder {
      */
     public String encode(byte[] rawBytes) {
         if (rawBytes == null) {
-            throw new IllegalArgumentException("rawBytes cannot be null");
+            throw new IllegalArgumentException("rawBytes");
         }
 
         byte[] gzipped = gzip(rawBytes);
@@ -133,7 +133,7 @@ public class BitstringEncoder {
 
     private void validateBitIndex(byte[] rawBytes, int bitIndex) {
         if (rawBytes == null) {
-            throw new IllegalArgumentException("rawBytes cannot be null");
+            throw new IllegalArgumentException("rawBytes");
         }
         if (bitIndex < 0) {
             throw new IllegalArgumentException("bitIndex must be >= 0");

@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
+import static es.in2.issuer.backend.shared.domain.util.Preconditions.requireNonNullParam;
 import static java.util.Objects.requireNonNull;
 
 @Slf4j
@@ -23,7 +24,7 @@ public class StatusListWorkflow {
                 "action=allocateStatusListEntry status=started purpose={} procedureId={}",
                 purpose, procedureId
         );
-        requireNonNull(purpose, "purpose cannot be null");
+        requireNonNullParam(purpose, "purpose");
 
         return statusListProvider.allocateEntry(purpose, procedureId, token)
                 .doOnSuccess(entry -> log.info(
@@ -38,7 +39,7 @@ public class StatusListWorkflow {
     }
 
     public Mono<String> getSignedStatusListCredential(Long listId) {
-        requireNonNull(listId, "listId cannot be null");
+        requireNonNullParam(listId, "listId");
         return statusListProvider.getSignedStatusListCredential(listId);
     }
 
