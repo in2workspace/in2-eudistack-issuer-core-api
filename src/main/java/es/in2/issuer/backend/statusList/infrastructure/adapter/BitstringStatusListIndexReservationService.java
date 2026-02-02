@@ -1,12 +1,13 @@
 package es.in2.issuer.backend.statusList.infrastructure.adapter;
 
 import es.in2.issuer.backend.statusList.domain.spi.StatusListIndexAllocator;
+import es.in2.issuer.backend.statusList.domain.spi.StatusListIndexReservation;
 import es.in2.issuer.backend.statusList.infrastructure.repository.StatusListIndexRepository;
 import es.in2.issuer.backend.statusList.infrastructure.repository.StatusListIndex;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 import reactor.util.retry.Retry;
 
@@ -27,14 +28,19 @@ import static java.util.Objects.requireNonNull;
  * creates a new list and retries on the new one.
  */
 @Slf4j
-@Component
+@Service
 @RequiredArgsConstructor
-public class BitstringStatusListIndexReservationService {
+public class BitstringStatusListIndexReservationService implements StatusListIndexReservation {
 
     private final StatusListIndexRepository statusListIndexRepository;
     private final StatusListIndexAllocator indexAllocator;
 
-    public Mono<StatusListIndex> reserveWithRetry(Long statusListId, String procedureId) {
+    @Override
+    public Mono<StatusListIndex> reserve(Long statusListId, String procedureId) {
+        return reserveWithRetry(statusListId, procedureId);
+    }
+
+    private Mono<StatusListIndex> reserveWithRetry(Long statusListId, String procedureId) {
         log.info("reserveOnSpecificList - statusListId: {} - procedureId: {}", statusListId, procedureId);
         requireNonNull(statusListId, "statusListId cannot be null");
         requireNonNull(procedureId, "procedureId cannot be null");
@@ -55,6 +61,8 @@ public class BitstringStatusListIndexReservationService {
     }
 
     private Mono<StatusListIndex> tryReserveOnce(Long statusListId, String procedureId) {
+        //todo
+        log.info("tryReserveOnce");
         int idx = indexAllocator.proposeIndex(CAPACITY_BITS);
 
         StatusListIndex row = new StatusListIndex(
@@ -83,6 +91,7 @@ public class BitstringStatusListIndexReservationService {
         return t instanceof DataIntegrityViolationException;
     }
     private boolean isDuplicateIndexReservation(Throwable t) {
+        // TODO: check that it is the specific unique constraint for (statusListId, idx)
         return t instanceof DataIntegrityViolationException;
     }
 

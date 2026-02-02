@@ -1,4 +1,6 @@
-package es.in2.issuer.backend.statusList.infrastructure.adapter;
+package es.in2.issuer.backend.statusList.domain.util;
+
+import org.springframework.stereotype.Component;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -6,11 +8,6 @@ import java.io.IOException;
 import java.util.Base64;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.util.Base64;
-import java.util.zip.GZIPInputStream;
 
 /**
  * Utility for encoding/decoding Bitstring Status List encodedList.
@@ -38,32 +35,6 @@ public class BitstringEncoder {
         return isBitSet(rawBytes, idx);
     }
 
-
-    private byte[] decodeEncodedListToBytes(String encodedList) {
-        byte[] gzipped;
-        try {
-            gzipped = Base64.getUrlDecoder().decode(encodedList);
-        } catch (IllegalArgumentException e) {
-            // If it's not base64url, your encoder is different; adapt here.
-            throw new IllegalArgumentException("encodedList is not valid base64url", e);
-        }
-
-        try (GZIPInputStream gis = new GZIPInputStream(new ByteArrayInputStream(gzipped));
-             ByteArrayOutputStream bos = new ByteArrayOutputStream()) {
-
-            byte[] buffer = new byte[4096];
-            int read;
-            while ((read = gis.read(buffer)) >= 0) {
-                bos.write(buffer, 0, read);
-            }
-            return bos.toByteArray();
-
-        } catch (IOException e) {
-            throw new IllegalArgumentException("encodedList is not valid gzip content", e);
-        }
-    }
-
-
     /**
      * Creates a new empty bitstring with the given number of bits, encoded as multibase base64url gzip.
      * Bits will be initialized to 0.
@@ -77,7 +48,7 @@ public class BitstringEncoder {
         }
 
         int byteCount = bitCount / 8;
-        byte[] raw = new byte[byteCount]; // initialized to 0
+        byte[] raw = new byte[byteCount];
         return encode(raw);
     }
 
@@ -108,8 +79,18 @@ public class BitstringEncoder {
             payload = payload.substring(1);
         }
 
-        byte[] gzipped = Base64.getUrlDecoder().decode(payload);
-        return gunzip(gzipped);
+        final byte[] gzipped;
+        try {
+            gzipped = Base64.getUrlDecoder().decode(payload);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("encodedList is not valid base64url", e);
+        }
+
+        try {
+            return gunzip(gzipped);
+        } catch (IllegalStateException e) {
+            throw new IllegalArgumentException("encodedList is not valid gzip content", e);
+        }
     }
 
     /**

@@ -1,10 +1,15 @@
 package es.in2.issuer.backend.statusList.infrastructure.adapter;
 
 
+import es.in2.issuer.backend.shared.domain.util.factory.IssuerFactory;
+import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
 import es.in2.issuer.backend.statusList.domain.exception.*;
+import es.in2.issuer.backend.statusList.domain.factory.BitstringStatusListCredentialFactory;
 import es.in2.issuer.backend.statusList.domain.model.StatusListEntry;
 import es.in2.issuer.backend.statusList.domain.model.StatusPurpose;
+import es.in2.issuer.backend.statusList.domain.service.Impl.BitstringStatusListRevocationService;
 import es.in2.issuer.backend.statusList.domain.spi.StatusListProvider;
+import es.in2.issuer.backend.statusList.domain.util.BitstringEncoder;
 import es.in2.issuer.backend.statusList.infrastructure.repository.StatusListIndexRepository;
 import es.in2.issuer.backend.statusList.infrastructure.repository.StatusListRepository;
 import es.in2.issuer.backend.statusList.infrastructure.repository.StatusList;
@@ -16,6 +21,7 @@ import reactor.util.retry.Retry;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Map;
 import java.util.UUID;
 
 import static es.in2.issuer.backend.statusList.domain.util.Constants.CAPACITY_BITS;
@@ -37,10 +43,12 @@ public class BitstringStatusListProvider implements StatusListProvider {
 
     private final StatusListRepository statusListRepository;
     private final StatusListIndexRepository statusListIndexRepository;
-    private final BitstringStatusListCredentialBuilder statusListBuilder;
+    private final BitstringStatusListCredentialFactory statusListBuilder;
     private final BitstringStatusListRevocationService revocationService;
     private final BitstringStatusListIndexReservationService statusListIndexReservationService;
     private final StatusListSigner statusListSigner;
+    private final IssuerFactory issuerFactory;
+    private final AppConfig appConfig;
 
     private static final double NEW_LIST_THRESHOLD = 0.80;
     private final BitstringEncoder encoder = new BitstringEncoder();
@@ -135,14 +143,14 @@ public class BitstringStatusListProvider implements StatusListProvider {
     private Mono<Void> revokeOnce(Long statusListId, Integer idx, String token) {
         log.debug("method=revokeOnce step=START statusListId={} idx={}", statusListId, idx);
 
-        return revocationService.resolveRevocationCandidate(statusListId, idx)
+        return resolveRevocationCandidate(statusListId, idx)
                 .switchIfEmpty(Mono.fromRunnable(() ->
                         log.debug("method=revokeOnce step=ALREADY_REVOKED statusListId={} idx={}", statusListId, idx)
                 ))
                 .flatMap(row -> {
-                    StatusList updatedRow = revocationService.applyRevocationBit(row, idx);
+                    StatusList updatedRow = revocationService.applyRevocation(row, idx);
 
-                    return statusListSigner.getIssuerAndSignCredential(updatedRow, token)
+                    return getIssuerAndSignCredential(updatedRow, token)
                             .flatMap(signedJwt ->
                                     statusListRepository.updateSignedAndEncodedIfUnchanged(
                                                     row.id(),
@@ -173,13 +181,16 @@ public class BitstringStatusListProvider implements StatusListProvider {
 
         return pickListForAllocation(purpose, token)
                 .flatMap(list ->
-                        statusListIndexReservationService.reserveWithRetry(list.id(), procedureId)
+                        statusListIndexReservationService.reserve(list.id(), procedureId)
                 )
-                .map(reservedIndex -> statusListBuilder.buildStatusListEntry(
-                        reservedIndex.statusListId(),
-                        reservedIndex.idx(),
-                        purpose
-                ))
+                .map(reservedIndex -> {
+                    String listUrl = buildListUrl(reservedIndex.statusListId());
+                    return statusListBuilder.buildStatusListEntry(
+                            listUrl,
+                            reservedIndex.idx(),
+                            purpose
+                    );
+                })
                 .doOnSuccess(e ->
                         log.debug("method=allocateNewEntry step=END procedureId={}", procedureId)
                 );
@@ -227,7 +238,7 @@ public class BitstringStatusListProvider implements StatusListProvider {
 
         return statusListRepository.save(rowToInsert)
                 .flatMap(saved ->
-                        statusListSigner.getIssuerAndSignCredential(saved, token)
+                        getIssuerAndSignCredential(saved, token)
                                 .flatMap(jwt -> persistSignedCredential(saved, jwt))
                                 .onErrorResume(ex ->
                                         statusListRepository.deleteById(saved.id())
@@ -269,20 +280,67 @@ public class BitstringStatusListProvider implements StatusListProvider {
         log.debug("method=findExistingAllocation step=START procedureId={}", procedureId);
 
         return statusListIndexRepository.findByProcedureId(procedureUuid)
-                .map(existing -> statusListBuilder.buildStatusListEntry(
-                        existing.statusListId(),
-                        existing.idx(),
-                        purpose
-                ))
+                .map(existing -> {
+                    String listUrl = buildListUrl(existing.statusListId());
+                    return statusListBuilder.buildStatusListEntry(
+                            listUrl,
+                            existing.idx(),
+                            purpose
+                    );
+                })
                 .doOnSuccess(v ->
                         log.debug("method=findExistingAllocation step=END procedureId={} statusListEntry={}", procedureId, v)
                 );
+    }
+
+    /**
+     * Gets the issuer, builds the payload, and signs it. Does not persist anything.
+     */
+    private Mono<String> getIssuerAndSignCredential(StatusList saved, String token) {
+        return issuerFactory.createSimpleIssuer()
+                .flatMap(issuer -> {
+                    String listUrl = buildListUrl(saved.id());
+
+                    Map<String, Object> payload = statusListBuilder.buildUnsigned(
+                            listUrl,
+                            issuer.id(),
+                            saved.purpose(),
+                            saved.encodedList()
+                    );
+
+
+                    return statusListSigner.sign(payload, token, saved.id());
+                });
     }
 
     private static final class OptimisticUpdateException extends RuntimeException {
         private OptimisticUpdateException(String message) {
             super(message);
         }
+    }
+
+    private String buildListUrl(Long listId) {
+        requireNonNull(listId, "listId cannot be null");
+        //todo constant for path
+        return appConfig.getIssuerBackendUrl() + "/w3c/v1/credentials/status" + "/" + listId;
+    }
+
+    private Mono<StatusList> resolveRevocationCandidate(Long statusListId, Integer idx) {
+        requireNonNull(statusListId, "statusListId cannot be null");
+        requireNonNull(idx, "idx cannot be null");
+
+        return statusListRepository.findById(statusListId)
+                .switchIfEmpty(Mono.error(new StatusListNotFoundException(statusListId)))
+                .flatMap(row ->
+                        Mono.fromSupplier(() -> encoder.getBit(row.encodedList(), idx))
+                                .flatMap(alreadyRevoked -> {
+                                    if (alreadyRevoked) {
+                                        log.debug("action=revokeStatusList result=alreadyRevoked statusListId={} idx={}", statusListId, idx);
+                                        return Mono.empty();
+                                    }
+                                    return Mono.just(row);
+                                })
+                );
     }
 
 }
