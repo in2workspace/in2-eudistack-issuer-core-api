@@ -190,9 +190,8 @@ public class BitstringStatusListProvider implements StatusListProvider {
                         log.debug("method=findOrCreateLatestList step=END statusListId={}", list.id())
                 );
     }
-    //todo restore after tests
-    private Mono<StatusListEntry> allocateNewEntry(StatusPurpose purpose, String incomingprocedureId, String token) {
-        String procedureId = "9d7014b8-e78a-44ad-a6c3-bbcbce29af40";
+
+    private Mono<StatusListEntry> allocateNewEntry(StatusPurpose purpose, String procedureId, String token) {
         log.debug("method=allocateNewEntry step=START purpose={} procedureId={}", purpose, procedureId);
 
         return pickListForAllocation(purpose, token)
