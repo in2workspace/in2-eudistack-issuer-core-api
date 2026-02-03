@@ -76,11 +76,14 @@ public class BitstringStatusListProvider implements StatusListProvider {
     }
 
     @Override
-    public Mono<StatusListEntry> allocateEntry(StatusPurpose purpose, String procedureId, String token) {
+    public Mono<StatusListEntry> allocateEntry(StatusPurpose purpose, String incomingProcedureId, String token) {
         requireNonNullParam(purpose, "purpose");
-        requireNonNullParam(procedureId, "procedureId");
+        requireNonNullParam(incomingProcedureId, "procedureId");
         requireNonNullParam(token, TOKEN);
 
+        //todo restore after tests
+        String procedureId = "9d7014b8-e78a-44ad-a6c3-bbcbce29af40";
+        log.debug("Using hardcoded 9d7014b8-e78a-44ad-a6c3-bbcbce29af40");
         log.debug("method=allocateEntry step=START purpose={} procedureId={}", purpose, procedureId);
 
         UUID procedureUuid = UUID.fromString(procedureId);
@@ -297,6 +300,7 @@ public class BitstringStatusListProvider implements StatusListProvider {
         return statusListIndexRepository.findByProcedureId(procedureUuid)
                 .map(existing -> {
                     String listUrl = buildListUrl(existing.statusListId());
+                    log.debug("Found existing allocation in list {}, idx: {}", listUrl, existing.idx());
                     return statusListBuilder.buildStatusListEntry(
                             listUrl,
                             existing.idx(),
