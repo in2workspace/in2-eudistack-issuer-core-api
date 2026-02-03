@@ -44,6 +44,7 @@ import static es.in2.issuer.backend.statuslist.domain.util.Preconditions.require
 @RequiredArgsConstructor
 public class BitstringStatusListProvider implements StatusListProvider {
 
+    private final AppConfig appConfig;
     private final StatusListRepository statusListRepository;
     private final StatusListIndexRepository statusListIndexRepository;
     private final BitstringStatusListCredentialFactory statusListBuilder;
@@ -51,7 +52,6 @@ public class BitstringStatusListProvider implements StatusListProvider {
     private final BitstringStatusListIndexReservationService statusListIndexReservationService;
     private final StatusListSigner statusListSigner;
     private final IssuerFactory issuerFactory;
-    private final AppConfig appConfig;
 
     private static final double NEW_LIST_THRESHOLD = 0.80;
     private final BitstringEncoder encoder = new BitstringEncoder();
