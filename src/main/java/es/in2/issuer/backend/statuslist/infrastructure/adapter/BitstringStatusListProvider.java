@@ -150,9 +150,10 @@ public class BitstringStatusListProvider implements StatusListProvider {
         log.debug("method=revokeOnce step=START statusListId={} idx={}", statusListId, idx);
 
         return resolveRevocationCandidate(statusListId, idx)
-                .switchIfEmpty(Mono.fromRunnable(() ->
-                        log.debug("method=revokeOnce step=ALREADY_REVOKED statusListId={} idx={}", statusListId, idx)
-                ))
+                .switchIfEmpty(Mono.defer(() -> {
+                    log.debug("method=revokeOnce step=ALREADY_REVOKED statusListId={} idx={}", statusListId, idx);
+                    return Mono.empty();
+                }))
                 .flatMap(row -> {
                     StatusList updatedRow = revocationService.applyRevocation(row, idx);
 
