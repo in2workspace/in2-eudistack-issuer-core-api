@@ -117,28 +117,5 @@ public class BitstringStatusListIndexReservationService implements StatusListInd
         return t;
     }
 
-    private <T extends Throwable> T findCause(Throwable t, Class<T> type) {
-        Throwable cur = t;
-        while (cur != null) {
-            if (type.isInstance(cur)) {
-                return type.cast(cur);
-            }
-            cur = cur.getCause();
-        }
-        return null;
-    }
-
-    private static final Pattern UNIQUE_CONSTRAINT =
-            Pattern.compile("unique constraint \"([^\"]+)\"");
-
-    private String extractConstraintName(Throwable t) {
-        R2dbcException ex = findCause(t, R2dbcException.class);
-        if (ex == null || ex.getMessage() == null) {
-            return null;
-        }
-        Matcher m = UNIQUE_CONSTRAINT.matcher(ex.getMessage());
-        return m.find() ? m.group(1) : null;
-    }
-
 }
 
