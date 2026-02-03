@@ -19,14 +19,13 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
 import static es.in2.issuer.backend.statuslist.domain.util.Constants.BITSTRING_ENTRY_TYPE;
+import static es.in2.issuer.backend.statuslist.domain.util.Constants.REVOKED;
 import static es.in2.issuer.backend.statuslist.domain.util.Preconditions.requireNonNullParam;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class RevocationWorkflow {
-
-    private static final String REVOKED = "REVOKED";
 
     private final StatusListProvider statusListProvider;
     private final AccessTokenService accessTokenService;
