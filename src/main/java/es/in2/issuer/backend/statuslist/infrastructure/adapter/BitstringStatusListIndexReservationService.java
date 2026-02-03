@@ -3,7 +3,7 @@ package es.in2.issuer.backend.statuslist.infrastructure.adapter;
 import es.in2.issuer.backend.statuslist.domain.exception.IndexReservationExhaustedException;
 import es.in2.issuer.backend.statuslist.domain.spi.StatusListIndexAllocator;
 import es.in2.issuer.backend.statuslist.domain.spi.StatusListIndexReservation;
-import es.in2.issuer.backend.statuslist.domain.model.UniqueConstraintKind;
+import es.in2.issuer.backend.statuslist.domain.spi.UniqueViolationClassifier;
 import es.in2.issuer.backend.statuslist.infrastructure.repository.StatusListIndex;
 import es.in2.issuer.backend.statuslist.infrastructure.repository.StatusListIndexRepository;
 import io.r2dbc.spi.R2dbcException;
@@ -38,6 +38,7 @@ public class BitstringStatusListIndexReservationService implements StatusListInd
 
     private final StatusListIndexRepository statusListIndexRepository;
     private final StatusListIndexAllocator indexAllocator;
+    private final UniqueViolationClassifier uniqueViolationClassifier;
 
     @Override
     public Mono<StatusListIndex> reserve(Long statusListId, String procedureId) {
@@ -56,8 +57,8 @@ public class BitstringStatusListIndexReservationService implements StatusListInd
                         Retry.backoff(maxAttempts - 1L, Duration.ofMillis(5))
                                 .maxBackoff(Duration.ofMillis(100))
                                 .filter(t -> {
-                                    UniqueConstraintKind k = classify(t);
-                                    return k == UniqueConstraintKind.IDX || k == UniqueConstraintKind.UNKNOWN;
+                                    UniqueViolationClassifier.Kind k = uniqueViolationClassifier.classify(t);
+                                    return k == UniqueViolationClassifier.Kind.IDX || k == UniqueViolationClassifier.Kind.UNKNOWN;
                                 })
                                 .doBeforeRetry(rs -> {
                                     long attempt = rs.totalRetries() + 2;
@@ -108,13 +109,13 @@ public class BitstringStatusListIndexReservationService implements StatusListInd
                     );
                 })
                 .onErrorResume(t -> {
-                    UniqueConstraintKind k = classify(t);
+                    UniqueViolationClassifier.Kind k = uniqueViolationClassifier.classify(t);
                     log.debug(
                             "action=tryReserveOnce constraintKind={} statusListId={} idx={} procedureId={}",
                             k, statusListId, idx, procedureId
                     );
 
-                    if (k == UniqueConstraintKind.PROCEDURE) {
+                    if (k == UniqueViolationClassifier.Kind.PROCEDURE) {
                         return statusListIndexRepository.findByProcedureId(UUID.fromString(procedureId))
                                 .switchIfEmpty(Mono.error(t));
                     }
@@ -131,16 +132,11 @@ public class BitstringStatusListIndexReservationService implements StatusListInd
     }
 
     private Throwable maybeWrapAsExhausted(Throwable t) {
-        UniqueConstraintKind k = classify(t);
-        if (k == UniqueConstraintKind.IDX || k == UniqueConstraintKind.UNKNOWN) {
+        UniqueViolationClassifier.Kind k = uniqueViolationClassifier.classify(t);
+        if (k == UniqueViolationClassifier.Kind.IDX || k == UniqueViolationClassifier.Kind.UNKNOWN) {
             return new IndexReservationExhaustedException("Too many collisions while reserving index", t);
         }
         return t;
-    }
-
-    private boolean isUniqueViolation(Throwable t) {
-        R2dbcException ex = findCause(t, R2dbcException.class);
-        return ex != null && "23505".equals(ex.getSqlState());
     }
 
     private <T extends Throwable> T findCause(Throwable t, Class<T> type) {
@@ -164,26 +160,6 @@ public class BitstringStatusListIndexReservationService implements StatusListInd
         }
         Matcher m = UNIQUE_CONSTRAINT.matcher(ex.getMessage());
         return m.find() ? m.group(1) : null;
-    }
-
-    private UniqueConstraintKind classify(Throwable t) {
-        if (!isUniqueViolation(t)) {
-            return UniqueConstraintKind.NOT_UNIQUE;
-        }
-
-        String name = extractConstraintName(t);
-        if (name == null) {
-            return UniqueConstraintKind.UNKNOWN;
-        }
-
-        if ("uq_status_list_index_list_id_idx".equals(name)) {
-            return UniqueConstraintKind.IDX;
-        }
-        if ("uq_status_list_index_procedure_id".equals(name)) {
-            return UniqueConstraintKind.PROCEDURE;
-        }
-
-        return UniqueConstraintKind.UNKNOWN;
     }
 
 }
