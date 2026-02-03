@@ -6,7 +6,6 @@ import es.in2.issuer.backend.statuslist.domain.spi.StatusListIndexReservation;
 import es.in2.issuer.backend.statuslist.domain.spi.UniqueViolationClassifier;
 import es.in2.issuer.backend.statuslist.infrastructure.repository.StatusListIndex;
 import es.in2.issuer.backend.statuslist.infrastructure.repository.StatusListIndexRepository;
-import io.r2dbc.spi.R2dbcException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -16,8 +15,6 @@ import reactor.util.retry.Retry;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import static es.in2.issuer.backend.statuslist.domain.util.Constants.CAPACITY_BITS;
 import static es.in2.issuer.backend.statuslist.domain.util.Preconditions.requireNonNullParam;
