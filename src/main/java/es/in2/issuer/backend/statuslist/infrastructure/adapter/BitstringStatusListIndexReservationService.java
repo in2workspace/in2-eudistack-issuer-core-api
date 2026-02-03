@@ -90,6 +90,23 @@ public class BitstringStatusListIndexReservationService implements StatusListInd
                         saved.procedureId(),
                         saved.createdAt()
                 ))
+                //todo remove after tests
+                .doOnError(e -> {
+                    R2dbcException r2 = findCause(e, R2dbcException.class);
+                    String sqlState = r2 != null ? r2.getSqlState() : "n/a";
+                    String constraint = extractConstraintName(e);
+
+                    log.warn(
+                            "reserve failed (willHandleLater) statusListId={} idx={} procedureId={} sqlState={} constraint={} errClass={} msg={}",
+                            statusListId,
+                            idx,
+                            procedureId,
+                            sqlState,
+                            constraint,
+                            e.getClass().getName(),
+                            safeMsg(e)
+                    );
+                })
                 .onErrorResume(t -> {
                     UniqueConstraintKind k = classify(t);
                     log.debug(
@@ -105,6 +122,12 @@ public class BitstringStatusListIndexReservationService implements StatusListInd
                     // For IDX/UNKNOWN we want the retryWhen to handle it; for NOT_UNIQUE we fail fast.
                     return Mono.error(t);
                 });
+
+    }
+
+    //todo remove after tests
+    private String safeMsg(Throwable t) {
+        return t.getMessage() == null ? "" : t.getMessage().replace("\n", " ");
     }
 
     private Throwable maybeWrapAsExhausted(Throwable t) {
