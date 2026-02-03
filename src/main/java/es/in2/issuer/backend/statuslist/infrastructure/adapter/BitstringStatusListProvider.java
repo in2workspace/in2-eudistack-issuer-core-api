@@ -3,10 +3,7 @@ package es.in2.issuer.backend.statuslist.infrastructure.adapter;
 
 import es.in2.issuer.backend.shared.domain.util.factory.IssuerFactory;
 import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
-import es.in2.issuer.backend.statuslist.domain.exception.SignedStatusListCredentialNotAvailableException;
-import es.in2.issuer.backend.statuslist.domain.exception.StatusListIndexNotFoundException;
-import es.in2.issuer.backend.statuslist.domain.exception.StatusListNotFoundException;
-import es.in2.issuer.backend.statuslist.domain.exception.StatusListSigningPersistenceException;
+import es.in2.issuer.backend.statuslist.domain.exception.*;
 import es.in2.issuer.backend.statuslist.domain.factory.BitstringStatusListCredentialFactory;
 import es.in2.issuer.backend.statuslist.domain.model.StatusListEntry;
 import es.in2.issuer.backend.statuslist.domain.model.StatusPurpose;
@@ -14,6 +11,7 @@ import es.in2.issuer.backend.statuslist.domain.service.impl.BitstringStatusListR
 import es.in2.issuer.backend.statuslist.domain.spi.StatusListProvider;
 import es.in2.issuer.backend.statuslist.domain.util.BitstringEncoder;
 import es.in2.issuer.backend.statuslist.infrastructure.repository.StatusList;
+import es.in2.issuer.backend.statuslist.infrastructure.repository.StatusListIndex;
 import es.in2.issuer.backend.statuslist.infrastructure.repository.StatusListIndexRepository;
 import es.in2.issuer.backend.statuslist.infrastructure.repository.StatusListRepository;
 import lombok.RequiredArgsConstructor;
@@ -197,7 +195,7 @@ public class BitstringStatusListProvider implements StatusListProvider {
 
         return pickListForAllocation(purpose, token)
                 .flatMap(list ->
-                        statusListIndexReservationService.reserve(list.id(), procedureId)
+                        reserveWithNewListFallback(list.id(), purpose, procedureId, token)
                 )
                 .map(reservedIndex -> {
                     String listUrl = buildListUrl(reservedIndex.statusListId());
@@ -354,6 +352,22 @@ public class BitstringStatusListProvider implements StatusListProvider {
                     }
                     return Mono.just(row);
                 });
+    }
+
+    private Mono<StatusListIndex> reserveWithNewListFallback(
+            Long statusListId,
+            StatusPurpose purpose,
+            String procedureId,
+            String token
+    ) {
+        return statusListIndexReservationService.reserve(statusListId, procedureId)
+                .onErrorResume(
+                        IndexReservationExhaustedException.class,
+                        ex -> createNewList(purpose, token)
+                                .flatMap(newList ->
+                                        statusListIndexReservationService.reserve(newList.id(), procedureId)
+                                )
+                );
     }
 
 }

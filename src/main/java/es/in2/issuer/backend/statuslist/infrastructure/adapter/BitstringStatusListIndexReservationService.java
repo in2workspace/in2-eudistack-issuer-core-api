@@ -1,5 +1,6 @@
 package es.in2.issuer.backend.statuslist.infrastructure.adapter;
 
+import es.in2.issuer.backend.statuslist.domain.exception.IndexReservationExhaustedException;
 import es.in2.issuer.backend.statuslist.domain.spi.StatusListIndexAllocator;
 import es.in2.issuer.backend.statuslist.domain.spi.StatusListIndexReservation;
 import es.in2.issuer.backend.statuslist.infrastructure.repository.StatusListIndex;
@@ -103,10 +104,6 @@ public class BitstringStatusListIndexReservationService implements StatusListInd
         return t;
     }
 
-    static final class IndexReservationExhaustedException extends RuntimeException {
-        IndexReservationExhaustedException(String message, Throwable cause) {
-            super(message, cause);
-        }
-    }
+
 }
 
