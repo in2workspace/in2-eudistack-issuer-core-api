@@ -25,7 +25,7 @@ import static es.in2.issuer.backend.shared.domain.util.Constants.VC;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-public class NotificationServiceImplTest {
+class NotificationServiceImplTest {
 
     @InjectMocks
     private NotificationServiceImpl notificationService;
@@ -107,7 +107,7 @@ public class NotificationServiceImplTest {
         when(credentialProcedureService.getCredentialProcedureByNotificationId("nid-1"))
                 .thenReturn(Mono.just(procedure));
 
-        when(revocationWorkflow.revokeSystem(eq(processId), eq(bearerToken), eq(procedureId.toString()), eq(7)))
+        when(revocationWorkflow.revokeSystem(processId, bearerToken, procedureId.toString(), 7))
                 .thenReturn(Mono.empty());
 
         NotificationRequest request = new NotificationRequest("nid-1", NotificationEvent.CREDENTIAL_DELETED, "desc");
@@ -135,7 +135,7 @@ public class NotificationServiceImplTest {
         when(credentialProcedureService.getCredentialProcedureByNotificationId("nid-1"))
                 .thenReturn(Mono.just(procedure));
 
-        when(revocationWorkflow.revokeSystem(eq(processId), eq(bearerToken), eq(procedureId.toString()), eq(3)))
+        when(revocationWorkflow.revokeSystem(processId, bearerToken, procedureId.toString(),3))
                 .thenReturn(Mono.empty());
 
         NotificationRequest request = new NotificationRequest("nid-1", NotificationEvent.CREDENTIAL_DELETED, "desc");
