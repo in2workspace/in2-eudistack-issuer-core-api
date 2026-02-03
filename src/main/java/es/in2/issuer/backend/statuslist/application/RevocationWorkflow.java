@@ -88,17 +88,14 @@ public class RevocationWorkflow {
                                         "processId={} action={} step=procedureLoaded procedureId={} credentialStatus={}",
                                         processId, action, credentialProcedureId, p != null ? p.getCredentialStatus() : null
                                 ))
-                                // todo restore after tests
-//                                .flatMap(procedure ->
-//                                        validator.validate(processId, token, procedure)
-//                                                .doOnSuccess(v -> log.info(
-//                                                        "processId={} action={} step=validationPassed procedureId={}",
-//                                                        processId, action, credentialProcedureId
-//                                                ))
-//                                                .thenReturn(new RevocationContext(token, procedure))
-//                                )
-                                // todo remove after tests
-                                .map(procedure -> new RevocationContext(token, procedure))
+                                .flatMap(procedure ->
+                                        validator.validate(processId, token, procedure)
+                                                .doOnSuccess(v -> log.info(
+                                                        "processId={} action={} step=validationPassed procedureId={}",
+                                                        processId, action, credentialProcedureId
+                                                ))
+                                                .thenReturn(new RevocationContext(token, procedure))
+                                )
                 )
                 .flatMap(ctx -> {
                     CredentialStatus credentialStatus = parseCredentialStatus(
