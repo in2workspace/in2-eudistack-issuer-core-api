@@ -84,7 +84,7 @@ public class BitstringStatusListProvider implements StatusListProvider {
         UUID procedureUuid = UUID.fromString(procedureId);
 
         return findExistingAllocation(procedureUuid, purpose, procedureId)
-                .switchIfEmpty(allocateNewEntry(purpose, procedureId, token))
+                .switchIfEmpty(Mono.defer(() -> allocateNewEntry(purpose, procedureId, token)))
                 .map(entry -> {
                     log.debug(
                             "method=allocateEntry step=END purpose={} procedureId={} statusListId={} idx={}",
@@ -183,7 +183,7 @@ public class BitstringStatusListProvider implements StatusListProvider {
         log.debug("method=findOrCreateLatestList step=START purpose={}", purpose);
 
         return statusListRepository.findLatestByPurpose(purpose.value())
-                .switchIfEmpty(createNewList(purpose, token))
+                .switchIfEmpty(Mono.defer(() -> createNewList(purpose, token)))
                 .doOnSuccess(list ->
                         log.debug("method=findOrCreateLatestList step=END statusListId={}", list.id())
                 );
@@ -363,6 +363,8 @@ public class BitstringStatusListProvider implements StatusListProvider {
                                 )
                 );
     }
+
+
 
 }
 

@@ -23,11 +23,7 @@ import reactor.test.StepVerifier;
 import java.text.ParseException;
 
 import static es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum.VALID;
-import static es.in2.issuer.backend.shared.domain.util.Constants.LEAR;
-import static es.in2.issuer.backend.shared.domain.util.Constants.ROLE;
-import static es.in2.issuer.backend.shared.domain.util.Constants.VC;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
+import static es.in2.issuer.backend.shared.domain.util.Constants.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
