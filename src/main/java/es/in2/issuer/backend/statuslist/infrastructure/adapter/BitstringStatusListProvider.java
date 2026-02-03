@@ -297,6 +297,7 @@ public class BitstringStatusListProvider implements StatusListProvider {
         return statusListIndexRepository.findByProcedureId(procedureUuid)
                 .map(existing -> {
                     String listUrl = buildListUrl(existing.statusListId());
+                    log.debug("Found existing allocation in list {}, idx: {}", listUrl, existing.idx());
                     return statusListBuilder.buildStatusListEntry(
                             listUrl,
                             existing.idx(),
