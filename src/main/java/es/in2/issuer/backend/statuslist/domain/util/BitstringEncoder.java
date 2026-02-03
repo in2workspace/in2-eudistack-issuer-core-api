@@ -14,9 +14,6 @@ import java.util.zip.GZIPOutputStream;
  * - Uncompressed payload: raw bytes representing the bitstring
  * - Compressed: GZIP
  * - Encoded: Multibase base64url (prefix 'u', no padding)
- *
- * Bit order assumption:
- * - index 0 corresponds to the least significant bit (LSB) of the first byte.
  */
 public class BitstringEncoder {
 
