@@ -327,12 +327,6 @@ public class BitstringStatusListProvider implements StatusListProvider {
                 });
     }
 
-    private static final class OptimisticUpdateException extends RuntimeException {
-        private OptimisticUpdateException(String message) {
-            super(message);
-        }
-    }
-
     private String buildListUrl(Long listId) {
         requireNonNullParam(listId, "listId");
         return appConfig.getIssuerBackendUrl() + STATUS_LIST_BASE + "/" + listId;
