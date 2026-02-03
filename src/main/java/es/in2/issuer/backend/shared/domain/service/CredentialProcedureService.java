@@ -37,7 +37,6 @@ public interface CredentialProcedureService {
     Mono<Void> updateCredentialProcedureCredentialStatusToValidByProcedureId(String procedureId);
 
     Mono<Void> updateCredentialProcedureCredentialStatusToRevoke(CredentialProcedure credentialProcedure);
-    Mono<Void> updateCredentialProcedureCredentialStatusToIssued (CredentialProcedure credentialProcedure);
 
     Mono<String> updatedEncodedCredentialByCredentialProcedureId(String encodedCredential, String credentialProcedureId);
 
