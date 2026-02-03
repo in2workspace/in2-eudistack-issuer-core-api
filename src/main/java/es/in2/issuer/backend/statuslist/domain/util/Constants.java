@@ -12,4 +12,5 @@ public class Constants {
     public static final String VC_TYPE = "VerifiableCredential";
     public static final int CAPACITY_BITS = 131_072; // 16KB * 8
     public static final String TOKEN = "token";
+    public static final double NEW_LIST_THRESHOLD = 0.80;
 }

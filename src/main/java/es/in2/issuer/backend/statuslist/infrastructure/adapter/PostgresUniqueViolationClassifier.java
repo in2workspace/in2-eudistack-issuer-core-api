@@ -11,8 +11,7 @@ public class PostgresUniqueViolationClassifier implements UniqueViolationClassif
 
     private static final String SQLSTATE_UNIQUE_VIOLATION = "23505";
 
-    private static final Pattern UNIQUE_CONSTRAINT =
-            Pattern.compile("unique constraint \"([^\"]+)\"");
+    private static final Pattern UNIQUE_CONSTRAINT = Pattern.compile("unique constraint \"([^\"]+)\"");
 
     @Override
     public Kind classify(Throwable t) {

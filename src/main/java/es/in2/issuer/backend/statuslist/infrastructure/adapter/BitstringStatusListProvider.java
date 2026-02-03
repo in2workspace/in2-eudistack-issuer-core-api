@@ -26,8 +26,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import static es.in2.issuer.backend.shared.domain.util.EndpointsConstants.STATUS_LIST_BASE;
-import static es.in2.issuer.backend.statuslist.domain.util.Constants.CAPACITY_BITS;
-import static es.in2.issuer.backend.statuslist.domain.util.Constants.TOKEN;
+import static es.in2.issuer.backend.statuslist.domain.util.Constants.*;
 import static es.in2.issuer.backend.statuslist.domain.util.Preconditions.requireNonNullParam;
 
 /**
@@ -53,7 +52,6 @@ public class BitstringStatusListProvider implements StatusListProvider {
     private final StatusListSigner statusListSigner;
     private final IssuerFactory issuerFactory;
 
-    private static final double NEW_LIST_THRESHOLD = 0.80;
     private final BitstringEncoder encoder = new BitstringEncoder();
 
     @Override
