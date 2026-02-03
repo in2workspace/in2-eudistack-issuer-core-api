@@ -149,7 +149,7 @@ class BitstringStatusListIndexReservationServiceTest {
         );
 
         when(statusListIndexRepository.save(any(StatusListIndex.class))).thenReturn(Mono.error(duplicateProcedure));
-        when(statusListIndexRepository.findByProcedureId(eq(procedureUuid))).thenReturn(Mono.just(existing));
+        when(statusListIndexRepository.findByProcedureId(procedureUuid)).thenReturn(Mono.just(existing));
 
         StepVerifier.create(service.reserve(statusListId, procedureId))
                 .assertNext(result -> {
@@ -161,7 +161,7 @@ class BitstringStatusListIndexReservationServiceTest {
                 .verifyComplete();
 
         verify(statusListIndexRepository, times(1)).save(any(StatusListIndex.class));
-        verify(statusListIndexRepository, times(1)).findByProcedureId(eq(procedureUuid));
+        verify(statusListIndexRepository, times(1)).findByProcedureId(procedureUuid);
         // No retry should happen because onErrorResume returns a value.
         verify(indexAllocator, times(1)).proposeIndex(anyInt());
     }
@@ -180,14 +180,14 @@ class BitstringStatusListIndexReservationServiceTest {
                 .thenReturn(UniqueViolationClassifier.Kind.PROCEDURE);
 
         when(statusListIndexRepository.save(any(StatusListIndex.class))).thenReturn(Mono.error(duplicateProcedure));
-        when(statusListIndexRepository.findByProcedureId(eq(procedureUuid))).thenReturn(Mono.empty());
+        when(statusListIndexRepository.findByProcedureId(procedureUuid)).thenReturn(Mono.empty());
 
         StepVerifier.create(service.reserve(statusListId, procedureId))
                 .expectErrorSatisfies(t -> assertSame(duplicateProcedure, t))
                 .verify();
 
         verify(statusListIndexRepository, times(1)).save(any(StatusListIndex.class));
-        verify(statusListIndexRepository, times(1)).findByProcedureId(eq(procedureUuid));
+        verify(statusListIndexRepository, times(1)).findByProcedureId(procedureUuid);
         verify(indexAllocator, times(1)).proposeIndex(anyInt());
     }
 
