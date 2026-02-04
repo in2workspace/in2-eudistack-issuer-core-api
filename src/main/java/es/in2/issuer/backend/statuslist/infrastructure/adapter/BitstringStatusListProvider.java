@@ -129,12 +129,12 @@ public class BitstringStatusListProvider implements StatusListProvider {
                 .retryWhen(
                         Retry.backoff(maxAttempts - 1, Duration.ofMillis(50))
                                 .filter(OptimisticUpdateException.class::isInstance)
-                                .doBeforeRetry(rs -> {
+                                .doBeforeRetry(rs ->
                                     log.debug(
                                         "method=revokeWithRetry retry={} statusListId={} idx={}",
                                             rs.totalRetries() + 1, statusListId, idx
-                                );
-    })
+                                )
+    )
                 )
                 .doOnTerminate(() ->
                         log.debug("method=revokeWithRetry step=END statusListId={} idx={}", statusListId, idx)
