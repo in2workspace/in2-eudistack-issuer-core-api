@@ -127,13 +127,12 @@ public class BitstringStatusListProvider implements StatusListProvider {
 
         return Mono.defer(() -> revokeOnce(statusListId, idx, token))
                 .retryWhen(
-                        Retry.backoff(maxAttempts - 1L, Duration.ofMillis(50))
+                        Retry.backoff(maxAttempts - 1, Duration.ofMillis(50))
                                 .filter(OptimisticUpdateException.class::isInstance)
                                 .doBeforeRetry(rs -> {
-                                    long attempts = rs.totalRetries() + 1;
                                     log.debug(
                                         "method=revokeWithRetry retry={} statusListId={} idx={}",
-                                        attempts, statusListId, idx
+                                            rs.totalRetries() + 1, statusListId, idx
                                 );
     })
                 )
