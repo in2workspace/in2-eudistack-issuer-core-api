@@ -81,9 +81,7 @@ public class BitstringStatusListProvider implements StatusListProvider {
 
         log.debug("method=allocateEntry step=START purpose={} procedureId={}", purpose, procedureId);
 
-        UUID procedureUuid = UUID.fromString(procedureId);
-
-        return findExistingAllocation(procedureUuid, purpose, procedureId)
+        return findExistingAllocation(purpose, procedureId)
                 .switchIfEmpty(Mono.defer(() -> allocateNewEntry(purpose, procedureId, token)))
                 .map(entry -> {
                     log.debug(
@@ -289,8 +287,9 @@ public class BitstringStatusListProvider implements StatusListProvider {
                 );
     }
 
-    private Mono<StatusListEntry> findExistingAllocation(UUID procedureUuid, StatusPurpose purpose, String procedureId) {
+    private Mono<StatusListEntry> findExistingAllocation(StatusPurpose purpose, String procedureId) {
         log.debug("method=findExistingAllocation step=START procedureId={}", procedureId);
+        UUID procedureUuid = UUID.fromString(procedureId);
 
         return statusListIndexRepository.findByProcedureId(procedureUuid)
                 .map(existing -> {
