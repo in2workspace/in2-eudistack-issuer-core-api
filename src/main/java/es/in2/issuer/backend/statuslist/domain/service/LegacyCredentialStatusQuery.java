@@ -1,4 +1,4 @@
-package es.in2.issuer.backend.credentialstatus.domain.service;
+package es.in2.issuer.backend.statuslist.domain.service;
 
 import reactor.core.publisher.Flux;
 

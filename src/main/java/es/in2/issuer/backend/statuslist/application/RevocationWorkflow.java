@@ -3,7 +3,7 @@ package es.in2.issuer.backend.statuslist.application;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import es.in2.issuer.backend.credentialstatus.domain.service.LegacyCredentialStatusRevocationService;
+import es.in2.issuer.backend.statuslist.domain.service.LegacyCredentialStatusRevocationService;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.CredentialStatus;
 import es.in2.issuer.backend.shared.domain.model.entities.CredentialProcedure;
 import es.in2.issuer.backend.shared.domain.service.AccessTokenService;

@@ -1,7 +1,7 @@
-package es.in2.issuer.backend.credentialstatus.infrastructure.controller;
+package es.in2.issuer.backend.statuslist.infrastructure.controller;
 
-import es.in2.issuer.backend.credentialstatus.domain.model.entities.dto.CredentialStatusResponse;
-import es.in2.issuer.backend.credentialstatus.domain.service.LegacyCredentialStatusQuery;
+import es.in2.issuer.backend.statuslist.domain.model.dto.LegacyCredentialStatusResponse;
+import es.in2.issuer.backend.statuslist.domain.service.LegacyCredentialStatusQuery;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -18,19 +18,19 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/backoffice/v1/credentials/status")
 @RequiredArgsConstructor
-public class CredentialStatusController {
+public class LegacyCredentialStatusController {
 
 
     private final LegacyCredentialStatusQuery legacyQuery;
 
     @GetMapping("/{listId}")
     @ResponseStatus(HttpStatus.OK)
-    public Flux<CredentialStatusResponse> getCredentialsByListId(@PathVariable int listId) {
+    public Flux<LegacyCredentialStatusResponse> getCredentialsByListId(@PathVariable int listId) {
         String processId = UUID.randomUUID().toString();
 
         return legacyQuery.getNoncesByListId(processId, listId)
                 .doFirst(() -> log.info("Process ID: {} - Getting Credentials...", processId))
-                .map(CredentialStatusResponse::new)
+                .map(LegacyCredentialStatusResponse::new)
                 .doOnComplete(() -> log.info(
                         "Process ID: {} - All Credential retrieved successfully.",
                         processId));
