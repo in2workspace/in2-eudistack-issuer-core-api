@@ -29,7 +29,7 @@ public class PostgresUniqueViolationClassifier implements UniqueViolationClassif
             return Kind.IDX;
         }
         if ("uq_status_list_index_procedure_id".equals(name)) {
-            return Kind.PROCEDURE;
+            return Kind.PROCEDURE_ID;
         }
 
         return Kind.UNKNOWN;

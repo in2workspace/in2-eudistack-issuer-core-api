@@ -95,7 +95,7 @@ public class BitstringStatusListIndexReservationService implements StatusListInd
                             k, statusListId, idx, procedureId
                     );
 
-                    if (k == UniqueViolationClassifier.Kind.PROCEDURE) {
+                    if (k == UniqueViolationClassifier.Kind.PROCEDURE_ID) {
                         return statusListIndexRepository.findByProcedureId(UUID.fromString(procedureId))
                                 .switchIfEmpty(Mono.error(t));
                     }

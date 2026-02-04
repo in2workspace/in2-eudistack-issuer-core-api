@@ -138,7 +138,7 @@ class BitstringStatusListIndexReservationServiceTest {
         RuntimeException duplicateProcedure = new RuntimeException("duplicate procedure");
 
         when(uniqueViolationClassifier.classify(any(Throwable.class)))
-                .thenReturn(UniqueViolationClassifier.Kind.PROCEDURE);
+                .thenReturn(UniqueViolationClassifier.Kind.PROCEDURE_ID);
 
         StatusListIndex existing = new StatusListIndex(
                 999L,
@@ -177,7 +177,7 @@ class BitstringStatusListIndexReservationServiceTest {
         RuntimeException duplicateProcedure = new RuntimeException("duplicate procedure");
 
         when(uniqueViolationClassifier.classify(any(Throwable.class)))
-                .thenReturn(UniqueViolationClassifier.Kind.PROCEDURE);
+                .thenReturn(UniqueViolationClassifier.Kind.PROCEDURE_ID);
 
         when(statusListIndexRepository.save(any(StatusListIndex.class))).thenReturn(Mono.error(duplicateProcedure));
         when(statusListIndexRepository.findByProcedureId(procedureUuid)).thenReturn(Mono.empty());

@@ -80,7 +80,7 @@ class PostgresUniqueViolationClassifierTest {
                 ),
                 Arguments.of(
                         "violates unique constraint \"uq_status_list_index_procedure_id\"",
-                        UniqueViolationClassifier.Kind.PROCEDURE
+                        UniqueViolationClassifier.Kind.PROCEDURE_ID
                 )
         );
     }
@@ -94,6 +94,6 @@ class PostgresUniqueViolationClassifierTest {
         Throwable wrapped = new RuntimeException("Outer", new RuntimeException("Middle", r2dbcException));
 
         UniqueViolationClassifier.Kind result = classifier.classify(wrapped);
-        assertThat(result).isEqualTo(UniqueViolationClassifier.Kind.PROCEDURE);
+        assertThat(result).isEqualTo(UniqueViolationClassifier.Kind.PROCEDURE_ID);
     }
 }
