@@ -16,20 +16,20 @@ public class BitstringStatusListRevocationService
     private final BitstringEncoder encoder = new BitstringEncoder();
 
     @Override
-    public StatusList applyRevocation(StatusList current, int idx) {
-        requireNonNullParam(current, "current");
+    public StatusList applyRevocation(StatusList currentStatusList, int idx) {
+        requireNonNullParam(currentStatusList, "current");
         requireNonNullParam(idx, "idx");
 
         String updatedEncoded =
-                encoder.setBit(current.encodedList(), idx, true);
+                encoder.setBit(currentStatusList.encodedList(), idx, true);
 
         return new StatusList(
-                current.id(),
-                current.purpose(),
+                currentStatusList.id(),
+                currentStatusList.purpose(),
                 updatedEncoded,
-                current.signedCredential(),
-                current.createdAt(),
-                current.updatedAt()
+                currentStatusList.signedCredential(),
+                currentStatusList.createdAt(),
+                currentStatusList.updatedAt()
         );
     }
 }
