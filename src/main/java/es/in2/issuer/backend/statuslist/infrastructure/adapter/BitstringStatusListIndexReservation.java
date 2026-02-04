@@ -19,19 +19,10 @@ import java.util.UUID;
 import static es.in2.issuer.backend.statuslist.domain.util.Constants.CAPACITY_BITS;
 import static es.in2.issuer.backend.statuslist.domain.util.Preconditions.requireNonNullParam;
 
-/**
- * Reserves Status List indices using:
- * - Index allocation strategy (StatusListIndexAllocator)
- * - DB uniqueness constraint (statusListId, idx) for atomicity
- * - Retry with backoff on duplicate-key collisions
- *
- * If collisions are exhausted, it checks if the list is full and, if so,
- * creates a new list and retries on the new one.
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class BitstringStatusListIndexReservationService implements StatusListIndexReservation {
+public class BitstringStatusListIndexReservation implements StatusListIndexReservation {
 
     private final StatusListIndexRepository statusListIndexRepository;
     private final StatusListIndexAllocator indexAllocator;

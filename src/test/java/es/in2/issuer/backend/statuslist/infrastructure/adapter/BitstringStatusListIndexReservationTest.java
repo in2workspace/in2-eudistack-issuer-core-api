@@ -24,7 +24,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class BitstringStatusListIndexReservationServiceTest {
+class BitstringStatusListIndexReservationTest {
 
     @Mock
     private StatusListIndexRepository statusListIndexRepository;
@@ -35,11 +35,11 @@ class BitstringStatusListIndexReservationServiceTest {
     @Mock
     private UniqueViolationClassifier uniqueViolationClassifier;
 
-    private BitstringStatusListIndexReservationService service;
+    private BitstringStatusListIndexReservation service;
 
     @BeforeEach
     void setUp() {
-        service = new BitstringStatusListIndexReservationService(
+        service = new BitstringStatusListIndexReservation(
                 statusListIndexRepository,
                 indexAllocator,
                 uniqueViolationClassifier

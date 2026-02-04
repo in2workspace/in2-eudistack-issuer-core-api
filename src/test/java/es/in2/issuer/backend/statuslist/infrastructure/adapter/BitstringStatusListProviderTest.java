@@ -54,7 +54,7 @@ class BitstringStatusListProviderTest {
     private BitstringStatusListRevocationService revocationService;
 
     @Mock
-    private BitstringStatusListIndexReservationService statusListIndexReservationService;
+    private BitstringStatusListIndexReservation statusListIndexReservationService;
 
     @Mock
     private StatusListSigner statusListSigner;

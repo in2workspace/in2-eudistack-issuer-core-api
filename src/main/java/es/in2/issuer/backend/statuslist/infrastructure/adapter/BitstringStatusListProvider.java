@@ -48,7 +48,7 @@ public class BitstringStatusListProvider implements StatusListProvider {
     private final StatusListIndexRepository statusListIndexRepository;
     private final BitstringStatusListCredentialFactory statusListBuilder;
     private final BitstringStatusListRevocationService revocationService;
-    private final BitstringStatusListIndexReservationService statusListIndexReservationService;
+    private final BitstringStatusListIndexReservation statusListIndexReservationService;
     private final StatusListSigner statusListSigner;
     private final IssuerFactory issuerFactory;
 
