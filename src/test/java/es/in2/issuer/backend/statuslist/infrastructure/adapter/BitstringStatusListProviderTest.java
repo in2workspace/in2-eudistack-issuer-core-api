@@ -17,6 +17,9 @@ import es.in2.issuer.backend.statuslist.infrastructure.repository.StatusListRepo
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -26,6 +29,7 @@ import reactor.test.StepVerifier;
 import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.*;
@@ -113,51 +117,8 @@ class BitstringStatusListProviderTest {
         verify(statusListRepository).findById(TEST_LIST_ID);
     }
 
-    @Test
-    void getSignedStatusListCredential_shouldThrowException_whenSignedCredentialIsNull() {
-        // Arrange
-        StatusList statusList = new StatusList(
-                TEST_LIST_ID,
-                "revocation",
-                "encodedList",
-                null,
-                Instant.now(),
-                Instant.now()
-        );
 
-        when(statusListRepository.findById(TEST_LIST_ID))
-                .thenReturn(Mono.just(statusList));
 
-        // Act & Assert
-        StepVerifier.create(bitstringStatusListProvider.getSignedStatusListCredential(TEST_LIST_ID))
-                .expectError(SignedStatusListCredentialNotAvailableException.class)
-                .verify();
-
-        verify(statusListRepository).findById(TEST_LIST_ID);
-    }
-
-    @Test
-    void getSignedStatusListCredential_shouldThrowException_whenSignedCredentialIsBlank() {
-        // Arrange
-        StatusList statusList = new StatusList(
-                TEST_LIST_ID,
-                "revocation",
-                "encodedList",
-                "   ",
-                Instant.now(),
-                Instant.now()
-        );
-
-        when(statusListRepository.findById(TEST_LIST_ID))
-                .thenReturn(Mono.just(statusList));
-
-        // Act & Assert
-        StepVerifier.create(bitstringStatusListProvider.getSignedStatusListCredential(TEST_LIST_ID))
-                .expectError(SignedStatusListCredentialNotAvailableException.class)
-                .verify();
-
-        verify(statusListRepository).findById(TEST_LIST_ID);
-    }
 
     @Test
     void getSignedStatusListCredential_shouldThrowException_whenListIdIsNull() {
@@ -272,8 +233,11 @@ class BitstringStatusListProviderTest {
 
     @Test
     void allocateEntry_shouldThrowException_whenPurposeIsNull() {
-        // Act & Assert
-        assertThatThrownBy(() -> bitstringStatusListProvider.allocateEntry(null, TEST_PROCEDURE_ID, TEST_TOKEN).block())
+        Mono<StatusListEntry> mono = monoFromCall(() ->
+                bitstringStatusListProvider.allocateEntry(null, TEST_PROCEDURE_ID, TEST_TOKEN)
+        );
+
+        assertThatThrownBy(mono::block)
                 .isInstanceOf(NullPointerException.class)
                 .hasMessageContaining("purpose");
 
@@ -282,31 +246,42 @@ class BitstringStatusListProviderTest {
 
     @Test
     void allocateEntry_shouldThrowException_whenProcedureIdIsNull() {
-        // Act & Assert
-        assertThatThrownBy(() -> bitstringStatusListProvider.allocateEntry(StatusPurpose.REVOCATION, null, TEST_TOKEN).block())
+        Mono<StatusListEntry> mono = monoFromCall(() ->
+                bitstringStatusListProvider.allocateEntry(StatusPurpose.REVOCATION, null, TEST_TOKEN)
+        );
+
+        assertThatThrownBy(mono::block)
                 .isInstanceOf(NullPointerException.class)
                 .hasMessageContaining("procedureId");
 
         verifyNoInteractions(statusListIndexRepository);
     }
 
+
     @Test
     void allocateEntry_shouldThrowException_whenTokenIsNull() {
-        // Act & Assert
-        assertThatThrownBy(() -> bitstringStatusListProvider.allocateEntry(StatusPurpose.REVOCATION, TEST_PROCEDURE_ID, null).block())
+        Mono<StatusListEntry> mono = monoFromCall(() ->
+                bitstringStatusListProvider.allocateEntry(StatusPurpose.REVOCATION, TEST_PROCEDURE_ID, null)
+        );
+
+        assertThatThrownBy(mono::block)
                 .isInstanceOf(NullPointerException.class)
                 .hasMessageContaining("token");
 
         verifyNoInteractions(statusListIndexRepository);
     }
 
+
     @Test
     void allocateEntry_shouldThrowException_whenProcedureIdIsInvalidUUID() {
-        // Act & Assert
-        assertThatThrownBy(() -> {
-            bitstringStatusListProvider.allocateEntry(StatusPurpose.REVOCATION, "invalid-uuid", TEST_TOKEN).block();
-        }).isInstanceOf(IllegalArgumentException.class);
+        Mono<StatusListEntry> mono = monoFromCall(() ->
+                bitstringStatusListProvider.allocateEntry(StatusPurpose.REVOCATION, "invalid-uuid", TEST_TOKEN)
+        );
+
+        assertThatThrownBy(mono::block)
+                .isInstanceOf(IllegalArgumentException.class);
     }
+
 
     @Test
     void allocateEntry_shouldCreateNewList_whenExistingListIsNearCapacity() {
@@ -747,14 +722,16 @@ class BitstringStatusListProviderTest {
         verifyNoMoreInteractions(statusListRepository);
     }
 
-    @Test
-    void getSignedStatusListCredential_shouldThrowException_whenSignedCredentialIsEmptyString() {
+    @ParameterizedTest(name = "should throw when signed credential is missing: \"{0}\"")
+    @NullSource
+    @ValueSource(strings = {"", "   "})
+    void getSignedStatusListCredential_shouldThrowException_whenSignedCredentialIsMissing(String signedCredential) {
         // Arrange
         StatusList statusList = new StatusList(
                 TEST_LIST_ID,
                 "revocation",
                 "encodedList",
-                "",
+                signedCredential,
                 Instant.now(),
                 Instant.now()
         );
@@ -769,6 +746,8 @@ class BitstringStatusListProviderTest {
 
         verify(statusListRepository).findById(TEST_LIST_ID);
     }
+
+
 
     @Test
     void revoke_shouldComplete_whenRevocationSucceeds() {
@@ -1014,7 +993,11 @@ class BitstringStatusListProviderTest {
 
     @Test
     void revoke_shouldThrowException_whenProcedureIdIsInvalidUUID() {
-        assertThatThrownBy(() -> bitstringStatusListProvider.revoke("invalid-uuid", TEST_TOKEN).block())
+        Mono<Void> mono = monoFromCall(() ->
+                bitstringStatusListProvider.revoke("invalid-uuid", TEST_TOKEN)
+        );
+
+        assertThatThrownBy(mono::block)
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Invalid UUID string");
 
@@ -1104,6 +1087,12 @@ class BitstringStatusListProviderTest {
         );
     }
 
-
+    private static <T> Mono<T> monoFromCall(Supplier<Mono<T>> call) {
+        try {
+            return call.get();
+        } catch (Throwable t) {
+            return Mono.error(t);
+        }
+    }
 
 }

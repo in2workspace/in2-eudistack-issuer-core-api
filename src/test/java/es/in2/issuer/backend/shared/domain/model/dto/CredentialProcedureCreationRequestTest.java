@@ -27,15 +27,16 @@ class CredentialProcedureCreationRequestTest {
                 .build();
 
         // Assert
-        assertThat(request.procedureId()).isEqualTo("proc-123");
-        assertThat(request.organizationIdentifier()).isEqualTo("org-456");
-        assertThat(request.credentialDecoded()).isEqualTo("decoded-credential");
-        assertThat(request.credentialType()).isEqualTo(CredentialType.LEAR_CREDENTIAL_EMPLOYEE);
-        assertThat(request.subject()).isEqualTo("did:example:subject");
-        assertThat(request.validUntil()).isSameAs(validUntil);
-        assertThat(request.operationMode()).isEqualTo("ONLINE");
-        assertThat(request.signatureMode()).isEqualTo("JWS");
-        assertThat(request.email()).isEqualTo("roger@example.com");
+        assertThat(request)
+                .returns("proc-123", CredentialProcedureCreationRequest::procedureId)
+                .returns("org-456", CredentialProcedureCreationRequest::organizationIdentifier)
+                .returns("decoded-credential", CredentialProcedureCreationRequest::credentialDecoded)
+                .returns(CredentialType.LEAR_CREDENTIAL_EMPLOYEE, CredentialProcedureCreationRequest::credentialType)
+                .returns("did:example:subject", CredentialProcedureCreationRequest::subject)
+                .returns(validUntil, CredentialProcedureCreationRequest::validUntil)
+                .returns("ONLINE", CredentialProcedureCreationRequest::operationMode)
+                .returns("JWS", CredentialProcedureCreationRequest::signatureMode)
+                .returns("roger@example.com", CredentialProcedureCreationRequest::email);
     }
 
     @Test
@@ -68,7 +69,7 @@ class CredentialProcedureCreationRequestTest {
                 .build();
 
         CredentialProcedureCreationRequest c = CredentialProcedureCreationRequest.builder()
-                .procedureId("proc-2") // Different
+                .procedureId("proc-2")
                 .organizationIdentifier("org-1")
                 .credentialDecoded("cred")
                 .credentialType(CredentialType.LABEL_CREDENTIAL)
@@ -80,12 +81,12 @@ class CredentialProcedureCreationRequestTest {
                 .build();
 
         // Assert
-        assertThat(a).isEqualTo(b);
-        assertThat(a.hashCode()).isEqualTo(b.hashCode());
-
-        assertThat(a).isNotEqualTo(c);
-        assertThat(a).isNotEqualTo(null);
-        assertThat(a).isNotEqualTo("not-a-request");
+        assertThat(a)
+                .isEqualTo(b)
+                .hasSameHashCodeAs(b)
+                .isNotEqualTo(c)
+                .isNotEqualTo(null)
+                .isNotEqualTo("not-a-request");
     }
 
     @Test
@@ -101,10 +102,11 @@ class CredentialProcedureCreationRequestTest {
         String text = request.toString();
 
         // Assert
-        assertThat(text).contains("CredentialProcedureCreationRequest");
-        assertThat(text).contains("procedureId=proc-123");
-        assertThat(text).contains("organizationIdentifier=org-456");
-        assertThat(text).contains("email=roger@example.com");
+        assertThat(text)
+                .contains("CredentialProcedureCreationRequest")
+                .contains("procedureId=proc-123")
+                .contains("organizationIdentifier=org-456")
+                .contains("email=roger@example.com");
     }
 
     @Test
@@ -115,16 +117,16 @@ class CredentialProcedureCreationRequestTest {
                 .build();
 
         // Assert
-        assertThat(request.procedureId()).isEqualTo("proc-123");
-
-        assertThat(request.organizationIdentifier()).isNull();
-        assertThat(request.credentialDecoded()).isNull();
-        assertThat(request.credentialType()).isNull();
-        assertThat(request.subject()).isNull();
-        assertThat(request.validUntil()).isNull();
-        assertThat(request.operationMode()).isNull();
-        assertThat(request.signatureMode()).isNull();
-        assertThat(request.email()).isNull();
+        assertThat(request)
+                .returns("proc-123", CredentialProcedureCreationRequest::procedureId)
+                .returns(null, CredentialProcedureCreationRequest::organizationIdentifier)
+                .returns(null, CredentialProcedureCreationRequest::credentialDecoded)
+                .returns(null, CredentialProcedureCreationRequest::credentialType)
+                .returns(null, CredentialProcedureCreationRequest::subject)
+                .returns(null, CredentialProcedureCreationRequest::validUntil)
+                .returns(null, CredentialProcedureCreationRequest::operationMode)
+                .returns(null, CredentialProcedureCreationRequest::signatureMode)
+                .returns(null, CredentialProcedureCreationRequest::email);
     }
 
     @Test
@@ -149,7 +151,9 @@ class CredentialProcedureCreationRequestTest {
         validUntil.setTime(Timestamp.valueOf("2040-01-01 00:00:00").getTime());
 
         // Assert
-        assertThat(request.validUntil()).isSameAs(validUntil);
-        assertThat(request.validUntil().toString()).startsWith("2040-01-01");
+        assertThat(request.validUntil())
+                .isSameAs(validUntil)
+                .satisfies(ts -> assertThat(ts.toString()).startsWith("2040-01-01"));
+
     }
 }

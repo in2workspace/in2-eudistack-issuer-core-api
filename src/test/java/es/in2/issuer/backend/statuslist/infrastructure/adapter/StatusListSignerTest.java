@@ -21,6 +21,7 @@ import java.lang.reflect.Method;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -170,7 +171,9 @@ class StatusListSignerTest {
         StatusListSigner signer = new StatusListSigner(remoteSignatureService, objectMapper);
 
         // Act + Assert
-        assertThrows(RuntimeException.class, () -> signer.sign(Map.of("a", 1), null, 1L));
+        assertThatThrownBy(() -> signer.sign(Map.of("a", 1), null, 1L))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("token"); // opcional: verificar el missatge
     }
 
     /**

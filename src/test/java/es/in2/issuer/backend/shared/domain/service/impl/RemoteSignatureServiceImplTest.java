@@ -85,9 +85,7 @@ class RemoteSignatureServiceImplTest {
     @Mock
     private EmailService emailService;
 
-    private SignatureRequest signatureRequest;
-    private String token;
-    private SignatureType signatureType;
+
     private final String mockAccessToken = "mockAccessToken";
     private final String mockCredentialID = "mockCredentialID";
     private final String mockCredentialListEndpoint = "https://remote-signature.com/csc/v2/credentials/list";
@@ -96,11 +94,11 @@ class RemoteSignatureServiceImplTest {
     @Test
     void testSignSuccessDSS() throws JsonProcessingException {
         when(remoteSignatureConfig.getRemoteSignatureType()).thenReturn(SIGNATURE_REMOTE_TYPE_SERVER);
-        signatureType = SignatureType.COSE;
+        SignatureType signatureType = SignatureType.COSE;
         Map<String, String> parameters = Map.of("param1", "value1", "param2", "value2");
         SignatureConfiguration signatureConfiguration1 = new SignatureConfiguration(signatureType, parameters);
-        signatureRequest = new SignatureRequest(signatureConfiguration1, "data");
-        token = "dummyToken";
+        SignatureRequest signatureRequest = new SignatureRequest(signatureConfiguration1, "data");
+        String token = "dummyToken";
         when(remoteSignatureConfig.getRemoteSignatureDomain()).thenReturn("http://remote-signature-dss.com");
         when(remoteSignatureConfig.getRemoteSignatureSignPath()).thenReturn("/sign");
         String signatureRemoteServerEndpoint = "http://remote-signature-dss.com/api/v1/sign";
@@ -125,11 +123,11 @@ class RemoteSignatureServiceImplTest {
     @Test
     void testSignRemoteSignatureException() throws JsonProcessingException {
         when(remoteSignatureConfig.getRemoteSignatureType()).thenReturn(SIGNATURE_REMOTE_TYPE_SERVER);
-        signatureType = SignatureType.COSE;
+        SignatureType signatureType = SignatureType.COSE;
         Map<String, String> parameters = Map.of("param1", "value1", "param2", "value2");
         SignatureConfiguration signatureConfiguration1 = new SignatureConfiguration(signatureType, parameters);
-        signatureRequest = new SignatureRequest(signatureConfiguration1, "");
-        token = "dummyToken";
+        SignatureRequest signatureRequest = new SignatureRequest(signatureConfiguration1, "");
+        String token = "dummyToken";
         when(objectMapper.writeValueAsString(any())).thenReturn("");
         when(remoteSignatureConfig.getRemoteSignatureDomain()).thenReturn("http://remote-signature-dss.com");
         when(remoteSignatureConfig.getRemoteSignatureSignPath()).thenReturn("/sign");
@@ -149,10 +147,10 @@ class RemoteSignatureServiceImplTest {
 
     @Test
     void testGetSignedDocumentExternal() throws JsonProcessingException, HashGenerationException {
-        signatureType = SignatureType.JADES;
+        SignatureType signatureType = SignatureType.JADES;
         Map<String, String> parameters = Map.of("param1", "value1", "param2", "value2");
         SignatureConfiguration signatureConfiguration = new SignatureConfiguration(signatureType, parameters);
-        signatureRequest = new SignatureRequest(signatureConfiguration, "data");
+        SignatureRequest signatureRequest = new SignatureRequest(signatureConfiguration, "data");
 
         String accessTokenResponse = "{\"access_token\": \"mock-access-token\"}";
         String firstBase64SignedDocument = Base64.getEncoder().encodeToString("mock-signed-document".getBytes(StandardCharsets.UTF_8));
@@ -199,9 +197,9 @@ class RemoteSignatureServiceImplTest {
 
     @Test
     void testRequestAccessToken_WrapsAccessTokenException() throws JsonProcessingException {
-        signatureType = SignatureType.JADES;
+        SignatureType signatureType = SignatureType.JADES;
         SignatureConfiguration signatureConfiguration = new SignatureConfiguration(signatureType, Map.of());
-        signatureRequest = new SignatureRequest(signatureConfiguration, "data");
+        SignatureRequest signatureRequest = new SignatureRequest(signatureConfiguration, "data");
 
         String invalidAccessTokenResponse = "{ \"invalid_key\": \"no_token_here\" }";
 
@@ -219,10 +217,9 @@ class RemoteSignatureServiceImplTest {
 
         StepVerifier.create(result)
                 .expectErrorSatisfies(throwable -> {
-                    // S'espera el wrapping a RemoteSignatureException...
                     assertThat(throwable).isInstanceOf(RemoteSignatureException.class);
                     assertThat(throwable.getMessage()).isEqualTo("Unexpected error retrieving access token");
-                    // ...amb la causa original AccessTokenException
+
                     assertThat(throwable.getCause()).isInstanceOf(AccessTokenException.class);
                     assertThat(throwable.getCause().getMessage()).contains("Access token missing");
                 })
@@ -232,9 +229,9 @@ class RemoteSignatureServiceImplTest {
 
     @Test
     void testProcessSignatureResponseSignatureProcessingException() throws JsonProcessingException {
-        signatureType = SignatureType.JADES;
+        SignatureType signatureType = SignatureType.JADES;
         SignatureConfiguration signatureConfiguration = new SignatureConfiguration(signatureType, Map.of());
-        signatureRequest = new SignatureRequest(signatureConfiguration, "data");
+        SignatureRequest signatureRequest = new SignatureRequest(signatureConfiguration, "data");
 
         String malformedSignatureResponse = "{ \"DocumentWithSignature\": [] }";
 
@@ -349,11 +346,11 @@ class RemoteSignatureServiceImplTest {
     void testSignSuccessOnFirstAttempt() throws JsonProcessingException {
         // Arrange
         when(remoteSignatureConfig.getRemoteSignatureType()).thenReturn(SIGNATURE_REMOTE_TYPE_CLOUD);
-        signatureType = SignatureType.JADES;
+        SignatureType signatureType = SignatureType.JADES;
         Map<String, String> parameters = Map.of("param1", "value1", "param2", "value2");
         SignatureConfiguration signatureConfiguration = new SignatureConfiguration(signatureType, parameters);
-        signatureRequest = new SignatureRequest(signatureConfiguration, "\"vc\": {\"id\": \"fa7376e0-fcc1-44c0-a91e-001a1301c06e\"}");
-        token = "dummyToken";
+        SignatureRequest signatureRequest = new SignatureRequest(signatureConfiguration, "\"vc\": {\"id\": \"fa7376e0-fcc1-44c0-a91e-001a1301c06e\"}");
+        String token = "dummyToken";
         String procedureId = "550e8400-e29b-41d4-a716-446655440000";
 
         // Configure server endpoint
@@ -455,25 +452,18 @@ class RemoteSignatureServiceImplTest {
         when(objectMapper.readValue(signDocResponseJson, Map.class))
                 .thenReturn(Map.of("DocumentWithSignature", List.of(base64DocWithSignature)));
 
-        // processSignatureResponse does:
-        // - base64 decode docWithSignature
-        // - jwtUtils.decodePayload(decodedDoc)
-        // - compare with original
         String decodedDocWithSignature = new String(Base64.getDecoder().decode(base64DocWithSignature), StandardCharsets.UTF_8);
         when(jwtUtils.decodePayload(decodedDocWithSignature)).thenReturn(originalPayload);
         when(jwtUtils.areJsonsEqual(originalPayload, originalPayload)).thenReturn(true);
 
-        // It then serializes SignedData-like JSON and later toSignedData parses it
         String signedDataJson = "{\"type\":\"JADES\",\"data\":\"" + decodedDocWithSignature + "\"}";
         doAnswer(invocation -> {
             Object arg = invocation.getArgument(0);
 
-            // 1) buildAuthorizationDetails() serializes a List<authorizationDetails>
             if (arg instanceof List) {
                 return "[{\"type\":\"credential\"}]";
             }
 
-            // 2) processSignatureResponse() serializes the final map {type,data}
             if (arg instanceof Map) {
                 Map<?, ?> map = (Map<?, ?>) arg;
                 Object type = map.get("type");
@@ -514,11 +504,11 @@ class RemoteSignatureServiceImplTest {
     void testSignFailAfterAllRetries() throws JsonProcessingException {
         // Arrange
         when(remoteSignatureConfig.getRemoteSignatureType()).thenReturn(SIGNATURE_REMOTE_TYPE_CLOUD);
-        signatureType = SignatureType.JADES;
+        SignatureType signatureType = SignatureType.JADES;
         Map<String, String> parameters = Map.of("param1", "value1", "param2", "value2");
         SignatureConfiguration signatureConfiguration = new SignatureConfiguration(signatureType, parameters);
-        signatureRequest = new SignatureRequest(signatureConfiguration, "\"vc\": {\"id\": \"fa7376e0-fcc1-44c0-a91e-001a1301c06e\"}");
-        token = "dummyToken";
+        SignatureRequest signatureRequest = new SignatureRequest(signatureConfiguration, "\"vc\": {\"id\": \"fa7376e0-fcc1-44c0-a91e-001a1301c06e\"}");
+        String token = "dummyToken";
         String procedureId = "550e8400-e29b-41d4-a716-446655440000";
         UUID procedureUUID = UUID.fromString(procedureId);
 

@@ -72,7 +72,7 @@ class LEARCredentialMachineFactoryTest {
         LEARCredentialMachine.CredentialSubject.Mandate.Mandator mockMandator =
                 mock(LEARCredentialMachine.CredentialSubject.Mandate.Mandator.class);
 
-        when(objectMapper.convertValue(eq(jsonNode), eq(LEARCredentialMachine.CredentialSubject.Mandate.class)))
+        when(objectMapper.convertValue(jsonNode, LEARCredentialMachine.CredentialSubject.Mandate.class))
                 .thenReturn(mockMandate);
 
         when(mockMandate.mandatee()).thenReturn(mockMandatee);
@@ -99,7 +99,7 @@ class LEARCredentialMachineFactoryTest {
                     assertThat(req.procedureId()).isEqualTo("proc-123");
                     assertThat(req.organizationIdentifier()).isEqualTo("orgId");
                     assertThat(req.operationMode()).isEqualTo("S");
-                    assertThat(req.email()).isEqualTo("");
+                    assertThat(req.email()).isEmpty();
                     assertThat(req.credentialDecoded()).isEqualTo(json);
                     assertThat(req.subject()).isEqualTo("example-domain");
                 })

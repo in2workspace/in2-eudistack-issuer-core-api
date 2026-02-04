@@ -30,7 +30,6 @@ class IssuerFactoryTest {
     @InjectMocks private IssuerFactory issuerFactory;
 
     private final String procedureId = "proc-123";
-    private final String email = "user@mail";
 
     @BeforeEach
     void setUp() {
