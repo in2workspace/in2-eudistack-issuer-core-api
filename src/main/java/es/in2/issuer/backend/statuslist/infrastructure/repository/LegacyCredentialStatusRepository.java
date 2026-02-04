@@ -6,7 +6,8 @@ import reactor.core.publisher.Flux;
 
 import java.util.UUID;
 
-
+// Legacy repository used to handle status list indexes with a PlainListEntry credentialStatus.
+// It can be removed once the last credential of this type expires in DOME.
 public interface LegacyCredentialStatusRepository extends ReactiveCrudRepository<LegacyStatusListIndex, UUID> {
     Flux<LegacyStatusListIndex> findByListId(int listId);
 }

@@ -11,6 +11,8 @@ import reactor.core.publisher.Mono;
 
 import static java.util.Objects.requireNonNull;
 
+// Legacy service used to handle credentials with a PlainListEntry credentialStatus.
+// It can be removed once the last credential of this type expires in DOME.
 @Slf4j
 @Service
 @RequiredArgsConstructor

@@ -2,10 +2,8 @@ package es.in2.issuer.backend.statuslist.domain.model;
 
 import lombok.Builder;
 
-/**
- * W3C BitstringStatusListEntry (credentialStatus).
- * Pointer to a bit position inside a Status List Credential.
- */
+// Legacy model used to handle status list indexes with a PlainListEntry credentialStatus.
+// It can be removed once the last credential of this type expires in DOME.
 @Builder
 public record StatusListEntry(
         String id,
