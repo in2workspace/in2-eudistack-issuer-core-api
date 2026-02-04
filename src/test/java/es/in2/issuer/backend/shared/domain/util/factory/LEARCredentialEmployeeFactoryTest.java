@@ -164,124 +164,124 @@ class LEARCredentialEmployeeFactoryTest {
 //    }
 
 
-//    @Test
-//    void mapCredentialAndBindIssuerInToTheCredential_Server_Success() throws Exception {
-//        String procedureId = "procedureId";
-//        String credentialString = "validCredentialStringhttps://trust-framework.dome-marketplace.eu/credentials/learcredentialemployee/v1";
-//        String expectedString = "expectedString";
-//
-//        LEARCredentialEmployee learCredentialEmployee = mock(LEARCredentialEmployee.class);
-//        when(objectMapper.readValue(credentialString, LEARCredentialEmployee.class))
-//                .thenReturn(learCredentialEmployee);
-//
-//        DetailedIssuer mockIssuer = mock(DetailedIssuer.class);
-//        when(issuerFactory.createDetailedIssuer(procedureId, ""))
-//                .thenReturn(Mono.just(mockIssuer));
-//
-//        when(objectMapper.writeValueAsString(any(LEARCredentialEmployee.class)))
-//                .thenReturn(expectedString);
-//
-//        // Act & Assert
-//        StepVerifier.create(
-//                        learCredentialEmployeeFactory.mapCredentialAndBindIssuerInToTheCredential(credentialString, procedureId, "")
-//                )
-//                .expectNext(expectedString)
-//                .verifyComplete();
-//
-//        // Assert
-//        verify(remoteSignatureServiceImpl, never()).validateCredentials();
-//    }
-//
-//
-//
-//    @Test
-//    void mapCredentialAndBindIssuerInToTheCredential_InvalidCredentials_Error() throws Exception {
-//        String procedureId = "550e8400-e29b-41d4-a716-446655440000";
-//        String credentialString = "validCredentialStringhttps://trust-framework.dome-marketplace.eu/credentials/learcredentialemployee/v1";
-//
-//        LEARCredentialEmployee learCredentialEmployee = mock(LEARCredentialEmployee.class);
-//        when(objectMapper.readValue(credentialString, LEARCredentialEmployee.class))
-//                .thenReturn(learCredentialEmployee);
-//
-//        when(issuerFactory.createDetailedIssuer(procedureId, ""))
-//                .thenReturn(Mono.empty());
-//
-//        // Act & Assert
-//        StepVerifier.create(
-//                        learCredentialEmployeeFactory.mapCredentialAndBindIssuerInToTheCredential(credentialString, procedureId, "")
-//                )
-//                .expectComplete()
-//                .verify();
-//
-//        verify(objectMapper, never()).writeValueAsString(any());
-//    }
-//
-//    @Test
-//    void mapCredentialAndBindIssuerInToTheCredential_ValidateCredentials_SuccessOnSecondAttempt() throws Exception {
-//        String procedureId = "550e8400-e29b-41d4-a716-446655440000";
-//        String credentialString = "validCredentialStringhttps://trust-framework.dome-marketplace.eu/credentials/learcredentialemployee/v1";
-//        String expectedString = "expectedString";
-//
-//        LEARCredentialEmployee learCredentialEmployee = mock(LEARCredentialEmployee.class);
-//        when(objectMapper.readValue(credentialString, LEARCredentialEmployee.class))
-//                .thenReturn(learCredentialEmployee);
-//
-//        DetailedIssuer fakeIssuer = mock(DetailedIssuer.class);
-//        when(issuerFactory.createDetailedIssuer(procedureId, ""))
-//                .thenReturn(Mono.just(fakeIssuer));
-//
-//        when(objectMapper.writeValueAsString(any(LEARCredentialEmployee.class)))
-//                .thenReturn(expectedString);
-//
-//        StepVerifier.create(
-//                        learCredentialEmployeeFactory.mapCredentialAndBindIssuerInToTheCredential(credentialString, procedureId, "")
-//                )
-//                .expectNext(expectedString)
-//                .verifyComplete();
-//    }
-//
-//
-//    @Test
-//    void mapCredentialAndBindIssuerInToTheCredential_ValidateCredentials_NonRecoverableError() throws Exception {
-//        String procedureId = "550e8400-e29b-41d4-a716-446655440000";
-//        String credentialString = "validCredentialStringhttps://trust-framework.dome-marketplace.eu/credentials/learcredentialemployee/v1";
-//
-//        LEARCredentialEmployee learCredentialEmployee = mock(LEARCredentialEmployee.class);
-//        when(objectMapper.readValue(credentialString, LEARCredentialEmployee.class))
-//                .thenReturn(learCredentialEmployee);
-//
-//        when(issuerFactory.createDetailedIssuer(procedureId, ""))
-//                .thenReturn(Mono.empty());
-//
-//        StepVerifier.create(
-//                        learCredentialEmployeeFactory.mapCredentialAndBindIssuerInToTheCredential(credentialString, procedureId, "")
-//                )
-//                .expectComplete()
-//                .verify();
-//    }
-//
-//
-//    @Test
-//    void mapCredentialAndBindIssuerInToTheCredential_HandlePostRecoverErrorFails() throws Exception {
-//        String procedureId = "550e8400-e29b-41d4-a716-446655440000";
-//        String credentialString = "validCredentialStringhttps://trust-framework.dome-marketplace.eu/credentials/learcredentialemployee/v1";
-//
-//        LEARCredentialEmployee learCredentialEmployee = mock(LEARCredentialEmployee.class);
-//        when(objectMapper.readValue(credentialString, LEARCredentialEmployee.class))
-//                .thenReturn(learCredentialEmployee);
-//
-//        RuntimeException postRecoveryEx = new RuntimeException("Error in post-recovery handling");
-//        when(issuerFactory.createDetailedIssuer(procedureId, ""))
-//                .thenReturn(Mono.error(postRecoveryEx));
-//
-//        StepVerifier.create(
-//                        learCredentialEmployeeFactory.mapCredentialAndBindIssuerInToTheCredential(credentialString, procedureId, "")
-//                )
-//                .expectErrorSatisfies(ex -> {
-//                    assertSame(postRecoveryEx, ex);
-//                })
-//                .verify();
-//    }
+    @Test
+    void mapCredentialAndBindIssuerInToTheCredential_Server_Success() throws Exception {
+        String procedureId = "procedureId";
+        String credentialString = "validCredentialStringhttps://trust-framework.dome-marketplace.eu/credentials/learcredentialemployee/v1";
+        String expectedString = "expectedString";
+
+        LEARCredentialEmployee learCredentialEmployee = mock(LEARCredentialEmployee.class);
+        when(objectMapper.readValue(credentialString, LEARCredentialEmployee.class))
+                .thenReturn(learCredentialEmployee);
+
+        DetailedIssuer mockIssuer = mock(DetailedIssuer.class);
+        when(issuerFactory.createDetailedIssuerAndNotifyOnError(procedureId, ""))
+                .thenReturn(Mono.just(mockIssuer));
+
+        when(objectMapper.writeValueAsString(any(LEARCredentialEmployee.class)))
+                .thenReturn(expectedString);
+
+        // Act & Assert
+        StepVerifier.create(
+                        learCredentialEmployeeFactory.mapCredentialAndBindIssuerInToTheCredential(credentialString, procedureId, "")
+                )
+                .expectNext(expectedString)
+                .verifyComplete();
+
+        // Assert
+        verify(remoteSignatureServiceImpl, never()).validateCredentials();
+    }
+
+
+
+    @Test
+    void mapCredentialAndBindIssuerInToTheCredential_InvalidCredentials_Error() throws Exception {
+        String procedureId = "550e8400-e29b-41d4-a716-446655440000";
+        String credentialString = "validCredentialStringhttps://trust-framework.dome-marketplace.eu/credentials/learcredentialemployee/v1";
+
+        LEARCredentialEmployee learCredentialEmployee = mock(LEARCredentialEmployee.class);
+        when(objectMapper.readValue(credentialString, LEARCredentialEmployee.class))
+                .thenReturn(learCredentialEmployee);
+
+        when(issuerFactory.createDetailedIssuerAndNotifyOnError(procedureId, ""))
+                .thenReturn(Mono.empty());
+
+        // Act & Assert
+        StepVerifier.create(
+                        learCredentialEmployeeFactory.mapCredentialAndBindIssuerInToTheCredential(credentialString, procedureId, "")
+                )
+                .expectComplete()
+                .verify();
+
+        verify(objectMapper, never()).writeValueAsString(any());
+    }
+
+    @Test
+    void mapCredentialAndBindIssuerInToTheCredential_ValidateCredentials_SuccessOnSecondAttempt() throws Exception {
+        String procedureId = "550e8400-e29b-41d4-a716-446655440000";
+        String credentialString = "validCredentialStringhttps://trust-framework.dome-marketplace.eu/credentials/learcredentialemployee/v1";
+        String expectedString = "expectedString";
+
+        LEARCredentialEmployee learCredentialEmployee = mock(LEARCredentialEmployee.class);
+        when(objectMapper.readValue(credentialString, LEARCredentialEmployee.class))
+                .thenReturn(learCredentialEmployee);
+
+        DetailedIssuer fakeIssuer = mock(DetailedIssuer.class);
+        when(issuerFactory.createDetailedIssuerAndNotifyOnError(procedureId, ""))
+                .thenReturn(Mono.just(fakeIssuer));
+
+        when(objectMapper.writeValueAsString(any(LEARCredentialEmployee.class)))
+                .thenReturn(expectedString);
+
+        StepVerifier.create(
+                        learCredentialEmployeeFactory.mapCredentialAndBindIssuerInToTheCredential(credentialString, procedureId, "")
+                )
+                .expectNext(expectedString)
+                .verifyComplete();
+    }
+
+
+    @Test
+    void mapCredentialAndBindIssuerInToTheCredential_ValidateCredentials_NonRecoverableError() throws Exception {
+        String procedureId = "550e8400-e29b-41d4-a716-446655440000";
+        String credentialString = "validCredentialStringhttps://trust-framework.dome-marketplace.eu/credentials/learcredentialemployee/v1";
+
+        LEARCredentialEmployee learCredentialEmployee = mock(LEARCredentialEmployee.class);
+        when(objectMapper.readValue(credentialString, LEARCredentialEmployee.class))
+                .thenReturn(learCredentialEmployee);
+
+        when(issuerFactory.createDetailedIssuerAndNotifyOnError(procedureId, ""))
+                .thenReturn(Mono.empty());
+
+        StepVerifier.create(
+                        learCredentialEmployeeFactory.mapCredentialAndBindIssuerInToTheCredential(credentialString, procedureId, "")
+                )
+                .expectComplete()
+                .verify();
+    }
+
+
+    @Test
+    void mapCredentialAndBindIssuerInToTheCredential_HandlePostRecoverErrorFails() throws Exception {
+        String procedureId = "550e8400-e29b-41d4-a716-446655440000";
+        String credentialString = "validCredentialStringhttps://trust-framework.dome-marketplace.eu/credentials/learcredentialemployee/v1";
+
+        LEARCredentialEmployee learCredentialEmployee = mock(LEARCredentialEmployee.class);
+        when(objectMapper.readValue(credentialString, LEARCredentialEmployee.class))
+                .thenReturn(learCredentialEmployee);
+
+        RuntimeException postRecoveryEx = new RuntimeException("Error in post-recovery handling");
+        when(issuerFactory.createDetailedIssuerAndNotifyOnError(procedureId, ""))
+                .thenReturn(Mono.error(postRecoveryEx));
+
+        StepVerifier.create(
+                        learCredentialEmployeeFactory.mapCredentialAndBindIssuerInToTheCredential(credentialString, procedureId, "")
+                )
+                .expectErrorSatisfies(ex -> {
+                    assertSame(postRecoveryEx, ex);
+                })
+                .verify();
+    }
 
     @Test
     void mapStringToLEARCredentialEmployee_shouldParseV1Successfully() throws Exception {

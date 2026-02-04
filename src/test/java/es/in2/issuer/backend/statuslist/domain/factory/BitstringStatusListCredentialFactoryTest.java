@@ -28,9 +28,10 @@ class BitstringStatusListCredentialFactoryTest {
         Map<String, Object> vc = factory.buildUnsigned(listUrl, issuerId, purpose, encodedList);
 
         // Assert: top-level
-        assertThat(vc).containsKeys("@context", "id", "type", "issuer", "credentialSubject");
-        assertThat(vc).containsEntry("id", listUrl);
-        assertThat(vc).containsEntry("issuer", issuerId);
+        assertThat(vc)
+                .containsKeys("@context", "id", "type", "issuer", "credentialSubject")
+                .containsEntry("id", listUrl)
+                .containsEntry("issuer", issuerId);
 
         // Assert: @context (Object[])
         Object[] context = (Object[]) vc.get("@context");
@@ -43,13 +44,14 @@ class BitstringStatusListCredentialFactoryTest {
         Object[] types = (Object[]) vc.get("type");
         assertThat(types).containsExactly(VC_TYPE, STATUS_LIST_CREDENTIAL_TYPE);
 
-        // Assert: credentialSubject
+        // Assert: credentialSubject (ENCADENAT)
         @SuppressWarnings("unchecked")
         Map<String, Object> subject = (Map<String, Object>) vc.get("credentialSubject");
 
-        assertThat(subject).containsEntry("type", STATUS_LIST_SUBJECT_TYPE);
-        assertThat(subject).containsEntry("statusPurpose", purpose);
-        assertThat(subject).containsEntry("encodedList", encodedList);
+        assertThat(subject)
+                .containsEntry("type", STATUS_LIST_SUBJECT_TYPE)
+                .containsEntry("statusPurpose", purpose)
+                .containsEntry("encodedList", encodedList);
     }
 
 
@@ -100,11 +102,12 @@ class BitstringStatusListCredentialFactoryTest {
         StatusListEntry entry = factory.buildStatusListEntry(listUrl, idx, purpose);
 
         // Assert
-        assertThat(entry.id()).isEqualTo(listUrl + "#" + idx);
-        assertThat(entry.type()).isEqualTo(BITSTRING_ENTRY_TYPE);
-        assertThat(entry.statusPurpose()).isEqualTo(purpose);
-        assertThat(entry.statusListIndex()).isEqualTo(String.valueOf(idx));
-        assertThat(entry.statusListCredential()).isEqualTo(listUrl);
+        assertThat(entry)
+                .returns(listUrl + "#" + idx, StatusListEntry::id)
+                .returns(BITSTRING_ENTRY_TYPE, StatusListEntry::type)
+                .returns(purpose, StatusListEntry::statusPurpose)
+                .returns(String.valueOf(idx), StatusListEntry::statusListIndex)
+                .returns(listUrl, StatusListEntry::statusListCredential);
     }
 
     @Test

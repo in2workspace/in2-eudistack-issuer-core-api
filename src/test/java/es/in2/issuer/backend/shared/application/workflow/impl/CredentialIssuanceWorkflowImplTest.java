@@ -119,187 +119,174 @@ class CredentialIssuanceWorkflowImplTest {
                 .expectError(OperationNotSupportedException.class)
                 .verify();
     }
-    // TODO
-    //    @Test
-    //    void operationNotSupportedExceptionDueInvalidResponseUriTest() {
-    //        String processId = "1234";
-    //        String token = "token";
-    //        String type = "VerifiableCertification";
-    //        String idToken = "idToken";
-    //        JsonNode jsonNode = mock(JsonNode.class);
-    //
-    //        PreSubmittedCredentialRequest preSubmittedCredentialRequest = PreSubmittedCredentialRequest.builder().payload(jsonNode).schema("VerifiableCertification").format(JWT_VC).operationMode("S").responseUri("").build();
-    //        when(verifiableCredentialPolicyAuthorizationService.authorize(token, type, jsonNode, idToken)).thenReturn(Mono.empty());
-    //        StepVerifier.create(verifiableCredentialIssuanceWorkflow.execute(processId, preSubmittedCredentialRequest, token, idToken))
-    //                .expectError(OperationNotSupportedException.class)
-    //                .verify();
-    //    }
 
-//    @Test
-//    void completeWithdrawLEARProcessSyncSuccess() throws JsonProcessingException {
-//        String processId = "1234";
-//        String type = "LEARCredentialEmployee";
-//        String knowledgebaseWalletUrl = "https://knowledgebase.com";
-//        String issuerUiExternalDomain = "https://example.com";
-//        String token = "token";
-//        String idToken = "idToken";
-//        String expectedEmail = "example@in2.es";
-//        String json = """
-//                {
-//                    "life_span": {
-//                        "end_date_time": "2025-04-02 09:23:22.637345122 +0000 UTC",
-//                        "start_date_time": "2024-04-02 09:23:22.637345122 +0000 UTC"
-//                    },
-//                    "mandatee": {
-//                        "email": "example@in2.es",
-//                        "firstName": "Jhon",
-//                        "lastName": "Doe",
-//                        "mobile_phone": "+34666336699"
-//                    },
-//                    "mandator": {
-//                        "commonName": "IN2",
-//                        "country": "ES",
-//                        "email": "rrhh@in2.es",
-//                        "organization": "IN2, Ingeniería de la Información, S.L.",
-//                        "organizationIdentifier": "VATES-B26246436",
-//                        "serialNumber": "3424320"
-//                    },
-//                    "power": [
-//                        {
-//                            "id": "6b8f3137-a57a-46a5-97e7-1117a20142fv",
-//                            "tmf_domain": "DOME",
-//                            "tmf_function": "DomePlatform",
-//                            "tmf_type": "Domain",
-//                            "tmf_action": [
-//                                "Operator",
-//                                "Customer",
-//                                "Provider"
-//                            ]
-//                        },
-//                        {
-//                            "id": "6b8f3137-a57a-46a5-97e7-1117a20142fb",
-//                            "tmf_action": "Execute",
-//                            "tmf_domain": "DOME",
-//                            "tmf_function": "Onboarding",
-//                            "tmf_type": "Domain"
-//                        },
-//                        {
-//                            "id": "ad9b1509-60ea-47d4-9878-18b581d8e19b",
-//                            "tmf_action": [
-//                                "Create",
-//                                "Update"
-//                            ],
-//                            "tmf_domain": "DOME",
-//                            "tmf_function": "ProductOffering",
-//                            "tmf_type": "Domain"
-//                        }
-//                    ]
-//                }
-//                """;
-//        ObjectMapper objectMapper = new ObjectMapper();
-//        JsonNode jsonNode = objectMapper.readTree(json);
-//        PreSubmittedCredentialDataRequest preSubmittedCredentialDataRequest = PreSubmittedCredentialDataRequest.builder().payload(jsonNode).schema("LEARCredentialEmployee").format(JWT_VC_JSON).operationMode("S").build();
-//        String transactionCode = "4321";
-//
-//        when(verifiableCredentialPolicyAuthorizationService.authorize(token, type, jsonNode, idToken)).thenReturn(Mono.empty());
-////        when(verifiableCredentialService.generateVc(processId, preSubmittedCredentialDataRequest, expectedEmail)).thenReturn(Mono.just(transactionCode));
-//        when(appConfig.getIssuerFrontendUrl()).thenReturn(issuerUiExternalDomain);
-//        when(appConfig.getKnowledgebaseWalletUrl()).thenReturn(knowledgebaseWalletUrl);
-//        when(emailService.sendCredentialActivationEmail("example@in2.es", "email.activation.subject", issuerUiExternalDomain + "/credential-offer?transaction_code=" + transactionCode, knowledgebaseWalletUrl, "IN2, Ingeniería de la Información, S.L.")).thenReturn(Mono.empty());
-//        StepVerifier.create(verifiableCredentialIssuanceWorkflow.execute(processId, preSubmittedCredentialDataRequest, token, idToken))
-//                .verifyComplete();
-//    }
+    @Test
+    void completeWithdrawLEARProcessSyncSuccess() throws JsonProcessingException {
+        String processId = "1234";
+        String type = "LEARCredentialEmployee";
+        String knowledgebaseWalletUrl = "https://knowledgebase.com";
+        String issuerUiExternalDomain = "https://example.com";
+        String token = "token";
+        String idToken = "idToken";
+        String expectedEmail = "example@in2.es";
+        String json = """
+                {
+                    "life_span": {
+                        "end_date_time": "2025-04-02 09:23:22.637345122 +0000 UTC",
+                        "start_date_time": "2024-04-02 09:23:22.637345122 +0000 UTC"
+                    },
+                    "mandatee": {
+                        "email": "example@in2.es",
+                        "firstName": "Jhon",
+                        "lastName": "Doe",
+                        "mobile_phone": "+34666336699"
+                    },
+                    "mandator": {
+                        "commonName": "IN2",
+                        "country": "ES",
+                        "email": "rrhh@in2.es",
+                        "organization": "IN2, Ingeniería de la Información, S.L.",
+                        "organizationIdentifier": "VATES-B26246436",
+                        "serialNumber": "3424320"
+                    },
+                    "power": [
+                        {
+                            "id": "6b8f3137-a57a-46a5-97e7-1117a20142fv",
+                            "tmf_domain": "DOME",
+                            "tmf_function": "DomePlatform",
+                            "tmf_type": "Domain",
+                            "tmf_action": [
+                                "Operator",
+                                "Customer",
+                                "Provider"
+                            ]
+                        },
+                        {
+                            "id": "6b8f3137-a57a-46a5-97e7-1117a20142fb",
+                            "tmf_action": "Execute",
+                            "tmf_domain": "DOME",
+                            "tmf_function": "Onboarding",
+                            "tmf_type": "Domain"
+                        },
+                        {
+                            "id": "ad9b1509-60ea-47d4-9878-18b581d8e19b",
+                            "tmf_action": [
+                                "Create",
+                                "Update"
+                            ],
+                            "tmf_domain": "DOME",
+                            "tmf_function": "ProductOffering",
+                            "tmf_type": "Domain"
+                        }
+                    ]
+                }
+                """;
+        ObjectMapper objectMapper = new ObjectMapper();
+        JsonNode jsonNode = objectMapper.readTree(json);
+        PreSubmittedCredentialDataRequest preSubmittedCredentialDataRequest = PreSubmittedCredentialDataRequest.builder().payload(jsonNode).schema("LEARCredentialEmployee").format(JWT_VC_JSON).operationMode("S").build();
+        String transactionCode = "4321";
 
-//    @Test
-//    void completeWithdrawLEARProcessSyncFailureOnEmailSending() throws JsonProcessingException {
-//        String processId = "1234";
-//        String type = "LEARCredentialEmployee";
-//        String knowledgebaseWalletUrl = "https://knowledgebase.com";
-//        String issuerUiExternalDomain = "https://example.com";
-//        String token = "token";
-//        String expectedEmail = "example@in2.es";
-//        String json = """
-//                {
-//                    "life_span": {
-//                        "end_date_time": "2025-04-02 09:23:22.637345122 +0000 UTC",
-//                        "start_date_time": "2024-04-02 09:23:22.637345122 +0000 UTC"
-//                    },
-//                    "mandatee": {
-//                        "email": "example@in2.es",
-//                        "firstName": "Jhon",
-//                        "lastName": "Doe",
-//                        "mobile_phone": "+34666336699"
-//                    },
-//                    "mandator": {
-//                        "commonName": "IN2",
-//                        "country": "ES",
-//                        "email": "rrhh@in2.es",
-//                        "organization": "IN2, Ingeniería de la Información, S.L.",
-//                        "organizationIdentifier": "VATES-B26246436",
-//                        "serialNumber": "3424320"
-//                    },
-//                    "power": [
-//                        {
-//                            "id": "6b8f3137-a57a-46a5-97e7-1117a20142fv",
-//                            "tmf_domain": "DOME",
-//                            "tmf_function": "DomePlatform",
-//                            "tmf_type": "Domain",
-//                            "tmf_action": [
-//                                "Operator",
-//                                "Customer",
-//                                "Provider"
-//                            ]
-//                        },
-//                        {
-//                            "id": "6b8f3137-a57a-46a5-97e7-1117a20142fb",
-//                            "tmf_action": "Execute",
-//                            "tmf_domain": "DOME",
-//                            "tmf_function": "Onboarding",
-//                            "tmf_type": "Domain"
-//                        },
-//                        {
-//                            "id": "ad9b1509-60ea-47d4-9878-18b581d8e19b",
-//                            "tmf_action": [
-//                                "Create",
-//                                "Update"
-//                            ],
-//                            "tmf_domain": "DOME",
-//                            "tmf_function": "ProductOffering",
-//                            "tmf_type": "Domain"
-//                        }
-//                    ]
-//                }
-//                """;
-//        ObjectMapper objectMapper = new ObjectMapper();
-//        JsonNode jsonNode = objectMapper.readTree(json);
-//        PreSubmittedCredentialDataRequest preSubmittedCredentialDataRequest = PreSubmittedCredentialDataRequest.builder()
-//                .payload(jsonNode)
-//                .schema("LEARCredentialEmployee")
-//                .format(JWT_VC_JSON)
-//                .operationMode("S")
-//                .build();
-//        String transactionCode = "4321";
-//
-//        when(verifiableCredentialPolicyAuthorizationService.authorize(token, type, jsonNode, null)).thenReturn(Mono.empty());
-////        when(verifiableCredentialService.generateVc(processId,preSubmittedCredentialDataRequest, expectedEmail)).thenReturn(Mono.just(transactionCode));
-//        when(appConfig.getIssuerFrontendUrl()).thenReturn(issuerUiExternalDomain);
-//        when(appConfig.getKnowledgebaseWalletUrl()).thenReturn(knowledgebaseWalletUrl);
-//
-//        // Simulated failure when sending the email
-//        when(emailService.sendCredentialActivationEmail(
-//                "example@in2.es",
-//                "email.activation.subject",
-//                issuerUiExternalDomain + "/credential-offer?transaction_code=" + transactionCode,
-//                knowledgebaseWalletUrl,
-//                "IN2, Ingeniería de la Información, S.L."))
-//                .thenReturn(Mono.error(new RuntimeException("Email sending failed")));
-//
-//        StepVerifier.create(verifiableCredentialIssuanceWorkflow.execute(processId, preSubmittedCredentialDataRequest, token, null))
-//                .expectErrorMatches(throwable ->
-//                        throwable instanceof EmailCommunicationException &&
-//                                throwable.getMessage().contains(MAIL_ERROR_COMMUNICATION_EXCEPTION_MESSAGE))
-//                .verify();
-//    }
+        when(verifiableCredentialPolicyAuthorizationService.authorize(token, type, jsonNode, idToken)).thenReturn(Mono.empty());
+        when(verifiableCredentialService.generateVc(processId, preSubmittedCredentialDataRequest, expectedEmail, token))
+                .thenReturn(Mono.just(transactionCode));
+        when(appConfig.getIssuerFrontendUrl()).thenReturn(issuerUiExternalDomain);
+        when(appConfig.getKnowledgebaseWalletUrl()).thenReturn(knowledgebaseWalletUrl);
+        when(emailService.sendCredentialActivationEmail("example@in2.es", "email.activation.subject", issuerUiExternalDomain + "/credential-offer?transaction_code=" + transactionCode, knowledgebaseWalletUrl, "IN2, Ingeniería de la Información, S.L.")).thenReturn(Mono.empty());
+        StepVerifier.create(verifiableCredentialIssuanceWorkflow.execute(processId, preSubmittedCredentialDataRequest, token, idToken))
+                .verifyComplete();
+    }
+
+    @Test
+    void completeWithdrawLEARProcessSyncFailureOnEmailSending() throws JsonProcessingException {
+        String processId = "1234";
+        String type = "LEARCredentialEmployee";
+        String knowledgebaseWalletUrl = "https://knowledgebase.com";
+        String issuerUiExternalDomain = "https://example.com";
+        String token = "token";
+        String expectedEmail = "example@in2.es";
+        String json = """
+                {
+                    "life_span": {
+                        "end_date_time": "2025-04-02 09:23:22.637345122 +0000 UTC",
+                        "start_date_time": "2024-04-02 09:23:22.637345122 +0000 UTC"
+                    },
+                    "mandatee": {
+                        "email": "example@in2.es",
+                        "firstName": "Jhon",
+                        "lastName": "Doe",
+                        "mobile_phone": "+34666336699"
+                    },
+                    "mandator": {
+                        "commonName": "IN2",
+                        "country": "ES",
+                        "email": "rrhh@in2.es",
+                        "organization": "IN2, Ingeniería de la Información, S.L.",
+                        "organizationIdentifier": "VATES-B26246436",
+                        "serialNumber": "3424320"
+                    },
+                    "power": [
+                        {
+                            "id": "6b8f3137-a57a-46a5-97e7-1117a20142fv",
+                            "tmf_domain": "DOME",
+                            "tmf_function": "DomePlatform",
+                            "tmf_type": "Domain",
+                            "tmf_action": [
+                                "Operator",
+                                "Customer",
+                                "Provider"
+                            ]
+                        },
+                        {
+                            "id": "6b8f3137-a57a-46a5-97e7-1117a20142fb",
+                            "tmf_action": "Execute",
+                            "tmf_domain": "DOME",
+                            "tmf_function": "Onboarding",
+                            "tmf_type": "Domain"
+                        },
+                        {
+                            "id": "ad9b1509-60ea-47d4-9878-18b581d8e19b",
+                            "tmf_action": [
+                                "Create",
+                                "Update"
+                            ],
+                            "tmf_domain": "DOME",
+                            "tmf_function": "ProductOffering",
+                            "tmf_type": "Domain"
+                        }
+                    ]
+                }
+                """;
+        ObjectMapper objectMapper = new ObjectMapper();
+        JsonNode jsonNode = objectMapper.readTree(json);
+        PreSubmittedCredentialDataRequest preSubmittedCredentialDataRequest = PreSubmittedCredentialDataRequest.builder()
+                .payload(jsonNode)
+                .schema("LEARCredentialEmployee")
+                .format(JWT_VC_JSON)
+                .operationMode("S")
+                .build();
+        String transactionCode = "4321";
+
+        when(verifiableCredentialPolicyAuthorizationService.authorize(token, type, jsonNode, null)).thenReturn(Mono.empty());
+        when(verifiableCredentialService.generateVc(processId, preSubmittedCredentialDataRequest, expectedEmail, token))
+                .thenReturn(Mono.just(transactionCode));
+        when(appConfig.getIssuerFrontendUrl()).thenReturn(issuerUiExternalDomain);
+        when(appConfig.getKnowledgebaseWalletUrl()).thenReturn(knowledgebaseWalletUrl);
+
+        // Simulated failure when sending the email
+        when(emailService.sendCredentialActivationEmail(
+                "example@in2.es",
+                "email.activation.subject",
+                issuerUiExternalDomain + "/credential-offer?transaction_code=" + transactionCode,
+                knowledgebaseWalletUrl,
+                "IN2, Ingeniería de la Información, S.L."))
+                .thenReturn(Mono.error(new RuntimeException("Email sending failed")));
+
+        StepVerifier.create(verifiableCredentialIssuanceWorkflow.execute(processId, preSubmittedCredentialDataRequest, token, null))
+                .expectErrorMatches(throwable ->
+                        throwable instanceof EmailCommunicationException &&
+                                throwable.getMessage().contains(MAIL_ERROR_COMMUNICATION_EXCEPTION_MESSAGE))
+                .verify();
+    }
 
     // TODO
     //    @Test
@@ -547,75 +534,75 @@ class CredentialIssuanceWorkflowImplTest {
     //                .verify();
     //    }
 
-//    @Test
-//    void completeWithdrawLEARMachineProcessUsesEmailWhenProvided() throws Exception {
-//        // given
-//        String processId = "1234";
-//        String schema = "LEARCredentialMachine";
-//        String token = "token";
-//        String idToken = null;
-//
-//        // owner email comes from the request and must take precedence over mandator.email
-//        String email = "owner.override@in2.es";
-//        String mandatorEmail = "mandator@in2.es";
-//        String name = "Robot 3000";
-//        String org  = "IN2 Machines";
-//        String knowledgebaseWalletUrl = "https://knowledgebase.com";
-//        String issuerUiExternalDomain = "https://issuer.example.com";
-//        String transactionCode = "tx-ABCD";
-//
-//        String json = """
-//    {
-//      "mandator": {
-//        "email": "%s",
-//        "commonName": "%s",
-//        "organization": "%s"
-//      }
-//    }
-//    """.formatted(mandatorEmail, name, org);
-//
-//        ObjectMapper om = new ObjectMapper();
-//        JsonNode payload = om.readTree(json);
-//
-//        PreSubmittedCredentialDataRequest req =
-//                PreSubmittedCredentialDataRequest.builder()
-//                        .payload(payload)
-//                        .schema(schema)
-//                        .format(JWT_VC_JSON)
-//                        .operationMode("S")
-//                        .email(email) // <- important for the test
-//                        .build();
-//
-//        when(verifiableCredentialPolicyAuthorizationService.authorize(token, schema, payload, idToken))
-//                .thenReturn(Mono.empty());
-//
-////        when(verifiableCredentialService.generateVc(processId, req, email))
-////                .thenReturn(Mono.just(transactionCode));
-//
-//        when(appConfig.getIssuerFrontendUrl()).thenReturn(issuerUiExternalDomain);
-//        when(appConfig.getKnowledgebaseWalletUrl()).thenReturn(knowledgebaseWalletUrl);
-//
-//        when(emailService.sendCredentialActivationEmail(
-//                email,
-//                "email.activation.subject",
-//                issuerUiExternalDomain + "/credential-offer?transaction_code=" + transactionCode,
-//                knowledgebaseWalletUrl,
-//                org
-//        )).thenReturn(Mono.empty());
-//
-//        // when / then
-//        StepVerifier.create(verifiableCredentialIssuanceWorkflow.execute(processId, req, token, idToken))
-//                .verifyComplete();
-//
-//        // and we explicitly verify that email was used
-//        verify(emailService).sendCredentialActivationEmail(
-//                eq(email),
-//                anyString(),
-//                contains(transactionCode),
-//                eq(knowledgebaseWalletUrl),
-//                eq(org)
-//        );
-//    }
+    @Test
+    void completeWithdrawLEARMachineProcessUsesEmailWhenProvided() throws Exception {
+        // given
+        String processId = "1234";
+        String schema = "LEARCredentialMachine";
+        String token = "token";
+        String idToken = null;
+
+        // owner email comes from the request and must take precedence over mandator.email
+        String email = "owner.override@in2.es";
+        String mandatorEmail = "mandator@in2.es";
+        String name = "Robot 3000";
+        String org  = "IN2 Machines";
+        String knowledgebaseWalletUrl = "https://knowledgebase.com";
+        String issuerUiExternalDomain = "https://issuer.example.com";
+        String transactionCode = "tx-ABCD";
+
+        String json = """
+    {
+      "mandator": {
+        "email": "%s",
+        "commonName": "%s",
+        "organization": "%s"
+      }
+    }
+    """.formatted(mandatorEmail, name, org);
+
+        ObjectMapper om = new ObjectMapper();
+        JsonNode payload = om.readTree(json);
+
+        PreSubmittedCredentialDataRequest req =
+                PreSubmittedCredentialDataRequest.builder()
+                        .payload(payload)
+                        .schema(schema)
+                        .format(JWT_VC_JSON)
+                        .operationMode("S")
+                        .email(email) // <- important for the test
+                        .build();
+
+        when(verifiableCredentialPolicyAuthorizationService.authorize(token, schema, payload, idToken))
+                .thenReturn(Mono.empty());
+
+        when(verifiableCredentialService.generateVc(processId, req, email, token))
+                .thenReturn(Mono.just(transactionCode));
+
+        when(appConfig.getIssuerFrontendUrl()).thenReturn(issuerUiExternalDomain);
+        when(appConfig.getKnowledgebaseWalletUrl()).thenReturn(knowledgebaseWalletUrl);
+
+        when(emailService.sendCredentialActivationEmail(
+                email,
+                "email.activation.subject",
+                issuerUiExternalDomain + "/credential-offer?transaction_code=" + transactionCode,
+                knowledgebaseWalletUrl,
+                org
+        )).thenReturn(Mono.empty());
+
+        // when / then
+        StepVerifier.create(verifiableCredentialIssuanceWorkflow.execute(processId, req, token, idToken))
+                .verifyComplete();
+
+        // and we explicitly verify that email was used
+        verify(emailService).sendCredentialActivationEmail(
+                eq(email),
+                anyString(),
+                contains(transactionCode),
+                eq(knowledgebaseWalletUrl),
+                eq(org)
+        );
+    }
 
     @Test
     void generateVerifiableCredentialResponse_PersistsEncodedAndFormat_AfterBuild() {
@@ -795,119 +782,119 @@ class CredentialIssuanceWorkflowImplTest {
                 .verifyComplete();
     }
 
-//    @Test
-//    void completeWithdrawLEARMachineProcessSyncSuccess() throws Exception {
-//        String processId = "1234";
-//        String type = "LEARCredentialMachine";
-//        String knowledgebaseWalletUrl = "https://knowledgebase.com";
-//        String issuerUiExternalDomain = "https://example.com";
-//        String token = "token";
-//        String idToken = null;
-//        String expectedEmail = "machine.owner@in2.es";
-//        String expectedOrg   = "IN2 Machines";
-//
-//        String json = """
-//        {
-//          "mandator": {
-//            "email": "machine.owner@in2.es",
-//            "commonName": "Robot 3000",
-//            "organization": "IN2 Machines"
-//          }
-//        }
-//        """;
-//
-//        ObjectMapper objectMapper = new ObjectMapper();
-//        JsonNode jsonNode = objectMapper.readTree(json);
-//
-//        PreSubmittedCredentialDataRequest preSubmittedCredentialDataRequest =
-//                PreSubmittedCredentialDataRequest.builder()
-//                        .payload(jsonNode)
-//                        .schema("LEARCredentialMachine")
-//                        .format(JWT_VC_JSON)
-//                        .operationMode("S")
-//                        .build();
-//
-//        String transactionCode = "tx-9876";
-//
-//        // arrange
-//        when(verifiableCredentialPolicyAuthorizationService.authorize(token, type, jsonNode, idToken))
-//                .thenReturn(Mono.empty());
-//
-////        when(verifiableCredentialService.generateVc(processId, preSubmittedCredentialDataRequest, expectedEmail))
-////                .thenReturn(Mono.just(transactionCode));
-//
-//        when(appConfig.getIssuerFrontendUrl()).thenReturn(issuerUiExternalDomain);
-//        when(appConfig.getKnowledgebaseWalletUrl()).thenReturn(knowledgebaseWalletUrl);
-//
-//
-//        when(emailService.sendCredentialActivationEmail(
-//                expectedEmail,
-//                "email.activation.subject",
-//                issuerUiExternalDomain + "/credential-offer?transaction_code=" + transactionCode,
-//                knowledgebaseWalletUrl,
-//                expectedOrg
-//        )).thenReturn(Mono.empty());
-//
-//        StepVerifier.create(
-//                verifiableCredentialIssuanceWorkflow.execute(processId, preSubmittedCredentialDataRequest, token, idToken)
-//        ).verifyComplete();
-//    }
-//
-//    @Test
-//    void labelCredential_usesSysTenantAsOrganizationInEmail() throws Exception {
-//        // given
-//        String processId = "1234";
-//        String token = "token";
-//        String idToken = "idToken"; // required by execute() when schema is LABEL_CREDENTIAL
-//        String ownerEmail = "label.owner@in2.es";
-//        String issuerUiExternalDomain = "https://issuer.example.com";
-//        String knowledgebaseWalletUrl = "https://knowledgebase.com";
-//        String sysTenant = "my-sys-tenant";
-//        String tx = "tx-label-001";
-//
-//        // Minimal payload for label credential (email comes from request, not payload)
-//        ObjectMapper om = new ObjectMapper();
-//        JsonNode payload = om.readTree("{}");
-//
-//        PreSubmittedCredentialDataRequest req = PreSubmittedCredentialDataRequest.builder()
-//                .payload(payload)
-//                .schema(LABEL_CREDENTIAL)
-//                .format(JWT_VC_JSON)
-//                .operationMode("S")
-//                .email(ownerEmail)
-//                .build();
-//
-//        // when
-//        when(verifiableCredentialPolicyAuthorizationService.authorize(token, LABEL_CREDENTIAL, payload, idToken))
-//                .thenReturn(Mono.empty());
-////        when(verifiableCredentialService.generateVc(processId, req, ownerEmail))
-////                .thenReturn(Mono.just(tx));
-//        when(appConfig.getIssuerFrontendUrl()).thenReturn(issuerUiExternalDomain);
-//        when(appConfig.getKnowledgebaseWalletUrl()).thenReturn(knowledgebaseWalletUrl);
-//        when(appConfig.getSysTenant()).thenReturn(sysTenant);
-//
-//        when(emailService.sendCredentialActivationEmail(
-//                ownerEmail,
-//                "email.activation.subject",
-//                issuerUiExternalDomain + "/credential-offer?transaction_code=" + tx,
-//                knowledgebaseWalletUrl,
-//                sysTenant
-//        )).thenReturn(Mono.empty());
-//
-//        // then
-//        StepVerifier.create(
-//                verifiableCredentialIssuanceWorkflow.execute(processId, req, token, idToken)
-//        ).verifyComplete();
-//
-//        // verify
-//        verify(emailService).sendCredentialActivationEmail(
-//                eq(ownerEmail),
-//                eq("email.activation.subject"),
-//                contains(tx),
-//                eq(knowledgebaseWalletUrl),
-//                eq(sysTenant)
-//        );
-//    }
+    @Test
+    void completeWithdrawLEARMachineProcessSyncSuccess() throws Exception {
+        String processId = "1234";
+        String type = "LEARCredentialMachine";
+        String knowledgebaseWalletUrl = "https://knowledgebase.com";
+        String issuerUiExternalDomain = "https://example.com";
+        String token = "token";
+        String idToken = null;
+        String expectedEmail = "machine.owner@in2.es";
+        String expectedOrg   = "IN2 Machines";
+
+        String json = """
+        {
+          "mandator": {
+            "email": "machine.owner@in2.es",
+            "commonName": "Robot 3000",
+            "organization": "IN2 Machines"
+          }
+        }
+        """;
+
+        ObjectMapper objectMapper = new ObjectMapper();
+        JsonNode jsonNode = objectMapper.readTree(json);
+
+        PreSubmittedCredentialDataRequest preSubmittedCredentialDataRequest =
+                PreSubmittedCredentialDataRequest.builder()
+                        .payload(jsonNode)
+                        .schema("LEARCredentialMachine")
+                        .format(JWT_VC_JSON)
+                        .operationMode("S")
+                        .build();
+
+        String transactionCode = "tx-9876";
+
+        // arrange
+        when(verifiableCredentialPolicyAuthorizationService.authorize(token, type, jsonNode, idToken))
+                .thenReturn(Mono.empty());
+
+        when(verifiableCredentialService.generateVc(processId, preSubmittedCredentialDataRequest, expectedEmail, token))
+                .thenReturn(Mono.just(transactionCode));
+
+        when(appConfig.getIssuerFrontendUrl()).thenReturn(issuerUiExternalDomain);
+        when(appConfig.getKnowledgebaseWalletUrl()).thenReturn(knowledgebaseWalletUrl);
+
+
+        when(emailService.sendCredentialActivationEmail(
+                expectedEmail,
+                "email.activation.subject",
+                issuerUiExternalDomain + "/credential-offer?transaction_code=" + transactionCode,
+                knowledgebaseWalletUrl,
+                expectedOrg
+        )).thenReturn(Mono.empty());
+
+        StepVerifier.create(
+                verifiableCredentialIssuanceWorkflow.execute(processId, preSubmittedCredentialDataRequest, token, idToken)
+        ).verifyComplete();
+    }
+
+    @Test
+    void labelCredential_usesSysTenantAsOrganizationInEmail() throws Exception {
+        // given
+        String processId = "1234";
+        String token = "token";
+        String idToken = "idToken"; // required by execute() when schema is LABEL_CREDENTIAL
+        String ownerEmail = "label.owner@in2.es";
+        String issuerUiExternalDomain = "https://issuer.example.com";
+        String knowledgebaseWalletUrl = "https://knowledgebase.com";
+        String sysTenant = "my-sys-tenant";
+        String tx = "tx-label-001";
+
+        // Minimal payload for label credential (email comes from request, not payload)
+        ObjectMapper om = new ObjectMapper();
+        JsonNode payload = om.readTree("{}");
+
+        PreSubmittedCredentialDataRequest req = PreSubmittedCredentialDataRequest.builder()
+                .payload(payload)
+                .schema(LABEL_CREDENTIAL)
+                .format(JWT_VC_JSON)
+                .operationMode("S")
+                .email(ownerEmail)
+                .build();
+
+        // when
+        when(verifiableCredentialPolicyAuthorizationService.authorize(token, LABEL_CREDENTIAL, payload, idToken))
+                .thenReturn(Mono.empty());
+        when(verifiableCredentialService.generateVc(processId, req, ownerEmail, token))
+                .thenReturn(Mono.just(tx));
+        when(appConfig.getIssuerFrontendUrl()).thenReturn(issuerUiExternalDomain);
+        when(appConfig.getKnowledgebaseWalletUrl()).thenReturn(knowledgebaseWalletUrl);
+        when(appConfig.getSysTenant()).thenReturn(sysTenant);
+
+        when(emailService.sendCredentialActivationEmail(
+                ownerEmail,
+                "email.activation.subject",
+                issuerUiExternalDomain + "/credential-offer?transaction_code=" + tx,
+                knowledgebaseWalletUrl,
+                sysTenant
+        )).thenReturn(Mono.empty());
+
+        // then
+        StepVerifier.create(
+                verifiableCredentialIssuanceWorkflow.execute(processId, req, token, idToken)
+        ).verifyComplete();
+
+        // verify
+        verify(emailService).sendCredentialActivationEmail(
+                eq(ownerEmail),
+                eq("email.activation.subject"),
+                contains(tx),
+                eq(knowledgebaseWalletUrl),
+                eq(sysTenant)
+        );
+    }
 
     @Test
     void extractBindingInfoFromJwtProof_kid_ok_extractsSubjectIdAndCnf() throws Exception {

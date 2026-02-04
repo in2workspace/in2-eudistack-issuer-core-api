@@ -1,27 +1,32 @@
 package es.in2.issuer.backend.backoffice.infrastructure.config.security;
 
 import es.in2.issuer.backend.shared.domain.service.JWTService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.core.convert.converter.Converter;
-import org.springframework.security.authentication.ReactiveAuthenticationManager;
-import org.springframework.security.config.web.server.ServerHttpSecurity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder;
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.security.web.server.SecurityWebFilterChain;
+import org.springframework.security.web.server.WebFilterChainProxy;
+import org.springframework.security.config.web.server.ServerHttpSecurity;
+import org.springframework.mock.http.server.reactive.MockServerHttpRequest;
+import org.springframework.mock.web.server.MockServerWebExchange;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
 import reactor.core.publisher.Mono;
-import reactor.test.StepVerifier;
 
-import java.util.Collections;
+import java.time.Instant;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static es.in2.issuer.backend.shared.domain.util.EndpointsConstants.STATUS_LIST_BASE;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -30,120 +35,116 @@ class SecurityConfigTest {
     @Mock private CustomAuthenticationManager customAuthenticationManager;
     @Mock private InternalCORSConfig internalCORSConfig;
     @Mock private PublicCORSConfig publicCORSConfig;
-    @Mock private ReactiveJwtDecoder reactiveJwtDecoder; // injected into SecurityConfig as internalJwtDecoder
+    @Mock private ReactiveJwtDecoder internalJwtDecoder;
     @Mock private ProblemAuthenticationEntryPoint entryPoint;
     @Mock private ProblemAccessDeniedHandler deniedHandler;
-
-    @InjectMocks
-    private SecurityConfig securityConfig;
-
-    // New mocks for the converter wiring
     @Mock private JWTService jwtService;
 
-    @Test
-    void primaryAuthenticationManager_shouldReturnCustomManager() {
-        ReactiveAuthenticationManager manager = securityConfig.primaryAuthenticationManager();
-        assertNotNull(manager);
-        assertEquals(customAuthenticationManager, manager);
-    }
+    private WebFilterChainProxy securityProxy;
 
-    @Test
-    void customAuthenticationWebFilter_shouldCreateFilterWithBearerConverter() {
-        var filter = securityConfig.customAuthenticationWebFilter(entryPoint);
-        assertNotNull(filter);
-    }
-
-    @Test
-    void publicFilterChain_shouldBuildWithPublicCorsAndAuthRules() {
-        when(publicCORSConfig.publicCorsConfigurationSource()).thenReturn(minimalCorsSource());
-        ServerHttpSecurity http = ServerHttpSecurity.http();
-
-        SecurityWebFilterChain chain = securityConfig.publicFilterChain(http, entryPoint, deniedHandler);
-
-        assertNotNull(chain);
-        verify(publicCORSConfig, times(1)).publicCorsConfigurationSource();
-    }
-
-//    @Test
-//    void backofficeFilterChain_shouldBuildWithInternalCorsAndJwtDecoder() {
-//        when(internalCORSConfig.defaultCorsConfigurationSource()).thenReturn(minimalCorsSource());
-//        ServerHttpSecurity http = ServerHttpSecurity.http();
-//
-//        // Provide a converter bean (could be the real one or a mock). Here we use the real bean factory method:
-//        Converter<Jwt, Mono<org.springframework.security.authentication.AbstractAuthenticationToken>> converterBean =
-//                securityConfig.jwtAuthenticationConverter(jwtService);
-//
-//        SecurityWebFilterChain chain = securityConfig.backofficeFilterChain(
-//                http, entryPoint, deniedHandler, converterBean);
-//
-//        assertNotNull(chain);
-//        verify(internalCORSConfig, times(1)).defaultCorsConfigurationSource();
-//    }
-
-    // --- Tests for JwtToAuthConverter delegating to JWTService ---
-
-    private Jwt buildJwt(Map<String, Object> claims, String subject) {
-        Jwt.Builder builder = Jwt.withTokenValue("token")
-                .headers(h -> h.put("alg", "none"))
-                .claims(c -> c.putAll(claims));
-        if (subject != null) builder.subject(subject);
-        return builder.build();
-    }
-
-    @Test
-    void convert_shouldUsePrincipalFromService_whenPresent() {
-        Map<String, Object> claims = Map.of(
-                "vc", Map.of(
-                        "credentialSubject", Map.of(
-                                "mandate", Map.of(
-                                        "mandatee", Map.of("email", "bob@example.com")
-                                )
-                        )
-                )
+    @BeforeEach
+    void setUp() {
+        SecurityConfig securityConfig = new SecurityConfig(
+                customAuthenticationManager,
+                internalCORSConfig,
+                publicCORSConfig,
+                internalJwtDecoder
         );
-        Jwt jwt = buildJwt(claims, "ignored-sub");
 
-        when(jwtService.resolvePrincipal(jwt)).thenReturn("bob@example.com");
+        when(internalCORSConfig.defaultCorsConfigurationSource()).thenReturn(minimalCorsSource());
 
-        // Use the bean (lambda) instead of the inner class
-        Converter<Jwt, Mono<org.springframework.security.authentication.AbstractAuthenticationToken>> converter =
+        Converter<Jwt, Mono<AbstractAuthenticationToken>> jwtConverter =
                 securityConfig.jwtAuthenticationConverter(jwtService);
 
-        StepVerifier.create(converter.convert(jwt))
-                .assertNext(auth -> {
-                    assertTrue(auth instanceof JwtAuthenticationToken);
-                    assertEquals("bob@example.com", auth.getName());
-                })
-                .verifyComplete();
+        SecurityWebFilterChain chain = securityConfig.internalFilterChain(
+                ServerHttpSecurity.http(),
+                entryPoint,
+                deniedHandler,
+                jwtConverter
+        );
 
-        verify(jwtService).resolvePrincipal(jwt);
+        securityProxy = new WebFilterChainProxy(chain);
+    }
+
+
+    @Test
+    void statusList_post_shouldReturn401_whenNoAuth() {
+        doAnswer(inv -> {
+            var exchange = inv.getArgument(0, org.springframework.web.server.ServerWebExchange.class);
+            exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
+            return exchange.getResponse().setComplete();
+        }).when(entryPoint).commence(any(), any());
+
+        MockServerWebExchange exchange = MockServerWebExchange.from(
+                MockServerHttpRequest.post(STATUS_LIST_BASE).build()
+        );
+
+        securityProxy.filter(exchange, ex -> {
+            ex.getResponse().setStatusCode(HttpStatus.OK);
+            return ex.getResponse().setComplete();
+        }).block();
+
+        assertEquals(HttpStatus.UNAUTHORIZED, exchange.getResponse().getStatusCode());
+    }
+
+
+    @Test
+    void statusList_post_shouldReturn200_whenAuthenticated() {
+        Jwt jwt = buildJwt(Map.of("scope", "any"), "subject-123");
+
+        when(jwtService.resolvePrincipal(any(Jwt.class))).thenReturn("subject-123");
+        when(internalJwtDecoder.decode("good-token")).thenReturn(Mono.just(jwt));
+
+        MockServerWebExchange exchange = MockServerWebExchange.from(
+                MockServerHttpRequest.post(STATUS_LIST_BASE)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer good-token")
+                        .build()
+        );
+
+        securityProxy.filter(exchange, ex -> {
+            ex.getResponse().setStatusCode(HttpStatus.OK);
+            return ex.getResponse().setComplete();
+        }).block();
+
+        assertEquals(HttpStatus.OK, exchange.getResponse().getStatusCode());
+        verify(internalJwtDecoder).decode("good-token");
+        verify(jwtService).resolvePrincipal(any(Jwt.class));
     }
 
     @Test
-    void convert_shouldFallbackPrincipalFromService_whenNoEmail() {
-        Jwt jwt = buildJwt(Collections.emptyMap(), "subject-123");
+    void statusList_get_shouldBePermitAll() {
+        MockServerWebExchange exchange = MockServerWebExchange.from(
+                MockServerHttpRequest.get(STATUS_LIST_BASE).build()
+        );
 
-        when(jwtService.resolvePrincipal(jwt)).thenReturn("subject-123");
+        securityProxy.filter(exchange, ex -> {
+            ex.getResponse().setStatusCode(HttpStatus.OK);
+            return ex.getResponse().setComplete();
+        }).block();
 
-        Converter<Jwt, Mono<org.springframework.security.authentication.AbstractAuthenticationToken>> converter =
-                securityConfig.jwtAuthenticationConverter(jwtService);
-
-        StepVerifier.create(converter.convert(jwt))
-                .assertNext(auth -> assertEquals("subject-123", auth.getName()))
-                .verifyComplete();
-
-        verify(jwtService).resolvePrincipal(jwt);
+        assertEquals(HttpStatus.OK, exchange.getResponse().getStatusCode());
     }
 
-
-    // --- helper ---
     private UrlBasedCorsConfigurationSource minimalCorsSource() {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         CorsConfiguration config = new CorsConfiguration();
-        config.addAllowedOrigin("*");
+        config.addAllowedOriginPattern("*");
         config.addAllowedMethod("*");
         config.addAllowedHeader("*");
         source.registerCorsConfiguration("/**", config);
         return source;
+    }
+
+    private Jwt buildJwt(Map<String, Object> claims, String subject) {
+        Jwt.Builder builder = Jwt.withTokenValue("token")
+                .headers(h -> h.put("alg", "none"))
+                .issuedAt(Instant.now())
+                .expiresAt(Instant.now().plusSeconds(3600))
+                .claims(c -> c.putAll(claims));
+
+        if (subject != null) {
+            builder.subject(subject);
+        }
+        return builder.build();
     }
 }

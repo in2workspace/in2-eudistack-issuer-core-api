@@ -69,10 +69,9 @@ class StatusListSignerTest {
         Object configValue = readProperty(req, "configuration");
         assertThat(configValue).isNotNull();
 
-        // Optional: if SignatureConfiguration has "type" and "parameters" fields/getters, validate them too.
-        // This stays resilient whether they are records or Lombok beans.
+        // Using hasToString() instead of toString().isEqualTo()
         Object typeValue = readProperty(configValue, "type");
-        assertThat(typeValue.toString()).isEqualTo("JADES");
+        assertThat(typeValue).hasToString("JADES");
 
         Object paramsValue = readProperty(configValue, "parameters");
         assertThat(paramsValue).isInstanceOf(Map.class);
@@ -181,14 +180,20 @@ class StatusListSignerTest {
      */
     private static Object readProperty(Object target, String property) {
         try {
-            Method recordStyle = target.getClass().getMethod(property);
-            return recordStyle.invoke(target);
+            return tryRecordStyleAccess(target, property);
         } catch (NoSuchMethodException ignored) {
-            // continue
+            return tryBeanStyleAccess(target, property);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
 
+    private static Object tryRecordStyleAccess(Object target, String property) throws Exception {
+        Method recordStyle = target.getClass().getMethod(property);
+        return recordStyle.invoke(target);
+    }
+
+    private static Object tryBeanStyleAccess(Object target, String property) {
         String getter = "get" + Character.toUpperCase(property.charAt(0)) + property.substring(1);
         try {
             Method beanStyle = target.getClass().getMethod(getter);
@@ -198,4 +203,3 @@ class StatusListSignerTest {
         }
     }
 }
-

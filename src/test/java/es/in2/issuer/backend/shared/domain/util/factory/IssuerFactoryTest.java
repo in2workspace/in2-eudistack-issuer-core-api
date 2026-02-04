@@ -1,5 +1,6 @@
 package es.in2.issuer.backend.shared.domain.util.factory;
 
+import es.in2.issuer.backend.shared.domain.exception.RemoteSignatureException;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.DetailedIssuer;
 import es.in2.issuer.backend.shared.domain.service.impl.RemoteSignatureServiceImpl;
 import es.in2.issuer.backend.shared.infrastructure.config.DefaultSignerConfig;
@@ -29,165 +30,208 @@ class IssuerFactoryTest {
     @InjectMocks private IssuerFactory issuerFactory;
 
     private final String procedureId = "proc-123";
+    private final String email = "user@mail";
 
     @BeforeEach
     void setUp() {
-        // Default: not SERVER -> remote branch is used when explicitly set to CLOUD in tests
+        // Default: remote branch unless explicitly set to SERVER in tests
         when(remoteSignatureConfig.getRemoteSignatureType()).thenReturn("OTHER");
     }
 
-//    @Test
-//    void createDetailedIssuer_LocalServerSide_ReturnsFromDefaultConfig() {
-//        when(remoteSignatureConfig.getRemoteSignatureType()).thenReturn(SIGNATURE_REMOTE_TYPE_SERVER);
-//        when(defaultSignerConfig.getOrganizationIdentifier()).thenReturn("ORG-ID");
-//        when(defaultSignerConfig.getOrganization()).thenReturn("MyOrg");
-//        when(defaultSignerConfig.getCountry()).thenReturn("ES");
-//        when(defaultSignerConfig.getCommonName()).thenReturn("CN");
-//        when(defaultSignerConfig.getSerialNumber()).thenReturn("SN123");
-//
-//        StepVerifier.create(issuerFactory.createDetailedIssuer(procedureId, "x@y.z"))
-//                .assertNext(issuer -> {
-//                    assertEquals(DID_ELSI + "ORG-ID", issuer.id());
-//                    assertEquals("ORG-ID", issuer.organizationIdentifier());
-//                    assertEquals("MyOrg", issuer.organization());
-//                    assertEquals("ES", issuer.country());
-//                    assertEquals("CN", issuer.commonName());
-//                    assertEquals("SN123", issuer.serialNumber());
-//                })
-//                .verifyComplete();
-//    }
-//
-//
-//    @Test
-//    void createSimpleIssuer_LocalServerSide_ReturnsFromDefaultConfig() {
-//        when(remoteSignatureConfig.getRemoteSignatureType()).thenReturn(SIGNATURE_REMOTE_TYPE_SERVER);
-//        when(defaultSignerConfig.getOrganizationIdentifier()).thenReturn("ORG-ID");
-//
-//        StepVerifier.create(issuerFactory.createSimpleIssuer(procedureId, "someone@mail"))
-//                .assertNext(simple -> assertEquals(DID_ELSI + "ORG-ID", simple.getId()))
-//                .verifyComplete();
-//    }
-//
-//    @Test
-//    void createDetailedIssuer_Remote_CredentialsMismatch_CompletesSilently() {
-//        when(remoteSignatureConfig.getRemoteSignatureType()).thenReturn(SIGNATURE_REMOTE_TYPE_CLOUD);
-//        when(remoteSignatureServiceImpl.validateCredentials()).thenReturn(Mono.just(false));
-//        when(remoteSignatureServiceImpl.isRecoverableError(any())).thenReturn(false);
-//        when(remoteSignatureServiceImpl.handlePostRecoverError(procedureId, ""))
-//                .thenReturn(Mono.empty());
-//
-//        StepVerifier.create(issuerFactory.createDetailedIssuer(procedureId, ""))
-//                .verifyComplete();
-//
-//        verify(remoteSignatureServiceImpl).validateCredentials();
-//        verify(remoteSignatureServiceImpl).isRecoverableError(any());
-//        verify(remoteSignatureServiceImpl).handlePostRecoverError(procedureId, "");
-//        verifyNoMoreInteractions(remoteSignatureServiceImpl);
-//    }
-//
-//
-//    @Test
-//    void createDetailedIssuerRemote_SuccessPath() {
-//        when(remoteSignatureConfig.getRemoteSignatureType()).thenReturn(SIGNATURE_REMOTE_TYPE_CLOUD);
-//        when(remoteSignatureServiceImpl.validateCredentials()).thenReturn(Mono.just(true));
-//        when(remoteSignatureServiceImpl.requestAccessToken(isNull(), eq(SIGNATURE_REMOTE_SCOPE_SERVICE)))
-//                .thenReturn(Mono.just("token"));
-//        when(remoteSignatureConfig.getRemoteSignatureCredentialId()).thenReturn("cred-id");
-//        when(remoteSignatureServiceImpl.requestCertificateInfo("token", "cred-id"))
-//                .thenReturn(Mono.just("cert-info"));
-//
-//        DetailedIssuer expected = DetailedIssuer.builder()
-//                .id("id1")
-//                .organizationIdentifier("org1")
-//                .organization("o")
-//                .country("ES")
-//                .commonName("CN")
-//                .serialNumber("SN")
-//                .build();
-//
-//        // New signature: extractIssuerFromCertificateInfo(certInfo)
-//        when(remoteSignatureServiceImpl.extractIssuerFromCertificateInfo("cert-info"))
-//                .thenReturn(Mono.just(expected));
-//
-//        StepVerifier.create(issuerFactory.createDetailedIssuer(procedureId, "user@mail"))
-//                .expectNext(expected)
-//                .verifyComplete();
-//
-//        verify(remoteSignatureServiceImpl).validateCredentials();
-//        verify(remoteSignatureServiceImpl).requestAccessToken(null, SIGNATURE_REMOTE_SCOPE_SERVICE);
-//        verify(remoteSignatureServiceImpl).requestCertificateInfo("token", "cred-id");
-//        verify(remoteSignatureServiceImpl).extractIssuerFromCertificateInfo("cert-info");
-//        verifyNoMoreInteractions(remoteSignatureServiceImpl);
-//    }
-//
-//    @Test
-//    void createSimpleIssuerRemote_SuccessPath() {
-//        when(remoteSignatureConfig.getRemoteSignatureType()).thenReturn(SIGNATURE_REMOTE_TYPE_CLOUD);
-//        when(remoteSignatureServiceImpl.validateCredentials()).thenReturn(Mono.just(true));
-//        when(remoteSignatureServiceImpl.requestAccessToken(isNull(), eq(SIGNATURE_REMOTE_SCOPE_SERVICE)))
-//                .thenReturn(Mono.just("token"));
-//        when(remoteSignatureConfig.getRemoteSignatureCredentialId()).thenReturn("cred-id");
-//        when(remoteSignatureServiceImpl.requestCertificateInfo("token", "cred-id"))
-//                .thenReturn(Mono.just("cert-info"));
-//
-//        DetailedIssuer detailed = DetailedIssuer.builder().id("issuer-id").build();
-//        when(remoteSignatureServiceImpl.extractIssuerFromCertificateInfo("cert-info"))
-//                .thenReturn(Mono.just(detailed));
-//
-//        StepVerifier.create(issuerFactory.createSimpleIssuer(procedureId, "user@mail"))
-//                .assertNext(simple -> assertEquals("issuer-id", simple.getId()))
-//                .verifyComplete();
-//    }
-//
-//    @Test
-//    void createDetailedIssuerRemote_GenericMidFlowError_CompletesAfterPostRecover() {
-//        when(remoteSignatureConfig.getRemoteSignatureType()).thenReturn(SIGNATURE_REMOTE_TYPE_CLOUD);
-//        when(remoteSignatureServiceImpl.validateCredentials()).thenReturn(Mono.just(true));
-//        // Fail after validate -> will be caught by onErrorResume
-//        when(remoteSignatureServiceImpl.requestAccessToken(any(), anyString()))
-//                .thenReturn(Mono.error(new RuntimeException("boom")));
-//        when(remoteSignatureServiceImpl.handlePostRecoverError(procedureId, ""))
-//                .thenReturn(Mono.empty());
-//
-//        StepVerifier.create(issuerFactory.createDetailedIssuer(procedureId, ""))
-//                .verifyComplete();
-//
-//        verify(remoteSignatureServiceImpl).handlePostRecoverError(procedureId, "");
-//    }
-//
-//    @Test
-//    void createDetailedIssuerRemote_ValidateCredentialsRecoverable_ThenHandlePostRecoverCompletes() {
-//        when(remoteSignatureConfig.getRemoteSignatureType()).thenReturn(SIGNATURE_REMOTE_TYPE_CLOUD);
-//        when(remoteSignatureServiceImpl.validateCredentials())
-//                .thenReturn(Mono.error(new IOException("timeout1")))
-//                .thenReturn(Mono.error(new IOException("timeout2")))
-//                .thenReturn(Mono.error(new IOException("timeout3")))
-//                .thenReturn(Mono.error(new IOException("timeout4")));
-//        when(remoteSignatureServiceImpl.isRecoverableError(any())).thenReturn(true);
-//        when(remoteSignatureServiceImpl.handlePostRecoverError(procedureId, ""))
-//                .thenReturn(Mono.empty());
-//
-//        StepVerifier.create(issuerFactory.createDetailedIssuer(procedureId, ""))
-//                .verifyComplete();
-//
-//        verify(remoteSignatureServiceImpl, times(4)).validateCredentials();
-//        verify(remoteSignatureServiceImpl).handlePostRecoverError(procedureId, "");
-//    }
-//
-//    @Test
-//    void createDetailedIssuerRemote_ValidateCredentialsRecoverable_ThenHandlePostRecoverFails() {
-//        when(remoteSignatureConfig.getRemoteSignatureType()).thenReturn(SIGNATURE_REMOTE_TYPE_CLOUD);
-//        when(remoteSignatureServiceImpl.validateCredentials())
-//                .thenReturn(Mono.error(new IOException("timeout1")));
-//        when(remoteSignatureServiceImpl.isRecoverableError(any())).thenReturn(true);
-//        RuntimeException postEx = new RuntimeException("post-recover failed");
-//        when(remoteSignatureServiceImpl.handlePostRecoverError(procedureId, ""))
-//                .thenReturn(Mono.error(postEx));
-//
-//        StepVerifier.create(issuerFactory.createDetailedIssuer(procedureId, ""))
-//                .expectErrorSatisfies(ex -> assertEquals(postEx, ex))
-//                .verify();
-//
-//        verify(remoteSignatureServiceImpl).handlePostRecoverError(procedureId, "");
-//    }
+    @Test
+    void createDetailedIssuer_LocalServerSide_ReturnsFromDefaultConfig() {
+        when(remoteSignatureConfig.getRemoteSignatureType()).thenReturn(SIGNATURE_REMOTE_TYPE_SERVER);
+        when(defaultSignerConfig.getOrganizationIdentifier()).thenReturn("ORG-ID");
+        when(defaultSignerConfig.getOrganization()).thenReturn("MyOrg");
+        when(defaultSignerConfig.getCountry()).thenReturn("ES");
+        when(defaultSignerConfig.getCommonName()).thenReturn("CN");
+        when(defaultSignerConfig.getSerialNumber()).thenReturn("SN123");
+
+        StepVerifier.create(issuerFactory.createDetailedIssuer())
+                .assertNext(issuer -> {
+                    assertEquals(DID_ELSI + "ORG-ID", issuer.getId());
+                    assertEquals("ORG-ID", issuer.organizationIdentifier());
+                    assertEquals("MyOrg", issuer.organization());
+                    assertEquals("ES", issuer.country());
+                    assertEquals("CN", issuer.commonName());
+                    assertEquals("SN123", issuer.serialNumber());
+                })
+                .verifyComplete();
+    }
+
+    @Test
+    void createSimpleIssuer_LocalServerSide_ReturnsFromDefaultConfig() {
+        when(remoteSignatureConfig.getRemoteSignatureType()).thenReturn(SIGNATURE_REMOTE_TYPE_SERVER);
+        when(defaultSignerConfig.getOrganizationIdentifier()).thenReturn("ORG-ID");
+
+        StepVerifier.create(issuerFactory.createSimpleIssuer())
+                .assertNext(simple -> assertEquals(DID_ELSI + "ORG-ID", simple.getId()))
+                .verifyComplete();
+    }
+
+    @Test
+    void createDetailedIssuerAndNotifyOnError_Remote_CredentialsMismatch_CompletesEmptyAndCallsPostRecover() {
+        when(remoteSignatureConfig.getRemoteSignatureType()).thenReturn(SIGNATURE_REMOTE_TYPE_CLOUD);
+        when(remoteSignatureServiceImpl.validateCredentials()).thenReturn(Mono.just(false));
+        when(remoteSignatureServiceImpl.isRecoverableError(any())).thenReturn(false);
+        when(remoteSignatureServiceImpl.handlePostRecoverError(procedureId, ""))
+                .thenReturn(Mono.empty());
+
+        StepVerifier.create(issuerFactory.createDetailedIssuerAndNotifyOnError(procedureId, ""))
+                .verifyComplete();
+
+        verify(remoteSignatureServiceImpl).validateCredentials();
+        verify(remoteSignatureServiceImpl).handlePostRecoverError(procedureId, "");
+        verifyNoMoreInteractions(remoteSignatureServiceImpl);
+    }
+
+    @Test
+    void createDetailedIssuer_Remote_CredentialsMismatch_PropagatesError() {
+        when(remoteSignatureConfig.getRemoteSignatureType()).thenReturn(SIGNATURE_REMOTE_TYPE_CLOUD);
+        when(remoteSignatureServiceImpl.validateCredentials()).thenReturn(Mono.just(false));
+        when(remoteSignatureServiceImpl.isRecoverableError(any())).thenReturn(false);
+
+        StepVerifier.create(issuerFactory.createDetailedIssuer())
+                .expectError(RemoteSignatureException.class)
+                .verify();
+
+        verify(remoteSignatureServiceImpl).validateCredentials();
+        verifyNoMoreInteractions(remoteSignatureServiceImpl);
+    }
+
+    @Test
+    void createDetailedIssuer_Remote_SuccessPath() {
+        when(remoteSignatureConfig.getRemoteSignatureType()).thenReturn(SIGNATURE_REMOTE_TYPE_CLOUD);
+        when(remoteSignatureServiceImpl.validateCredentials()).thenReturn(Mono.just(true));
+        when(remoteSignatureServiceImpl.requestAccessToken(isNull(), eq(SIGNATURE_REMOTE_SCOPE_SERVICE)))
+                .thenReturn(Mono.just("token"));
+        when(remoteSignatureConfig.getRemoteSignatureCredentialId()).thenReturn("cred-id");
+        when(remoteSignatureServiceImpl.requestCertificateInfo("token", "cred-id"))
+                .thenReturn(Mono.just("cert-info"));
+
+        DetailedIssuer expected = DetailedIssuer.builder()
+                .id("id1")
+                .organizationIdentifier("org1")
+                .organization("o")
+                .country("ES")
+                .commonName("CN")
+                .serialNumber("SN")
+                .build();
+
+        when(remoteSignatureServiceImpl.extractIssuerFromCertificateInfo("cert-info"))
+                .thenReturn(Mono.just(expected));
+
+        StepVerifier.create(issuerFactory.createDetailedIssuer())
+                .expectNext(expected)
+                .verifyComplete();
+
+        verify(remoteSignatureServiceImpl).validateCredentials();
+        verify(remoteSignatureServiceImpl).requestAccessToken(null, SIGNATURE_REMOTE_SCOPE_SERVICE);
+        verify(remoteSignatureServiceImpl).requestCertificateInfo("token", "cred-id");
+        verify(remoteSignatureServiceImpl).extractIssuerFromCertificateInfo("cert-info");
+        verifyNoMoreInteractions(remoteSignatureServiceImpl);
+    }
+
+    @Test
+    void createSimpleIssuer_Remote_SuccessPath() {
+        when(remoteSignatureConfig.getRemoteSignatureType()).thenReturn(SIGNATURE_REMOTE_TYPE_CLOUD);
+        when(remoteSignatureServiceImpl.validateCredentials()).thenReturn(Mono.just(true));
+        when(remoteSignatureServiceImpl.requestAccessToken(isNull(), eq(SIGNATURE_REMOTE_SCOPE_SERVICE)))
+                .thenReturn(Mono.just("token"));
+        when(remoteSignatureConfig.getRemoteSignatureCredentialId()).thenReturn("cred-id");
+        when(remoteSignatureServiceImpl.requestCertificateInfo("token", "cred-id"))
+                .thenReturn(Mono.just("cert-info"));
+
+        DetailedIssuer detailed = DetailedIssuer.builder().id("issuer-id").build();
+        when(remoteSignatureServiceImpl.extractIssuerFromCertificateInfo("cert-info"))
+                .thenReturn(Mono.just(detailed));
+
+        StepVerifier.create(issuerFactory.createSimpleIssuer())
+                .assertNext(simple -> assertEquals("issuer-id", simple.getId()))
+                .verifyComplete();
+    }
+
+    @Test
+    void createDetailedIssuerAndNotifyOnError_Remote_GenericMidFlowError_CompletesAfterPostRecover() {
+        when(remoteSignatureConfig.getRemoteSignatureType()).thenReturn(SIGNATURE_REMOTE_TYPE_CLOUD);
+        when(remoteSignatureServiceImpl.validateCredentials()).thenReturn(Mono.just(true));
+        when(remoteSignatureServiceImpl.isRecoverableError(any())).thenReturn(false);
+
+        // Fail after validate -> handled by onErrorResume in *NotifyOnError*
+        when(remoteSignatureServiceImpl.requestAccessToken(any(), anyString()))
+                .thenReturn(Mono.error(new RuntimeException("boom")));
+
+        when(remoteSignatureServiceImpl.handlePostRecoverError(procedureId, ""))
+                .thenReturn(Mono.empty());
+
+        StepVerifier.create(issuerFactory.createDetailedIssuerAndNotifyOnError(procedureId, ""))
+                .verifyComplete();
+
+        verify(remoteSignatureServiceImpl).handlePostRecoverError(procedureId, "");
+    }
+
+    @Test
+    void createDetailedIssuer_Remote_ValidateCredentialsRecoverable_ThenErrorsAfterRetries() {
+        when(remoteSignatureConfig.getRemoteSignatureType()).thenReturn(SIGNATURE_REMOTE_TYPE_CLOUD);
+        when(remoteSignatureServiceImpl.isRecoverableError(any())).thenReturn(true);
+
+        when(remoteSignatureServiceImpl.validateCredentials())
+                .thenReturn(Mono.error(new IOException("timeout1")))
+                .thenReturn(Mono.error(new IOException("timeout2")))
+                .thenReturn(Mono.error(new IOException("timeout3")))
+                .thenReturn(Mono.error(new IOException("timeout4")));
+
+        StepVerifier.create(issuerFactory.createDetailedIssuer())
+                .expectErrorSatisfies(ex -> {
+                    assertEquals("reactor.core.Exceptions$RetryExhaustedException", ex.getClass().getName());
+                    assertEquals(IOException.class, ex.getCause().getClass());
+                })
+                .verify();
+
+        verify(remoteSignatureServiceImpl, times(4)).validateCredentials();
+        verifyNoMoreInteractions(remoteSignatureServiceImpl);
+    }
+
+    @Test
+    void createDetailedIssuerAndNotifyOnError_Remote_ValidateCredentialsRecoverable_ThenPostRecoverCompletesEmpty() {
+        when(remoteSignatureConfig.getRemoteSignatureType()).thenReturn(SIGNATURE_REMOTE_TYPE_CLOUD);
+        when(remoteSignatureServiceImpl.isRecoverableError(any())).thenReturn(true);
+
+        when(remoteSignatureServiceImpl.validateCredentials())
+                .thenReturn(Mono.error(new IOException("timeout1")))
+                .thenReturn(Mono.error(new IOException("timeout2")))
+                .thenReturn(Mono.error(new IOException("timeout3")))
+                .thenReturn(Mono.error(new IOException("timeout4")));
+
+        when(remoteSignatureServiceImpl.handlePostRecoverError(procedureId, ""))
+                .thenReturn(Mono.empty());
+
+        StepVerifier.create(issuerFactory.createDetailedIssuerAndNotifyOnError(procedureId, ""))
+                .verifyComplete();
+
+        verify(remoteSignatureServiceImpl, times(4)).validateCredentials();
+        verify(remoteSignatureServiceImpl).handlePostRecoverError(procedureId, "");
+    }
+
+    @Test
+    void createDetailedIssuerAndNotifyOnError_Remote_PostRecoverFails_PropagatesPostRecoverError() {
+        when(remoteSignatureConfig.getRemoteSignatureType()).thenReturn(SIGNATURE_REMOTE_TYPE_CLOUD);
+        when(remoteSignatureServiceImpl.isRecoverableError(any())).thenReturn(true);
+
+        when(remoteSignatureServiceImpl.validateCredentials())
+                .thenReturn(Mono.error(new IOException("timeout1")))
+                .thenReturn(Mono.error(new IOException("timeout2")))
+                .thenReturn(Mono.error(new IOException("timeout3")))
+                .thenReturn(Mono.error(new IOException("timeout4")));
+
+        RuntimeException postEx = new RuntimeException("post-recover failed");
+        when(remoteSignatureServiceImpl.handlePostRecoverError(procedureId, ""))
+                .thenReturn(Mono.error(postEx));
+
+        StepVerifier.create(issuerFactory.createDetailedIssuerAndNotifyOnError(procedureId, ""))
+                .expectErrorSatisfies(ex -> assertEquals(postEx, ex))
+                .verify();
+
+        verify(remoteSignatureServiceImpl).handlePostRecoverError(procedureId, "");
+    }
 }

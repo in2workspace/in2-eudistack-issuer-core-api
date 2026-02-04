@@ -7,6 +7,7 @@ import es.in2.issuer.backend.shared.domain.exception.CredentialSerializationExce
 import es.in2.issuer.backend.shared.domain.exception.InvalidCredentialFormatException;
 import es.in2.issuer.backend.shared.domain.model.dto.CredentialProcedureCreationRequest;
 import es.in2.issuer.backend.shared.domain.model.dto.LabelCredentialJwtPayload;
+import es.in2.issuer.backend.shared.domain.model.dto.credential.CredentialStatus;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.SimpleIssuer;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.LabelCredential;
 import es.in2.issuer.backend.shared.domain.model.enums.CredentialType;
@@ -55,82 +56,102 @@ class LabelCredentialFactoryTest {
     @InjectMocks
     private LabelCredentialFactory labelCredentialFactory;
 
-//    @Test
-//    void testMapCredentialAndBindIssuerInToTheCredential() throws Exception {
-//
-//        String procedureId = "procedure-123";
-//        String credentialJson = "{\"id\":\"urn:uuid:123\"}";
-//        String testEmail = "test@email.com";
-//
-//        LabelCredential labelCredential = LabelCredential.builder()
-//                .id("label-1")
-//                .type(List.of("gx:LabelCredential"))
-//                .validFrom(Instant.now().toString())
-//                .validUntil(Instant.now().plus(1, ChronoUnit.DAYS).toString())
-//                .credentialSubject(LabelCredential.CredentialSubject.builder().id("subject-1").build())
-//                .build();
-//
-//        // ObjectMapper returns our LabelCredential
-//        when(objectMapper.readValue(credentialJson, LabelCredential.class))
-//                .thenReturn(labelCredential);
-//
-//        // Match real invocation: (procedureId, LABEL_CREDENTIAL, email="testEmail")
-//        when(issuerFactory.createSimpleIssuer(procedureId, testEmail))
-//                .thenReturn(Mono.just(SimpleIssuer.builder().id("issuer-id").build()));
-//
-//        when(objectMapper.writeValueAsString(any(LabelCredential.class)))
-//                .thenReturn("{\"mocked\": true}");
-//
-//        Mono<String> result = labelCredentialFactory.mapCredentialAndBindIssuerInToTheCredential(credentialJson, procedureId, testEmail);
-//
-//        StepVerifier.create(result)
-//                .expectNext("{\"mocked\": true}")
-//                .verifyComplete();
-//    }
-//
-//    @Test
-//    void testMapAndBuildLabelCredential() throws Exception {
-//        String email = "test@in2.es";
-//        String orgId = "org-456";
-//        String operationMode = "S";
-//        JsonNode mockNode = mock(JsonNode.class);
-//
-//        LabelCredential labelCredential = LabelCredential.builder()
-//                .id("label-1")
-//                .validFrom(Instant.now().toString())
-//                .validUntil(Instant.now().plus(1, ChronoUnit.DAYS).toString())
-//                .credentialSubject(LabelCredential.CredentialSubject.builder()
-//                        .id("subject-1")
-//                        .build())
-//                .build();
-//
-//        when(objectMapper.convertValue(mockNode, LabelCredential.class))
-//                .thenReturn(labelCredential);
-//
-//        when(accessTokenService.getOrganizationIdFromCurrentSession())
-//                .thenReturn(Mono.just(orgId));
-//
-//        when(appConfig.getIssuerBackendUrl())
-//                .thenReturn("https://issuer-backend");
-//
-//        when(objectMapper.writeValueAsString(any(LabelCredential.class)))
-//                .thenReturn("{\"mocked\": true}");
-//
-//        Mono<CredentialProcedureCreationRequest> result =
-//                labelCredentialFactory.mapAndBuildLabelCredential(mockNode, operationMode, email);
-//
-//        StepVerifier.create(result)
-//                .assertNext(request -> {
-//                    assertEquals("subject-1", request.subject());
-//                    assertEquals(CredentialType.LABEL_CREDENTIAL, request.credentialType());
-//                    assertEquals(email, request.email());
-//                    assertEquals(operationMode, request.operationMode());
-//                    assertEquals(orgId, request.organizationIdentifier());
-//                    assertNotNull(request.validUntil());
-//                    assertNotNull(request.credentialDecoded());
-//                })
-//                .verifyComplete();
-//    }
+    @Test
+    void testMapCredentialAndBindIssuerInToTheCredential() throws Exception {
+
+        String procedureId = "procedure-123";
+        String credentialJson = "{\"id\":\"urn:uuid:123\"}";
+        String testEmail = "test@email.com";
+
+        LabelCredential labelCredential = LabelCredential.builder()
+                .id("label-1")
+                .type(List.of("gx:LabelCredential"))
+                .validFrom(Instant.now().toString())
+                .validUntil(Instant.now().plus(1, ChronoUnit.DAYS).toString())
+                .credentialSubject(LabelCredential.CredentialSubject.builder().id("subject-1").build())
+                .build();
+
+        // ObjectMapper returns our LabelCredential
+        when(objectMapper.readValue(credentialJson, LabelCredential.class))
+                .thenReturn(labelCredential);
+
+        // Match real invocation: (procedureId, LABEL_CREDENTIAL, email="testEmail")
+        when(issuerFactory.createSimpleIssuerAndNotifyOnError(procedureId, testEmail))
+                .thenReturn(Mono.just(SimpleIssuer.builder().id("issuer-id").build()));
+
+        when(objectMapper.writeValueAsString(any(LabelCredential.class)))
+                .thenReturn("{\"mocked\": true}");
+
+        Mono<String> result = labelCredentialFactory.mapCredentialAndBindIssuerInToTheCredential(credentialJson, procedureId, testEmail);
+
+        StepVerifier.create(result)
+                .expectNext("{\"mocked\": true}")
+                .verifyComplete();
+    }
+
+    @Test
+    void testMapAndBuildLabelCredential() throws JsonProcessingException{
+        // Arrange
+        String procedureId = "proc-123";
+        String email = "test@in2.es";
+        String operationMode = "S";
+        JsonNode mockNode = mock(JsonNode.class);
+
+        CredentialStatus credentialStatus = mock(CredentialStatus.class);
+
+        LabelCredential.CredentialSubject subject =
+                LabelCredential.CredentialSubject.builder()
+                        .id("subject-1")
+                        .build();
+
+        // Must be ISO_ZONED_DATE_TIME (includes offset/zone), otherwise ZonedDateTime.parse(...) fails
+        String validFrom = "2025-01-01T00:00:00Z";
+        String validUntil = "2025-01-02T00:00:00Z";
+
+        LabelCredential labelCredential = LabelCredential.builder()
+                .credentialSubject(subject)
+                .validFrom(validFrom)
+                .validUntil(validUntil)
+                .build();
+
+        when(objectMapper.convertValue(mockNode, LabelCredential.class))
+                .thenReturn(labelCredential);
+
+        when(accessTokenService.getOrganizationIdFromCurrentSession())
+                .thenReturn(Mono.just("org-456"));
+
+        when(objectMapper.writeValueAsString(any(LabelCredential.class)))
+                .thenReturn("{\"mocked\": true}");
+
+        // Act
+        Mono<CredentialProcedureCreationRequest> result =
+                labelCredentialFactory.mapAndBuildLabelCredential(
+                        procedureId,
+                        mockNode,
+                        credentialStatus,
+                        operationMode,
+                        email
+                );
+
+        // Assert
+        StepVerifier.create(result)
+                .assertNext(request -> {
+                    assertEquals(procedureId, request.procedureId());
+                    assertEquals("subject-1", request.subject());
+                    assertEquals(CredentialType.LABEL_CREDENTIAL, request.credentialType());
+                    assertEquals(email, request.email());
+                    assertEquals(operationMode, request.operationMode());
+                    assertEquals("org-456", request.organizationIdentifier());
+                    assertNotNull(request.validUntil());
+                    assertNotNull(request.credentialDecoded());
+                })
+                .verifyComplete();
+
+        verify(accessTokenService).getOrganizationIdFromCurrentSession();
+        verify(objectMapper).convertValue(mockNode, LabelCredential.class);
+        verify(objectMapper).writeValueAsString(any(LabelCredential.class));
+    }
+
 
     @Test
     void testMapStringToLabelCredential_validV1() throws Exception {

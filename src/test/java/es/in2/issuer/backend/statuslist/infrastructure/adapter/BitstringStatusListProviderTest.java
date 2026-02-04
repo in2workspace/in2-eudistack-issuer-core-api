@@ -819,17 +819,17 @@ class BitstringStatusListProviderTest {
         when(issuerFactory.createSimpleIssuer())
                 .thenReturn(Mono.just(simpleIssuer));
 
-        when(statusListBuilder.buildUnsigned(eq(listUrl), eq(TEST_ISSUER_DID), eq("revocation"), eq("updatedEncodedList")))
+        when(statusListBuilder.buildUnsigned(listUrl, TEST_ISSUER_DID, "revocation", "updatedEncodedList"))
                 .thenReturn(Map.of("type", "StatusListCredential"));
 
         when(statusListSigner.sign(anyMap(), eq(TEST_TOKEN), eq(TEST_LIST_ID)))
                 .thenReturn(Mono.just("jwt"));
 
         when(statusListRepository.updateSignedAndEncodedIfUnchanged(
-                eq(TEST_LIST_ID),
-                eq("updatedEncodedList"),
-                eq("jwt"),
-                eq(updatedAt)
+                TEST_LIST_ID,
+                "updatedEncodedList",
+                "jwt",
+                updatedAt
         )).thenReturn(Mono.just(1));
 
         // Act & Assert
@@ -985,7 +985,7 @@ class BitstringStatusListProviderTest {
         when(issuerFactory.createSimpleIssuer())
                 .thenReturn(Mono.just(simpleIssuer));
 
-        when(statusListBuilder.buildUnsigned(eq(listUrl), eq(TEST_ISSUER_DID), eq("revocation"), eq("updatedEncodedList")))
+        when(statusListBuilder.buildUnsigned(listUrl, TEST_ISSUER_DID, "revocation", "updatedEncodedList"))
                 .thenReturn(Map.of("type", "StatusListCredential"));
 
         when(statusListSigner.sign(anyMap(), eq(TEST_TOKEN), eq(TEST_LIST_ID)))
@@ -994,10 +994,10 @@ class BitstringStatusListProviderTest {
         // First attempt: 0 rows updated -> OptimisticUpdateException
         // Second attempt: 1 row updated -> success
         when(statusListRepository.updateSignedAndEncodedIfUnchanged(
-                eq(TEST_LIST_ID),
-                eq("updatedEncodedList"),
-                eq("jwt"),
-                eq(updatedAt)
+                TEST_LIST_ID,
+                "updatedEncodedList",
+                "jwt",
+                updatedAt
         )).thenReturn(Mono.just(0), Mono.just(1));
 
         // Act & Assert
@@ -1005,10 +1005,10 @@ class BitstringStatusListProviderTest {
                 .verifyComplete();
 
         verify(statusListRepository, times(2)).updateSignedAndEncodedIfUnchanged(
-                eq(TEST_LIST_ID),
-                eq("updatedEncodedList"),
-                eq("jwt"),
-                eq(updatedAt)
+                TEST_LIST_ID,
+                "updatedEncodedList",
+                "jwt",
+                updatedAt
         );
     }
 
@@ -1072,7 +1072,7 @@ class BitstringStatusListProviderTest {
         when(issuerFactory.createSimpleIssuer())
                 .thenReturn(Mono.just(simpleIssuer));
 
-        when(statusListBuilder.buildUnsigned(eq(listUrl), eq(TEST_ISSUER_DID), eq("revocation"), eq("updatedEncodedList")))
+        when(statusListBuilder.buildUnsigned(listUrl, TEST_ISSUER_DID, "revocation", "updatedEncodedList"))
                 .thenReturn(Map.of("type", "StatusListCredential"));
 
         when(statusListSigner.sign(anyMap(), eq(TEST_TOKEN), eq(TEST_LIST_ID)))
@@ -1080,10 +1080,10 @@ class BitstringStatusListProviderTest {
 
         // Always fails -> triggers OptimisticUpdateException every attempt
         when(statusListRepository.updateSignedAndEncodedIfUnchanged(
-                eq(TEST_LIST_ID),
-                eq("updatedEncodedList"),
-                eq("jwt"),
-                eq(updatedAt)
+                TEST_LIST_ID,
+                "updatedEncodedList",
+                "jwt",
+                updatedAt
         )).thenReturn(Mono.just(0));
 
         // Act & Assert
@@ -1097,10 +1097,10 @@ class BitstringStatusListProviderTest {
 
         // maxAttempts=5 -> 5 invocations
         verify(statusListRepository, times(5)).updateSignedAndEncodedIfUnchanged(
-                eq(TEST_LIST_ID),
-                eq("updatedEncodedList"),
-                eq("jwt"),
-                eq(updatedAt)
+                TEST_LIST_ID,
+                "updatedEncodedList",
+                "jwt",
+                updatedAt
         );
     }
 

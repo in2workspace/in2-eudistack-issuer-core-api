@@ -146,7 +146,7 @@ class RemoteSignatureServiceImplTest {
                 })
                 .verify();
     }
-    
+
     @Test
     void testGetSignedDocumentExternal() throws JsonProcessingException, HashGenerationException {
         signatureType = SignatureType.JADES;
@@ -344,7 +344,7 @@ class RemoteSignatureServiceImplTest {
         verify(procedure).setCredentialStatus(CredentialStatusEnum.PEND_SIGNATURE);
         verify(deferredProcedure).setOperationMode(ASYNC);
     }
-    
+
     @Test
     void testSignSuccessOnFirstAttempt() throws JsonProcessingException {
         // Arrange
@@ -396,76 +396,120 @@ class RemoteSignatureServiceImplTest {
         verify(credentialProcedureRepository, never()).findByProcedureId(any(UUID.class));
         verify(deferredCredentialMetadataRepository, never()).findByProcedureId(any(UUID.class));
     }
-    
-//    @Test
-//    void testSignSuccessAfterRetries() throws JsonProcessingException {
-//        // Arrange
-//        when(remoteSignatureConfig.getRemoteSignatureType()).thenReturn(SIGNATURE_REMOTE_TYPE_CLOUD);
-//        signatureType = SignatureType.JADES;
-//        Map<String, String> parameters = Map.of("param1", "value1", "param2", "value2");
-//        SignatureConfiguration signatureConfiguration = new SignatureConfiguration(signatureType, parameters);
-//        signatureRequest = new SignatureRequest(signatureConfiguration, "\"vc\": {\"id\": \"fa7376e0-fcc1-44c0-a91e-001a1301c06e\"}");
-//        token = "dummyToken";
-//        String procedureId = "550e8400-e29b-41d4-a716-446655440000";
-//
-//        // Create a server error response
-//        WebClientResponseException serverError = WebClientResponseException.create(
-//                HttpStatus.INTERNAL_SERVER_ERROR.value(),
-//                "Internal Server Error",
-//                HttpHeaders.EMPTY,
-//                null,
-//                null
-//        );
-//
-//        // Configure server endpoint
-//        when(remoteSignatureConfig.getRemoteSignatureDomain()).thenReturn("http://remote-signature.com");
-//        when(remoteSignatureConfig.getRemoteSignatureCredentialId()).thenReturn("id1");
-//
-//        when(httpUtils.postRequest(eq("http://remote-signature.com/oauth2/token"), any(), anyString()))
-//                .thenReturn(Mono.just("{\"access_token\": \"mockAccessToken\"}"));
-//
-//        Map<String, Object> mockResponseMap = new HashMap<>();
-//        mockResponseMap.put("access_token", "mockAccessToken");
-//
-//        when(httpUtils.postRequest(eq("http://remote-signature.com/csc/v2/credentials/authorize"), any(), any()))
-//                .thenReturn(Mono.just("{\"SAD\": \"1234\"}"));
-//        when(objectMapper.readValue("{\"SAD\": \"1234\"}", Map.class)).thenReturn(Map.of("SAD", "1234"));
-//
-//        when(objectMapper.readValue("{\"access_token\": \"mockAccessToken\"}", Map.class)).thenReturn(mockResponseMap);
-//
-//        when(httpUtils.postRequest(eq("http://remote-signature.com/csc/v2/signatures/signDoc"), any(), any()))
-//                .thenReturn(
-//                        Mono.error(serverError), // First attempt - fail
-//                        Mono.error(serverError), // Second attempt - fail
-//                        Mono.just("{DocumentWithSignature: [ZGF0YQo=]}") // Third attempt - success
-//                );
-//
-//        Map<String, List<String>> mockResponseMap2 = new HashMap<>();
-//        mockResponseMap2.put("DocumentWithSignature", List.of("ZGF0YQo="));
-//
-//        when(jwtUtils.areJsonsEqual(anyString(), anyString())).thenReturn(true);
-//
-//        when(objectMapper.readValue("{DocumentWithSignature: [ZGF0YQo=]}", Map.class)).thenReturn(mockResponseMap2);
-//
-//        when(jwtUtils.decodePayload(any())).thenReturn("\"vc\": {\"id\": \"fa7376e0-fcc1-44c0-a91e-001a1301c06e\"}");
-//
-//        // Act
-//        Mono<SignedData> result = remoteSignatureService.signIssuedCredential(signatureRequest, token, procedureId, "email");
-//
-//        // Assert
-//        StepVerifier.create(result)
-//                .expectComplete()
-//                .verify();
-//
-//        verify(httpUtils, times(7)).postRequest(any(), any(), any());
-//        // Verify deferredCredentialMetadataService was called to delete the metadata
-//        verify(deferredCredentialMetadataService).deleteDeferredCredentialMetadataById(procedureId);
-//
-//        // Verify handlePostRecoverError was not called (no recovery needed)
-//        verify(credentialProcedureRepository, never()).findByProcedureId(any(UUID.class));
-//        verify(deferredCredentialMetadataRepository, never()).findByProcedureId(any(UUID.class));
-//    }
-    
+
+    @Test
+    void testSignSuccessAfterRetries() throws JsonProcessingException {
+        // Arrange
+        when(remoteSignatureConfig.getRemoteSignatureType()).thenReturn(SIGNATURE_REMOTE_TYPE_CLOUD);
+
+        SignatureType signatureType = SignatureType.JADES;
+        SignatureConfiguration signatureConfiguration =
+                new SignatureConfiguration(signatureType, Map.of("param1", "value1"));
+
+        String originalPayload = "\"vc\": {\"id\": \"fa7376e0-fcc1-44c0-a91e-001a1301c06e\"}";
+        SignatureRequest signatureRequest = new SignatureRequest(signatureConfiguration, originalPayload);
+
+        String token = "dummyToken";
+        String procedureId = "550e8400-e29b-41d4-a716-446655440000";
+
+        WebClientResponseException serverError = WebClientResponseException.create(
+                HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                "Internal Server Error",
+                HttpHeaders.EMPTY,
+                null,
+                null
+        );
+
+        when(remoteSignatureConfig.getRemoteSignatureDomain()).thenReturn("http://remote-signature.com");
+        when(remoteSignatureConfig.getRemoteSignatureCredentialId()).thenReturn("id1");
+        when(remoteSignatureConfig.getRemoteSignatureCredentialPassword()).thenReturn("pwd");
+        when(remoteSignatureConfig.getRemoteSignatureClientId()).thenReturn("client");
+        when(remoteSignatureConfig.getRemoteSignatureClientSecret()).thenReturn("secret");
+
+        // 1) Access token
+        String accessTokenJson = "{\"access_token\": \"mockAccessToken\"}";
+        when(httpUtils.postRequest(eq("http://remote-signature.com/oauth2/token"), any(), anyString()))
+                .thenReturn(Mono.just(accessTokenJson));
+        when(objectMapper.readValue(accessTokenJson, Map.class))
+                .thenReturn(Map.of("access_token", "mockAccessToken"));
+
+        // 2) SAD
+        String sadJson = "{\"SAD\": \"1234\"}";
+        when(httpUtils.postRequest(eq("http://remote-signature.com/csc/v2/credentials/authorize"), any(), anyString()))
+                .thenReturn(Mono.just(sadJson));
+        when(objectMapper.readValue(sadJson, Map.class)).thenReturn(Map.of("SAD", "1234"));
+
+        // 3) signDoc fails twice, then succeeds
+        String base64DocWithSignature = Base64.getEncoder()
+                .encodeToString("signed-jwt-or-jades".getBytes(StandardCharsets.UTF_8));
+
+        String signDocResponseJson = "{\"DocumentWithSignature\": [\"" + base64DocWithSignature + "\"]}";
+
+        when(httpUtils.postRequest(eq("http://remote-signature.com/csc/v2/signatures/signDoc"), any(), anyString()))
+                .thenReturn(
+                        Mono.error(serverError),
+                        Mono.error(serverError),
+                        Mono.just(signDocResponseJson)
+                );
+
+        when(objectMapper.readValue(signDocResponseJson, Map.class))
+                .thenReturn(Map.of("DocumentWithSignature", List.of(base64DocWithSignature)));
+
+        // processSignatureResponse does:
+        // - base64 decode docWithSignature
+        // - jwtUtils.decodePayload(decodedDoc)
+        // - compare with original
+        String decodedDocWithSignature = new String(Base64.getDecoder().decode(base64DocWithSignature), StandardCharsets.UTF_8);
+        when(jwtUtils.decodePayload(decodedDocWithSignature)).thenReturn(originalPayload);
+        when(jwtUtils.areJsonsEqual(originalPayload, originalPayload)).thenReturn(true);
+
+        // It then serializes SignedData-like JSON and later toSignedData parses it
+        String signedDataJson = "{\"type\":\"JADES\",\"data\":\"" + decodedDocWithSignature + "\"}";
+        doAnswer(invocation -> {
+            Object arg = invocation.getArgument(0);
+
+            // 1) buildAuthorizationDetails() serializes a List<authorizationDetails>
+            if (arg instanceof List) {
+                return "[{\"type\":\"credential\"}]";
+            }
+
+            // 2) processSignatureResponse() serializes the final map {type,data}
+            if (arg instanceof Map) {
+                Map<?, ?> map = (Map<?, ?>) arg;
+                Object type = map.get("type");
+                Object data = map.get("data");
+                return "{\"type\":\"" + type + "\",\"data\":\"" + data + "\"}";
+            }
+
+            // Fallback
+            return "{}";
+        }).when(objectMapper).writeValueAsString(any());
+
+        SignedData expected = new SignedData(SignatureType.JADES, decodedDocWithSignature);
+        when(objectMapper.readValue(signedDataJson, SignedData.class)).thenReturn(expected);
+
+        // Act
+        Mono<SignedData> result = remoteSignatureService
+                .signIssuedCredential(signatureRequest, token, procedureId, "email");
+
+        // Assert (now we expect a real emission)
+        StepVerifier.create(result)
+                .expectNext(expected)
+                .verifyComplete();
+
+        verify(deferredCredentialMetadataService).deleteDeferredCredentialMetadataById(procedureId);
+
+        verify(httpUtils, times(3))
+                .postRequest(eq("http://remote-signature.com/oauth2/token"), any(), anyString());
+        verify(httpUtils, times(3))
+                .postRequest(eq("http://remote-signature.com/csc/v2/credentials/authorize"), any(), anyString());
+        verify(httpUtils, times(3))
+                .postRequest(eq("http://remote-signature.com/csc/v2/signatures/signDoc"), any(), anyString());
+
+        verify(credentialProcedureRepository, never()).findByProcedureId(any(UUID.class));
+        verify(deferredCredentialMetadataRepository, never()).findByProcedureId(any(UUID.class));
+    }
+
     @Test
     void testSignFailAfterAllRetries() throws JsonProcessingException {
         // Arrange

@@ -20,6 +20,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.r2dbc.core.R2dbcEntityTemplate;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -48,6 +49,9 @@ class CredentialProcedureServiceImplTest {
     private ObjectMapper objectMapper;
 
     @Mock
+    private R2dbcEntityTemplate r2dbcEntityTemplate;
+
+    @Mock
     private AppConfig appConfig;
 
     @InjectMocks
@@ -61,45 +65,57 @@ class CredentialProcedureServiceImplTest {
                 .thenReturn(ADMIN_ORG_ID);
     }
 
-//    @Test
-//    void createCredentialProcedure_shouldSaveProcedureAndReturnProcedureId() {
-//        // Given
-//        String credentialDecoded = "{\"vc\":{\"type\":[\"VerifiableCredential\"]}}";
-//        String organizationIdentifier = "org-123";
-//        String expectedProcedureId = UUID.randomUUID().toString();
-//        String expectedCredentialType = "LEAR_CREDENTIAL_EMPLOYEE";
-//        String expectedSubject = "TestSubject";
-//        Timestamp expectedValidUntil = new Timestamp(Instant.now().toEpochMilli() + 1000);
-//
-//        CredentialProcedureCreationRequest request = CredentialProcedureCreationRequest.builder()
-//                .organizationIdentifier(organizationIdentifier)
-//                .credentialDecoded(credentialDecoded)
-//                .subject(expectedSubject)
-//                .credentialType(CredentialType.LEAR_CREDENTIAL_EMPLOYEE)
-//                .validUntil(expectedValidUntil)
-//                .build();
-//
-//        CredentialProcedure savedCredentialProcedure = CredentialProcedure.builder()
-//                .procedureId(UUID.fromString(expectedProcedureId))
-//                .credentialStatus(CredentialStatusEnum.DRAFT)
-//                .credentialDecoded(credentialDecoded)
-//                .organizationIdentifier(organizationIdentifier)
-//                .credentialType(expectedCredentialType)
-//                .subject(expectedSubject)
-//                .validUntil(expectedValidUntil)
-//                .build();
-//
-//        when(credentialProcedureRepository.save(any(CredentialProcedure.class)))
-//                .thenReturn(Mono.just(savedCredentialProcedure));
-//
-//        // When
-//        Mono<String> result = credentialProcedureService.createCredentialProcedure(request);
-//
-//        // Then
-//        StepVerifier.create(result)
-//                .expectNext(expectedProcedureId)
-//                .verifyComplete();
-//    }
+    @Test
+    void createCredentialProcedure_shouldSaveProcedureAndReturnProcedureId() {
+        // Given
+        String credentialDecoded = "{\"vc\":{\"type\":[\"VerifiableCredential\"]}}";
+        String organizationIdentifier = "org-123";
+        String expectedProcedureId = UUID.randomUUID().toString();
+        String expectedCredentialType = "LEAR_CREDENTIAL_EMPLOYEE";
+        String expectedSubject = "TestSubject";
+        String expectedEmail = "test@example.com";
+        String expectedOperationMode = "async";
+        Timestamp expectedValidUntil = new Timestamp(Instant.now().toEpochMilli() + 1000);
+
+        CredentialProcedureCreationRequest request = CredentialProcedureCreationRequest.builder()
+                .procedureId(expectedProcedureId)  // ← AÑADIDO
+                .organizationIdentifier(organizationIdentifier)
+                .credentialDecoded(credentialDecoded)
+                .subject(expectedSubject)
+                .credentialType(CredentialType.LEAR_CREDENTIAL_EMPLOYEE)
+                .validUntil(expectedValidUntil)
+                .operationMode(expectedOperationMode)  // ← AÑADIDO
+                .email(expectedEmail)  // ← AÑADIDO
+                .build();
+
+        CredentialProcedure savedCredentialProcedure = CredentialProcedure.builder()
+                .procedureId(UUID.fromString(expectedProcedureId))
+                .credentialStatus(CredentialStatusEnum.DRAFT)
+                .credentialDecoded(credentialDecoded)
+                .organizationIdentifier(organizationIdentifier)
+                .credentialType(expectedCredentialType)
+                .subject(expectedSubject)
+                .validUntil(expectedValidUntil)
+                .operationMode(expectedOperationMode)
+                .signatureMode("remote")
+                .email(expectedEmail)
+                .notificationId(UUID.randomUUID())
+                .build();
+
+        // Mock
+        when(r2dbcEntityTemplate.insert(any(CredentialProcedure.class)))
+                .thenReturn(Mono.just(savedCredentialProcedure));
+
+        // When
+        Mono<String> result = credentialProcedureService.createCredentialProcedure(request);
+
+        // Then
+        StepVerifier.create(result)
+                .expectNext(expectedProcedureId)
+                .verifyComplete();
+
+        verify(r2dbcEntityTemplate, times(1)).insert(any(CredentialProcedure.class));
+    }
 
     @Test
     void getCredentialTypeByProcedureId_shouldReturnNonDefaultType() throws Exception {
