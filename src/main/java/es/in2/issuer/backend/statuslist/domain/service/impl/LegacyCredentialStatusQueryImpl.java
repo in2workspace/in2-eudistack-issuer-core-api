@@ -10,7 +10,7 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
 // Legacy service used to handle credentials with a PlainListEntry credentialStatus.
-// It can be removed once the last credential of this type expires in DOME.
+// TODO Remove once the last credential of this type expires in DOME.
 @Slf4j
 @Service
 @RequiredArgsConstructor
