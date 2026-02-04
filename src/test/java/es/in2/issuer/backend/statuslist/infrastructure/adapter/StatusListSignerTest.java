@@ -173,7 +173,7 @@ class StatusListSignerTest {
         // Act + Assert
         assertThatThrownBy(() -> signer.sign(Map.of("a", 1), null, 1L))
                 .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("token"); // opcional: verificar el missatge
+                .hasMessageContaining("token");
     }
 
     /**
