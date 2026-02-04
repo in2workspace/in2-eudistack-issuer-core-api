@@ -307,9 +307,6 @@ public class BitstringStatusListProvider implements StatusListProvider {
                 );
     }
 
-    /**
-     * Gets the issuer, builds the payload, and signs it. Does not persist anything.
-     */
     private Mono<String> getIssuerAndSignCredential(StatusList saved, String token) {
         return issuerFactory.createSimpleIssuer()
                 .flatMap(issuer -> {

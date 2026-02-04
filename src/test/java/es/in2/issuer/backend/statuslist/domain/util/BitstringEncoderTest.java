@@ -169,11 +169,11 @@ class BitstringEncoderTest {
     void validateBitIndex_Boundaries() {
         byte[] raw = new byte[2]; // 16 bits (0-15)
 
-        // Casos límit vàlids
+        // Invalid
         bitstringEncoder.setBit(raw, 0, true);
         bitstringEncoder.setBit(raw, 15, true);
 
-        // Casos invàlids
+        // Valid
         assertThatThrownBy(() -> bitstringEncoder.isBitSet(raw, -1))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("bitIndex must be >= 0");
@@ -199,7 +199,7 @@ class BitstringEncoderTest {
     @Test
     @DisplayName("GZIP/Base64 Errors: Coverage for catch blocks")
     void errorHandling_CatchBlocks() {
-        // Base64 invàlid (caràcters no permesos)
+        // Invalid Base64
         assertThatThrownBy(() -> bitstringEncoder.decodeToRawBytes("u###"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("is not valid base64url");
