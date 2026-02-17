@@ -6,6 +6,7 @@ import es.in2.issuer.backend.shared.application.workflow.CredentialIssuanceWorkf
 import es.in2.issuer.backend.shared.domain.exception.*;
 import es.in2.issuer.backend.shared.domain.model.dto.*;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.employee.LEARCredentialEmployee;
+import es.in2.issuer.backend.shared.domain.model.entities.BindingInfo;
 import es.in2.issuer.backend.shared.domain.model.entities.CredentialProcedure;
 import es.in2.issuer.backend.shared.domain.model.entities.DeferredCredentialMetadata;
 import es.in2.issuer.backend.shared.domain.model.enums.CredentialType;
@@ -176,6 +177,10 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                                     bi.subjectId(),
                                     (bi.cnf() instanceof java.util.Map<?, ?> m) ? m.keySet() : "unknown"
                             ))
+                            .flatMap(bi ->
+                                    credentialProcedureService.updateCnf(proc.getProcedureId().toString(), bi.cnf())
+                                            .thenReturn(bi)
+                            )
                             .doOnSuccess(bi -> {
                                 if (bi == null) {
                                     log.info("[{}] No cryptographic binding required for credentialType={}",
@@ -432,9 +437,6 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                                         verifiableCredentialService.generateDeferredCredentialResponse(procedure, transactionId)));
     }
 
-    public record BindingInfo(String subjectId, Object cnf) {
-    }
-
     private Mono<BindingInfo> extractBindingInfoFromJwtProof(String jwtProof) {
         return Mono.fromCallable(() -> {
             JWSObject jws = JWSObject.parse(jwtProof);
@@ -487,11 +489,10 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
         if (!(jwk instanceof java.util.Map<?, ?> jwkMap)) {
             throw new ProofValidationException("jwk must be a JSON object");
         }
+
         var jwkObj = (java.util.Map<String, Object>) jwkMap;
-        String subjectIdFromJwk = jwtUtils.didKeyFromJwk(jwkObj);
-        if (subjectIdFromJwk == null || subjectIdFromJwk.isBlank()) {
-            throw new ProofValidationException("Unable to derive did:key from jwk");
-        }
+        String subjectIdFromJwk = UUID.randomUUID().toString();
+
         log.info("Binding extracted from proof: cnfType=jwk, subjectId={}", subjectIdFromJwk);
         return new BindingInfo(subjectIdFromJwk, java.util.Map.of("jwk", jwkObj));
     }

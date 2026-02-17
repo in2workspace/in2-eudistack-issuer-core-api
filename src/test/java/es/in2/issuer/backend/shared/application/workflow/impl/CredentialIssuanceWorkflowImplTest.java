@@ -13,6 +13,7 @@ import es.in2.issuer.backend.shared.domain.exception.ProofValidationException;
 import es.in2.issuer.backend.shared.domain.model.dto.*;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.Mandator;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.employee.LEARCredentialEmployee;
+import es.in2.issuer.backend.shared.domain.model.entities.BindingInfo;
 import es.in2.issuer.backend.shared.domain.model.entities.CredentialProcedure;
 import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum;
 import es.in2.issuer.backend.shared.domain.model.enums.CredentialType;
@@ -1133,7 +1134,7 @@ class CredentialIssuanceWorkflowImplTest {
                 .build();
 
         // when
-        Mono<CredentialIssuanceWorkflowImpl.BindingInfo> mono =
+        Mono<BindingInfo> mono =
                 callValidateAndDetermineBindingInfo(proc, md, req);
 
         // then
@@ -1174,7 +1175,7 @@ class CredentialIssuanceWorkflowImplTest {
                 .build();
 
         // when
-        Mono<CredentialIssuanceWorkflowImpl.BindingInfo> mono =
+        Mono<BindingInfo> mono =
                 callValidateAndDetermineBindingInfo(proc, md, req);
 
         // then
@@ -1224,7 +1225,7 @@ class CredentialIssuanceWorkflowImplTest {
                 .thenReturn(Mono.just(false));
 
         // when
-        Mono<CredentialIssuanceWorkflowImpl.BindingInfo> mono =
+        Mono<BindingInfo> mono =
                 callValidateAndDetermineBindingInfo(proc, md, req);
 
         // then
@@ -1270,7 +1271,7 @@ class CredentialIssuanceWorkflowImplTest {
                 .thenReturn(Mono.just(true));
 
         // when
-        Mono<CredentialIssuanceWorkflowImpl.BindingInfo> mono =
+        Mono<BindingInfo> mono =
                 callValidateAndDetermineBindingInfo(proc, md, req);
 
         // then
@@ -1286,7 +1287,7 @@ class CredentialIssuanceWorkflowImplTest {
 
 
     @SuppressWarnings("unchecked")
-    private Mono<CredentialIssuanceWorkflowImpl.BindingInfo> callValidateAndDetermineBindingInfo(
+    private Mono<BindingInfo> callValidateAndDetermineBindingInfo(
             CredentialProcedure proc,
             CredentialIssuerMetadata md,
             CredentialRequest req
@@ -1299,7 +1300,7 @@ class CredentialIssuanceWorkflowImplTest {
                     CredentialRequest.class
             );
             m.setAccessible(true);
-            return (Mono<CredentialIssuanceWorkflowImpl.BindingInfo>) m.invoke(
+            return (Mono<BindingInfo>) m.invoke(
                     verifiableCredentialIssuanceWorkflow, // tu @InjectMocks
                     proc, md, req
             );

@@ -1,6 +1,8 @@
 package es.in2.issuer.backend.shared.application.workflow.impl;
 
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -12,6 +14,7 @@ import es.in2.issuer.backend.shared.application.workflow.DeferredCredentialWorkf
 import es.in2.issuer.backend.shared.domain.exception.Base45Exception;
 import es.in2.issuer.backend.shared.domain.exception.CredentialProcedureInvalidStatusException;
 import es.in2.issuer.backend.shared.domain.exception.CredentialProcedureNotFoundException;
+import es.in2.issuer.backend.shared.domain.exception.ParseCredentialJsonException;
 import es.in2.issuer.backend.shared.domain.model.dto.SignatureConfiguration;
 import es.in2.issuer.backend.shared.domain.model.dto.SignatureRequest;
 import es.in2.issuer.backend.shared.domain.model.dto.SignedCredentials;
@@ -37,10 +40,7 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 import java.io.ByteArrayOutputStream;
-import java.util.Base64;
-import java.util.Collections;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.CWT_VC;
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.JWT_VC;
@@ -86,11 +86,19 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
                                         .flatMap(unsignedCredential -> signCredentialOnRequestedFormat(unsignedCredential, format, token, procedureId, updatedBy));
                             }
                             case LEAR_CREDENTIAL_EMPLOYEE_TYPE -> {
+                                Mono<java.util.Map<String, Object>> cnfMono =
+                                        Mono.fromCallable(() -> parseCnfJson(credentialProcedure.getCnf()));
+
                                 LEARCredentialEmployee learCredentialEmployee = learCredentialEmployeeFactory
                                         .mapStringToLEARCredentialEmployee(credentialProcedure.getCredentialDecoded());
-                                yield learCredentialEmployeeFactory.buildLEARCredentialEmployeeJwtPayload(learCredentialEmployee)
-                                        .flatMap(learCredentialEmployeeFactory::convertLEARCredentialEmployeeJwtPayloadInToString)
-                                        .flatMap(unsignedCredential -> signCredentialOnRequestedFormat(unsignedCredential, format, token, procedureId, updatedBy));
+
+                                yield cnfMono.flatMap(cnfMap ->
+                                        learCredentialEmployeeFactory.buildLEARCredentialEmployeeJwtPayload(learCredentialEmployee, cnfMap)
+                                                .flatMap(learCredentialEmployeeFactory::convertLEARCredentialEmployeeJwtPayloadInToString)
+                                                .flatMap(unsignedCredential ->
+                                                        signCredentialOnRequestedFormat(unsignedCredential, format, token, procedureId, updatedBy)
+                                                )
+                                );
                             }
                             case LEAR_CREDENTIAL_MACHINE_TYPE -> {
                                 LEARCredentialMachine learCredentialMachine = learCredentialMachineFactory
@@ -115,6 +123,17 @@ public class CredentialSignerWorkflowImpl implements CredentialSignerWorkflow {
                             .thenReturn(signedCredential);
                 })
                 .doOnSuccess(x -> log.info("Credential Signed and updated successfully."));
+    }
+
+    private java.util.Map<String, Object> parseCnfJson(String cnfJson) throws ParseCredentialJsonException{
+        if (cnfJson == null || cnfJson.isBlank()) {
+            throw new IllegalStateException("Missing cnf in CredentialProcedure");
+        }
+        try {
+            return objectMapper.readValue(cnfJson, new TypeReference<Map<String, Object>>() {});
+        } catch (JsonProcessingException e) {
+            throw new ParseCredentialJsonException("Invalid cnf JSON");
+        }
     }
 
     private Mono<Void> updateSignedCredential(String signedCredential, String procedureId) {

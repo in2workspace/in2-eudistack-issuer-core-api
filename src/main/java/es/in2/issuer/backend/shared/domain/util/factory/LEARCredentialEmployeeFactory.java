@@ -180,14 +180,14 @@ public class LEARCredentialEmployeeFactory {
                 .build();
     }
 
-    public Mono<LEARCredentialEmployeeJwtPayload> buildLEARCredentialEmployeeJwtPayload(LEARCredentialEmployee learCredentialEmployee) {
+    public Mono<LEARCredentialEmployeeJwtPayload> buildLEARCredentialEmployeeJwtPayload(LEARCredentialEmployee learCredentialEmployee, Map<String, Object> cnf) {
         return Mono.fromCallable(() -> {
-            String subjectDid = learCredentialEmployee.credentialSubject().id();
-            if (subjectDid == null || subjectDid.isBlank()) {
-                throw new IllegalStateException("Missing credentialSubject.id (cryptographic binding DID)");
+
+            if (cnf == null || cnf.isEmpty()) {
+                throw new IllegalStateException("Missing cnf (expected kid/jwk/x5c)");
             }
 
-            Map<String, Object> cnf = Map.of("kid", subjectDid);
+            validateCnfShape(cnf);
 
             return LEARCredentialEmployeeJwtPayload.builder()
                     .JwtId(UUID.randomUUID().toString())
@@ -196,10 +196,21 @@ public class LEARCredentialEmployeeFactory {
                     .issuedAt(parseDateToUnixTime(learCredentialEmployee.validFrom()))
                     .notValidBefore(parseDateToUnixTime(learCredentialEmployee.validFrom()))
                     .issuer(learCredentialEmployee.issuer().getId())
-                    .subject(subjectDid)
+                    .subject(learCredentialEmployee.credentialSubject().id())
                     .cnf(cnf)
                     .build();
         });
+    }
+
+    private void validateCnfShape(java.util.Map<String, Object> cnf) {
+        boolean hasKid = cnf.containsKey("kid");
+        boolean hasJwk = cnf.containsKey("jwk");
+        boolean hasX5c = cnf.containsKey("x5c");
+
+        int count = (hasKid ? 1 : 0) + (hasJwk ? 1 : 0) + (hasX5c ? 1 : 0);
+        if (count != 1) {
+            throw new IllegalStateException("Invalid cnf (expected exactly one of kid/jwk/x5c)");
+        }
     }
 
 
