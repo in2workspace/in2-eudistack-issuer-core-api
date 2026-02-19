@@ -1349,6 +1349,157 @@ class VerifiableCredentialPolicyAuthorizationServiceImplTest {
                 .build();
     }
 
+    @Test
+    void authorize_employee_success_whenTokenContainsLearCredentialMachine_withOnboardingExecute_andAdminOrg() throws Exception {
+        // Arrange
+        String token = "valid-token";
+        JsonNode payload = mock(JsonNode.class);
+
+        // Token vc is a Machine credential, but schema requested is Employee
+        String vcClaim = "{\"type\": [\"VerifiableCredential\", \"LEARCredentialMachine\"]}";
+
+        Map<String, Object> payloadMap = new HashMap<>();
+        payloadMap.put("iss", "internal-auth-server");
+        Payload jwtPayload = new Payload(payloadMap);
+
+        SignedJWT signedJWT = mock(SignedJWT.class);
+        when(signedJWT.getPayload()).thenReturn(jwtPayload);
+
+        when(jwtService.parseJWT(token)).thenReturn(signedJWT);
+        when(jwtService.getClaimFromPayload(jwtPayload, VC)).thenReturn(vcClaim);
+
+        ObjectMapper realObjectMapper = new ObjectMapper();
+        JsonNode vcJsonNode = realObjectMapper.readTree(vcClaim);
+        when(objectMapper.readTree(vcClaim)).thenReturn(vcJsonNode);
+
+        // Machine credential must satisfy signer policy:
+        // - mandator orgIdentifier == ADMIN_ORG_ID
+        // - has Onboarding + Execute
+        LEARCredentialMachine machineCredential = getLEARCredentialMachineForEmployeeIssuance();
+        when(learCredentialMachineFactory.mapStringToLEARCredentialMachine(vcClaim)).thenReturn(machineCredential);
+
+        // Act
+        Mono<Void> result = policyAuthorizationService.authorize(token, LEAR_CREDENTIAL_EMPLOYEE, payload, "dummy-id-token");
+
+        // Assert
+        StepVerifier.create(result).verifyComplete();
+    }
+
+    @Test
+    void authorize_employee_failure_whenTokenContainsLearCredentialMachine_withoutOnboardingExecute() throws Exception {
+        // Arrange
+        String token = "valid-token";
+        JsonNode payload = mock(JsonNode.class);
+
+        String vcClaim = "{\"type\": [\"VerifiableCredential\", \"LEARCredentialMachine\"]}";
+
+        Map<String, Object> payloadMap = new HashMap<>();
+        payloadMap.put("iss", "internal-auth-server");
+        Payload jwtPayload = new Payload(payloadMap);
+
+        SignedJWT signedJWT = mock(SignedJWT.class);
+        when(signedJWT.getPayload()).thenReturn(jwtPayload);
+
+        when(jwtService.parseJWT(token)).thenReturn(signedJWT);
+        when(jwtService.getClaimFromPayload(jwtPayload, VC)).thenReturn(vcClaim);
+
+        ObjectMapper realObjectMapper = new ObjectMapper();
+        JsonNode vcJsonNode = realObjectMapper.readTree(vcClaim);
+        when(objectMapper.readTree(vcClaim)).thenReturn(vcJsonNode);
+
+        // Machine credential does NOT have Onboarding/Execute => signer policy fails
+        LEARCredentialMachine machineCredential = getLEARCredentialMachineForEmployeeIssuanceWithoutOnboardingExecute();
+        when(learCredentialMachineFactory.mapStringToLEARCredentialMachine(vcClaim)).thenReturn(machineCredential);
+
+        // Act
+        Mono<Void> result = policyAuthorizationService.authorize(token, LEAR_CREDENTIAL_EMPLOYEE, payload, "dummy-id-token");
+
+        // Assert
+        StepVerifier.create(result)
+                .expectErrorMatches(throwable ->
+                        throwable instanceof InsufficientPermissionException &&
+                                throwable.getMessage().contains("Unauthorized: LEARCredentialEmployee does not meet any issuance policies."))
+                .verify();
+    }
+
+    private LEARCredentialMachine getLEARCredentialMachineForEmployeeIssuance() {
+        LEARCredentialMachine.CredentialSubject.Mandate.Mandator mandator =
+                LEARCredentialMachine.CredentialSubject.Mandate.Mandator.builder()
+                        .organizationIdentifier(ADMIN_ORG_ID)
+                        .organization("IN2")
+                        .country("ES")
+                        .commonName("IN2")
+                        .serialNumber("SN-IN2")
+                        .build();
+
+        LEARCredentialMachine.CredentialSubject.Mandate.Mandatee mandatee =
+                LEARCredentialMachine.CredentialSubject.Mandate.Mandatee.builder()
+                        .id("did:key:machine-1234")
+                        .build();
+
+        Power power = Power.builder()
+                .function("Onboarding")
+                .action("Execute")
+                .build();
+
+        LEARCredentialMachine.CredentialSubject.Mandate mandate =
+                LEARCredentialMachine.CredentialSubject.Mandate.builder()
+                        .mandator(mandator)
+                        .mandatee(mandatee)
+                        .power(Collections.singletonList(power))
+                        .build();
+
+        LEARCredentialMachine.CredentialSubject credentialSubject =
+                LEARCredentialMachine.CredentialSubject.builder()
+                        .mandate(mandate)
+                        .build();
+
+        return LEARCredentialMachine.builder()
+                .type(List.of("VerifiableCredential", "LEARCredentialMachine"))
+                .credentialSubject(credentialSubject)
+                .build();
+    }
+
+    private LEARCredentialMachine getLEARCredentialMachineForEmployeeIssuanceWithoutOnboardingExecute() {
+        LEARCredentialMachine.CredentialSubject.Mandate.Mandator mandator =
+                LEARCredentialMachine.CredentialSubject.Mandate.Mandator.builder()
+                        .organizationIdentifier(ADMIN_ORG_ID)
+                        .organization("IN2")
+                        .country("ES")
+                        .commonName("IN2")
+                        .serialNumber("SN-IN2")
+                        .build();
+
+        LEARCredentialMachine.CredentialSubject.Mandate.Mandatee mandatee =
+                LEARCredentialMachine.CredentialSubject.Mandate.Mandatee.builder()
+                        .id("did:key:machine-1234")
+                        .build();
+
+        // Not Execute => should fail issuance policy
+        Power power = Power.builder()
+                .function("Onboarding")
+                .action("Read")
+                .build();
+
+        LEARCredentialMachine.CredentialSubject.Mandate mandate =
+                LEARCredentialMachine.CredentialSubject.Mandate.builder()
+                        .mandator(mandator)
+                        .mandatee(mandatee)
+                        .power(Collections.singletonList(power))
+                        .build();
+
+        LEARCredentialMachine.CredentialSubject credentialSubject =
+                LEARCredentialMachine.CredentialSubject.builder()
+                        .mandate(mandate)
+                        .build();
+
+        return LEARCredentialMachine.builder()
+                .type(List.of("VerifiableCredential", "LEARCredentialMachine"))
+                .credentialSubject(credentialSubject)
+                .build();
+    }
+
+
 
 
 }
