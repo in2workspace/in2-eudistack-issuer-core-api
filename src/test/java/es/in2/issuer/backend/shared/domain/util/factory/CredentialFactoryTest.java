@@ -267,7 +267,7 @@ class CredentialFactoryTest {
         String subjectDid = "did:key:zDna...";
         String expected = "boundCredential";
 
-        when(learCredentialMachineFactory.bindCryptographicCredentialSubjectId(decodedCredential, subjectDid))
+        when(learCredentialMachineFactory.bindCryptographicCredentialSubjectId(decodedCredential))
                 .thenReturn(Mono.just(expected));
 
         // Act & Assert
@@ -282,7 +282,7 @@ class CredentialFactoryTest {
                 .expectNext(expected)
                 .verifyComplete();
 
-        verify(learCredentialMachineFactory).bindCryptographicCredentialSubjectId(decodedCredential, subjectDid);
+        verify(learCredentialMachineFactory).bindCryptographicCredentialSubjectId(decodedCredential);
         verifyNoInteractions(learCredentialEmployeeFactory);
     }
 
@@ -295,7 +295,7 @@ class CredentialFactoryTest {
         String subjectDid = "did:key:zDna...";
         RuntimeException error = new RuntimeException("bind error");
 
-        when(learCredentialMachineFactory.bindCryptographicCredentialSubjectId(decodedCredential, subjectDid))
+        when(learCredentialMachineFactory.bindCryptographicCredentialSubjectId(decodedCredential))
                 .thenReturn(Mono.error(error));
 
         // Act & Assert
@@ -310,7 +310,7 @@ class CredentialFactoryTest {
                 .expectErrorMatches(t -> t == error)
                 .verify();
 
-        verify(learCredentialMachineFactory).bindCryptographicCredentialSubjectId(decodedCredential, subjectDid);
+        verify(learCredentialMachineFactory).bindCryptographicCredentialSubjectId(decodedCredential);
         verifyNoInteractions(learCredentialEmployeeFactory);
     }
 

@@ -11,8 +11,6 @@ import es.in2.issuer.backend.shared.domain.model.dto.credential.CredentialStatus
 import es.in2.issuer.backend.shared.domain.model.dto.credential.DetailedIssuer;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.machine.LEARCredentialMachine;
 import es.in2.issuer.backend.shared.domain.model.enums.CredentialType;
-import es.in2.issuer.backend.shared.domain.service.AccessTokenService;
-import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -34,13 +32,12 @@ import static es.in2.issuer.backend.shared.domain.util.Constants.*;
 public class LEARCredentialMachineFactory {
 
     private final ObjectMapper objectMapper;
-    private final AccessTokenService accessTokenService;
     private final IssuerFactory issuerFactory;
-    private final AppConfig appConfig;
 
-    public Mono<String> bindCryptographicCredentialSubjectId(String decodedCredentialString, String subjectId) {
+    public Mono<String> bindCryptographicCredentialSubjectId(String decodedCredentialString) {
         LEARCredentialMachine decodedCredential = mapStringToLEARCredentialMachine(decodedCredentialString);
-        return bindSubjectIdToLearCredentialMachine(decodedCredential, subjectId)
+        String mandateeId = decodedCredential.credentialSubject().mandate().mandatee().id();
+        return bindSubjectIdToLearCredentialMachine(decodedCredential, mandateeId)
                 .flatMap(this::convertLEARCredentialMachineInToString);
     }
 
@@ -154,9 +151,7 @@ public class LEARCredentialMachineFactory {
     }
 
     public Mono<LEARCredentialMachineJwtPayload> buildLEARCredentialMachineJwtPayload(LEARCredentialMachine learCredentialMachine) {
-        String subject = learCredentialMachine.credentialSubject().id() != null
-                ? learCredentialMachine.credentialSubject().id()
-                : learCredentialMachine.credentialSubject().mandate().mandatee().id();
+        String subject = learCredentialMachine.credentialSubject().mandate().mandatee().id();
 
         return Mono.just(
                 LEARCredentialMachineJwtPayload.builder()
