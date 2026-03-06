@@ -50,6 +50,7 @@ public class PublicCORSConfig {
         source.registerCorsConfiguration(VCI_ISSUANCES_PATH, externalConfig);
 
         CorsConfiguration oid4vciConfig = new CorsConfiguration();
+        oid4vciConfig.setAllowedOrigins(appConfig.getExternalCorsAllowedOrigins());
         oid4vciConfig.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", OPTIONS));
         oid4vciConfig.setAllowedHeaders(List.of("*"));
         oid4vciConfig.setAllowCredentials(false);

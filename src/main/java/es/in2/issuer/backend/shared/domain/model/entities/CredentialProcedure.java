@@ -60,6 +60,9 @@ public class CredentialProcedure {
     @Column("notification_id")
     private UUID notificationId;
 
+    @Column("cnf")
+    private String cnf;
+
 
     // --- Auditing fields (R2DBC auditing will fill these) ---
     @CreatedDate

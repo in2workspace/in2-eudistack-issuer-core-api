@@ -305,6 +305,37 @@ public class CredentialProcedureServiceImpl implements CredentialProcedureServic
                 .map(CredentialProcedures::new);
     }
 
+    @Override
+    public Mono<Void> updateCnf(String procedureId, Object cnf) {
+        return Mono.defer(() -> {
+            if (procedureId == null || procedureId.isBlank()) {
+                return Mono.error(new IllegalArgumentException("procedureId is required"));
+            }
+            if (cnf == null) {
+                return Mono.error(new IllegalArgumentException("cnf is required"));
+            }
+
+            final String cnfJson;
+            try {
+                cnfJson = objectMapper.writeValueAsString(cnf);
+            } catch (JsonProcessingException e) {
+                return Mono.error(new ParseCredentialJsonException("Error serializing cnf to JSON"));
+            }
+
+            return credentialProcedureRepository.findByProcedureId(UUID.fromString(procedureId))
+                    .switchIfEmpty(Mono.error(new NoCredentialFoundException(
+                            "No credential procedure found for procedureId: " + procedureId
+                    )))
+                    .flatMap(cp -> {
+                        cp.setCnf(cnfJson);
+                        return credentialProcedureRepository.save(cp).then();
+                    })
+                    .doOnSuccess(v -> log.info("Updated cnf for procedureId={}", procedureId))
+                    .doOnError(e -> log.error("Error updating cnf for procedureId={}", procedureId, e));
+        });
+    }
+
+
     private ProcedureBasicInfo toProcedureBasicInfo(CredentialProcedure cp) throws ParseCredentialJsonException{
         try {
             objectMapper.readTree(cp.getCredentialDecoded());

@@ -485,8 +485,8 @@ class CredentialSignerWorkflowImplTest {
 
         when(learCredentialEmployeeFactory.mapStringToLEARCredentialEmployee(anyString()))
                 .thenReturn(mock(es.in2.issuer.backend.shared.domain.model.dto.credential.lear.employee.LEARCredentialEmployee.class));
-        when(learCredentialEmployeeFactory.buildLEARCredentialEmployeeJwtPayload(any()))
-                .thenReturn(Mono.just(mock(LEARCredentialEmployeeJwtPayload.class)));
+//        when(learCredentialEmployeeFactory.buildLEARCredentialEmployeeJwtPayload(any()))
+//                .thenReturn(Mono.just(mock(LEARCredentialEmployeeJwtPayload.class)));
         when(learCredentialEmployeeFactory.convertLEARCredentialEmployeeJwtPayloadInToString(any()))
                 .thenReturn(Mono.just(unsignedCredential));
 
@@ -546,8 +546,8 @@ class CredentialSignerWorkflowImplTest {
 
         when(learCredentialEmployeeFactory.mapStringToLEARCredentialEmployee(anyString()))
                 .thenReturn(mock(es.in2.issuer.backend.shared.domain.model.dto.credential.lear.employee.LEARCredentialEmployee.class));
-        when(learCredentialEmployeeFactory.buildLEARCredentialEmployeeJwtPayload(any()))
-                .thenReturn(Mono.just(mock(LEARCredentialEmployeeJwtPayload.class)));
+//        when(learCredentialEmployeeFactory.buildLEARCredentialEmployeeJwtPayload(any()))
+//                .thenReturn(Mono.just(mock(LEARCredentialEmployeeJwtPayload.class)));
         when(learCredentialEmployeeFactory.convertLEARCredentialEmployeeJwtPayloadInToString(any()))
                 .thenReturn(Mono.just(unsignedCredential));
 
@@ -597,8 +597,8 @@ class CredentialSignerWorkflowImplTest {
 
         when(learCredentialEmployeeFactory.mapStringToLEARCredentialEmployee(anyString()))
                 .thenReturn(mock(es.in2.issuer.backend.shared.domain.model.dto.credential.lear.employee.LEARCredentialEmployee.class));
-        when(learCredentialEmployeeFactory.buildLEARCredentialEmployeeJwtPayload(any()))
-                .thenReturn(Mono.just(mock(LEARCredentialEmployeeJwtPayload.class)));
+//        when(learCredentialEmployeeFactory.buildLEARCredentialEmployeeJwtPayload(any()))
+//                .thenReturn(Mono.just(mock(LEARCredentialEmployeeJwtPayload.class)));
         when(learCredentialEmployeeFactory.convertLEARCredentialEmployeeJwtPayloadInToString(any()))
                 .thenReturn(Mono.just(unsignedCredential));
 
@@ -652,8 +652,8 @@ class CredentialSignerWorkflowImplTest {
 
         when(learCredentialEmployeeFactory.mapStringToLEARCredentialEmployee(anyString()))
                 .thenReturn(mock(es.in2.issuer.backend.shared.domain.model.dto.credential.lear.employee.LEARCredentialEmployee.class));
-        when(learCredentialEmployeeFactory.buildLEARCredentialEmployeeJwtPayload(any()))
-                .thenReturn(Mono.just(mock(es.in2.issuer.backend.shared.domain.model.dto.LEARCredentialEmployeeJwtPayload.class)));
+//        when(learCredentialEmployeeFactory.buildLEARCredentialEmployeeJwtPayload(any()))
+//                .thenReturn(Mono.just(mock(es.in2.issuer.backend.shared.domain.model.dto.LEARCredentialEmployeeJwtPayload.class)));
         when(learCredentialEmployeeFactory.convertLEARCredentialEmployeeJwtPayloadInToString(any()))
                 .thenReturn(Mono.just(unsignedCredential));
 
@@ -712,8 +712,8 @@ class CredentialSignerWorkflowImplTest {
 
         when(learCredentialEmployeeFactory.mapStringToLEARCredentialEmployee(anyString()))
                 .thenReturn(mock(es.in2.issuer.backend.shared.domain.model.dto.credential.lear.employee.LEARCredentialEmployee.class));
-        when(learCredentialEmployeeFactory.buildLEARCredentialEmployeeJwtPayload(any()))
-                .thenReturn(Mono.just(mock(es.in2.issuer.backend.shared.domain.model.dto.LEARCredentialEmployeeJwtPayload.class)));
+//        when(learCredentialEmployeeFactory.buildLEARCredentialEmployeeJwtPayload(any()))
+//                .thenReturn(Mono.just(mock(es.in2.issuer.backend.shared.domain.model.dto.LEARCredentialEmployeeJwtPayload.class)));
         when(learCredentialEmployeeFactory.convertLEARCredentialEmployeeJwtPayloadInToString(any()))
                 .thenReturn(Mono.just(unsignedCredential));
 
