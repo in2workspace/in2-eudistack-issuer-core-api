@@ -402,4 +402,19 @@ public class GlobalExceptionHandler {
         );
     }
 
+    @ExceptionHandler(InvalidCredentialFormatException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public Mono<GlobalErrorMessage> handleInvalidCredentialFormatException(
+            InvalidCredentialFormatException ex,
+            ServerHttpRequest request
+    ) {
+        return errors.handleWith(
+                ex, request,
+                GlobalErrorTypes.INVALID_CREDENTIAL_FORMAT.getCode(),
+                "Invalid credential format",
+                HttpStatus.BAD_REQUEST,
+                "The credential payload is invalid"
+        );
+    }
+
 }

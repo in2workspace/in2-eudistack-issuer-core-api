@@ -38,6 +38,7 @@ public class PublicCORSConfig {
         source.registerCorsConfiguration(CREDENTIAL_ISSUER_METADATA_WELL_KNOWN_PATH, openConfig);
         source.registerCorsConfiguration(AUTHORIZATION_SERVER_METADATA_WELL_KNOWN_PATH, openConfig);
         source.registerCorsConfiguration(CORS_CREDENTIAL_OFFER_PATH, openConfig);
+        source.registerCorsConfiguration(OAUTH_TOKEN_PATH, openConfig);
 
         // Restricted config
         CorsConfiguration externalConfig = new CorsConfiguration();
@@ -56,7 +57,6 @@ public class PublicCORSConfig {
         oid4vciConfig.setMaxAge(1800L);
 
         source.registerCorsConfiguration(OID4VCI_CREDENTIAL_OFFER_PATH, oid4vciConfig);
-        source.registerCorsConfiguration(OAUTH_TOKEN_PATH, oid4vciConfig);
         source.registerCorsConfiguration(OID4VCI_CREDENTIAL_PATH, oid4vciConfig);
 
         return source;
