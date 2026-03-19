@@ -28,7 +28,8 @@ public enum GlobalErrorTypes {
     EMAIL_COMMUNICATION("email_communication_error"),
     CREDENTIAL_SERIALIZATION("credential_serialization"),
     CREDENTIAL_PROCEDURE_INVALID_STATUS("credential_procedure_invalid_status"),
-    CREDENTIAL_PROCEDURE_NOT_FOUND("credential_procedure_not_found");
+    CREDENTIAL_PROCEDURE_NOT_FOUND("credential_procedure_not_found"),
+    INVALID_CREDENTIAL_FORMAT("invalid_credential_format");
 
     private final String code;
 
