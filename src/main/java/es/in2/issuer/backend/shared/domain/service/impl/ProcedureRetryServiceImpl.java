@@ -129,7 +129,8 @@ public class ProcedureRetryServiceImpl implements ProcedureRetryService {
                 })
                 .retryWhen(createInitialRetrySpec("executeUploadLabelToResponseUri", attempts, delays))
                 .doOnSuccess(unused -> log.info("[RETRY-TEST] [executeUploadLabelToResponseUri] FINAL SUCCESS: Label credential successfully delivered to response URI for credId: {}", payload.credentialId()))
-                .doOnError(e -> log.error("[RETRY-TEST] [executeUploadLabelToResponseUri] FINAL ERROR: Failed to upload label credential after all retries for credId: {} - {}", payload.credentialId(), e.getMessage(), e))
+                .doOnError(e -> log.error("[RETRY-TEST] [executeUploadLabelToResponseUri] FINAL ERROR: Failed to upload label credential after all retries for credId: {} - Error: {}", payload.credentialId(), e.getMessage(), e))
+                .doOnTerminate(() -> log.debug("[RETRY-TEST] [executeUploadLabelToResponseUri] Mono terminated for credId: {}", payload.credentialId()))
                 .onErrorMap(e -> {
                     log.error("[RETRY-TEST] [executeUploadLabelToResponseUri] ERROR: failed to upload label credential after retries: {}", e.getMessage(), e);
                     return new RuntimeException("Failed to upload label credential", e);
@@ -259,7 +260,7 @@ public class ProcedureRetryServiceImpl implements ProcedureRetryService {
                     }
 
                     if (!isImmediateRetryableError(failure)) {
-                        log.warn("Not retrying {} immediately because error is not retryable. reason: {}",
+                        log.warn("[RETRY-TEST] Not retrying {} immediately because error is not retryable. Error: {}",
                                 operationName, failure.getMessage());
                         return Mono.error(failure);
                     }
@@ -285,14 +286,20 @@ public class ProcedureRetryServiceImpl implements ProcedureRetryService {
     private boolean isImmediateRetryableError(Throwable throwable) {
         if (throwable instanceof WebClientResponseException ex) {
             int statusCode = ex.getStatusCode().value();
-            return ex.getStatusCode().is5xxServerError()
-                    || statusCode == 408
-                    || statusCode == 429;
+            boolean isRetryable = ex.getStatusCode().is5xxServerError()
+                    || statusCode == 408  // Request Timeout
+                    || statusCode == 429  // Too Many Requests
+                    || statusCode == 401  // Unauthorized - often temporary token issues
+                    || statusCode == 403; // Forbidden - often temporary auth issues
+            log.debug("[RETRY-TEST] HTTP Status {} is retryable: {}", statusCode, isRetryable);
+            return isRetryable;
         }
 
-        return throwable instanceof ConnectException
+        boolean isRetryable = throwable instanceof ConnectException
                 || throwable instanceof TimeoutException
                 || throwable instanceof WebClientRequestException;
+        log.debug("[RETRY-TEST] Error {} is retryable: {}", throwable.getClass().getSimpleName(), isRetryable);
+        return isRetryable;
     }
 
     private Mono<Void> sendFirstFailureNotification(UUID procedureId, ActionType actionType) {
