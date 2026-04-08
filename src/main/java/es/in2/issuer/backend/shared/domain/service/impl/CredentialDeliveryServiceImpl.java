@@ -49,7 +49,10 @@ public class CredentialDeliveryServiceImpl implements CredentialDeliveryService 
                     } else {
                         log.error("Non-2xx status code received: {}. Sending failure email...", response.statusCode());
                         return emailService.sendResponseUriFailed(email, credId, appConfig.getKnowledgeBaseUploadCertificationGuideUrl())
-                                .then();
+                                .then()
+                                .flatMap(unused -> Mono.error(new RuntimeException(
+                                    "Failed to upload credential to response URI: " + response.statusCode()
+                                )));
                     }
                 })
                 .onErrorResume(WebClientRequestException.class, ex -> {

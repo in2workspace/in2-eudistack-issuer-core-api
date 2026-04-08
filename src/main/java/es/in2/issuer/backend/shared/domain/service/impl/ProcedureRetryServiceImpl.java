@@ -99,25 +99,28 @@ public class ProcedureRetryServiceImpl implements ProcedureRetryService {
     public Mono<Void> executeUploadLabelToResponseUri(LabelCredentialDeliveryPayload payload, 
                                                       Integer customRetryAttempts, 
                                                       Duration[] customRetryDelays) {
-        log.info("Executing upload label credential to response URI: {}", payload.responseUri());
-        
+        log.info("[RETRY-TEST] [executeUploadLabelToResponseUri] (custom) Called for responseUri={} credentialId={} companyEmail={}",
+                payload.responseUri(), payload.credentialId(), payload.companyEmail());
         int attempts = customRetryAttempts != null ? customRetryAttempts : INITIAL_RETRY_ATTEMPTS;
         Duration[] delays = customRetryDelays != null ? customRetryDelays : INITIAL_RETRY_DELAYS;
-        
+        log.info("[RETRY-TEST] [executeUploadLabelToResponseUri] Using attempts={} delays={}", attempts, delays);
         return m2mTokenService.getM2MToken()
-                .flatMap(m2mToken -> 
-                    credentialDeliveryService.sendVcToResponseUri(
+                .doOnSubscribe(sub -> log.info("[RETRY-TEST] [executeUploadLabelToResponseUri] Acquiring M2M token..."))
+                .flatMap(m2mToken -> {
+                    log.info("[RETRY-TEST] [executeUploadLabelToResponseUri] Got M2M token, calling sendVcToResponseUri...");
+                    return credentialDeliveryService.sendVcToResponseUri(
                             payload.responseUri(),
                             payload.signedCredential(),
                             payload.credentialId(),
                             payload.companyEmail(),
                             m2mToken.accessToken()
-                    )
-                )
+                    );
+                })
                 .retryWhen(createInitialRetrySpec("executeUploadLabelToResponseUri", attempts, delays))
-                .doOnSuccess(unused -> log.info("Successfully uploaded label credential to response URI"))
+                .doOnSuccess(unused -> log.info("[RETRY-TEST] [executeUploadLabelToResponseUri] SUCCESS: uploaded label credential to response URI"))
+                .doOnError(e -> log.error("[RETRY-TEST] [executeUploadLabelToResponseUri] ERROR: failed to upload label credential after retries: {}", e.getMessage(), e))
                 .onErrorMap(e -> {
-                    log.error("Failed to upload label credential after retries: {}", e.getMessage(), e);
+                    log.error("[RETRY-TEST] [executeUploadLabelToResponseUri] ERROR: failed to upload label credential after retries: {}", e.getMessage(), e);
                     return new RuntimeException("Failed to upload label credential", e);
                 });
     }
