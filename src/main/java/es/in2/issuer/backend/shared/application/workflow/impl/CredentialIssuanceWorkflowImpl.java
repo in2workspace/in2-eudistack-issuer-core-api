@@ -6,19 +6,23 @@ import es.in2.issuer.backend.shared.application.workflow.CredentialIssuanceWorkf
 import es.in2.issuer.backend.shared.domain.exception.*;
 import es.in2.issuer.backend.shared.domain.model.dto.*;
 import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.employee.LEARCredentialEmployee;
+import es.in2.issuer.backend.shared.domain.model.dto.retry.LabelCredentialDeliveryPayload;
 import es.in2.issuer.backend.shared.domain.model.entities.CredentialProcedure;
 import es.in2.issuer.backend.shared.domain.model.entities.DeferredCredentialMetadata;
 import es.in2.issuer.backend.shared.domain.model.enums.CredentialType;
+import es.in2.issuer.backend.shared.domain.model.enums.ActionType;
 import es.in2.issuer.backend.shared.domain.service.*;
 import es.in2.issuer.backend.shared.domain.util.JwtUtils;
 import es.in2.issuer.backend.shared.domain.util.factory.LEARCredentialEmployeeFactory;
 import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
 import es.in2.issuer.backend.shared.infrastructure.config.security.service.VerifiableCredentialPolicyAuthorizationService;
+import es.in2.issuer.backend.shared.domain.model.dto.retry.LabelCredentialDeliveryPayload;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Mono;
+
 
 import javax.naming.ConfigurationException;
 import javax.naming.OperationNotSupportedException;
@@ -47,6 +51,7 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
     private final CredentialIssuerMetadataService credentialIssuerMetadataService;
     private final M2MTokenService m2mTokenService;
     private final CredentialDeliveryService credentialDeliveryService;
+    private final ProcedureRetryService procedureRetryService;
     private final JwtUtils jwtUtils;
 
     @Override
@@ -386,21 +391,35 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                                         return Mono.error(new IllegalStateException("Encoded credential not found for procedureId: " + updatedCredentialProcedure.getProcedureId()));
                                     }
 
-
                                     return credentialProcedureService.getCredentialId(credentialProcedure)
                                             .doOnNext(credentialId -> log.debug("Using credentialId for delivery: {}", credentialId))
-                                            .flatMap(credentialId ->
-                                                    m2mTokenService.getM2MToken()
-                                                            .flatMap(tokenResponse ->
-                                                                    credentialDeliveryService.sendVcToResponseUri(
-                                                                            deferred.getResponseUri(),
-                                                                            encodedCredential,
-                                                                            credentialId,
-                                                                            credentialProcedure.getEmail(),
-                                                                            tokenResponse.accessToken()
-                                                                    )
+                                            .flatMap(credentialId -> {
+                                                // Use retry-enabled delivery mechanism
+                                                LabelCredentialDeliveryPayload payload = LabelCredentialDeliveryPayload.builder()
+                                                        .responseUri(deferred.getResponseUri())
+                                                        .signedCredential(encodedCredential)
+                                                        .credentialId(credentialId)
+                                                        .companyEmail(credentialProcedure.getEmail())
+                                                        .build();
+                                                return procedureRetryService.executeUploadLabelToResponseUri(payload)
+                                                        .onErrorResume(e -> {
+                                                            log.warn("[RETRY-TEST] [CredentialIssuanceWorkflow] Initial delivery failed for procedureId={}, creating retry record. Reason: {}",
+                                                                    updatedCredentialProcedure.getProcedureId(), e.getMessage(), e);
+                                                            // Create retry record for scheduler-based recovery
+                                                            return procedureRetryService.createRetryRecord(
+                                                                    updatedCredentialProcedure.getProcedureId(),
+                                                                    ActionType.UPLOAD_LABEL_TO_RESPONSE_URI,
+                                                                    payload
                                                             )
-                                            );
+                                                            .doOnSuccess(unused -> log.info("[RETRY-TEST] [CredentialIssuanceWorkflow] Created retry record for procedureId={}", 
+                                                                    updatedCredentialProcedure.getProcedureId()))
+                                                            .onErrorResume(retryError -> {
+                                                                log.error("[RETRY-TEST] [CredentialIssuanceWorkflow] ERROR: Failed to create retry record for procedureId={} - {}",
+                                                                        updatedCredentialProcedure.getProcedureId(), retryError.getMessage(), retryError);
+                                                                return Mono.empty(); // Don't fail the main flow
+                                                            });
+                                                        });
+                                            });
                                 }
 
                                 return Mono.empty();
