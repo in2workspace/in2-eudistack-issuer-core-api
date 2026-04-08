@@ -61,6 +61,8 @@ public class ProcedureRetryServiceImpl implements ProcedureRetryService {
                         .attemptCount(0)
                         .firstFailureAt(Instant.now())
                         .payload(payloadJson)
+                        .createdAt(Instant.now())
+                        .updatedAt(Instant.now())
                         .build();
                 
                 return retryRecord;
@@ -70,11 +72,12 @@ public class ProcedureRetryServiceImpl implements ProcedureRetryService {
             }
         })
         .subscribeOn(Schedulers.boundedElastic())
-        .flatMap(procedureRetryRepository::save)
-        .flatMap(savedRecord -> sendFirstFailureNotification(savedRecord.getProcedureId(), actionType))
-        .doOnSuccess(unused -> log.info("Created retry record for procedure {} with action {}", procedureId, actionType))
+        .flatMap(procedureRetryRepository::upsert)
+        .doOnSuccess(rowsAffected -> log.info("Upserted retry record for procedure {} with action {} (rows affected: {})", 
+                procedureId, actionType, rowsAffected))
+        .flatMap(unused -> sendFirstFailureNotification(procedureId, actionType))
         .onErrorResume(e -> {
-            log.error("Failed to create retry record for procedure {}: {}", procedureId, e.getMessage(), e);
+            log.error("Failed to upsert retry record for procedure {}: {}", procedureId, e.getMessage(), e);
             return Mono.empty(); // Don't fail the main flow, just log the error
         });
     }
@@ -121,13 +124,15 @@ public class ProcedureRetryServiceImpl implements ProcedureRetryService {
 
     @Override
     public Mono<Void> markRetryAsCompleted(UUID procedureId, ActionType actionType) {
-        return procedureRetryRepository.findByProcedureIdAndActionType(procedureId, actionType)
-                .flatMap(record -> {
-                    record.setStatus(RetryStatus.COMPLETED);
-                    return procedureRetryRepository.save(record);
+        return procedureRetryRepository.markAsCompleted(procedureId, actionType)
+                .doOnSuccess(rowsAffected -> {
+                    if (rowsAffected > 0) {
+                        log.info("Marked retry as completed for procedure {} with action {}", procedureId, actionType);
+                    } else {
+                        log.warn("No retry record found to mark as completed for procedure {} with action {}", procedureId, actionType);
+                    }
                 })
-                .flatMap(completedRecord -> sendSuccessNotification(procedureId, actionType))
-                .doOnSuccess(unused -> log.info("Marked retry as completed for procedure {} with action {}", procedureId, actionType))
+                .flatMap(unused -> sendSuccessNotification(procedureId, actionType))
                 .then();
     }
 
@@ -145,9 +150,16 @@ public class ProcedureRetryServiceImpl implements ProcedureRetryService {
                     log.info("Marking retry as exhausted for procedure {} with action {} (first failure at: {})", 
                             record.getProcedureId(), record.getActionType(), record.getFirstFailureAt());
                     
-                    record.setStatus(RetryStatus.RETRY_EXHAUSTED);
-                    return procedureRetryRepository.save(record)
-                            .flatMap(exhaustedRecord -> sendExhaustionNotification(record.getProcedureId(), record.getActionType()));
+                    return procedureRetryRepository.markAsExhausted(record.getProcedureId(), record.getActionType())
+                            .doOnSuccess(rowsAffected -> {
+                                if (rowsAffected > 0) {
+                                    log.info("Successfully marked retry as exhausted for procedure {}", record.getProcedureId());
+                                } else {
+                                    log.warn("Failed to mark retry as exhausted for procedure {} (record may have been modified)", record.getProcedureId());
+                                }
+                            })
+                            .flatMap(unused -> sendExhaustionNotification(record.getProcedureId(), record.getActionType()))
+                            .then();
                 })
                 .doOnNext(unused -> log.info("Processed retry exhaustion check"))
                 .then();
@@ -188,16 +200,17 @@ public class ProcedureRetryServiceImpl implements ProcedureRetryService {
             return markRetryAsCompleted(retryRecord.getProcedureId(), retryRecord.getActionType());
         })
         .onErrorResume(e -> {
-            // Failure - increment attempt count and update last attempt
+            // Failure - increment attempt count using atomic database operation
             log.warn("Retry attempt failed for procedure {}: {}", retryRecord.getProcedureId(), e.getMessage());
             
-            retryRecord.setAttemptCount(retryRecord.getAttemptCount() + 1);
-            retryRecord.setLastAttemptAt(Instant.now());
-            
-            return procedureRetryRepository.save(retryRecord)
-                    .doOnSuccess(unused -> log.info("Updated retry record with attempt count {} for procedure {}", 
-                            retryRecord.getAttemptCount(), retryRecord.getProcedureId()))
-                    .then();
+            return procedureRetryRepository.incrementAttemptCount(
+                    retryRecord.getProcedureId(), 
+                    retryRecord.getActionType(), 
+                    Instant.now()
+            )
+            .doOnSuccess(rowsAffected -> log.info("Incremented attempt count for procedure {} (rows affected: {})", 
+                    retryRecord.getProcedureId(), rowsAffected))
+            .then();
         });
     }
 
