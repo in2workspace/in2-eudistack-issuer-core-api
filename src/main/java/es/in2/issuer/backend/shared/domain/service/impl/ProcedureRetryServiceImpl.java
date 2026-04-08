@@ -108,6 +108,7 @@ public class ProcedureRetryServiceImpl implements ProcedureRetryService {
                 .doOnSubscribe(sub -> log.info("[RETRY-TEST] [executeUploadLabelToResponseUri] Acquiring M2M token..."))
                 .flatMap(m2mToken -> {
                     log.info("[RETRY-TEST] [executeUploadLabelToResponseUri] Got M2M token, calling sendVcToResponseUri...");
+                    log.debug("m2m token: {}", m2mToken);
                     return credentialDeliveryService.sendVcToResponseUri(
                             payload.responseUri(),
                             payload.signedCredential(),
