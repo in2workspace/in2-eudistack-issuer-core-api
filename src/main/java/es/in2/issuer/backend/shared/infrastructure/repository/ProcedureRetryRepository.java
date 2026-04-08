@@ -90,4 +90,3 @@ public interface ProcedureRetryRepository extends ReactiveCrudRepository<Procedu
             """)
     Mono<Integer> markAsExhausted(UUID procedureId, ActionType actionType);
 }
-}
