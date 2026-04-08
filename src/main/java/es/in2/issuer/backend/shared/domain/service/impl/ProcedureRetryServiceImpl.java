@@ -50,36 +50,46 @@ public class ProcedureRetryServiceImpl implements ProcedureRetryService {
     @Override
     public Mono<Void> createRetryRecord(UUID procedureId, ActionType actionType, Object payload) {
         log.info("[RETRY-TEST] [createRetryRecord] Called for procedureId={} actionType={}", procedureId, actionType);
+
         return Mono.fromCallable(() -> {
-            try {
-                String payloadJson = objectMapper.writeValueAsString(payload);
-                log.info("[RETRY-TEST] [createRetryRecord] Creating ProcedureRetry entity for procedureId={} actionType={}", procedureId, actionType);
-                ProcedureRetry retryRecord = ProcedureRetry.builder()
-                        .id(UUID.randomUUID())
-                        .procedureId(procedureId)
-                        .actionType(actionType)
-                        .status(RetryStatus.PENDING)
-                        .attemptCount(0)
-                        .firstFailureAt(Instant.now())
-                        .payload(payloadJson)
-                        .createdAt(Instant.now())
-                        .updatedAt(Instant.now())
-                        .build();
-                return retryRecord;
-            } catch (Exception e) {
-                log.error("[RETRY-TEST] [createRetryRecord] ERROR serializing payload for procedureId={}: {}", procedureId, e.getMessage(), e);
-                throw new RuntimeException("Failed to serialize retry payload", e);
-            }
-        })
-        .subscribeOn(Schedulers.boundedElastic())
-        .flatMap(procedureRetryRepository::upsert)
-        .doOnSuccess(rowsAffected -> log.info("[RETRY-TEST] [createRetryRecord] Upserted retry record for procedureId={} actionType={} (rows affected: {})", 
-                procedureId, actionType, rowsAffected))
-        .flatMap(unused -> sendFirstFailureNotification(procedureId, actionType))
-        .onErrorResume(e -> {
-            log.error("[RETRY-TEST] [createRetryRecord] ERROR upserting retry record for procedureId={}: {}", procedureId, e.getMessage(), e);
-            return Mono.empty(); // Don't fail the main flow, just log the error
-        });
+                    try {
+                        String payloadJson = objectMapper.writeValueAsString(payload);
+                        log.info("[RETRY-TEST] [createRetryRecord] Creating ProcedureRetry entity for procedureId={} actionType={}", procedureId, actionType);
+
+                        return ProcedureRetry.builder()
+                                .id(UUID.randomUUID())
+                                .procedureId(procedureId)
+                                .actionType(actionType)
+                                .status(RetryStatus.PENDING)
+                                .attemptCount(0)
+                                .firstFailureAt(Instant.now())
+                                .payload(payloadJson)
+                                .createdAt(Instant.now())
+                                .updatedAt(Instant.now())
+                                .build();
+                    } catch (Exception e) {
+                        log.error("[RETRY-TEST] [createRetryRecord] ERROR serializing payload for procedureId={}: {}", procedureId, e.getMessage(), e);
+                        throw new RuntimeException("Failed to serialize retry payload", e);
+                    }
+                })
+                .subscribeOn(Schedulers.boundedElastic())
+                .flatMap(procedureRetryRepository::upsert)
+                .flatMap(rowsAffected -> {
+                    if (rowsAffected == null || rowsAffected == 0) {
+                        log.warn("[RETRY-TEST] [createRetryRecord] No retry record inserted/updated for procedureId={} actionType={}",
+                                procedureId, actionType);
+                        return Mono.empty();
+                    }
+
+                    log.info("[RETRY-TEST] [createRetryRecord] Upserted retry record for procedureId={} actionType={} (rows affected: {})",
+                            procedureId, actionType, rowsAffected);
+
+                    return sendFirstFailureNotification(procedureId, actionType);
+                })
+                .onErrorResume(e -> {
+                    log.error("[RETRY-TEST] [createRetryRecord] ERROR upserting retry record for procedureId={}: {}", procedureId, e.getMessage(), e);
+                    return Mono.empty();
+                });
     }
 
     @Override
@@ -248,11 +258,15 @@ public class ProcedureRetryServiceImpl implements ProcedureRetryService {
                         return Mono.error(new IllegalStateException("Retry failure is null"));
                     }
 
-                    if (!isRecoverableError(failure)) {
+                    if (!isImmediateRetryableError(failure)) {
+                        log.warn("Not retrying {} immediately because error is not retryable. reason: {}",
+                                operationName, failure.getMessage());
                         return Mono.error(failure);
                     }
 
                     if (attempt > attempts) {
+                        log.warn("Retry attempts exhausted for {} after {} attempts. reason: {}",
+                                operationName, attempts, failure.getMessage());
                         return Mono.error(failure);
                     }
 
@@ -268,13 +282,17 @@ public class ProcedureRetryServiceImpl implements ProcedureRetryService {
         );
     }
 
-    private boolean isRecoverableError(Throwable throwable) {
+    private boolean isImmediateRetryableError(Throwable throwable) {
         if (throwable instanceof WebClientResponseException ex) {
-            return ex.getStatusCode().is5xxServerError();
+            int statusCode = ex.getStatusCode().value();
+            return ex.getStatusCode().is5xxServerError()
+                    || statusCode == 408
+                    || statusCode == 429;
         }
-        return throwable instanceof ConnectException || 
-               throwable instanceof TimeoutException ||
-               throwable instanceof WebClientRequestException;
+
+        return throwable instanceof ConnectException
+                || throwable instanceof TimeoutException
+                || throwable instanceof WebClientRequestException;
     }
 
     private Mono<Void> sendFirstFailureNotification(UUID procedureId, ActionType actionType) {
