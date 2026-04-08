@@ -128,8 +128,8 @@ public class ProcedureRetryServiceImpl implements ProcedureRetryService {
                     );
                 })
                 .retryWhen(createInitialRetrySpec("executeUploadLabelToResponseUri", attempts, delays))
-                .doOnSuccess(unused -> log.info("[RETRY-TEST] [executeUploadLabelToResponseUri] SUCCESS: uploaded label credential to response URI"))
-                .doOnError(e -> log.error("[RETRY-TEST] [executeUploadLabelToResponseUri] ERROR: failed to upload label credential after retries: {}", e.getMessage(), e))
+                .doOnSuccess(unused -> log.info("[RETRY-TEST] [executeUploadLabelToResponseUri] FINAL SUCCESS: Label credential successfully delivered to response URI for credId: {}", payload.credentialId()))
+                .doOnError(e -> log.error("[RETRY-TEST] [executeUploadLabelToResponseUri] FINAL ERROR: Failed to upload label credential after all retries for credId: {} - {}", payload.credentialId(), e.getMessage(), e))
                 .onErrorMap(e -> {
                     log.error("[RETRY-TEST] [executeUploadLabelToResponseUri] ERROR: failed to upload label credential after retries: {}", e.getMessage(), e);
                     return new RuntimeException("Failed to upload label credential", e);
@@ -265,7 +265,7 @@ public class ProcedureRetryServiceImpl implements ProcedureRetryService {
                     }
 
                     if (attempt > attempts) {
-                        log.warn("Retry attempts exhausted for {} after {} attempts. reason: {}",
+                        log.error("[RETRY-TEST] Retry attempts exhausted for {} after {} attempts. Final error: {}",
                                 operationName, attempts, failure.getMessage());
                         return Mono.error(failure);
                     }
@@ -274,7 +274,7 @@ public class ProcedureRetryServiceImpl implements ProcedureRetryService {
                             ? delays[(int) attempt - 1]
                             : delays[delays.length - 1];
 
-                    log.warn("Retrying {} attempt {} of {}, next delay: {}, reason: {}",
+                    log.warn("[RETRY-TEST] Retrying {} - attempt {} of {}, next delay: {}, previous failure: {}",
                             operationName, attempt, attempts, nextDelay, failure.getMessage());
 
                     return Mono.delay(nextDelay);

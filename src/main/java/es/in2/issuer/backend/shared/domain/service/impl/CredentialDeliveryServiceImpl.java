@@ -28,6 +28,7 @@ public class CredentialDeliveryServiceImpl implements CredentialDeliveryService 
         ResponseUriRequest responseUriRequest = ResponseUriRequest.builder()
                 .encodedVc(encodedVc)
                 .build();
+        log.info("[RESPONSE-URI] Starting request to: {} for credId: {} email: {}", responseUri, credId, email);
         log.debug("Sending the VC: {} to response_uri: {} to email {}", encodedVc, responseUri, email);
 
         return webClient.commonWebClient()
@@ -37,17 +38,20 @@ public class CredentialDeliveryServiceImpl implements CredentialDeliveryService 
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + bearerToken)
                 .bodyValue(responseUriRequest)
                 .exchangeToMono(response -> {
+                    log.info("[RESPONSE-URI] Received response: {} from {}", response.statusCode(), responseUri);
                     if (response.statusCode().is2xxSuccessful()) {
                         if (HttpStatus.ACCEPTED.equals(response.statusCode())) {
-                            log.info("Received 202 from response_uri. Extracting HTML and sending specific mail for missing documents");
+                            log.info("[RESPONSE-URI] SUCCESS: Received 202 ACCEPTED from response_uri. Extracting HTML and sending specific mail for missing documents");
                             return response.bodyToMono(String.class)
                                     .flatMap(htmlResponseBody ->
                                             emailService.sendResponseUriAcceptedWithHtml(email, credId, htmlResponseBody))
                                     .then();
                         }
+                        log.info("[RESPONSE-URI] SUCCESS: Received {} from response_uri for credId: {}", response.statusCode(), credId);
                         return Mono.empty();
                     } else {
-                        log.error("Non-2xx status code received: {}. Sending failure email...", response.statusCode());
+                        log.error("[RESPONSE-URI] FAILURE: Non-2xx status code received: {} from {} for credId: {}. Sending failure email...", 
+                                response.statusCode(), responseUri, credId);
                         return emailService.sendResponseUriFailed(email, credId, appConfig.getKnowledgeBaseUploadCertificationGuideUrl())
                                 .then()
                                 .flatMap(unused -> Mono.error(new RuntimeException(
@@ -56,7 +60,8 @@ public class CredentialDeliveryServiceImpl implements CredentialDeliveryService 
                     }
                 })
                 .onErrorResume(WebClientRequestException.class, ex -> {
-                    log.error("Network error while sending VC to response_uri", ex);
+                    log.error("[RESPONSE-URI] NETWORK ERROR: Failed to connect to {} for credId: {}: {}", 
+                            responseUri, credId, ex.getMessage(), ex);
                     return emailService.sendResponseUriFailed(email, credId, appConfig.getKnowledgeBaseUploadCertificationGuideUrl())
                             .onErrorResume(emailError -> {
                                 log.error("Failed to send failure email after network error", emailError);
