@@ -36,7 +36,6 @@ public class ProcedureRetryServiceImpl implements ProcedureRetryService {
     private final CredentialDeliveryService credentialDeliveryService;
     private final M2MTokenService m2mTokenService;
     private final EmailService emailService;
-    private final CredentialProcedureRepository credentialProcedureRepository;
     private final AppConfig appConfig;
 
     // Retry configuration constants
