@@ -46,8 +46,6 @@ public interface ProcedureRetryRepository extends ReactiveCrudRepository<Procedu
             ON CONFLICT (procedure_id, action_type) 
             DO UPDATE SET 
                 status = EXCLUDED.status,
-                attempt_count = EXCLUDED.attempt_count,
-                last_attempt_at = EXCLUDED.last_attempt_at,
                 payload = EXCLUDED.payload,
                 updated_at = NOW()
             """)
