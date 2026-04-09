@@ -262,11 +262,7 @@ public class ProcedureRetryServiceImpl implements ProcedureRetryService {
         if (result.acceptedWithHtml() && result.html() != null) {
             emailMono = emailService.sendResponseUriAcceptedWithHtml(email, credentialId, result.html());
         } else {
-            emailMono = emailService.sendCredentialSignedNotification(
-                    email,
-                    "Credential Delivery Successful",
-                    "Your credential has been successfully delivered."
-            );
+            emailMono = emailService.sendCertificationUploaded(email, credentialId);
         }
 
         return emailMono

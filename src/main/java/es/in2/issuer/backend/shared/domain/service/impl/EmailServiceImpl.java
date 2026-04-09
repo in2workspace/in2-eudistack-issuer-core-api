@@ -196,6 +196,25 @@ public class EmailServiceImpl implements EmailService {
     }
 
     @Override
+    public Mono<Void> sendCertificationUploaded(String to, String productId) {
+        return Mono.fromCallable(() -> {
+            MimeMessage mimeMessage = javaMailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, UTF_8);
+            helper.setFrom(mailProperties.getUsername());
+            helper.setTo(to);
+            helper.setSubject(translationService.translate("email.certification-uploaded"));
+
+            Context context = new Context();
+            context.setVariable("productId", productId);
+            String htmlContent = templateEngine.process("certification-uploaded-" + translationService.getLocale(), context);
+            helper.setText(htmlContent, true);
+
+            javaMailSender.send(mimeMessage);
+            return null;
+        }).subscribeOn(Schedulers.boundedElastic()).then();
+    }
+
+    @Override
     public Mono<Void> sendResponseUriAcceptedWithHtml(String to, String productId, String htmlContent) {
         return Mono.fromCallable(() -> {
             MimeMessage mimeMessage = javaMailSender.createMimeMessage();
