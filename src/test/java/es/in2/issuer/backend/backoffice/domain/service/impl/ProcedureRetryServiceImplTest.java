@@ -1,4 +1,4 @@
-package es.in2.issuer.backend.shared.domain.service.impl;
+package es.in2.issuer.backend.backoffice.domain.service.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import es.in2.issuer.backend.shared.domain.exception.ResponseUriDeliveryException;
@@ -12,7 +12,7 @@ import es.in2.issuer.backend.shared.domain.service.CredentialDeliveryService;
 import es.in2.issuer.backend.shared.domain.service.EmailService;
 import es.in2.issuer.backend.shared.domain.service.M2MTokenService;
 import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
-import es.in2.issuer.backend.shared.infrastructure.repository.ProcedureRetryRepository;
+import es.in2.issuer.backend.backoffice.infrastructure.repository.ProcedureRetryRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -473,9 +473,9 @@ class ProcedureRetryServiceImplTest {
     @Test
     void processPendingRetries_deliverySucceeds_marksCompletedAndSendsEmail() throws Exception {
         String payloadJson = objectMapper.writeValueAsString(buildPayload());
-        ProcedureRetry record = buildPendingRecord(payloadJson);
+        ProcedureRetry retryRecord = buildPendingRecord(payloadJson);
 
-        when(procedureRetryRepository.findByStatus(RetryStatus.PENDING)).thenReturn(Flux.just(record));
+        when(procedureRetryRepository.findByStatus(RetryStatus.PENDING)).thenReturn(Flux.just(retryRecord));
         when(m2mTokenService.getM2MToken()).thenReturn(Mono.just(M2M_TOKEN));
         when(credentialDeliveryService.deliverLabelToResponseUri(any(), any(), any(), any()))
                 .thenReturn(Mono.just(ResponseUriDeliveryResult.success()));
@@ -494,9 +494,9 @@ class ProcedureRetryServiceImplTest {
     @Test
     void processPendingRetries_deliverySucceeds_withHtml_marksCompletedAndSendsHtmlEmail() throws Exception {
         String payloadJson = objectMapper.writeValueAsString(buildPayload());
-        ProcedureRetry record = buildPendingRecord(payloadJson);
+        ProcedureRetry retryRecord = buildPendingRecord(payloadJson);
 
-        when(procedureRetryRepository.findByStatus(RetryStatus.PENDING)).thenReturn(Flux.just(record));
+        when(procedureRetryRepository.findByStatus(RetryStatus.PENDING)).thenReturn(Flux.just(retryRecord));
         when(m2mTokenService.getM2MToken()).thenReturn(Mono.just(M2M_TOKEN));
         when(credentialDeliveryService.deliverLabelToResponseUri(any(), any(), any(), any()))
                 .thenReturn(Mono.just(ResponseUriDeliveryResult.acceptedWithHtml("<html/>")));
@@ -515,10 +515,10 @@ class ProcedureRetryServiceImplTest {
     @Test
     void processPendingRetries_deliveryFails_nonRetryableError_incrementsAttemptCount() throws Exception {
         String payloadJson = objectMapper.writeValueAsString(buildPayload());
-        ProcedureRetry record = buildPendingRecord(payloadJson);
+        ProcedureRetry retryRecord = buildPendingRecord(payloadJson);
         WebClientResponseException badRequest = WebClientResponseException.create(400, "Bad Request", null, null, null);
 
-        when(procedureRetryRepository.findByStatus(RetryStatus.PENDING)).thenReturn(Flux.just(record));
+        when(procedureRetryRepository.findByStatus(RetryStatus.PENDING)).thenReturn(Flux.just(retryRecord));
         when(m2mTokenService.getM2MToken()).thenReturn(Mono.just(M2M_TOKEN));
         when(credentialDeliveryService.deliverLabelToResponseUri(any(), any(), any(), any()))
                 .thenReturn(Mono.error(badRequest));
@@ -535,9 +535,9 @@ class ProcedureRetryServiceImplTest {
 
     @Test
     void processPendingRetries_deserializationFails_incrementsAttemptCount() {
-        ProcedureRetry record = buildPendingRecord("NOT_VALID_JSON{{{");
+        ProcedureRetry retryRecord = buildPendingRecord("NOT_VALID_JSON{{{");
 
-        when(procedureRetryRepository.findByStatus(RetryStatus.PENDING)).thenReturn(Flux.just(record));
+        when(procedureRetryRepository.findByStatus(RetryStatus.PENDING)).thenReturn(Flux.just(retryRecord));
         when(procedureRetryRepository.incrementAttemptCount(eq(PROCEDURE_ID), eq(ActionType.UPLOAD_LABEL_TO_RESPONSE_URI), any()))
                 .thenReturn(Mono.just(1));
 
@@ -677,10 +677,10 @@ class ProcedureRetryServiceImplTest {
     @Test
     void retryAction_pendingRecord_deliverySucceeds_marksCompleted() throws Exception {
         String payloadJson = objectMapper.writeValueAsString(buildPayload());
-        ProcedureRetry record = buildPendingRecord(payloadJson);
+        ProcedureRetry retryRecord = buildPendingRecord(payloadJson);
 
         when(procedureRetryRepository.findByProcedureIdAndActionType(PROCEDURE_ID, ActionType.UPLOAD_LABEL_TO_RESPONSE_URI))
-                .thenReturn(Mono.just(record));
+                .thenReturn(Mono.just(retryRecord));
         when(m2mTokenService.getM2MToken()).thenReturn(Mono.just(M2M_TOKEN));
         when(credentialDeliveryService.deliverLabelToResponseUri(any(), any(), any(), any()))
                 .thenReturn(Mono.just(ResponseUriDeliveryResult.success()));
@@ -736,9 +736,9 @@ class ProcedureRetryServiceImplTest {
     @Test
     void markRetryAsExhausted_oldRecord_marksExhaustedAndSendsExhaustionEmail() throws Exception {
         String payloadJson = objectMapper.writeValueAsString(buildPayload());
-        ProcedureRetry record = buildPendingRecord(payloadJson);
+        ProcedureRetry retryRecord = buildPendingRecord(payloadJson);
 
-        when(procedureRetryRepository.findPendingRecordsOlderThan(any())).thenReturn(Flux.just(record));
+        when(procedureRetryRepository.findPendingRecordsOlderThan(any())).thenReturn(Flux.just(retryRecord));
         when(procedureRetryRepository.markAsExhausted(PROCEDURE_ID, ActionType.UPLOAD_LABEL_TO_RESPONSE_URI))
                 .thenReturn(Mono.just(1));
         when(appConfig.getKnowledgeBaseUploadCertificationGuideUrl()).thenReturn(GUIDE_URL);
@@ -754,9 +754,9 @@ class ProcedureRetryServiceImplTest {
     @Test
     void markRetryAsExhausted_markAsExhaustedReturnsZero_logsWarningAndContinues() throws Exception {
         String payloadJson = objectMapper.writeValueAsString(buildPayload());
-        ProcedureRetry record = buildPendingRecord(payloadJson);
+        ProcedureRetry retryRecord = buildPendingRecord(payloadJson);
 
-        when(procedureRetryRepository.findPendingRecordsOlderThan(any())).thenReturn(Flux.just(record));
+        when(procedureRetryRepository.findPendingRecordsOlderThan(any())).thenReturn(Flux.just(retryRecord));
         when(procedureRetryRepository.markAsExhausted(PROCEDURE_ID, ActionType.UPLOAD_LABEL_TO_RESPONSE_URI))
                 .thenReturn(Mono.just(0));
         when(appConfig.getKnowledgeBaseUploadCertificationGuideUrl()).thenReturn(GUIDE_URL);
@@ -772,9 +772,9 @@ class ProcedureRetryServiceImplTest {
                 .responseUri(RESPONSE_URI).signedCredential(SIGNED_CREDENTIAL)
                 .credentialId(CREDENTIAL_ID).companyEmail("").build();
         String payloadJson = objectMapper.writeValueAsString(blankEmailPayload);
-        ProcedureRetry record = buildPendingRecord(payloadJson);
+        ProcedureRetry retryRecord = buildPendingRecord(payloadJson);
 
-        when(procedureRetryRepository.findPendingRecordsOlderThan(any())).thenReturn(Flux.just(record));
+        when(procedureRetryRepository.findPendingRecordsOlderThan(any())).thenReturn(Flux.just(retryRecord));
         when(procedureRetryRepository.markAsExhausted(PROCEDURE_ID, ActionType.UPLOAD_LABEL_TO_RESPONSE_URI))
                 .thenReturn(Mono.just(1));
 
@@ -787,9 +787,9 @@ class ProcedureRetryServiceImplTest {
     @Test
     void markRetryAsExhausted_emailFails_errorSwallowed() throws Exception {
         String payloadJson = objectMapper.writeValueAsString(buildPayload());
-        ProcedureRetry record = buildPendingRecord(payloadJson);
+        ProcedureRetry retryRecord = buildPendingRecord(payloadJson);
 
-        when(procedureRetryRepository.findPendingRecordsOlderThan(any())).thenReturn(Flux.just(record));
+        when(procedureRetryRepository.findPendingRecordsOlderThan(any())).thenReturn(Flux.just(retryRecord));
         when(procedureRetryRepository.markAsExhausted(PROCEDURE_ID, ActionType.UPLOAD_LABEL_TO_RESPONSE_URI))
                 .thenReturn(Mono.just(1));
         when(appConfig.getKnowledgeBaseUploadCertificationGuideUrl()).thenReturn(GUIDE_URL);
@@ -802,9 +802,9 @@ class ProcedureRetryServiceImplTest {
 
     @Test
     void markRetryAsExhausted_deserializationFails_errorSwallowed() {
-        ProcedureRetry record = buildPendingRecord("NOT_VALID_JSON");
+        ProcedureRetry retryRecord = buildPendingRecord("NOT_VALID_JSON");
 
-        when(procedureRetryRepository.findPendingRecordsOlderThan(any())).thenReturn(Flux.just(record));
+        when(procedureRetryRepository.findPendingRecordsOlderThan(any())).thenReturn(Flux.just(retryRecord));
         when(procedureRetryRepository.markAsExhausted(PROCEDURE_ID, ActionType.UPLOAD_LABEL_TO_RESPONSE_URI))
                 .thenReturn(Mono.just(1));
 
@@ -817,9 +817,9 @@ class ProcedureRetryServiceImplTest {
     @Test
     void markRetryAsExhausted_withCustomDuration_usesProvidedThreshold() throws Exception {
         String payloadJson = objectMapper.writeValueAsString(buildPayload());
-        ProcedureRetry record = buildPendingRecord(payloadJson);
+        ProcedureRetry retryRecord = buildPendingRecord(payloadJson);
 
-        when(procedureRetryRepository.findPendingRecordsOlderThan(any())).thenReturn(Flux.just(record));
+        when(procedureRetryRepository.findPendingRecordsOlderThan(any())).thenReturn(Flux.just(retryRecord));
         when(procedureRetryRepository.markAsExhausted(PROCEDURE_ID, ActionType.UPLOAD_LABEL_TO_RESPONSE_URI))
                 .thenReturn(Mono.just(1));
         when(appConfig.getKnowledgeBaseUploadCertificationGuideUrl()).thenReturn(GUIDE_URL);

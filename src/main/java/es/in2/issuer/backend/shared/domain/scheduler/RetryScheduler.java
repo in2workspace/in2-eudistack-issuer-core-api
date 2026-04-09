@@ -1,6 +1,6 @@
 package es.in2.issuer.backend.shared.domain.scheduler;
 
-import es.in2.issuer.backend.shared.domain.service.ProcedureRetryService;
+import es.in2.issuer.backend.backoffice.domain.service.ProcedureRetryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.EnableScheduling;

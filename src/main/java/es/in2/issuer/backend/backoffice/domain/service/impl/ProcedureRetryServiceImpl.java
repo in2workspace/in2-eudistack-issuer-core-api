@@ -1,6 +1,7 @@
-package es.in2.issuer.backend.shared.domain.service.impl;
+package es.in2.issuer.backend.backoffice.domain.service.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import es.in2.issuer.backend.backoffice.domain.service.ProcedureRetryService;
 import es.in2.issuer.backend.shared.domain.exception.ResponseUriDeliveryException;
 import es.in2.issuer.backend.shared.domain.model.dto.ResponseUriDeliveryResult;
 import es.in2.issuer.backend.shared.domain.model.dto.retry.LabelCredentialDeliveryPayload;
@@ -9,7 +10,7 @@ import es.in2.issuer.backend.shared.domain.model.enums.ActionType;
 import es.in2.issuer.backend.shared.domain.model.enums.RetryStatus;
 import es.in2.issuer.backend.shared.domain.service.*;
 import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
-import es.in2.issuer.backend.shared.infrastructure.repository.ProcedureRetryRepository;
+import es.in2.issuer.backend.backoffice.infrastructure.repository.ProcedureRetryRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -47,7 +48,7 @@ public class ProcedureRetryServiceImpl implements ProcedureRetryService {
             Duration.ofMinutes(5),
             Duration.ofMinutes(15)
     };
-//   todo remove after tests private static final Duration EXHAUSTION_THRESHOLD = Duration.ofSeconds(30);
+//   TODO remove after tests private static final Duration EXHAUSTION_THRESHOLD = Duration.ofSeconds(30);
     private static final Duration EXHAUSTION_THRESHOLD = Duration.ofDays(14);
 
     // ──────────────────────────────────────────────────────────────────────
@@ -201,7 +202,7 @@ public class ProcedureRetryServiceImpl implements ProcedureRetryService {
     public Mono<Void> retryAction(UUID procedureId, ActionType actionType) {
         return procedureRetryRepository.findByProcedureIdAndActionType(procedureId, actionType)
                 .switchIfEmpty(Mono.error(new IllegalArgumentException("No retry record found for procedure " + procedureId + " and action " + actionType)))
-                .filter(record -> record.getStatus() == RetryStatus.PENDING)
+                .filter(retryRecord -> retryRecord.getStatus() == RetryStatus.PENDING)
                 .switchIfEmpty(Mono.error(new IllegalArgumentException("Retry record is not in PENDING status")))
                 .flatMap(this::executeRetryAction);
     }
@@ -230,19 +231,19 @@ public class ProcedureRetryServiceImpl implements ProcedureRetryService {
         Instant exhaustionThreshold = Instant.now().minus(threshold);
 
         return procedureRetryRepository.findPendingRecordsOlderThan(exhaustionThreshold)
-                .flatMap(record -> {
+                .flatMap(retryRecord -> {
                     log.info("[RETRY] Marking retry as exhausted for procedure {} action {} (first failure at: {})",
-                            record.getProcedureId(), record.getActionType(), record.getFirstFailureAt());
+                            retryRecord.getProcedureId(), retryRecord.getActionType(), retryRecord.getFirstFailureAt());
 
-                    return procedureRetryRepository.markAsExhausted(record.getProcedureId(), record.getActionType())
+                    return procedureRetryRepository.markAsExhausted(retryRecord.getProcedureId(), retryRecord.getActionType())
                             .doOnSuccess(rowsAffected -> {
                                 if (rowsAffected > 0) {
-                                    log.info("[RETRY] Successfully marked retry as exhausted for procedure {}", record.getProcedureId());
+                                    log.info("[RETRY] Successfully marked retry as exhausted for procedure {}", retryRecord.getProcedureId());
                                 } else {
-                                    log.warn("[RETRY] Failed to mark retry as exhausted for procedure {} (record may have been modified)", record.getProcedureId());
+                                    log.warn("[RETRY] Failed to mark retry as exhausted for procedure {} (record may have been modified)", retryRecord.getProcedureId());
                                 }
                             })
-                            .then(sendExhaustionNotificationSafely(record));
+                            .then(sendExhaustionNotificationSafely(retryRecord));
                 })
                 .then();
     }
@@ -335,6 +336,37 @@ public class ProcedureRetryServiceImpl implements ProcedureRetryService {
     // ──────────────────────────────────────────────────────────────────────
 
     private Retry createRetrySpec(String operationName, int attempts, Duration[] delays) {
+        validateRetryConfiguration(attempts, delays);
+
+        return Retry.from(companion ->
+                companion.concatMap(retrySignal -> handleRetrySignal(operationName, attempts, delays, retrySignal))
+        );
+    }
+
+    private Mono<Long> handleRetrySignal(
+            String operationName,
+            int attempts,
+            Duration[] delays,
+            reactor.util.retry.Retry.RetrySignal retrySignal
+    ) {
+        long attempt = retrySignal.totalRetries() + 1;
+        Throwable failure = requireFailure(retrySignal);
+
+        if (!isRetryableError(failure)) {
+            return propagateNonRetryableError(operationName, failure);
+        }
+
+        if (hasExhaustedAttempts(attempt, attempts)) {
+            return propagateExhaustedRetries(operationName, attempts, failure);
+        }
+
+        Duration nextDelay = resolveNextDelay(attempt, delays);
+        logRetryAttempt(operationName, attempt, attempts, nextDelay, failure);
+
+        return Mono.delay(nextDelay);
+    }
+
+    private void validateRetryConfiguration(int attempts, Duration[] delays) {
         if (attempts < 1) {
             throw new IllegalArgumentException("attempts must be greater than 0");
         }
@@ -346,37 +378,46 @@ public class ProcedureRetryServiceImpl implements ProcedureRetryService {
                 throw new IllegalArgumentException("delays must not contain null or negative values");
             }
         }
+    }
 
-        return Retry.from(companion ->
-                companion.concatMap(retrySignal -> {
-                    long attempt = retrySignal.totalRetries() + 1;
-                    Throwable failure = retrySignal.failure();
+    private Throwable requireFailure(reactor.util.retry.Retry.RetrySignal retrySignal) {
+        Throwable failure = retrySignal.failure();
+        if (failure == null) {
+            throw new IllegalStateException("Retry failure is null");
+        }
+        return failure;
+    }
 
-                    if (failure == null) {
-                        return Mono.error(new IllegalStateException("Retry failure is null"));
-                    }
+    private Mono<Long> propagateNonRetryableError(String operationName, Throwable failure) {
+        log.warn("[RETRY] Not retrying {} - error is not retryable: {}", operationName, failure.getMessage());
+        return Mono.error(failure);
+    }
 
-                    if (!isRetryableError(failure)) {
-                        log.warn("[RETRY] Not retrying {} - error is not retryable: {}", operationName, failure.getMessage());
-                        return Mono.error(failure);
-                    }
+    private boolean hasExhaustedAttempts(long attempt, int attempts) {
+        return attempt > attempts;
+    }
 
-                    if (attempt > attempts) {
-                        log.error("[RETRY] Retry attempts exhausted for {} after {} attempts. Final error: {}",
-                                operationName, attempts, failure.getMessage());
-                        return Mono.error(failure);
-                    }
+    private Mono<Long> propagateExhaustedRetries(String operationName, int attempts, Throwable failure) {
+        log.error("[RETRY] Retry attempts exhausted for {} after {} attempts. Final error: {}",
+                operationName, attempts, failure.getMessage());
+        return Mono.error(failure);
+    }
 
-                    Duration nextDelay = attempt <= delays.length
-                            ? delays[(int) attempt - 1]
-                            : delays[delays.length - 1];
+    private Duration resolveNextDelay(long attempt, Duration[] delays) {
+        return attempt <= delays.length
+                ? delays[(int) attempt - 1]
+                : delays[delays.length - 1];
+    }
 
-                    log.warn("[RETRY] Retrying {} - attempt {} of {}, next delay: {}, previous failure: {}",
-                            operationName, attempt, attempts, nextDelay, failure.getMessage());
-
-                    return Mono.delay(nextDelay);
-                })
-        );
+    private void logRetryAttempt(
+            String operationName,
+            long attempt,
+            int attempts,
+            Duration nextDelay,
+            Throwable failure
+    ) {
+        log.warn("[RETRY] Retrying {} - attempt {} of {}, next delay: {}, previous failure: {}",
+                operationName, attempt, attempts, nextDelay, failure.getMessage());
     }
 
     private boolean isRetryableError(Throwable throwable) {

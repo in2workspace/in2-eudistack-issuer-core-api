@@ -1,6 +1,6 @@
 package es.in2.issuer.backend.shared.domain.scheduler;
 
-import es.in2.issuer.backend.shared.domain.service.ProcedureRetryService;
+import es.in2.issuer.backend.backoffice.domain.service.ProcedureRetryService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;

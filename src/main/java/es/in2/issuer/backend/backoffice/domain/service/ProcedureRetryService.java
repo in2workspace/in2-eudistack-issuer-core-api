@@ -1,6 +1,5 @@
-package es.in2.issuer.backend.shared.domain.service;
+package es.in2.issuer.backend.backoffice.domain.service;
 
-import es.in2.issuer.backend.shared.domain.model.dto.retry.LabelCredentialDeliveryPayload;
 import es.in2.issuer.backend.shared.domain.model.enums.ActionType;
 import reactor.core.publisher.Mono;
 

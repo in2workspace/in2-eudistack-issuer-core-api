@@ -2,6 +2,7 @@ package es.in2.issuer.backend.shared.application.workflow.impl;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import es.in2.issuer.backend.backoffice.domain.service.ProcedureRetryService;
 import es.in2.issuer.backend.oidc4vci.domain.model.CredentialIssuerMetadata;
 import es.in2.issuer.backend.shared.domain.exception.EmailCommunicationException;
 import es.in2.issuer.backend.shared.domain.exception.FormatUnsupportedException;
@@ -112,7 +113,7 @@ class CredentialIssuanceWorkflowImplTest {
 
         when(verifiableCredentialPolicyAuthorizationService.authorize(eq("token"), eq(LEAR_CREDENTIAL_EMPLOYEE), any(), isNull()))
                 .thenReturn(Mono.empty());
-        when(verifiableCredentialService.generateVc(eq(PROCESS_ID), eq(request), eq(email), eq("token")))
+        when(verifiableCredentialService.generateVc(PROCESS_ID, request, email, "token"))
                 .thenReturn(Mono.just(transactionCode));
         when(appConfig.getIssuerFrontendUrl()).thenReturn(issuerUrl);
         when(appConfig.getKnowledgebaseWalletUrl()).thenReturn(walletUrl);

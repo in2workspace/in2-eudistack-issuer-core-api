@@ -1,4 +1,4 @@
-package es.in2.issuer.backend.shared.infrastructure.repository;
+package es.in2.issuer.backend.backoffice.infrastructure.repository;
 
 import es.in2.issuer.backend.shared.domain.model.entities.ProcedureRetry;
 import es.in2.issuer.backend.shared.domain.model.enums.ActionType;
