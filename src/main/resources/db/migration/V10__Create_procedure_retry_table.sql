@@ -32,8 +32,5 @@ CREATE INDEX IF NOT EXISTS idx_procedure_retry_first_failure ON issuer.procedure
 COMMENT ON TABLE issuer.procedure_retry IS 'Tracks retry attempts for external actions that fail after initial execution';
 COMMENT ON COLUMN issuer.procedure_retry.action_type IS 'Type of action: UPLOAD_LABEL_TO_RESPONSE_URI, etc.';
 COMMENT ON COLUMN issuer.procedure_retry.status IS 'Retry status: PENDING, COMPLETED, RETRY_EXHAUSTED';
-COMMENT ON COLUMN issuer.procedure_retry.attempt_count IS 'Number of scheduler-based retry attempts';
-COMMENT ON COLUMN issuer.procedure_retry.payload IS 'JSON payload with data needed to reconstruct the action';
-COMMENT ON COLUMN issuer.procedure_retry.status IS 'Retry status: PENDING, COMPLETED, RETRY_EXHAUSTED';
 COMMENT ON COLUMN issuer.procedure_retry.attempt_count IS 'Number of scheduler-based retry attempts (not Reactor retries)';
 COMMENT ON COLUMN issuer.procedure_retry.payload IS 'JSON payload with data needed to reconstruct the action';
