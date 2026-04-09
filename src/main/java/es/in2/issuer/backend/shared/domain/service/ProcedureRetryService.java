@@ -14,7 +14,7 @@ public interface ProcedureRetryService {
      * On success: sends success email (non-blocking).
      * On failure after retries: creates retry record, sends failure email once (non-blocking).
      */
-    Mono<Void> handleInitialLabelDelivery(LabelCredentialDeliveryPayload payload, UUID procedureId);
+    Mono<Void> handleInitialAction(UUID procedureId, ActionType actionType, Object payload);
 
     /**
      * Creates a retry record when initial action fails.

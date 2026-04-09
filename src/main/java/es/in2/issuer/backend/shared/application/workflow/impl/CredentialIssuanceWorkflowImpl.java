@@ -9,6 +9,7 @@ import es.in2.issuer.backend.shared.domain.model.dto.credential.lear.employee.LE
 import es.in2.issuer.backend.shared.domain.model.dto.retry.LabelCredentialDeliveryPayload;
 import es.in2.issuer.backend.shared.domain.model.entities.CredentialProcedure;
 import es.in2.issuer.backend.shared.domain.model.entities.DeferredCredentialMetadata;
+import es.in2.issuer.backend.shared.domain.model.enums.ActionType;
 import es.in2.issuer.backend.shared.domain.model.enums.CredentialType;
 import es.in2.issuer.backend.shared.domain.service.*;
 import es.in2.issuer.backend.shared.domain.util.JwtUtils;
@@ -395,8 +396,8 @@ public class CredentialIssuanceWorkflowImpl implements CredentialIssuanceWorkflo
                                                         .credentialId(credentialId)
                                                         .companyEmail(credentialProcedure.getEmail())
                                                         .build();
-                                                return procedureRetryService.handleInitialLabelDelivery(
-                                                        payload, updatedCredentialProcedure.getProcedureId());
+                                                return procedureRetryService.handleInitialAction(updatedCredentialProcedure.getProcedureId(), ActionType.UPLOAD_LABEL_TO_RESPONSE_URI,
+                                                        payload);
                                             });
                                 }
 

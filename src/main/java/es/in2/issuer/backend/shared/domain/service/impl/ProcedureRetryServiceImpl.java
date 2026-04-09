@@ -56,14 +56,29 @@ public class ProcedureRetryServiceImpl implements ProcedureRetryService {
     // ──────────────────────────────────────────────────────────────────────
 
     @Override
-    public Mono<Void> handleInitialLabelDelivery(LabelCredentialDeliveryPayload payload, UUID procedureId) {
+    public Mono<Void> handleInitialAction(UUID procedureId, ActionType actionType, Object payload) {
+        return switch (actionType) {
+            case UPLOAD_LABEL_TO_RESPONSE_URI ->
+                    handleInitialLabelDeliveryAction(
+                            procedureId,
+                            castPayload(payload, LabelCredentialDeliveryPayload.class)
+                    );
+        };
+    }
+
+    private Mono<Void> handleInitialLabelDeliveryAction(
+        UUID procedureId,
+        LabelCredentialDeliveryPayload payload
+    ) {
         return deliverLabelWithImmediateRetries(payload)
                 .flatMap(result -> {
                     log.info("[DELIVERY] Initial delivery succeeded for credId: {}", payload.credentialId());
                     return sendSuccessNotificationSafely(payload.companyEmail(), payload.credentialId(), result);
                 })
                 .onErrorResume(e -> {
-                    log.error("[DELIVERY] Initial delivery failed after all retries for credId: {} - {}", payload.credentialId(), e.getMessage());
+                    log.error("[DELIVERY] Initial delivery failed after all retries for credId: {} - {}",
+                            payload.credentialId(), e.getMessage());
+
                     return createRetryRecord(procedureId, ActionType.UPLOAD_LABEL_TO_RESPONSE_URI, payload)
                             .then(sendInitialFailureNotificationSafely(payload.companyEmail(), payload.credentialId()));
                 });
@@ -357,5 +372,15 @@ public class ProcedureRetryServiceImpl implements ProcedureRetryService {
                     }
                 })
                 .subscribeOn(Schedulers.boundedElastic());
+    }
+
+    private <T> T castPayload(Object payload, Class<T> expectedType) {
+        if (!expectedType.isInstance(payload)) {
+            throw new IllegalArgumentException(
+                    "Invalid payload type. Expected " + expectedType.getSimpleName()
+                            + " but got " + (payload == null ? "null" : payload.getClass().getSimpleName())
+            );
+        }
+        return expectedType.cast(payload);
     }
 }
