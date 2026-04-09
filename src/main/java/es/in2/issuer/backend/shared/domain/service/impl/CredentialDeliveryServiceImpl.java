@@ -25,7 +25,7 @@ public class CredentialDeliveryServiceImpl implements CredentialDeliveryService 
         ResponseUriRequest responseUriRequest = ResponseUriRequest.builder()
                 .encodedVc(encodedVc)
                 .build();
-        log.info("[RESPONSE-URI] Starting PATCH request to: {} for credId: {}", responseUri, credId);
+        log.debug("[RESPONSE-URI] Starting PATCH request to: {} for credId: {}", responseUri, credId);
 
         return webClient.commonWebClient()
                 .patch()
@@ -34,19 +34,19 @@ public class CredentialDeliveryServiceImpl implements CredentialDeliveryService 
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + bearerToken)
                 .bodyValue(responseUriRequest)
                 .exchangeToMono(response -> {
-                    log.info("[RESPONSE-URI] Received response: {} from {}", response.statusCode(), responseUri);
+                    log.debug("[RESPONSE-URI] Received response: {} from {}", response.statusCode(), responseUri);
                     if (response.statusCode().is2xxSuccessful()) {
                         if (HttpStatus.ACCEPTED.equals(response.statusCode())) {
-                            log.info("[RESPONSE-URI] SUCCESS: Received 202 ACCEPTED from response_uri for credId: {}", credId);
+                            log.debug("[RESPONSE-URI] SUCCESS: Received 202 ACCEPTED from response_uri for credId: {}", credId);
                             return response.bodyToMono(String.class)
                                     .map(ResponseUriDeliveryResult::acceptedWithHtml)
                                     .defaultIfEmpty(ResponseUriDeliveryResult.success());
                         }
-                        log.info("[RESPONSE-URI] SUCCESS: Received {} from response_uri for credId: {}", response.statusCode(), credId);
+                        log.debug("[RESPONSE-URI] SUCCESS: Received {} from response_uri for credId: {}", response.statusCode(), credId);
                         return Mono.just(ResponseUriDeliveryResult.success());
                     } else {
                         int statusCode = response.statusCode().value();
-                        log.error("[RESPONSE-URI] FAILURE: Non-2xx status code received: {} from {} for credId: {}",
+                        log.debug("[RESPONSE-URI] FAILURE: Non-2xx status code received: {} from {} for credId: {}",
                                 response.statusCode(), responseUri, credId);
                         return Mono.error(new ResponseUriDeliveryException(
                                 "Failed to upload credential to response URI: " + response.statusCode(),

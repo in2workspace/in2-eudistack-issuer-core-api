@@ -1,4 +1,3 @@
--- Create procedure_retry table for retry mechanism
 CREATE TABLE IF NOT EXISTS issuer.procedure_retry (
     id uuid PRIMARY KEY UNIQUE DEFAULT uuid_generate_v4(),
     procedure_id uuid NOT NULL,
@@ -12,23 +11,19 @@ CREATE TABLE IF NOT EXISTS issuer.procedure_retry (
     updated_at TIMESTAMPTZ DEFAULT NOW(),
     created_by VARCHAR(320),
     updated_by VARCHAR(320),
-    
-    -- Foreign key constraint to credential_procedure
+
     CONSTRAINT fk_procedure_retry_procedure_id 
         FOREIGN KEY (procedure_id) 
         REFERENCES issuer.credential_procedure(procedure_id) 
         ON DELETE CASCADE,
-    
-    -- Unique constraint to prevent duplicate retry records for the same action
+
     CONSTRAINT uk_procedure_retry_procedure_action 
         UNIQUE (procedure_id, action_type)
 );
 
--- Create indexes for performance
 CREATE INDEX IF NOT EXISTS idx_procedure_retry_status ON issuer.procedure_retry(status);
 CREATE INDEX IF NOT EXISTS idx_procedure_retry_first_failure ON issuer.procedure_retry(first_failure_at);
 
--- Add comments for documentation
 COMMENT ON TABLE issuer.procedure_retry IS 'Tracks retry attempts for external actions that fail after initial execution';
 COMMENT ON COLUMN issuer.procedure_retry.action_type IS 'Type of action: UPLOAD_LABEL_TO_RESPONSE_URI, etc.';
 COMMENT ON COLUMN issuer.procedure_retry.status IS 'Retry status: PENDING, COMPLETED, RETRY_EXHAUSTED';
