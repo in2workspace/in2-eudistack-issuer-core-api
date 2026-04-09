@@ -251,8 +251,10 @@ class ProcedureRetryServiceImplTest {
     }
 
     @Test
-    void handleInitialAction_retryableError_401_allRetriesExhausted() {
-        WebClientResponseException unauthorized = WebClientResponseException.create(401, "Unauthorized", null, null, null);
+    void handleInitialAction_nonRetryableError_401_createsRetryRecordAndSendsFailureNotification() {
+        WebClientResponseException unauthorized =
+                WebClientResponseException.create(401, "Unauthorized", null, null, null);
+
         when(m2mTokenService.getM2MToken()).thenReturn(Mono.just(M2M_TOKEN));
         when(credentialDeliveryService.deliverLabelToResponseUri(any(), any(), any(), any()))
                 .thenReturn(Mono.error(unauthorized));
@@ -260,18 +262,26 @@ class ProcedureRetryServiceImplTest {
         when(appConfig.getKnowledgeBaseUploadCertificationGuideUrl()).thenReturn(GUIDE_URL);
         when(emailService.sendResponseUriFailed(any(), any(), any())).thenReturn(Mono.empty());
 
-        StepVerifier.withVirtualTime(() ->
-                        service.handleInitialAction(PROCEDURE_ID, ActionType.UPLOAD_LABEL_TO_RESPONSE_URI, buildPayload()))
-                .expectSubscription()
-                .thenAwait(Duration.ofMinutes(21))
+        StepVerifier.create(
+                        service.handleInitialAction(
+                                PROCEDURE_ID,
+                                ActionType.UPLOAD_LABEL_TO_RESPONSE_URI,
+                                buildPayload()
+                        )
+                )
                 .verifyComplete();
 
-        verify(credentialDeliveryService, times(4)).deliverLabelToResponseUri(any(), any(), any(), any());
+        verify(m2mTokenService, times(1)).getM2MToken();
+        verify(credentialDeliveryService, times(1)).deliverLabelToResponseUri(any(), any(), any(), any());
+        verify(procedureRetryRepository, times(1)).upsert(any());
+        verify(emailService, times(1)).sendResponseUriFailed(any(), any(), any());
     }
 
     @Test
-    void handleInitialAction_retryableError_403_allRetriesExhausted() {
-        WebClientResponseException forbidden = WebClientResponseException.create(403, "Forbidden", null, null, null);
+    void handleInitialAction_nonRetryableError_403_createsRetryRecordAndSendsFailureNotification() {
+        WebClientResponseException forbidden =
+                WebClientResponseException.create(403, "Forbidden", null, null, null);
+
         when(m2mTokenService.getM2MToken()).thenReturn(Mono.just(M2M_TOKEN));
         when(credentialDeliveryService.deliverLabelToResponseUri(any(), any(), any(), any()))
                 .thenReturn(Mono.error(forbidden));
@@ -279,13 +289,19 @@ class ProcedureRetryServiceImplTest {
         when(appConfig.getKnowledgeBaseUploadCertificationGuideUrl()).thenReturn(GUIDE_URL);
         when(emailService.sendResponseUriFailed(any(), any(), any())).thenReturn(Mono.empty());
 
-        StepVerifier.withVirtualTime(() ->
-                        service.handleInitialAction(PROCEDURE_ID, ActionType.UPLOAD_LABEL_TO_RESPONSE_URI, buildPayload()))
-                .expectSubscription()
-                .thenAwait(Duration.ofMinutes(21))
+        StepVerifier.create(
+                        service.handleInitialAction(
+                                PROCEDURE_ID,
+                                ActionType.UPLOAD_LABEL_TO_RESPONSE_URI,
+                                buildPayload()
+                        )
+                )
                 .verifyComplete();
 
-        verify(credentialDeliveryService, times(4)).deliverLabelToResponseUri(any(), any(), any(), any());
+        verify(m2mTokenService, times(1)).getM2MToken();
+        verify(credentialDeliveryService, times(1)).deliverLabelToResponseUri(any(), any(), any(), any());
+        verify(procedureRetryRepository, times(1)).upsert(any());
+        verify(emailService, times(1)).sendResponseUriFailed(any(), any(), any());
     }
 
     @Test

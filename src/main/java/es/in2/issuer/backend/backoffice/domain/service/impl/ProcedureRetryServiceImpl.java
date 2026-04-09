@@ -425,9 +425,7 @@ public class ProcedureRetryServiceImpl implements ProcedureRetryService {
             int statusCode = ex.getStatusCode().value();
             return ex.getStatusCode().is5xxServerError()
                     || statusCode == 408
-                    || statusCode == 429
-                    || statusCode == 401
-                    || statusCode == 403;
+                    || statusCode == 429;
         }
 
         if (throwable instanceof ResponseUriDeliveryException ex) {
