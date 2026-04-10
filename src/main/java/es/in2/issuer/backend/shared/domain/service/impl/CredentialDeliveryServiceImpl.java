@@ -43,15 +43,15 @@ public class CredentialDeliveryServiceImpl implements CredentialDeliveryService 
                                     .defaultIfEmpty(ResponseUriDeliveryResult.success());
                         }
                         log.debug("[RESPONSE-URI] SUCCESS: Received {} from response_uri for credId: {}", response.statusCode(), credId);
-                        return Mono.just(ResponseUriDeliveryResult.success());
+                        return response.releaseBody().thenReturn(ResponseUriDeliveryResult.success());
                     } else {
                         int statusCode = response.statusCode().value();
                         log.debug("[RESPONSE-URI] FAILURE: Non-2xx status code received: {} from {} for credId: {}",
                                 response.statusCode(), responseUri, credId);
-                        return Mono.error(new ResponseUriDeliveryException(
+                        return response.releaseBody().then(Mono.error(new ResponseUriDeliveryException(
                                 "Failed to upload credential to response URI: " + response.statusCode(),
                                 statusCode, responseUri, credId
-                        ));
+                        )));
                     }
                 });
     }
