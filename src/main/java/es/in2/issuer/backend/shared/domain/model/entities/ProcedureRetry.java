@@ -17,7 +17,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @ToString
 @Table("issuer.procedure_retry")
-public class ProcedureRetry {
+public class ProcedureRetry extends AuditableEntity{
 
     @Id
     @Column("id")
@@ -44,21 +44,4 @@ public class ProcedureRetry {
     @Column("payload")
     private String payload;
 
-    // --- Auditing fields (R2DBC auditing will fill these) ---
-    @CreatedDate
-    @Column("created_at")
-    private Instant createdAt;
-
-    @LastModifiedDate
-    @Column("updated_at")
-    private Instant updatedAt;
-
-    @CreatedBy
-    @Column("created_by")
-    private String createdBy;
-
-    @LastModifiedBy
-    @Column("updated_by")
-    private String updatedBy;
-    // --------------------------------------------------------
 }

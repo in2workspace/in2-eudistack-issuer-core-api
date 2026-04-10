@@ -18,7 +18,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @ToString
 @Table("issuer.credential_procedure")
-public class CredentialProcedure {
+public class CredentialProcedure extends AuditableEntity{
     @Id
     @Column("procedure_id")
     private UUID procedureId;
@@ -60,22 +60,4 @@ public class CredentialProcedure {
     @Column("notification_id")
     private UUID notificationId;
 
-
-    // --- Auditing fields (R2DBC auditing will fill these) ---
-    @CreatedDate
-    @Column("created_at")
-    private Instant createdAt;
-
-    @LastModifiedDate
-    @Column("updated_at")
-    private Instant updatedAt;
-
-    @CreatedBy
-    @Column("created_by")
-    private String createdBy;
-
-    @LastModifiedBy
-    @Column("updated_by")
-    private String updatedBy;
-    // --------------------------------------------------------
 }
