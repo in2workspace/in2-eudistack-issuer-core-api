@@ -175,8 +175,6 @@ public class ProcedureRetryServiceImpl implements ProcedureRetryService {
                                 .attemptCount(0)
                                 .firstFailureAt(Instant.now())
                                 .payload(payloadJson)
-                                .createdAt(Instant.now())
-                                .updatedAt(Instant.now())
                                 .build();
                     } catch (Exception e) {
                         log.error("[RETRY] Error serializing payload for procedureId={}: {}", procedureId, e.getMessage(), e);
