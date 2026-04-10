@@ -243,7 +243,7 @@ class ProcedureRetryServiceImplTest {
         StepVerifier.withVirtualTime(() ->
                         service.handleInitialAction(PROCEDURE_ID, ActionType.UPLOAD_LABEL_TO_RESPONSE_URI, buildPayload()))
                 .expectSubscription()
-                .thenAwait(Duration.ofMinutes(1))   // delay after retry 1
+                .thenAwait(Duration.ofMinutes(2))   // delay after retry 2
                 .thenAwait(Duration.ofMinutes(5))   // delay after retry 2
                 .thenAwait(Duration.ofMinutes(15))  // delay after retry 3
                 .verifyComplete();
@@ -320,7 +320,7 @@ class ProcedureRetryServiceImplTest {
         StepVerifier.withVirtualTime(() ->
                         service.handleInitialAction(PROCEDURE_ID, ActionType.UPLOAD_LABEL_TO_RESPONSE_URI, buildPayload()))
                 .expectSubscription()
-                .thenAwait(Duration.ofMinutes(21))
+                .thenAwait(Duration.ofMinutes(22))
                 .verifyComplete();
 
         verify(credentialDeliveryService, times(4)).deliverLabelToResponseUri(any(), any(), any(), any());
@@ -339,7 +339,7 @@ class ProcedureRetryServiceImplTest {
         StepVerifier.withVirtualTime(() ->
                         service.handleInitialAction(PROCEDURE_ID, ActionType.UPLOAD_LABEL_TO_RESPONSE_URI, buildPayload()))
                 .expectSubscription()
-                .thenAwait(Duration.ofMinutes(21))
+                .thenAwait(Duration.ofMinutes(22))
                 .verifyComplete();
 
         verify(credentialDeliveryService, times(4)).deliverLabelToResponseUri(any(), any(), any(), any());
@@ -358,7 +358,7 @@ class ProcedureRetryServiceImplTest {
         StepVerifier.withVirtualTime(() ->
                         service.handleInitialAction(PROCEDURE_ID, ActionType.UPLOAD_LABEL_TO_RESPONSE_URI, buildPayload()))
                 .expectSubscription()
-                .thenAwait(Duration.ofMinutes(21))
+                .thenAwait(Duration.ofMinutes(22))
                 .verifyComplete();
 
         verify(credentialDeliveryService, times(4)).deliverLabelToResponseUri(any(), any(), any(), any());
@@ -377,7 +377,7 @@ class ProcedureRetryServiceImplTest {
         StepVerifier.withVirtualTime(() ->
                         service.handleInitialAction(PROCEDURE_ID, ActionType.UPLOAD_LABEL_TO_RESPONSE_URI, buildPayload()))
                 .expectSubscription()
-                .thenAwait(Duration.ofMinutes(21))
+                .thenAwait(Duration.ofMinutes(22))
                 .verifyComplete();
 
         verify(credentialDeliveryService, times(4)).deliverLabelToResponseUri(any(), any(), any(), any());
@@ -397,7 +397,7 @@ class ProcedureRetryServiceImplTest {
         StepVerifier.withVirtualTime(() ->
                         service.handleInitialAction(PROCEDURE_ID, ActionType.UPLOAD_LABEL_TO_RESPONSE_URI, buildPayload()))
                 .expectSubscription()
-                .thenAwait(Duration.ofMinutes(21))
+                .thenAwait(Duration.ofMinutes(22))
                 .verifyComplete();
 
         verify(credentialDeliveryService, times(4)).deliverLabelToResponseUri(any(), any(), any(), any());
@@ -416,7 +416,7 @@ class ProcedureRetryServiceImplTest {
         StepVerifier.withVirtualTime(() ->
                         service.handleInitialAction(PROCEDURE_ID, ActionType.UPLOAD_LABEL_TO_RESPONSE_URI, buildPayload()))
                 .expectSubscription()
-                .thenAwait(Duration.ofMinutes(21))
+                .thenAwait(Duration.ofMinutes(22))
                 .verifyComplete();
 
         verify(credentialDeliveryService, times(4)).deliverLabelToResponseUri(any(), any(), any(), any());
@@ -467,7 +467,7 @@ class ProcedureRetryServiceImplTest {
         StepVerifier.withVirtualTime(() ->
                         service.handleInitialAction(PROCEDURE_ID, ActionType.UPLOAD_LABEL_TO_RESPONSE_URI, buildPayload()))
                 .expectSubscription()
-                .thenAwait(Duration.ofMinutes(1)) // retry 1 delay
+                .thenAwait(Duration.ofMinutes(2)) // retry 2 delay
                 .verifyComplete();
 
         verify(credentialDeliveryService, times(2)).deliverLabelToResponseUri(any(), any(), any(), any());
