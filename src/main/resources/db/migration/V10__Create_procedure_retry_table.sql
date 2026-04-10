@@ -7,10 +7,6 @@ CREATE TABLE IF NOT EXISTS issuer.procedure_retry (
     last_attempt_at TIMESTAMPTZ,
     first_failure_at TIMESTAMPTZ NOT NULL,
     payload TEXT,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW(),
-    created_by VARCHAR(320),
-    updated_by VARCHAR(320),
 
     CONSTRAINT fk_procedure_retry_procedure_id 
         FOREIGN KEY (procedure_id) 
