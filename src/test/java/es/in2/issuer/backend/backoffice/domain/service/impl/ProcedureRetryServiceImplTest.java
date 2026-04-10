@@ -1,6 +1,9 @@
 package es.in2.issuer.backend.backoffice.domain.service.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import es.in2.issuer.backend.shared.domain.exception.ProcedureRetryRecordNotFoundException;
+import es.in2.issuer.backend.shared.domain.exception.InvalidRetryStatusException;
+import es.in2.issuer.backend.shared.domain.exception.RetryPayloadException;
 import es.in2.issuer.backend.shared.domain.exception.ResponseUriDeliveryException;
 import es.in2.issuer.backend.shared.domain.model.dto.ResponseUriDeliveryResult;
 import es.in2.issuer.backend.shared.domain.model.dto.VerifierOauth2AccessToken;
@@ -211,15 +214,15 @@ class ProcedureRetryServiceImplTest {
     }
 
     @Test
-    void handleInitialAction_invalidPayloadType_throwsIllegalArgument() {
+    void handleInitialAction_invalidPayloadType_throwsRetryPayloadException() {
         // castPayload() throws synchronously (not via Mono.error) – assertThrows is the right approach
-        assertThrows(IllegalArgumentException.class, () ->
+        assertThrows(RetryPayloadException.class, () ->
                 service.handleInitialAction(PROCEDURE_ID, ActionType.UPLOAD_LABEL_TO_RESPONSE_URI, "not-a-valid-payload"));
     }
 
     @Test
-    void handleInitialAction_nullPayload_throwsIllegalArgument() {
-        assertThrows(IllegalArgumentException.class, () ->
+    void handleInitialAction_nullPayload_throwsRetryPayloadException() {
+        assertThrows(RetryPayloadException.class, () ->
                 service.handleInitialAction(PROCEDURE_ID, ActionType.UPLOAD_LABEL_TO_RESPONSE_URI, null));
     }
 
@@ -650,18 +653,18 @@ class ProcedureRetryServiceImplTest {
     // ──────────────────────────────────────────────────────────────────────
 
     @Test
-    void retryAction_recordNotFound_throwsIllegalArgument() {
+    void retryAction_recordNotFound_throwsProcedureRetryRecordNotFound() {
         when(procedureRetryRepository.findByProcedureIdAndActionType(PROCEDURE_ID, ActionType.UPLOAD_LABEL_TO_RESPONSE_URI))
                 .thenReturn(Mono.empty());
 
         StepVerifier.create(service.retryAction(PROCEDURE_ID, ActionType.UPLOAD_LABEL_TO_RESPONSE_URI))
-                .expectErrorMatches(e -> e instanceof IllegalArgumentException
+                .expectErrorMatches(e -> e instanceof ProcedureRetryRecordNotFoundException
                         && e.getMessage().contains("No retry record found"))
                 .verify();
     }
 
     @Test
-    void retryAction_recordInCompletedStatus_throwsIllegalArgument() {
+    void retryAction_recordInCompletedStatus_throwsInvalidRetryStatus() {
         ProcedureRetry completed = ProcedureRetry.builder()
                 .id(UUID.randomUUID()).procedureId(PROCEDURE_ID)
                 .actionType(ActionType.UPLOAD_LABEL_TO_RESPONSE_URI)
@@ -670,13 +673,13 @@ class ProcedureRetryServiceImplTest {
                 .thenReturn(Mono.just(completed));
 
         StepVerifier.create(service.retryAction(PROCEDURE_ID, ActionType.UPLOAD_LABEL_TO_RESPONSE_URI))
-                .expectErrorMatches(e -> e instanceof IllegalArgumentException
+                .expectErrorMatches(e -> e instanceof InvalidRetryStatusException
                         && e.getMessage().contains("not in PENDING status"))
                 .verify();
     }
 
     @Test
-    void retryAction_recordExhausted_throwsIllegalArgument() {
+    void retryAction_recordExhausted_throwsInvalidRetryStatus() {
         ProcedureRetry exhausted = ProcedureRetry.builder()
                 .id(UUID.randomUUID()).procedureId(PROCEDURE_ID)
                 .actionType(ActionType.UPLOAD_LABEL_TO_RESPONSE_URI)
@@ -685,7 +688,7 @@ class ProcedureRetryServiceImplTest {
                 .thenReturn(Mono.just(exhausted));
 
         StepVerifier.create(service.retryAction(PROCEDURE_ID, ActionType.UPLOAD_LABEL_TO_RESPONSE_URI))
-                .expectErrorMatches(e -> e instanceof IllegalArgumentException
+                .expectErrorMatches(e -> e instanceof InvalidRetryStatusException
                         && e.getMessage().contains("not in PENDING status"))
                 .verify();
     }

@@ -2,6 +2,10 @@ package es.in2.issuer.backend.backoffice.domain.service.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import es.in2.issuer.backend.backoffice.domain.service.ProcedureRetryService;
+import es.in2.issuer.backend.shared.domain.exception.ProcedureRetryRecordNotFoundException;
+import es.in2.issuer.backend.shared.domain.exception.InvalidRetryStatusException;
+import es.in2.issuer.backend.shared.domain.exception.RetryPayloadException;
+import es.in2.issuer.backend.shared.domain.exception.RetryConfigurationException;
 import es.in2.issuer.backend.shared.domain.exception.ResponseUriDeliveryException;
 import es.in2.issuer.backend.shared.domain.model.dto.ResponseUriDeliveryResult;
 import es.in2.issuer.backend.shared.domain.model.dto.retry.LabelCredentialDeliveryPayload;
@@ -176,7 +180,7 @@ public class ProcedureRetryServiceImpl implements ProcedureRetryService {
                                 .build();
                     } catch (Exception e) {
                         log.error("[RETRY] Error serializing payload for procedureId={}: {}", procedureId, e.getMessage(), e);
-                        throw new RuntimeException("Failed to serialize retry payload", e);
+                        throw new RetryPayloadException("Failed to serialize retry payload", e);
                     }
                 })
                 .subscribeOn(Schedulers.boundedElastic())
@@ -198,9 +202,9 @@ public class ProcedureRetryServiceImpl implements ProcedureRetryService {
     @Override
     public Mono<Void> retryAction(UUID procedureId, ActionType actionType) {
         return procedureRetryRepository.findByProcedureIdAndActionType(procedureId, actionType)
-                .switchIfEmpty(Mono.error(new IllegalArgumentException("No retry record found for procedure " + procedureId + " and action " + actionType)))
+                .switchIfEmpty(Mono.error(new ProcedureRetryRecordNotFoundException("No retry record found for procedure " + procedureId + " and action " + actionType)))
                 .filter(retryRecord -> retryRecord.getStatus() == RetryStatus.PENDING)
-                .switchIfEmpty(Mono.error(new IllegalArgumentException("Retry record is not in PENDING status")))
+                .switchIfEmpty(Mono.error(new InvalidRetryStatusException("Retry record is not in PENDING status")))
                 .flatMap(this::executeRetryAction);
     }
 
@@ -365,14 +369,14 @@ public class ProcedureRetryServiceImpl implements ProcedureRetryService {
 
     private void validateRetryConfiguration(int attempts, Duration[] delays) {
         if (attempts < 1) {
-            throw new IllegalArgumentException("attempts must be greater than 0");
+            throw new RetryConfigurationException("attempts must be greater than 0");
         }
         if (delays == null || delays.length == 0) {
-            throw new IllegalArgumentException("delays must contain at least one value");
+            throw new RetryConfigurationException("delays must contain at least one value");
         }
         for (Duration delay : delays) {
             if (delay == null || delay.isNegative()) {
-                throw new IllegalArgumentException("delays must not contain null or negative values");
+                throw new RetryConfigurationException("delays must not contain null or negative values");
             }
         }
     }
@@ -380,7 +384,7 @@ public class ProcedureRetryServiceImpl implements ProcedureRetryService {
     private Throwable requireFailure(reactor.util.retry.Retry.RetrySignal retrySignal) {
         Throwable failure = retrySignal.failure();
         if (failure == null) {
-            throw new IllegalStateException("Retry failure is null");
+            throw new RetryConfigurationException("Retry failure is null");
         }
         return failure;
     }
@@ -447,7 +451,7 @@ public class ProcedureRetryServiceImpl implements ProcedureRetryService {
                         return objectMapper.readValue(retryRecord.getPayload(), LabelCredentialDeliveryPayload.class);
                     } catch (Exception e) {
                         log.error("[RETRY] Error deserializing retry payload for procedure {}: {}", retryRecord.getProcedureId(), e.getMessage(), e);
-                        throw new RuntimeException("Failed to deserialize retry payload", e);
+                        throw new RetryPayloadException("Failed to deserialize retry payload", e);
                     }
                 })
                 .subscribeOn(Schedulers.boundedElastic());
@@ -455,7 +459,7 @@ public class ProcedureRetryServiceImpl implements ProcedureRetryService {
 
     private <T> T castPayload(Object payload, Class<T> expectedType) {
         if (!expectedType.isInstance(payload)) {
-            throw new IllegalArgumentException(
+            throw new RetryPayloadException(
                     "Invalid payload type. Expected " + expectedType.getSimpleName()
                             + " but got " + (payload == null ? "null" : payload.getClass().getSimpleName())
             );
