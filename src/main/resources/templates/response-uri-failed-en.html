@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Certification Submission Failed</title>
+  <title>Certification in the Marketplace Failed</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -51,21 +51,21 @@
 <body>
 <div class="container">
   <div class="header">
-    <h1>The certification submission to the Marketplace has failed</h1>
+    <h1>The certification in the Marketplace has failed</h1>
   </div>
   <div class="content">
     <p>
-      The certification could not be sent for credential ID:
+      The credential with ID:
       <span th:text="${productId}">PRODUCT ID</span>
-      to the Marketplace.
+      could not be sent to the Marketplace.
       <br/>
-      To manually add the certification to your products, please follow this guide:
+      During the next few days, the system will try to add the certification to the product. To manually add the certification to the product, please refer to the following guide:
       <br/>
       <a th:href="${guideUrl}" target="_blank">Click here to view the guide</a>
     </p>
   </div>
   <div class="footer">
-    <p>This is an automated message. Please do not reply to this email.</p>
+    <p>This is an automated message. Please do not reply.</p>
   </div>
 </div>
 </body>
