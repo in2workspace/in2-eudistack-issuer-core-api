@@ -800,5 +800,116 @@ class CredentialSignerWorkflowImplTest {
         verify(credentialProcedureService).getCredentialId(updatedProcedure);
         // handleInitialAction is called synchronously (before .subscribe()) so it is recorded by Mockito
         verify(procedureRetryService).handleInitialAction(any(UUID.class), eq(ActionType.UPLOAD_LABEL_TO_RESPONSE_URI), any());
+        // Verify async email flow was triggered (lenient because fire-and-forget may not complete)
+        verify(deferredCredentialMetadataService, timeout(1000)).getTransactionCodeByProcedureId(procedureId);
+    }
+
+    @Test
+    void retrySignUnsignedCredential_LabelCredential_emailSendingFailure_doesNotBlockMainFlow() {
+        CredentialProcedure initialProcedure = mock(CredentialProcedure.class);
+        when(initialProcedure.getCredentialType()).thenReturn(LABEL_CREDENTIAL_TYPE);
+        when(initialProcedure.getCredentialStatus()).thenReturn(CredentialStatusEnum.PEND_SIGNATURE);
+
+        CredentialProcedure updatedProcedure = mock(CredentialProcedure.class);
+        when(updatedProcedure.getCredentialType()).thenReturn(LABEL_CREDENTIAL_TYPE);
+        when(updatedProcedure.getEmail()).thenReturn("company@example.com");
+
+        when(accessTokenService.getCleanBearerToken(authorizationHeader)).thenReturn(Mono.just(token));
+        when(backofficePdpService.validateSignCredential(processId, token, procedureId)).thenReturn(Mono.empty());
+        when(accessTokenService.getMandateeEmail(authorizationHeader)).thenReturn(Mono.just(email));
+
+        when(credentialProcedureRepository.findByProcedureId(UUID.fromString(procedureId)))
+                .thenReturn(Mono.just(initialProcedure), Mono.just(updatedProcedure));
+
+        when(issuerFactory.createSimpleIssuerAndNotifyOnError(procedureId, email)).thenReturn(Mono.just(simpleIssuer));
+        when(labelCredentialFactory.mapIssuer(procedureId, simpleIssuer)).thenReturn(Mono.just("bindedVc"));
+        when(credentialProcedureService.updateDecodedCredentialByProcedureId(procedureId, "bindedVc", JWT_VC))
+                .thenReturn(Mono.empty());
+
+        doReturn(Mono.just("signedVc")).when(credentialSignerWorkflow).signAndUpdateCredentialByProcedureId(token, procedureId, JWT_VC);
+        when(credentialProcedureService.updateCredentialProcedureCredentialStatusToValidByProcedureId(procedureId))
+                .thenReturn(Mono.empty());
+        when(credentialProcedureRepository.save(any())).thenReturn(Mono.just(updatedProcedure));
+
+        // Email sending fails - should not block main flow
+        when(deferredCredentialMetadataService.getTransactionCodeByProcedureId(procedureId))
+                .thenReturn(Mono.error(new RuntimeException("Email service unavailable")));
+
+        when(deferredCredentialMetadataService.getResponseUriByProcedureId(procedureId))
+                .thenReturn(Mono.just("https://response.example.com/callback"));
+        when(credentialProcedureService.getCredentialId(updatedProcedure)).thenReturn(Mono.just("cred-id-123"));
+        when(procedureRetryService.handleInitialAction(any(UUID.class), eq(ActionType.UPLOAD_LABEL_TO_RESPONSE_URI), any()))
+                .thenReturn(Mono.empty());
+
+        // Main flow should complete even if email sending fails
+        StepVerifier.create(credentialSignerWorkflow.retrySignUnsignedCredential(processId, authorizationHeader, procedureId))
+                .verifyComplete();
+
+        verify(deferredCredentialMetadataService).getResponseUriByProcedureId(procedureId);
+        verify(procedureRetryService).handleInitialAction(any(UUID.class), eq(ActionType.UPLOAD_LABEL_TO_RESPONSE_URI), any());
+    }
+
+    @Test
+    void retrySignUnsignedCredential_LabelCredential_fullEmailFlow_sendsCredentialActivationEmail() throws InterruptedException {
+        CredentialProcedure initialProcedure = mock(CredentialProcedure.class);
+        when(initialProcedure.getCredentialType()).thenReturn(LABEL_CREDENTIAL_TYPE);
+        when(initialProcedure.getCredentialStatus()).thenReturn(CredentialStatusEnum.PEND_SIGNATURE);
+
+        CredentialProcedure updatedProcedure = mock(CredentialProcedure.class);
+        when(updatedProcedure.getCredentialType()).thenReturn(LABEL_CREDENTIAL_TYPE);
+        when(updatedProcedure.getEmail()).thenReturn("company@example.com");
+
+        when(accessTokenService.getCleanBearerToken(authorizationHeader)).thenReturn(Mono.just(token));
+        when(backofficePdpService.validateSignCredential(processId, token, procedureId)).thenReturn(Mono.empty());
+        when(accessTokenService.getMandateeEmail(authorizationHeader)).thenReturn(Mono.just(email));
+
+        when(credentialProcedureRepository.findByProcedureId(UUID.fromString(procedureId)))
+                .thenReturn(Mono.just(initialProcedure), Mono.just(updatedProcedure));
+
+        when(issuerFactory.createSimpleIssuerAndNotifyOnError(procedureId, email)).thenReturn(Mono.just(simpleIssuer));
+        when(labelCredentialFactory.mapIssuer(procedureId, simpleIssuer)).thenReturn(Mono.just("bindedVc"));
+        when(credentialProcedureService.updateDecodedCredentialByProcedureId(procedureId, "bindedVc", JWT_VC))
+                .thenReturn(Mono.empty());
+
+        doReturn(Mono.just("signedVc")).when(credentialSignerWorkflow).signAndUpdateCredentialByProcedureId(token, procedureId, JWT_VC);
+        when(credentialProcedureService.updateCredentialProcedureCredentialStatusToValidByProcedureId(procedureId))
+                .thenReturn(Mono.empty());
+        when(credentialProcedureRepository.save(any())).thenReturn(Mono.just(updatedProcedure));
+
+        // Full email flow mocks
+        when(deferredCredentialMetadataService.getTransactionCodeByProcedureId(procedureId))
+                .thenReturn(Mono.just("trans-code-123"));
+        when(appConfig.getIssuerFrontendUrl()).thenReturn("https://issuer.example.com");
+        when(appConfig.getKnowledgebaseWalletUrl()).thenReturn("https://wallet.example.com");
+        when(appConfig.getSysTenant()).thenReturn("sys-tenant");
+        when(emailService.sendCredentialActivationEmail(
+                eq("company@example.com"),
+                anyString(),
+                contains("trans-code-123"),
+                eq("https://wallet.example.com"),
+                eq("sys-tenant")
+        )).thenReturn(Mono.empty());
+
+        when(deferredCredentialMetadataService.getResponseUriByProcedureId(procedureId))
+                .thenReturn(Mono.just("https://response.example.com/callback"));
+        when(credentialProcedureService.getCredentialId(updatedProcedure)).thenReturn(Mono.just("cred-id-123"));
+        when(procedureRetryService.handleInitialAction(any(UUID.class), eq(ActionType.UPLOAD_LABEL_TO_RESPONSE_URI), any()))
+                .thenReturn(Mono.empty());
+
+        StepVerifier.create(credentialSignerWorkflow.retrySignUnsignedCredential(processId, authorizationHeader, procedureId))
+                .verifyComplete();
+
+        // Wait briefly for async operations
+        Thread.sleep(100);
+
+        // Verify email flow was executed
+        verify(deferredCredentialMetadataService, timeout(1000)).getTransactionCodeByProcedureId(procedureId);
+        verify(emailService, timeout(1000)).sendCredentialActivationEmail(
+                eq("company@example.com"),
+                anyString(),
+                contains("trans-code-123"),
+                eq("https://wallet.example.com"),
+                eq("sys-tenant")
+        );
     }
 }

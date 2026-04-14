@@ -819,4 +819,48 @@ class CredentialProcedureServiceImplTest {
         verify(appConfig, times(1)).getSysTenant();
     }
 
+    @Test
+    void updateCredentialStatusToPendSignature_shouldUpdateStatus_whenProcedureExists() {
+        // Given
+        String procedureId = UUID.randomUUID().toString();
+        CredentialProcedure credentialProcedure = new CredentialProcedure();
+        credentialProcedure.setProcedureId(UUID.fromString(procedureId));
+        credentialProcedure.setCredentialStatus(CredentialStatusEnum.DRAFT);
+
+        when(credentialProcedureRepository.findByProcedureId(UUID.fromString(procedureId)))
+                .thenReturn(Mono.just(credentialProcedure));
+        when(credentialProcedureRepository.save(any(CredentialProcedure.class)))
+                .thenReturn(Mono.just(credentialProcedure));
+
+        // When
+        Mono<Void> result = credentialProcedureService.updateCredentialStatusToPendSignature(procedureId);
+
+        // Then
+        StepVerifier.create(result)
+                .verifyComplete();
+
+        verify(credentialProcedureRepository, times(1)).findByProcedureId(UUID.fromString(procedureId));
+        verify(credentialProcedureRepository, times(1)).save(credentialProcedure);
+        assertEquals(CredentialStatusEnum.PEND_SIGNATURE, credentialProcedure.getCredentialStatus());
+    }
+
+    @Test
+    void updateCredentialStatusToPendSignature_shouldCompleteEmpty_whenProcedureNotFound() {
+        // Given
+        String procedureId = UUID.randomUUID().toString();
+
+        when(credentialProcedureRepository.findByProcedureId(UUID.fromString(procedureId)))
+                .thenReturn(Mono.empty());
+
+        // When
+        Mono<Void> result = credentialProcedureService.updateCredentialStatusToPendSignature(procedureId);
+
+        // Then
+        StepVerifier.create(result)
+                .verifyComplete();
+
+        verify(credentialProcedureRepository, times(1)).findByProcedureId(UUID.fromString(procedureId));
+        verify(credentialProcedureRepository, never()).save(any(CredentialProcedure.class));
+    }
+
 }

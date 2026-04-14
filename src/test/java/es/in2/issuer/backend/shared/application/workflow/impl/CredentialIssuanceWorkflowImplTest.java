@@ -6,12 +6,18 @@ import es.in2.issuer.backend.backoffice.domain.service.ProcedureRetryService;
 import es.in2.issuer.backend.oidc4vci.domain.model.CredentialIssuerMetadata;
 import es.in2.issuer.backend.shared.domain.exception.EmailCommunicationException;
 import es.in2.issuer.backend.shared.domain.exception.FormatUnsupportedException;
+import es.in2.issuer.backend.shared.domain.exception.RemoteSignatureException;
 import es.in2.issuer.backend.shared.domain.model.dto.*;
 import es.in2.issuer.backend.shared.domain.model.entities.CredentialProcedure;
+import es.in2.issuer.backend.shared.domain.model.dto.credential.SimpleIssuer;
 import es.in2.issuer.backend.shared.domain.model.enums.ActionType;
+import es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum;
 import es.in2.issuer.backend.shared.domain.service.*;
 import es.in2.issuer.backend.shared.domain.util.JwtUtils;
+import es.in2.issuer.backend.shared.domain.util.factory.IssuerFactory;
+import es.in2.issuer.backend.shared.domain.util.factory.LabelCredentialFactory;
 import es.in2.issuer.backend.shared.domain.util.factory.LEARCredentialEmployeeFactory;
+import es.in2.issuer.backend.shared.application.workflow.CredentialSignerWorkflow;
 import es.in2.issuer.backend.shared.infrastructure.config.AppConfig;
 import es.in2.issuer.backend.shared.infrastructure.config.security.service.VerifiableCredentialPolicyAuthorizationService;
 import org.junit.jupiter.api.Test;
@@ -23,6 +29,7 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import javax.naming.OperationNotSupportedException;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -47,6 +54,9 @@ class CredentialIssuanceWorkflowImplTest {
     @Mock private CredentialIssuerMetadataService credentialIssuerMetadataService;
     @Mock private ProcedureRetryService procedureRetryService;
     @Mock private JwtUtils jwtUtils;
+    @Mock private CredentialSignerWorkflow credentialSignerWorkflow;
+    @Mock private IssuerFactory issuerFactory;
+    @Mock private LabelCredentialFactory labelCredentialFactory;
 
     @InjectMocks
     private CredentialIssuanceWorkflowImpl workflow;
@@ -325,5 +335,269 @@ class CredentialIssuanceWorkflowImplTest {
                 .verify();
 
         verifyNoInteractions(procedureRetryService);
+    }
+
+    // ──────────────────────────────────────────────────────────────────────
+    // execute() – label credential issuance paths
+    // ──────────────────────────────────────────────────────────────────────
+
+    @Test
+    void execute_labelCredential_success_triggersParallelDelivery() {
+        String email = "company@example.com";
+        String transactionCode = "tx-label-123";
+        String signedCredential = "signed.jwt.credential";
+        String credentialId = "cred-id-456";
+        String responseUri = "https://response.example.com/callback";
+        String issuerUrl = "https://issuer.example.com";
+        String walletUrl = "https://wallet.example.com";
+        String sysTenant = "SysTenant";
+
+        PreSubmittedCredentialDataRequest request = PreSubmittedCredentialDataRequest.builder()
+                .schema(LABEL_CREDENTIAL).format(JWT_VC_JSON).operationMode(SYNC)
+                .email(email).payload(null).build();
+
+        CredentialProcedure proc = mock(CredentialProcedure.class);
+        when(proc.getEmail()).thenReturn(email);
+
+        SimpleIssuer simpleIssuer = mock(SimpleIssuer.class);
+
+        when(verifiableCredentialPolicyAuthorizationService.authorize(eq("token"), eq(LABEL_CREDENTIAL), any(), eq("idToken")))
+                .thenReturn(Mono.empty());
+        when(verifiableCredentialService.generateVc(PROCESS_ID, request, email, "token"))
+                .thenReturn(Mono.just(transactionCode));
+        when(appConfig.getSysTenant()).thenReturn(sysTenant);
+        when(appConfig.getIssuerFrontendUrl()).thenReturn(issuerUrl);
+        when(appConfig.getKnowledgebaseWalletUrl()).thenReturn(walletUrl);
+        
+        // handleLabelCredentialIssuance mocks
+        when(deferredCredentialMetadataService.getProcedureIdByTransactionCode(transactionCode))
+                .thenReturn(Mono.just(PROCEDURE_ID));
+        when(issuerFactory.createSimpleIssuerAndNotifyOnError(PROCEDURE_ID, email))
+                .thenReturn(Mono.just(simpleIssuer));
+        when(labelCredentialFactory.mapIssuer(eq(PROCEDURE_ID), any(SimpleIssuer.class)))
+                .thenReturn(Mono.just("boundCredentialJson"));
+        when(credentialProcedureService.updateDecodedCredentialByProcedureId(PROCEDURE_ID, "boundCredentialJson"))
+                .thenReturn(Mono.empty());
+        when(credentialSignerWorkflow.signAndUpdateCredentialByProcedureId("token", PROCEDURE_ID, JWT_VC))
+                .thenReturn(Mono.just(signedCredential));
+        when(credentialProcedureService.updateCredentialProcedureCredentialStatusToValidByProcedureId(PROCEDURE_ID))
+                .thenReturn(Mono.empty());
+        when(credentialProcedureService.getCredentialProcedureById(PROCEDURE_ID))
+                .thenReturn(Mono.just(proc));
+        
+        // triggerLabelCredentialParallelDelivery mocks
+        when(emailService.sendCredentialActivationEmail(anyString(), anyString(), anyString(), anyString(), anyString()))
+                .thenReturn(Mono.empty());
+        when(deferredCredentialMetadataService.getResponseUriByProcedureId(PROCEDURE_ID))
+                .thenReturn(Mono.just(responseUri));
+        when(credentialProcedureService.getCredentialId(proc))
+                .thenReturn(Mono.just(credentialId));
+        when(procedureRetryService.handleInitialAction(any(UUID.class), eq(ActionType.UPLOAD_LABEL_TO_RESPONSE_URI), any()))
+                .thenReturn(Mono.empty());
+
+        StepVerifier.create(workflow.execute(PROCESS_ID, request, "token", "idToken"))
+                .verifyComplete();
+
+        verify(credentialSignerWorkflow).signAndUpdateCredentialByProcedureId("token", PROCEDURE_ID, JWT_VC);
+        verify(credentialProcedureService).updateCredentialProcedureCredentialStatusToValidByProcedureId(PROCEDURE_ID);
+    }
+
+    @Test
+    void execute_labelCredential_noResponseUri_stillCompletes() {
+        String email = "company@example.com";
+        String transactionCode = "tx-label-123";
+        String signedCredential = "signed.jwt.credential";
+        String issuerUrl = "https://issuer.example.com";
+        String walletUrl = "https://wallet.example.com";
+        String sysTenant = "SysTenant";
+
+        PreSubmittedCredentialDataRequest request = PreSubmittedCredentialDataRequest.builder()
+                .schema(LABEL_CREDENTIAL).format(JWT_VC_JSON).operationMode(SYNC)
+                .email(email).payload(null).build();
+
+        CredentialProcedure proc = mock(CredentialProcedure.class);
+        lenient().when(proc.getEmail()).thenReturn(email);
+
+        SimpleIssuer simpleIssuer = mock(SimpleIssuer.class);
+
+        when(verifiableCredentialPolicyAuthorizationService.authorize(eq("token"), eq(LABEL_CREDENTIAL), any(), eq("idToken")))
+                .thenReturn(Mono.empty());
+        when(verifiableCredentialService.generateVc(PROCESS_ID, request, email, "token"))
+                .thenReturn(Mono.just(transactionCode));
+        when(appConfig.getSysTenant()).thenReturn(sysTenant);
+        lenient().when(appConfig.getIssuerFrontendUrl()).thenReturn(issuerUrl);
+        lenient().when(appConfig.getKnowledgebaseWalletUrl()).thenReturn(walletUrl);
+        
+        when(deferredCredentialMetadataService.getProcedureIdByTransactionCode(transactionCode))
+                .thenReturn(Mono.just(PROCEDURE_ID));
+        when(issuerFactory.createSimpleIssuerAndNotifyOnError(PROCEDURE_ID, email))
+                .thenReturn(Mono.just(simpleIssuer));
+        when(labelCredentialFactory.mapIssuer(eq(PROCEDURE_ID), any(SimpleIssuer.class)))
+                .thenReturn(Mono.just("boundCredentialJson"));
+        when(credentialProcedureService.updateDecodedCredentialByProcedureId(PROCEDURE_ID, "boundCredentialJson"))
+                .thenReturn(Mono.empty());
+        when(credentialSignerWorkflow.signAndUpdateCredentialByProcedureId("token", PROCEDURE_ID, JWT_VC))
+                .thenReturn(Mono.just(signedCredential));
+        when(credentialProcedureService.updateCredentialProcedureCredentialStatusToValidByProcedureId(PROCEDURE_ID))
+                .thenReturn(Mono.empty());
+        when(credentialProcedureService.getCredentialProcedureById(PROCEDURE_ID))
+                .thenReturn(Mono.just(proc));
+        
+        lenient().when(emailService.sendCredentialActivationEmail(anyString(), anyString(), anyString(), anyString(), anyString()))
+                .thenReturn(Mono.empty());
+        // No response URI available
+        when(deferredCredentialMetadataService.getResponseUriByProcedureId(PROCEDURE_ID))
+                .thenReturn(Mono.empty());
+
+        StepVerifier.create(workflow.execute(PROCESS_ID, request, "token", "idToken"))
+                .verifyComplete();
+
+        verifyNoInteractions(procedureRetryService);
+    }
+
+    @Test
+    void execute_labelCredential_signingFails_throwsRemoteSignatureException() {
+        String email = "company@example.com";
+        String transactionCode = "tx-label-123";
+        String sysTenant = "SysTenant";
+
+        PreSubmittedCredentialDataRequest request = PreSubmittedCredentialDataRequest.builder()
+                .schema(LABEL_CREDENTIAL).format(JWT_VC_JSON).operationMode(SYNC)
+                .email(email).payload(null).build();
+
+        SimpleIssuer simpleIssuer = mock(SimpleIssuer.class);
+
+        when(verifiableCredentialPolicyAuthorizationService.authorize(eq("token"), eq(LABEL_CREDENTIAL), any(), eq("idToken")))
+                .thenReturn(Mono.empty());
+        when(verifiableCredentialService.generateVc(PROCESS_ID, request, email, "token"))
+                .thenReturn(Mono.just(transactionCode));
+        when(appConfig.getSysTenant()).thenReturn(sysTenant);
+        
+        when(deferredCredentialMetadataService.getProcedureIdByTransactionCode(transactionCode))
+                .thenReturn(Mono.just(PROCEDURE_ID));
+        when(issuerFactory.createSimpleIssuerAndNotifyOnError(PROCEDURE_ID, email))
+                .thenReturn(Mono.just(simpleIssuer));
+        when(labelCredentialFactory.mapIssuer(eq(PROCEDURE_ID), any(SimpleIssuer.class)))
+                .thenReturn(Mono.just("boundCredentialJson"));
+        when(credentialProcedureService.updateDecodedCredentialByProcedureId(PROCEDURE_ID, "boundCredentialJson"))
+                .thenReturn(Mono.empty());
+        // Signing fails
+        when(credentialSignerWorkflow.signAndUpdateCredentialByProcedureId("token", PROCEDURE_ID, JWT_VC))
+                .thenReturn(Mono.error(new RuntimeException("Remote signer unavailable")));
+        when(credentialProcedureService.updateCredentialStatusToPendSignature(PROCEDURE_ID))
+                .thenReturn(Mono.empty());
+
+        StepVerifier.create(workflow.execute(PROCESS_ID, request, "token", "idToken"))
+                .expectErrorMatches(e -> e instanceof RemoteSignatureException
+                        && e.getMessage().contains("Label credential signing failed"))
+                .verify();
+
+        verify(credentialProcedureService).updateCredentialStatusToPendSignature(PROCEDURE_ID);
+    }
+
+    // ──────────────────────────────────────────────────────────────────────
+    // generateVerifiableCredentialResponse() – label credential already signed
+    // ──────────────────────────────────────────────────────────────────────
+
+    @Test
+    void generateVerifiableCredentialResponse_labelCredential_alreadySigned_returnsStoredCredential() {
+        String notificationId = "notification-id-123";
+        String encodedCredential = "already.signed.jwt";
+
+        AccessTokenContext ctx = AccessTokenContext.builder()
+                .jti("nonce-abc").procedureId(PROCEDURE_ID)
+                .responseUri(null).rawToken("raw-token").build();
+        CredentialRequest credentialRequest = CredentialRequest.builder().build();
+
+        CredentialProcedure proc = mock(CredentialProcedure.class);
+        when(proc.getCredentialType()).thenReturn(LABEL_CREDENTIAL_TYPE);
+        when(proc.getCredentialStatus()).thenReturn(CredentialStatusEnum.VALID);
+        when(proc.getCredentialEncoded()).thenReturn(encodedCredential);
+
+        when(credentialProcedureService.getCredentialProcedureById(PROCEDURE_ID)).thenReturn(Mono.just(proc));
+        when(credentialProcedureService.getNotificationIdByProcedureId(PROCEDURE_ID)).thenReturn(Mono.just(notificationId));
+
+        StepVerifier.create(workflow.generateVerifiableCredentialResponse(PROCESS_ID, credentialRequest, ctx))
+                .expectNextMatches(response ->
+                        response.notificationId().equals(notificationId)
+                                && response.credentials().size() == 1
+                                && response.credentials().get(0).credential().equals(encodedCredential)
+                )
+                .verifyComplete();
+
+        // Should NOT call buildCredentialResponse since credential is pre-signed
+        verifyNoInteractions(verifiableCredentialService);
+        verifyNoInteractions(credentialIssuerMetadataService);
+    }
+
+    @Test
+    void generateVerifiableCredentialResponse_labelCredential_notYetSigned_proceedsWithNormalFlow() {
+        AccessTokenContext ctx = AccessTokenContext.builder()
+                .jti("nonce-abc").procedureId(PROCEDURE_ID)
+                .responseUri(null).rawToken("raw-token").build();
+        CredentialRequest credentialRequest = CredentialRequest.builder().build();
+
+        // Label credential but NOT VALID status (e.g., DRAFT)
+        CredentialProcedure proc = mock(CredentialProcedure.class);
+        when(proc.getCredentialType()).thenReturn(LABEL_CREDENTIAL_TYPE);
+        when(proc.getCredentialStatus()).thenReturn(CredentialStatusEnum.DRAFT);
+        when(proc.getOperationMode()).thenReturn(SYNC);
+        when(proc.getEmail()).thenReturn(COMPANY_EMAIL);
+        when(proc.getProcedureId()).thenReturn(UUID.fromString(PROCEDURE_ID));
+
+        CredentialIssuerMetadata metadata = buildMetadataForLabelCredential();
+        CredentialResponse credentialResponse = mock(CredentialResponse.class);
+
+        when(credentialProcedureService.getCredentialProcedureById(PROCEDURE_ID)).thenReturn(Mono.just(proc));
+        when(credentialIssuerMetadataService.getCredentialIssuerMetadata(PROCESS_ID)).thenReturn(Mono.just(metadata));
+        when(verifiableCredentialService.buildCredentialResponse(any(), any(), any(), any(), any(), any()))
+                .thenReturn(Mono.just(credentialResponse));
+        when(credentialProcedureService.getCredentialStatusByProcedureId(PROCEDURE_ID)).thenReturn(Mono.just("DRAFT"));
+        when(credentialProcedureService.updateCredentialProcedureCredentialStatusToValidByProcedureId(PROCEDURE_ID))
+                .thenReturn(Mono.empty());
+        when(credentialProcedureService.getDecodedCredentialByProcedureId(PROCEDURE_ID)).thenReturn(Mono.just("decoded"));
+
+        StepVerifier.create(workflow.generateVerifiableCredentialResponse(PROCESS_ID, credentialRequest, ctx))
+                .expectNext(credentialResponse)
+                .verifyComplete();
+
+        // Should call buildCredentialResponse since credential is not yet signed
+        verify(verifiableCredentialService).buildCredentialResponse(any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void generateVerifiableCredentialResponse_labelCredential_validButBlankEncoded_proceedsWithNormalFlow() {
+        AccessTokenContext ctx = AccessTokenContext.builder()
+                .jti("nonce-abc").procedureId(PROCEDURE_ID)
+                .responseUri(null).rawToken("raw-token").build();
+        CredentialRequest credentialRequest = CredentialRequest.builder().build();
+
+        // Label credential with VALID status but blank encoded credential
+        CredentialProcedure proc = mock(CredentialProcedure.class);
+        when(proc.getCredentialType()).thenReturn(LABEL_CREDENTIAL_TYPE);
+        when(proc.getCredentialStatus()).thenReturn(CredentialStatusEnum.VALID);
+        when(proc.getCredentialEncoded()).thenReturn("   "); // blank
+        when(proc.getOperationMode()).thenReturn(SYNC);
+        when(proc.getEmail()).thenReturn(COMPANY_EMAIL);
+        when(proc.getProcedureId()).thenReturn(UUID.fromString(PROCEDURE_ID));
+
+        CredentialIssuerMetadata metadata = buildMetadataForLabelCredential();
+        CredentialResponse credentialResponse = mock(CredentialResponse.class);
+
+        when(credentialProcedureService.getCredentialProcedureById(PROCEDURE_ID)).thenReturn(Mono.just(proc));
+        when(credentialIssuerMetadataService.getCredentialIssuerMetadata(PROCESS_ID)).thenReturn(Mono.just(metadata));
+        when(verifiableCredentialService.buildCredentialResponse(any(), any(), any(), any(), any(), any()))
+                .thenReturn(Mono.just(credentialResponse));
+        when(credentialProcedureService.getCredentialStatusByProcedureId(PROCEDURE_ID)).thenReturn(Mono.just("VALID"));
+        when(credentialProcedureService.updateCredentialProcedureCredentialStatusToValidByProcedureId(PROCEDURE_ID))
+                .thenReturn(Mono.empty());
+        when(credentialProcedureService.getDecodedCredentialByProcedureId(PROCEDURE_ID)).thenReturn(Mono.just("decoded"));
+
+        StepVerifier.create(workflow.generateVerifiableCredentialResponse(PROCESS_ID, credentialRequest, ctx))
+                .expectNext(credentialResponse)
+                .verifyComplete();
+
+        // Should call buildCredentialResponse since encoded credential is blank
+        verify(verifiableCredentialService).buildCredentialResponse(any(), any(), any(), any(), any(), any());
     }
 }
