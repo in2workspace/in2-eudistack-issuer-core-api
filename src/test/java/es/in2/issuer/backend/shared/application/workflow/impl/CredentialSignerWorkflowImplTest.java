@@ -850,7 +850,7 @@ class CredentialSignerWorkflowImplTest {
     }
 
     @Test
-    void retrySignUnsignedCredential_LabelCredential_fullEmailFlow_sendsCredentialActivationEmail() throws InterruptedException {
+    void retrySignUnsignedCredential_LabelCredential_fullEmailFlow_sendsCredentialActivationEmail(){
         CredentialProcedure initialProcedure = mock(CredentialProcedure.class);
         when(initialProcedure.getCredentialType()).thenReturn(LABEL_CREDENTIAL_TYPE);
         when(initialProcedure.getCredentialStatus()).thenReturn(CredentialStatusEnum.PEND_SIGNATURE);
