@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Certification in the Marketplace Failed</title>
+  <title>Certification Submission Failed</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -51,20 +51,25 @@
 <body>
 <div class="container">
   <div class="header">
-    <h1>The certification in the Marketplace has failed</h1>
+    <h1>The product certification has failed</h1>
   </div>
   <div class="content">
     <p>
       The credential with ID:
       <span th:text="${productId}">PRODUCT ID</span>
-      could not be sent to the Marketplace.
+      could not be uploaded to certify the product.
       <br/>
-      During the next few days, the system will try to add the certification to the product. To manually add the certification to the product, please refer to the following guide:
+      Over the next few days, the system will try to add the certification to the product. We will notify you once the process is complete.
       <br/>
-      <a th:href="${guideUrl}" target="_blank">Click here to view the guide</a>
     </p>
   </div>
   <div class="footer">
+    <p>
+      Need assistance? Contact our
+      <a href="https://ticketing.dome-marketplace.eu/" target="_blank" style="color: #224178;">
+        support team
+      </a>.
+    </p>
     <p>This is an automated message. Please do not reply.</p>
   </div>
 </div>

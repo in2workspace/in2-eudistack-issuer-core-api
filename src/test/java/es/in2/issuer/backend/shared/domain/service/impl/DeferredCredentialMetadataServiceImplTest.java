@@ -407,5 +407,38 @@ class DeferredCredentialMetadataServiceImplTest {
                 .verifyComplete();
     }
 
+    @Test
+    void getTransactionCodeByProcedureId_Success() {
+        // Arrange
+        String procedureId = UUID.randomUUID().toString();
+        String expectedTransactionCode = "transaction-code-123";
+        DeferredCredentialMetadata deferredCredentialMetadata = new DeferredCredentialMetadata();
+        deferredCredentialMetadata.setTransactionCode(expectedTransactionCode);
+
+        when(deferredCredentialMetadataRepository.findByProcedureId(UUID.fromString(procedureId)))
+                .thenReturn(Mono.just(deferredCredentialMetadata));
+
+        // Act & Assert
+        StepVerifier.create(deferredCredentialMetadataService.getTransactionCodeByProcedureId(procedureId))
+                .expectNext(expectedTransactionCode)
+                .verifyComplete();
+
+        verify(deferredCredentialMetadataRepository, times(1)).findByProcedureId(UUID.fromString(procedureId));
+    }
+
+    @Test
+    void getTransactionCodeByProcedureId_NotFound() {
+        // Arrange
+        String procedureId = UUID.randomUUID().toString();
+
+        when(deferredCredentialMetadataRepository.findByProcedureId(UUID.fromString(procedureId)))
+                .thenReturn(Mono.empty());
+
+        // Act & Assert
+        StepVerifier.create(deferredCredentialMetadataService.getTransactionCodeByProcedureId(procedureId))
+                .verifyComplete();
+
+        verify(deferredCredentialMetadataRepository, times(1)).findByProcedureId(UUID.fromString(procedureId));
+    }
 
 }

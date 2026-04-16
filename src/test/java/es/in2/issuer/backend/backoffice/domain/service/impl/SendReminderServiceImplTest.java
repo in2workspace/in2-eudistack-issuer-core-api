@@ -24,7 +24,9 @@ import static es.in2.issuer.backend.backoffice.domain.util.Constants.CREDENTIAL_
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.MAIL_ERROR_COMMUNICATION_EXCEPTION_MESSAGE;
 import static es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum.DRAFT;
 import static es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum.PEND_DOWNLOAD;
+import static es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum.VALID;
 import static es.in2.issuer.backend.shared.domain.model.enums.CredentialStatusEnum.WITHDRAWN;
+import static es.in2.issuer.backend.shared.domain.util.Constants.LABEL_CREDENTIAL_TYPE;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -225,6 +227,69 @@ class SendReminderServiceImplTest {
                 .expectError(AccessDeniedException.class)
                 .verify();
 
+        verifyNoInteractions(emailService);
+    }
+
+    @Test
+    void sendReminder_whenValid_andLabelCredentialType_sendsActivationEmail() {
+        // arrange
+        CredentialProcedure credentialProcedure = mock(CredentialProcedure.class);
+        when(credentialProcedure.getCredentialStatus()).thenReturn(VALID);
+        when(credentialProcedure.getCredentialType()).thenReturn(LABEL_CREDENTIAL_TYPE);
+
+        CredentialOfferEmailNotificationInfo emailInfo =
+                new CredentialOfferEmailNotificationInfo(mandateeEmail, organization);
+
+        when(credentialProcedureService.getCredentialProcedureById(procedureId))
+                .thenReturn(Mono.just(credentialProcedure));
+        when(credentialProcedureService.getCredentialOfferEmailInfoByProcedureId(procedureId))
+                .thenReturn(Mono.just(emailInfo));
+        when(deferredCredentialMetadataService.updateTransactionCodeInDeferredCredentialMetadata(procedureId))
+                .thenReturn(Mono.just(transactionCode));
+        when(emailService.sendCredentialActivationEmail(
+                mandateeEmail,
+                CREDENTIAL_ACTIVATION_EMAIL_SUBJECT,
+                issuerUiExternalDomain + "/credential-offer?transaction_code=" + transactionCode,
+                knowledgebaseWalletUrl,
+                organization
+        )).thenReturn(Mono.empty());
+
+        // act
+        var result = sendReminderService.sendReminder(processId, procedureId, bearerToken);
+
+        // assert
+        StepVerifier.create(result).verifyComplete();
+
+        verify(accessTokenService).getCleanBearerToken(bearerToken);
+        verify(backofficePdpService).validateSendReminder(processId, cleanToken, procedureId);
+        verify(emailService, times(1))
+                .sendCredentialActivationEmail(anyString(), anyString(), anyString(), anyString(), anyString());
+        verifyNoMoreInteractions(emailService);
+    }
+
+    @Test
+    void sendReminder_whenValid_andNonLabelCredentialType_doesNotSendEmail() {
+        // arrange
+        CredentialProcedure credentialProcedure = mock(CredentialProcedure.class);
+        when(credentialProcedure.getCredentialStatus()).thenReturn(VALID);
+        when(credentialProcedure.getCredentialType()).thenReturn("LEARCredentialEmployee");
+
+        CredentialOfferEmailNotificationInfo emailInfo =
+                new CredentialOfferEmailNotificationInfo(mandateeEmail, organization);
+
+        when(credentialProcedureService.getCredentialProcedureById(procedureId))
+                .thenReturn(Mono.just(credentialProcedure));
+        when(credentialProcedureService.getCredentialOfferEmailInfoByProcedureId(procedureId))
+                .thenReturn(Mono.just(emailInfo));
+
+        // act
+        var result = sendReminderService.sendReminder(processId, procedureId, bearerToken);
+
+        // assert
+        StepVerifier.create(result).verifyComplete();
+
+        verify(accessTokenService).getCleanBearerToken(bearerToken);
+        verify(backofficePdpService).validateSendReminder(processId, cleanToken, procedureId);
         verifyNoInteractions(emailService);
     }
 

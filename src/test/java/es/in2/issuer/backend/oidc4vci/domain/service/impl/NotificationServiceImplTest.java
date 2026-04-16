@@ -21,6 +21,7 @@ import java.util.UUID;
 
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.CREDENTIAL_STATUS;
 import static es.in2.issuer.backend.backoffice.domain.util.Constants.STATUS_LIST_CREDENTIAL;
+import static es.in2.issuer.backend.shared.domain.util.Constants.LABEL_CREDENTIAL_TYPE;
 import static es.in2.issuer.backend.shared.domain.util.Constants.VC;
 import static org.mockito.Mockito.*;
 
@@ -205,6 +206,23 @@ class NotificationServiceImplTest {
                 })
                 .verify();
 
+        verifyNoInteractions(revocationWorkflow);
+    }
+
+    @Test
+    void handleNotification_deletedEvent_labelCredentialType_shouldSkipRevocation() {
+        when(procedure.getCredentialStatus()).thenReturn(CredentialStatusEnum.VALID);
+        when(procedure.getCredentialType()).thenReturn(LABEL_CREDENTIAL_TYPE);
+
+        when(credentialProcedureService.getCredentialProcedureByNotificationId("nid-1"))
+                .thenReturn(Mono.just(procedure));
+
+        NotificationRequest request = new NotificationRequest("nid-1", NotificationEvent.CREDENTIAL_DELETED, "desc");
+
+        StepVerifier.create(notificationService.handleNotification(processId, request, bearerToken))
+                .verifyComplete();
+
+        verify(credentialProcedureService).getCredentialProcedureByNotificationId("nid-1");
         verifyNoInteractions(revocationWorkflow);
     }
 }

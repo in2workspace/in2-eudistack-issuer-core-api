@@ -113,4 +113,3 @@ public class M2MTokenServiceImpl implements M2MTokenService {
         return new String(vcTokenDecoded);
     }
 }
-

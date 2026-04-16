@@ -45,9 +45,9 @@ public class ProcedureRetryServiceImpl implements ProcedureRetryService {
     // Retry configuration constants
     private static final int INITIAL_RETRY_ATTEMPTS = 3;
     private static final Duration[] INITIAL_RETRY_DELAYS = {
-          Duration.ofMinutes(2),
-          Duration.ofMinutes(5),
-          Duration.ofMinutes(15)
+            Duration.ofMinutes(2),
+            Duration.ofMinutes(5),
+            Duration.ofMinutes(15)
     };
 
     private static final Duration EXHAUSTION_THRESHOLD = Duration.ofDays(14);
@@ -69,8 +69,8 @@ public class ProcedureRetryServiceImpl implements ProcedureRetryService {
     }
 
     private Mono<Void> handleInitialLabelDeliveryAction(
-        UUID procedureId,
-        LabelCredentialDeliveryPayload payload
+            UUID procedureId,
+            LabelCredentialDeliveryPayload payload
     ) {
         return deliverLabelWithImmediateRetries(payload)
                 .flatMap(result -> {
@@ -297,20 +297,20 @@ public class ProcedureRetryServiceImpl implements ProcedureRetryService {
                     }
 
                     return emailService.sendResponseUriExhausted(
-                            payload.companyEmail(), 
-                            payload.credentialId(), 
-                            appConfig.getKnowledgeBaseUploadCertificationGuideUrl()
-                    )
-                    .doOnSuccess(unused -> log.info("[NOTIFICATION] Exhaustion email sent for procedure: {}, credId: {}", 
-                            retryRecord.getProcedureId(), payload.credentialId()))
-                    .onErrorResume(e -> {
-                        log.error("[NOTIFICATION] Failed to send exhaustion email for procedure: {}, credId: {}: {}", 
-                                retryRecord.getProcedureId(), payload.credentialId(), e.getMessage());
-                        return Mono.empty();
-                    });
+                                    payload.companyEmail(),
+                                    payload.credentialId(),
+                                    appConfig.getKnowledgeBaseUploadCertificationGuideUrl()
+                            )
+                            .doOnSuccess(unused -> log.info("[NOTIFICATION] Exhaustion email sent for procedure: {}, credId: {}",
+                                    retryRecord.getProcedureId(), payload.credentialId()))
+                            .onErrorResume(e -> {
+                                log.error("[NOTIFICATION] Failed to send exhaustion email for procedure: {}, credId: {}: {}",
+                                        retryRecord.getProcedureId(), payload.credentialId(), e.getMessage());
+                                return Mono.empty();
+                            });
                 })
                 .onErrorResume(e -> {
-                    log.error("[NOTIFICATION] Failed to deserialize payload for exhaustion notification, procedure: {}: {}", 
+                    log.error("[NOTIFICATION] Failed to deserialize payload for exhaustion notification, procedure: {}: {}",
                             retryRecord.getProcedureId(), e.getMessage());
                     return Mono.empty();
                 });
