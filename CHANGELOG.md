@@ -6,7 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [v2.2.21](https://github.com/in2workspace/in2-issuer-api/releases/tag/v2.2.21)
 ### Changed
-- Modify issuance policy validations to enforce that non-admins can only include `ProductOffering` powers in the LEARCredentialMachine, and to enforce that there is always at least one power included.
+- Modify LEARCredentialMachine issuance policy validations to enforce that non-admins can only include `ProductOffering`.
+- Modify LEARCredentialEmployee and LEARCredentialMachine issuance to enforce that there is always at least one power included for all users.
 
 ## [v2.2.20](https://github.com/in2workspace/in2-issuer-api/releases/tag/v2.2.20)
 ### Changed
