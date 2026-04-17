@@ -320,7 +320,7 @@ class VerifiableCredentialPolicyAuthorizationServiceImplTest {
         StepVerifier.create(result)
                 .expectErrorMatches(throwable ->
                         throwable instanceof InsufficientPermissionException &&
-                                throwable.getMessage().contains("Unauthorized: VerifiableCertification does not meet the issuance policy."))
+                                throwable.getMessage().contains("Unauthorized: Label Credential does not meet the issuance policy."))
                 .verify();
     }
 
